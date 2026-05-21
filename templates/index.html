@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WechatAI Formatter</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f5f5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: #333;
+  }
+
+  /* ===== 顶部工具栏 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    flex-shrink: 0;
+  }
+  header .logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a73e8;
+    margin-right: auto;
+  }
+  header button,
+  header select {
+    padding: 6px 14px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    color: #333;
+  }
+  header button:hover { background: #f0f0f0; }
+  header select { min-width: 160px; }
+
+  /* ===== 主区域 ===== */
+  .main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* ===== 左面板 ===== */
+  .left-panel {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e0e0e0;
+    background: #fff;
+  }
+  .left-panel textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 20px;
+    font-size: 15px;
+    line-height: 1.8;
+    font-family: inherit;
+    color: #333;
+  }
+  .left-panel textarea::placeholder {
+    color: #bbb;
+  }
+
+  /* ===== 右面板 ===== */
+  .right-panel {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+  }
+  .preview-toolbar {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fafafa;
+    flex-shrink: 0;
+  }
+  .preview-toolbar button {
+    padding: 4px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .preview-toolbar button.active {
+    background: #1a73e8;
+    color: #fff;
+    border-color: #1a73e8;
+  }
+  #preview-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  #preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  #phone-frame {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: #e8e8e8;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  #phone-frame.visible { display: flex; }
+  .phone-shell {
+    width: 375px;
+    height: 720px;
+    background: #1a1a1a;
+    border-radius: 36px;
+    padding: 10px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.25), inset 0 0 4px rgba(255,255,255,0.1);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 26px;
+    background: #1a1a1a;
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    border-radius: 26px;
+    overflow: hidden;
+  }
+  #phone-preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  /* ===== 底部操作栏 ===== */
+  footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    flex-shrink: 0;
+  }
+  footer button {
+    padding: 8px 20px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    color: #333;
+  }
+  footer button:hover { background: #f0f0f0; }
+  footer button.primary {
+    background: #1a73e8;
+    color: #fff;
+    border-color: #1a73e8;
+  }
+  footer button.primary:hover { background: #1557b0; }
+
+  /* ===== 弹窗 ===== */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  .modal.hidden { display: none; }
+  .modal-content {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px;
+    width: 520px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-content h3 {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  .modal-content label {
+    display: block;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  .modal-content select,
+  .modal-content textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .modal-content textarea { min-height: 80px; resize: vertical; }
+  .modal-content img { display: block; margin: 8px 0; border-radius: 8px; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  .modal-actions button {
+    padding: 8px 20px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .modal-actions button.primary {
+    background: #1a73e8;
+    color: #fff;
+    border-color: #1a73e8;
+  }
+
+  /* ===== 加载指示器 ===== */
+  .loading-indicator {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    font-size: 12px;
+    color: #999;
+    z-index: 10;
+  }
+  .loading-indicator.visible { display: block; }
+
+  /* ===== 渲染错误提示 ===== */
+  .render-error {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    font-size: 12px;
+    color: #e53935;
+    z-index: 10;
+    max-width: 280px;
+    word-break: break-all;
+  }
+  .render-error.visible { display: block; }
+
+  /* ===== AI 优化指示器 ===== */
+  #ai-indicator {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: auto;
+    user-select: none;
+  }
+  #ai-indicator.visible { display: flex; }
+  #ai-indicator:hover { background: #c8e6c9; }
+
+  /* ===== 润色弹窗 ===== */
+  .polish-style-group {
+    display: flex;
+    gap: 16px;
+  }
+  .radio-label {
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #333;
+    margin: 0 !important;
+  }
+  .radio-label input[type="radio"] {
+    accent-color: #1a73e8;
+  }
+
+  /* ===== Toast ===== */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+  #toast.success { background: #2e7d32; }
+  #toast.error { background: #c62828; }
+
+  /* ===== 历史记录 ===== */
+  .history-list { max-height: 360px; overflow-y: auto; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .history-item:hover { background: #e8edf5; }
+  .history-item .hist-info { flex: 1; min-width: 0; }
+  .history-item .hist-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-item .hist-meta {
+    font-size: 12px;
+    color: #999;
+    margin-top: 3px;
+  }
+  .history-item .hist-account {
+    font-size: 11px;
+    background: #e0e7ff;
+    color: #1a73e8;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-left: 10px;
+  }
+  .history-empty { text-align: center; color: #bbb; padding: 40px 0; font-size: 14px; }
+
+  /* ===== 公众号管理 ===== */
+  .account-list { margin: 8px 0; }
+  .account-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .account-item .acct-name { font-weight: 600; }
+  .account-item .acct-appid { color: #999; font-size: 12px; margin-left: 8px; }
+  .account-item button {
+    padding: 2px 10px;
+    font-size: 12px;
+    border: 1px solid #e53935;
+    color: #e53935;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-sm {
+    padding: 4px 12px !important;
+    font-size: 13px !important;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部工具栏 ===== -->
+<header>
+  <span class="logo">WechatAI Formatter</span>
+  <button id="btn-settings">⚙️ 设置</button>
+  <label style="display:flex;align-items:center;gap:4px;font-size:14px;color:#666;">
+    模板：<select id="theme-select"><option value="">加载中...</option></select>
+  </label>
+  <label style="display:flex;align-items:center;gap:4px;font-size:14px;color:#666;">
+    公众号：<select id="account-select"><option value="">未配置</option></select>
+  </label>
+</header>
+
+<!-- ===== 主区域 ===== -->
+<div class="main-container">
+  <div class="left-panel">
+    <textarea id="input-area" placeholder="在此粘贴纯文本..."></textarea>
+  </div>
+  <div class="right-panel">
+    <div class="preview-toolbar">
+      <button id="btn-full-preview" class="active">完整HTML</button>
+      <button id="btn-phone-preview">📱 手机预览</button>
+      <span id="ai-indicator">AI 已优化 ✅</span>
+    </div>
+    <div id="preview-container">
+      <span id="loading-indicator" class="loading-indicator">渲染中...</span>
+      <span id="render-error" class="render-error"></span>
+      <iframe id="preview-frame" sandbox="allow-same-origin"></iframe>
+      <div id="phone-frame">
+        <div class="phone-shell">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <iframe id="phone-preview-frame" sandbox="allow-same-origin"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 底部操作栏 ===== -->
+<footer>
+  <button id="btn-polish">✨ AI 润色</button>
+  <button id="btn-copy">📋 复制</button>
+  <button id="btn-history">📁 历史</button>
+  <button id="btn-push" class="primary">📤 一键推送</button>
+</footer>
+
+<!-- ===== 推送弹窗 ===== -->
+<div id="push-modal" class="modal hidden">
+  <div class="modal-content" style="width:560px;">
+    <h3>推送到草稿箱</h3>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <label style="margin:0;">选择公众号</label>
+      <button id="btn-manage-accounts" class="btn-sm" style="color:#1a73e8;border-color:#1a73e8;">⚙️ 管理公众号</button>
+    </div>
+    <select id="push-account-select"><option value="">请先配置公众号</option></select>
+
+    <label>摘要（80-100字）</label>
+    <div style="display:flex;gap:8px;">
+      <textarea id="push-summary" placeholder="输入摘要或使用 AI 生成" style="flex:1;min-height:60px;"></textarea>
+    </div>
+    <button id="btn-gen-summary" class="btn-sm" style="margin-top:6px;">🤖 一键生成摘要</button>
+    <span id="summary-loading" style="display:none;font-size:12px;color:#1a73e8;margin-left:8px;">生成中...</span>
+
+    <label>标题图</label>
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <img id="cover-preview" src="" alt="尚未生成" style="width:280px;min-height:100px;background:#f0f0f0;border-radius:8px;object-fit:cover;">
+      <div>
+        <button id="btn-gen-cover" class="btn-sm" style="margin-bottom:4px;">🤖 一键生成标题图</button>
+        <span id="cover-loading" style="display:none;font-size:12px;color:#1a73e8;">生成中...</span>
+        <p style="font-size:11px;color:#999;margin-top:4px;" id="cover-filename-display"></p>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="close-modal">取消</button>
+      <button id="btn-confirm-push" class="primary">📤 确认推送</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 公众号管理弹窗 ===== -->
+<div id="account-mgmt-modal" class="modal hidden">
+  <div class="modal-content" style="width:460px;">
+    <h3>公众号管理</h3>
+    <div id="account-list" class="account-list"><p style="color:#999;font-size:14px;">暂无公众号</p></div>
+    <div style="border-top:1px solid #e0e0e0;padding-top:16px;margin-top:12px;">
+      <label style="margin-top:0;">添加公众号</label>
+      <input id="acct-nickname" placeholder="名称（如：我的技术号）" style="width:100%;padding:8px;border:1px solid #d0d0d0;border-radius:6px;font-size:14px;margin-bottom:8px;">
+      <input id="acct-appid" placeholder="AppID" style="width:100%;padding:8px;border:1px solid #d0d0d0;border-radius:6px;font-size:14px;margin-bottom:8px;">
+      <input id="acct-appsecret" placeholder="AppSecret" style="width:100%;padding:8px;border:1px solid #d0d0d0;border-radius:6px;font-size:14px;margin-bottom:12px;">
+      <button id="btn-add-account" class="primary" style="width:100%;">添加</button>
+    </div>
+    <div class="modal-actions">
+      <button class="close-modal">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toast ===== -->
+<div id="toast"></div>
+
+<!-- ===== AI 润色弹窗 ===== -->
+<div id="polish-modal" class="modal hidden">
+  <div class="modal-content" style="width:720px;">
+    <h3>AI 润色</h3>
+
+    <label>润色风格</label>
+    <div class="polish-style-group">
+      <label class="radio-label"><input type="radio" name="polish-style" value="remove_ai_taste" checked> 去AI味</label>
+      <label class="radio-label"><input type="radio" name="polish-style" value="formal"> 正式</label>
+      <label class="radio-label"><input type="radio" name="polish-style" value="casual"> 轻松</label>
+    </div>
+
+    <div style="display:flex;gap:16px;margin-top:16px;">
+      <div style="flex:1;">
+        <label>原文（只读）</label>
+        <textarea id="polish-original" readonly style="min-height:260px;background:#f9f9f9;"></textarea>
+      </div>
+      <div style="flex:1;">
+        <label id="polish-result-label">润色结果</label>
+        <div style="position:relative;">
+          <textarea id="polish-result" style="min-height:260px;" placeholder="点击「开始润色」生成结果..."></textarea>
+          <span id="polish-loading" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#1a73e8;font-size:14px;">AI 润色中...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="close-modal" id="btn-polish-cancel">取消</button>
+      <button id="btn-start-polish" class="primary">🤖 开始润色</button>
+      <button id="btn-apply-polish" style="display:none;">应用结果</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 历史记录弹窗 ===== -->
+<div id="history-modal" class="modal hidden">
+  <div class="modal-content" style="width:560px;">
+    <h3>推送历史</h3>
+    <div id="history-list" class="history-list">
+      <p class="history-empty">暂无推送记录</p>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-clear-history" style="color:#e53935;border-color:#e53935;margin-right:auto;">清空记录</button>
+      <button class="close-modal">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 设置弹窗 ===== -->
+<div id="settings-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>设置</h3>
+    <label>公众号管理</label>
+    <p style="font-size:13px;color:#999;margin-bottom:8px;">功能开发中...</p>
+    <div class="modal-actions">
+      <button class="close-modal">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 状态 =====
+var currentThemeId = 'bold-blue';
+var currentHtml = '';
+var localHtml = '';
+var optimizedHtml = '';
+var isShowingOptimized = false;
+var renderTimer = null;
+var currentRequestId = null;
+var sseSource = null;
+
+// ===== 加载主题列表 =====
+function loadThemes() {
+  fetch('/api/themes')
+    .then(function(res) { return res.json(); })
+    .then(function(themes) {
+      var sel = document.getElementById('theme-select');
+      sel.innerHTML = '';
+      themes.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        if (t.id === currentThemeId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (themes.length > 0) {
+        currentThemeId = sel.value;
+        triggerRender();
+      }
+    })
+    .catch(function(err) {
+      console.error('load themes failed:', err);
+    });
+}
+
+// ===== 渲染 =====
+function doRender(text, themeId) {
+  var loading = document.getElementById('loading-indicator');
+  var errEl = document.getElementById('render-error');
+  loading.classList.add('visible');
+  errEl.classList.remove('visible');
+  errEl.textContent = '';
+
+  closeSSE();
+  optimizedHtml = '';
+  isShowingOptimized = false;
+  document.getElementById('ai-indicator').classList.remove('visible');
+
+  fetch('/api/render', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw_text: text, theme_id: themeId })
+  })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      loading.classList.remove('visible');
+      if (data.html) {
+        localHtml = data.html;
+        updateAllPreviews(data.html);
+        if (!data.is_optimized && data.request_id) {
+          startSSE(data.request_id);
+        }
+      } else if (data.error) {
+        errEl.textContent = data.error;
+        errEl.classList.add('visible');
+      }
+    })
+    .catch(function(err) {
+      loading.classList.remove('visible');
+      errEl.textContent = 'render failed: ' + err.message;
+      errEl.classList.add('visible');
+    });
+}
+
+function updateAllPreviews(html) {
+  currentHtml = html;
+  document.getElementById('preview-frame').srcdoc = html;
+  if (document.getElementById('phone-frame').classList.contains('visible')) {
+    document.getElementById('phone-preview-frame').srcdoc = html;
+  }
+}
+
+// ===== SSE: LLM 优化结果流 =====
+function closeSSE() {
+  if (sseSource) {
+    sseSource.close();
+    sseSource = null;
+  }
+  currentRequestId = null;
+}
+
+function startSSE(requestId) {
+  closeSSE();
+  currentRequestId = requestId;
+  sseSource = new EventSource('/api/optimize-stream?request_id=' + encodeURIComponent(requestId));
+
+  sseSource.onmessage = function(event) {
+    var data;
+    try { data = JSON.parse(event.data); } catch(e) { return; }
+
+    if (data.status === 'done') {
+      optimizedHtml = data.html;
+      showAIIndicator();
+      closeSSE();
+    } else if (data.status === 'failed' || data.status === 'timeout') {
+      closeSSE();
+    }
+  };
+
+  sseSource.onerror = function() {
+    closeSSE();
+  };
+}
+
+function showAIIndicator() {
+  document.getElementById('ai-indicator').classList.add('visible');
+  switchToOptimized();
+}
+
+function switchToOptimized() {
+  if (!optimizedHtml) return;
+  updateAllPreviews(optimizedHtml);
+  isShowingOptimized = true;
+  document.getElementById('ai-indicator').textContent = 'AI 已优化 ✅ (点击回退)';
+}
+
+function switchToLocal() {
+  if (!localHtml) return;
+  updateAllPreviews(localHtml);
+  isShowingOptimized = false;
+  document.getElementById('ai-indicator').textContent = 'AI 已优化 ✅';
+}
+
+function triggerRender() {
+  var text = document.getElementById('input-area').value;
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(function() {
+    doRender(text, currentThemeId);
+  }, 400);
+}
+
+// ===== 事件绑定 =====
+document.getElementById('input-area').addEventListener('input', triggerRender);
+
+document.getElementById('theme-select').addEventListener('change', function() {
+  currentThemeId = this.value;
+  triggerRender();
+});
+
+// ===== 预览模式切换 =====
+document.getElementById('btn-full-preview').addEventListener('click', function() {
+  this.classList.add('active');
+  document.getElementById('btn-phone-preview').classList.remove('active');
+  document.getElementById('phone-frame').classList.remove('visible');
+});
+document.getElementById('btn-phone-preview').addEventListener('click', function() {
+  this.classList.add('active');
+  document.getElementById('btn-full-preview').classList.remove('active');
+  document.getElementById('phone-frame').classList.add('visible');
+  // 同步手机预览
+  var frame = document.getElementById('phone-preview-frame');
+  frame.srcdoc = currentHtml;
+});
+
+// ===== AI 优化指示器 =====
+document.getElementById('ai-indicator').addEventListener('click', function() {
+  if (!this.classList.contains('visible')) return;
+  if (isShowingOptimized) {
+    switchToLocal();
+  } else {
+    switchToOptimized();
+  }
+});
+
+// ===== AI 润色 =====
+document.getElementById('btn-polish').addEventListener('click', function() {
+  var text = document.getElementById('input-area').value.trim();
+  if (!text) {
+    alert('请先在左侧输入文本');
+    return;
+  }
+  document.getElementById('polish-original').value = text;
+  document.getElementById('polish-result').value = '';
+  document.getElementById('polish-loading').style.display = 'none';
+  document.getElementById('btn-apply-polish').style.display = 'none';
+  document.getElementById('btn-start-polish').style.display = '';
+  document.getElementById('polish-result-label').textContent = '润色结果';
+  document.querySelector('input[name="polish-style"][value="remove_ai_taste"]').checked = true;
+  document.getElementById('polish-modal').classList.remove('hidden');
+});
+
+document.getElementById('btn-start-polish').addEventListener('click', function() {
+  var original = document.getElementById('polish-original').value.trim();
+  var style = document.querySelector('input[name="polish-style"]:checked').value;
+
+  var loading = document.getElementById('polish-loading');
+  var resultArea = document.getElementById('polish-result');
+  loading.style.display = 'block';
+  resultArea.value = '';
+
+  fetch('/api/polish', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: original, style: style })
+  })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      loading.style.display = 'none';
+      if (data.success) {
+        resultArea.value = data.polished_text;
+        document.getElementById('btn-apply-polish').style.display = '';
+        document.getElementById('btn-start-polish').style.display = 'none';
+        document.getElementById('polish-result-label').textContent = '润色结果（可编辑）';
+      } else {
+        alert('润色失败: ' + (data.error || '未知错误'));
+      }
+    })
+    .catch(function(err) {
+      loading.style.display = 'none';
+      alert('润色请求失败: ' + err.message);
+    });
+});
+
+document.getElementById('btn-apply-polish').addEventListener('click', function() {
+  var polished = document.getElementById('polish-result').value;
+  if (!polished.trim()) {
+    alert('没有可应用的润色结果');
+    return;
+  }
+  var inputArea = document.getElementById('input-area');
+  inputArea.value = polished;
+  inputArea.dispatchEvent(new Event('input', { bubbles: true }));
+  document.getElementById('polish-modal').classList.add('hidden');
+});
+
+document.getElementById('btn-polish-cancel').addEventListener('click', function() {
+  document.getElementById('polish-modal').classList.add('hidden');
+});
+
+// ===== 弹窗通用 =====
+document.querySelectorAll('.close-modal').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    this.closest('.modal').classList.add('hidden');
+  });
+});
+
+document.getElementById('btn-settings').addEventListener('click', function() {
+  document.getElementById('settings-modal').classList.remove('hidden');
+});
+
+document.querySelectorAll('.modal').forEach(function(modal) {
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+});
+
+// ===== 复制到剪贴板 =====
+document.getElementById('btn-copy').addEventListener('click', function() {
+  if (!currentHtml) { showToast('请先输入文本并等待渲染', 'error'); return; }
+  try {
+    var blob = new Blob([currentHtml], {type: 'text/html'});
+    var item = new ClipboardItem({'text/html': blob});
+    navigator.clipboard.write([item]).then(function() {
+      showToast('已复制', 'success');
+    }).catch(function() {
+      // fallback: 纯文本
+      navigator.clipboard.writeText(currentHtml).then(function() {
+        showToast('已复制（纯文本）', 'success');
+      }).catch(function() {
+        showToast('复制失败', 'error');
+      });
+    });
+  } catch(e) {
+    navigator.clipboard.writeText(currentHtml).then(function() {
+      showToast('已复制', 'success');
+    }).catch(function() {
+      showToast('复制失败', 'error');
+    });
+  }
+});
+
+// ===== 历史记录 =====
+var HISTORY_KEY = 'wechatai_history';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveHistory(records) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(records.slice(0, 20)));
+}
+
+function addHistoryRecord(title, accountName, articleText) {
+  var records = loadHistory();
+  records.unshift({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    title: title,
+    account: accountName,
+    text: articleText,
+    time: new Date().toISOString()
+  });
+  saveHistory(records);
+}
+
+function renderHistoryList() {
+  var records = loadHistory();
+  var container = document.getElementById('history-list');
+  if (!records.length) {
+    container.innerHTML = '<p class="history-empty">暂无推送记录</p>';
+    return;
+  }
+  container.innerHTML = records.map(function(r) {
+    var t = new Date(r.time);
+    var timeStr = t.getFullYear() + '-' +
+      String(t.getMonth() + 1).padStart(2, '0') + '-' +
+      String(t.getDate()).padStart(2, '0') + ' ' +
+      String(t.getHours()).padStart(2, '0') + ':' +
+      String(t.getMinutes()).padStart(2, '0');
+    return '<div class="history-item" data-id="' + r.id + '">' +
+      '<div class="hist-info">' +
+      '<div class="hist-title">' + escapeHtml(r.title) + '</div>' +
+      '<div class="hist-meta">' + timeStr + '</div>' +
+      '</div>' +
+      '<span class="hist-account">' + escapeHtml(r.account) + '</span>' +
+      '</div>';
+  }).join('');
+
+  // 点击加载文本
+  container.querySelectorAll('.history-item').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      var record = records.find(function(r) { return r.id === id; });
+      if (record && record.text) {
+        var inputArea = document.getElementById('input-area');
+        inputArea.value = record.text;
+        inputArea.dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('history-modal').classList.add('hidden');
+        showToast('已加载: ' + record.title, 'success');
+      }
+    });
+  });
+}
+
+document.getElementById('btn-history').addEventListener('click', function() {
+  renderHistoryList();
+  document.getElementById('history-modal').classList.remove('hidden');
+});
+
+document.getElementById('btn-clear-history').addEventListener('click', function() {
+  if (!confirm('确定清空所有历史记录？')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistoryList();
+  showToast('历史记录已清空', 'success');
+});
+// ===== Toast =====
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type || '';
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ===== 推送弹窗 =====
+var coverFilename = '';
+
+document.getElementById('btn-push').addEventListener('click', function() {
+  var text = document.getElementById('input-area').value.trim();
+  if (!text) { showToast('请先在左侧输入文本', 'error'); return; }
+  document.getElementById('push-modal').classList.remove('hidden');
+  loadAccounts();
+});
+
+function loadAccounts() {
+  fetch('/api/accounts')
+    .then(function(r) { return r.json(); })
+    .then(function(accounts) {
+      var sel = document.getElementById('push-account-select');
+      sel.innerHTML = '<option value="">请选择公众号</option>';
+      accounts.forEach(function(a) {
+        var o = document.createElement('option');
+        o.value = a.id;
+        o.textContent = a.nickname;
+        sel.appendChild(o);
+      });
+    })
+    .catch(function() { showToast('加载公众号列表失败', 'error'); });
+}
+
+// ── 摘要生成 ──
+document.getElementById('btn-gen-summary').addEventListener('click', function() {
+  var text = document.getElementById('input-area').value.trim();
+  if (!text) { showToast('请先在左侧输入文本', 'error'); return; }
+  var loading = document.getElementById('summary-loading');
+  var resultArea = document.getElementById('push-summary');
+  loading.style.display = 'inline';
+  fetch('/api/summary', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ article_text: text })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      loading.style.display = 'none';
+      if (d.success) { resultArea.value = d.summary; }
+      else { showToast('摘要生成失败: ' + (d.error || ''), 'error'); }
+    })
+    .catch(function(e) { loading.style.display = 'none'; showToast('请求失败: ' + e.message, 'error'); });
+});
+
+// ── 标题图生成 ──
+document.getElementById('btn-gen-cover').addEventListener('click', function() {
+  var title = extractTitle();
+  var text = document.getElementById('input-area').value;
+  if (!title) { showToast('无法提取标题', 'error'); return; }
+  var loading = document.getElementById('cover-loading');
+  var preview = document.getElementById('cover-preview');
+  loading.style.display = 'block';
+  preview.src = '';
+  coverFilename = '';
+
+  fetch('/api/cover-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: title, full_text: text })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      loading.style.display = 'none';
+      if (d.success) {
+        preview.src = d.image_url;
+        coverFilename = d.image_url.split('/').pop();
+        document.getElementById('cover-filename-display').textContent = coverFilename;
+      } else {
+        showToast('标题图生成失败: ' + (d.error || ''), 'error');
+      }
+    })
+    .catch(function(e) { loading.style.display = 'none'; showToast('请求失败: ' + e.message, 'error'); });
+});
+
+function extractTitle() {
+  var text = document.getElementById('input-area').value.trim();
+  var lines = text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (line && line.length <= 40) return line;
+  }
+  return lines[0] ? lines[0].substring(0, 40) : '未命名';
+}
+
+// ── 确认推送 ──
+document.getElementById('btn-confirm-push').addEventListener('click', function() {
+  var accountId = document.getElementById('push-account-select').value;
+  var summary = document.getElementById('push-summary').value.trim();
+  var title = extractTitle();
+
+  if (!accountId) { showToast('请选择公众号', 'error'); return; }
+  if (!currentHtml) { showToast('请先输入文本并等待渲染完成', 'error'); return; }
+
+  this.textContent = '推送中...';
+  this.disabled = true;
+
+  fetch('/api/push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      account_id: accountId,
+      title: title,
+      html: currentHtml,
+      summary: summary,
+      cover_temp_filename: coverFilename
+    })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      document.getElementById('btn-confirm-push').textContent = '📤 确认推送';
+      document.getElementById('btn-confirm-push').disabled = false;
+      if (d.success) {
+        showToast('推送成功！草稿 media_id: ' + d.media_id, 'success');
+        document.getElementById('push-modal').classList.add('hidden');
+        // 保存到本地历史
+        var sel = document.getElementById('push-account-select');
+        var accountName = sel.options[sel.selectedIndex].textContent;
+        var articleText = document.getElementById('input-area').value;
+        addHistoryRecord(title, accountName, articleText);
+      } else {
+        showToast('推送失败: ' + (d.error || ''), 'error');
+      }
+    })
+    .catch(function(e) {
+      document.getElementById('btn-confirm-push').textContent = '📤 确认推送';
+      document.getElementById('btn-confirm-push').disabled = false;
+      showToast('请求失败: ' + e.message, 'error');
+    });
+});
+
+// ── 公众号管理 ──
+document.getElementById('btn-manage-accounts').addEventListener('click', function() {
+  document.getElementById('account-mgmt-modal').classList.remove('hidden');
+  refreshAccountList();
+});
+
+function refreshAccountList() {
+  fetch('/api/accounts')
+    .then(function(r) { return r.json(); })
+    .then(function(accounts) {
+      var container = document.getElementById('account-list');
+      if (!accounts.length) {
+        container.innerHTML = '<p style="color:#999;font-size:14px;">暂无公众号</p>';
+        return;
+      }
+      container.innerHTML = accounts.map(function(a) {
+        return '<div class="account-item">' +
+          '<span><span class="acct-name">' + escapeHtml(a.nickname) + '</span>' +
+          '<span class="acct-appid">' + escapeHtml(a.appid) + '</span></span>' +
+          '<button onclick="deleteAccount(\'' + a.id + '\')">删除</button>' +
+          '</div>';
+      }).join('');
+    });
+}
+
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById('btn-add-account').addEventListener('click', function() {
+  var nickname = document.getElementById('acct-nickname').value.trim();
+  var appid = document.getElementById('acct-appid').value.trim();
+  var appsecret = document.getElementById('acct-appsecret').value.trim();
+  if (!nickname || !appid || !appsecret) { showToast('请填写完整信息', 'error'); return; }
+
+  fetch('/api/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nickname: nickname, appid: appid, appsecret: appsecret })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) {
+        showToast('公众号已添加', 'success');
+        document.getElementById('acct-nickname').value = '';
+        document.getElementById('acct-appid').value = '';
+        document.getElementById('acct-appsecret').value = '';
+        refreshAccountList();
+      } else {
+        showToast('添加失败: ' + (d.error || ''), 'error');
+      }
+    });
+});
+
+function deleteAccount(id) {
+  if (!confirm('确定删除该公众号配置？')) return;
+  fetch('/api/accounts/' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) { showToast('已删除', 'success'); refreshAccountList(); }
+      else { showToast('删除失败', 'error'); }
+    });
+}
+
+// ===== 启动 =====
+loadThemes();
+</script>
+
+</body>
+</html>
