@@ -65,6 +65,7 @@ def test(name):
                 msg = f"  ✗ {name}: EXCEPTION {type(e).__name__}: {e}"
                 errors.append(msg)
                 print(msg)
+        wrapper._test_fn = True  # 标记为测试函数
         return wrapper
     return decorator
 
@@ -319,7 +320,7 @@ def test_summary_truncation():
 
 @test("POST /api/cover-image 生成封面图")
 def test_cover_image():
-    with patch("core.image_gen.generate_cover", mock_generate_cover):
+    with patch("app.generate_cover", mock_generate_cover):
         with app.test_client() as c:
             r = c.post("/api/cover-image", json={
                 "title": "人工智能技术展望",
@@ -769,6 +770,20 @@ def test_ui_elements():
         missing = [elem for elem in required if elem not in html]
         assert len(missing) == 0, f"缺少元素: {missing}"
 
+
+# ============================================================
+# 自动执行所有测试
+# ============================================================
+
+# 收集所有被 @test() 装饰器标记的函数并执行
+_test_functions = []
+for _name in list(globals()):
+    _obj = globals()[_name]
+    if callable(_obj) and hasattr(_obj, '_test_fn'):
+        _test_functions.append(_obj)
+
+for _fn in _test_functions:
+    _fn()
 
 # ============================================================
 # 报告

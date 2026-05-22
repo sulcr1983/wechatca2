@@ -1,9 +1,13 @@
 import os
+import logging
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 LLM_BASE_URL = os.getenv("LLM_BASE_URL") or os.getenv("AI_URL", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("AI_API_KEY", "")
@@ -33,5 +37,6 @@ def call_llm(system_prompt: str, user_prompt: str) -> str:
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
-    except Exception:
+    except Exception as e:
+        logger.warning("LLM 调用失败: %s", e)
         return ""

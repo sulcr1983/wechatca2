@@ -1,97 +1,52 @@
-# WechatAI Formatter — 项目状态
+# CLAUDE.md - 个人工具项目规则
 
-## 当前进度（2026-05-22）
+## 1. 外部代码审核（最高优先级）
+- 你是高级架构师和python高级工程师，先审核我的命令是否正确，正确就执行，不正确停下来告诉我，提供更好的方案让我判断。
 
-### 已完成
-- **Step 1**: Flask 基础框架 + Markdown 转微信 HTML 渲染引擎 (`core/format_engine.py`)
-- **Step 2**: 53 个排版主题 (`assets/themes/`) + 前端主题选择器 + 实时预览
-- **Step 3**: 本地预处理 (`core/preprocessor.py`) + LLM 后台优化 + SSE 流式推送
-  - 前端: AI 优化指示器、本地版/优化版切换、手机预览 (iPhone Dynamic Island 风格)
-- **前端功能**: AI 润色、AI 摘要、AI 标题图、一键推送草稿箱、复制到剪贴板
-- **公众号管理**: CRUD + Token 管理 (`core/token_manager.py`)
-- **推送历史**: localStorage 持久化
+## 2. Karpathy 四原则
+- **多问别猜**：不确定我的意图或API时，立刻提问，别自己瞎编。
+- **极简至上**：只写完成需求的最少代码，不设计未来架构，不写过度防御的代码。
+- **手术修改**：只改我让你改的部分，不顺手重构、不删除已有注释、不修改代码风格。
+- **目标驱动**：我尽量给你定义"成功标准"。你要根据标准自我验证，并告诉我验证过程和结果。
 
-### 文件结构
-```
-wechatca2/
-├── app.py                    # Flask 主入口（端口 5000，.env 配置）
-├── launcher.py               # 启动器（自动 pip install）
-├── core/
-│   ├── format_engine.py      # Markdown→微信HTML 排版引擎
-│   ├── preprocessor.py       # 纯文本→Markdown 本地预处理
-│   ├── ai_client.py          # LLM 调用（OpenAI 兼容 API）
-│   ├── image_gen.py          # 标题图生成（文生图 + PIL fallback）
-│   ├── token_manager.py      # 微信 Access Token 管理（单例+缓存）
-│   └── wechat_publisher.py   # 微信草稿箱推送
-├── templates/index.html      # 单页前端（~34KB）
-├── assets/themes/            # 53 个主题 JSON
-├── data/                     # 运行时数据（accounts.json, history.json）
-├── temp_covers/              # 临时封面图（不纳入版本控制）
-├── requirements.txt
-└── .env                      # 密钥配置（不纳入版本控制）
-```
+## 3. 执行与反馈
+- 每次改动代码后，在回复末尾用【验证结果：...】告诉我，你如何确认了代码能正常工作。
+- 改完后，用中文说清楚：你改了哪个文件的哪几行，以及为什么这么改。
 
-### 启动方式
-```bash
-pip install -r requirements.txt
-python app.py
-# 浏览器打开 http://127.0.0.1:5000
-```
+## 4. 项目状态
 
-### 下次开发方向（需求文档 Step 4+）
-1. 用户登录/注册系统
-2. 文章库管理（保存/编辑/删除草稿）
-3. 多公众号批量推送
-4. 预览页面独立链接分享
-5. 微信扫码登录
+### 技术栈
+- Python 3.10+ / Flask 3.0+
+- 前端：原生 HTML/CSS/JS（单文件 templates/index.html）
+- LLM：阿里云百炼 API（OpenAI 兼容格式）
+- 文生图：阿里云百炼 wanx-v1
+- 微信：公众平台 API（草稿箱）
 
-### 注意事项
-- Flask `debug=False` 时 Jinja2 缓存模板，修改前端后需重启服务器
-- 测试用 `python -c "from app import app; app.test_client()..."` 绕过端口冲突
-- 端口冲突时 `taskkill //F //IM python.exe` 清理旧进程
-- `.env` 中的 API Key 勿提交到 Git
+### 核心模块
+- `app.py` — Flask 路由和业务编排
+- `core/format_engine.py` — Markdown→微信HTML 排版引擎（1834行）
+- `core/preprocessor.py` — 纯文本→Markdown 本地预处理
+- `core/ai_client.py` — LLM 调用
+- `core/image_gen.py` — 标题图生成
+- `core/token_manager.py` — 微信 Token 管理
+- `core/wechat_publisher.py` — 微信草稿箱推送
 
----
+### 测试
+- `tests/test_e2e.py` — Flask API 测试（41 项，自定义装饰器框架）
+- `tests/test_browser_e2e.py` — Playwright 浏览器测试（14 项，pytest）
+- 运行：`python tests/test_e2e.py` 和 `python -m pytest tests/test_browser_e2e.py -v`
 
-# Trae AI Agent Behavior Guidelines
+### 已修复问题（2025-05）
+- format_engine.py `\\1` 转义 bug → `\1`
+- format_engine.py SKILL_DIR 路径错误 → 指向项目根目录
+- wechat_publisher.py 清理 325 行 CLI 死代码
+- app.py `__import__("datetime")` → 正常 import
+- app.py _opt_store SSE 超时后不清理 → 添加 pop
+- ai_client.py 静默异常 → 添加 logging.warning
+- image_gen.py 字体路径错误 → 修正相对路径
+- preprocessor.py 序号标题识别顺序 → 先检测序号再检测 Markdown 标记
+- preprocessor.py `_SENTENCE_WORDS` 过度匹配 → 移除 `的` 和形容词
 
-## 1\. Core Mission: Prevent Hallucinations
-
-* NEVER assume or guess. If requirements, APIs, or context are ambiguous, STOP and ask the user for clarification.
-* You are allowed and encouraged to say "I don't know" or "I cannot find the source" rather than hallucinating an answer.
-* Always verify facts/APIs by cross-referencing existing codebase files or trusted documentation.
-
-## 2\. Think Before Coding
-
-* Before writing any code, explicitly state your understanding, assumptions, and proposed approach in 1-2 sentences.
-* Outline a step-by-step plan: (Step -> Verification Method) before execution.
-
-## 3\. Surgical Code Modifications
-
-* Only modify what is strictly requested. Do NOT perform unrelated refactoring, formatting, or "cleanups".
-* Match the existing codebase style, naming conventions, and patterns perfectly.
-* Never delete existing comments, error handling, or edge cases unless explicitly told to do so.
-
-## 4\. Simplicity \& Fact Grounding
-
-* Write the absolute minimum code required to solve the problem. Avoid over-engineering or adding "future proof" abstractions.
-* Ground your decisions in facts: Quote the relevant existing code or documentation verbatim before explaining your logic.
-
-## 5\. Trae Execution \& Verification Loop
-
-* After making code changes, you MUST automatically run the project's test or lint commands to verify correctness.
-* Do not ask the user for permission to verify if the commands are defined below.
-* 
-* \## 6. 大规模重构模式
-* 当用户要求「大规模重构」或「全项目分析」时：
-* \- 调用 `repo-analyzer` Subagent 并行扫描模块（只分析不改代码）
-* \- 分析完成后，主 Agent 根据结果制定修改计划
-* \- \*\*每个修改步骤完成后立即运行测试\*\*（保持原有验证规则）
-* \- 遇到不明确的先标记 `\[待确认]`，分析阶段不打断，修改前必须确认
-* 
-* \## 7. 自动 Git Checkpoint
-* 每次测试通过后自动执行：
-* \- `git add` 本次修改的文件
-* \- `git commit -m "refactor(模块): 具体改动说明"`
-* \- 测试失败则自动 `git reset --hard` 回滚
-
+### 已知限制
+- 正文图片推送时会过滤掉（计划下版本支持）
+- 文生图 API 失败时降级为纯色渐变背景

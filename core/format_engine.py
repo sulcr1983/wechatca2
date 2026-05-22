@@ -98,7 +98,7 @@ def hello():
 
 # ── 路径 ────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
-SKILL_DIR = SCRIPT_DIR.parent
+SKILL_DIR = SCRIPT_DIR
 THEMES_DIR = SKILL_DIR / "assets" / "themes"
 TEMPLATE_DIR = SKILL_DIR / "templates"
 
@@ -1821,7 +1821,7 @@ def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str) -> str:
     text = process_callouts(text)
     text = process_manual_footnotes(text)
     text = process_fenced_containers(text)
-    text = re.sub(r'~~(.+?)~~', r'<del>\\1</del>', text)
+    text = re.sub(r'~~(.+?)~~', r'<del>\1</del>', text)
 
     html = md_to_html(text)
     html = inject_inline_styles(html, theme)

@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from datetime import datetime
+
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 
 app = Flask(__name__)
@@ -31,6 +33,7 @@ from core.preprocessor import preprocess
 # ── 后台 LLM 优化结果暂存 ──────────────────────────────────────────────
 _opt_store = {}
 _opt_lock = threading.Lock()
+_OPT_MAX_AGE = 120  # 条目最长保留 120 秒
 import time
 
 # ── 润色风格 → 系统提示词 ──────────────────────────────────────────────
@@ -174,7 +177,9 @@ def api_optimize_stream():
                 yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
                 return
             time.sleep(0.5)
-        # 超时视为失败
+        # 超时视为失败，清理残留条目
+        with _opt_lock:
+            _opt_store.pop(request_id, None)
         yield f"data: {json.dumps({'status': 'timeout'}, ensure_ascii=False)}\n\n"
 
     return Response(generate(), mimetype="text/event-stream")
@@ -346,7 +351,7 @@ def api_push():
         "title": title,
         "account": account.get("nickname", ""),
         "draft_media_id": media_id,
-        "time": __import__("datetime").datetime.now().isoformat(),
+        "time": datetime.now().isoformat(),
     })
     _write_json("history.json", history[:20])
 
