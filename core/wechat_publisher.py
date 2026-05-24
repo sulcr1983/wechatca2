@@ -26,6 +26,7 @@ def upload_permanent_material(token: str, image_bytes: bytes, filename: str = "c
     try:
         files = {"media": (filename, image_bytes, content_type)}
         resp = requests.post(url, files=files, timeout=30)
+        resp.raise_for_status()
         data = resp.json()
         return data.get("media_id")
     except Exception:
@@ -33,12 +34,10 @@ def upload_permanent_material(token: str, image_bytes: bytes, filename: str = "c
 
 
 def filter_html_images(html: str) -> str:
-    """移除 HTML 中所有 <img> 标签（第一版不支持正文图片）"""
     return re.sub(r"<img[^>]*/?>", "", html)
 
 
 def push_to_draft(token: str, title: str, html_content: str, digest: str = "", thumb_media_id: str = "") -> str | None:
-    """推送文章到草稿箱，返回 media_id 或 None"""
     url = f"https://api.weixin.qq.com/cgi-bin/draft/add?access_token={token}"
     data = {
         "articles": [{
@@ -52,6 +51,7 @@ def push_to_draft(token: str, title: str, html_content: str, digest: str = "", t
     }
     body = json.dumps(data, ensure_ascii=False).encode("utf-8")
     resp = requests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
+    resp.raise_for_status()
     result = resp.json()
     if "media_id" in result:
         return result["media_id"]

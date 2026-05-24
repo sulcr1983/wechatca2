@@ -13,7 +13,13 @@ IMAGE_GEN_BASE_URL = os.getenv("IMAGE_GEN_BASE_URL") or os.getenv("AI_URL", "")
 IMAGE_GEN_API_KEY = os.getenv("IMAGE_GEN_API_KEY") or os.getenv("AI_API_KEY", "")
 IMAGE_GEN_MODEL = os.getenv("IMAGE_GEN_MODEL") or os.getenv("AI_IMAGE_MODEL", "gpt-image-2")
 
-FONT_PATH = os.path.join(os.path.dirname(__file__), "assets", "fonts", "NotoSansSC-Regular.ttf")
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+_FONT_CANDIDATES = [
+    os.path.join(_PROJECT_ROOT, "assets", "fonts", "NotoSansSC-Regular.ttf"),
+    os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "Fonts", "msyh.ttc"),
+    os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "Fonts", "simhei.ttf"),
+]
+FONT_PATH = next((p for p in _FONT_CANDIDATES if os.path.isfile(p)), "")
 COVER_WIDTH, COVER_HEIGHT = 900, 383
 
 

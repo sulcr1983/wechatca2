@@ -3,6 +3,7 @@ import json
 import uuid
 import webbrowser
 import threading
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -28,12 +29,24 @@ from core.token_manager import token_manager
 from core.wechat_publisher import push_to_draft, upload_permanent_material, filter_html_images
 from core.image_gen import generate_cover
 from core.preprocessor import preprocess
+from core.crypto_utils import encrypt, decrypt
 
 # ── 后台 LLM 优化结果暂存 ──────────────────────────────────────────────
 _opt_store = {}
 _opt_lock = threading.Lock()
-_OPT_MAX_AGE = 120  # 条目最长保留 120 秒
-import time
+_data_lock = threading.Lock()
+_OPT_MAX_AGE = 120
+
+# ── 启动时迁移旧明文 appsecret ──────────────────────────────────────────
+def _migrate_accounts():
+    accounts = _read_json("accounts.json")
+    changed = False
+    for a in accounts:
+        if a.get("appsecret") and not a["appsecret"].startswith("enc:"):
+            a["appsecret"] = encrypt(a["appsecret"])
+            changed = True
+    if changed:
+        _write_json("accounts.json", accounts)
 
 # ── 润色风格 → 系统提示词 ──────────────────────────────────────────────
 POLISH_PROMPTS = {
@@ -52,17 +65,21 @@ POLISH_PROMPTS = {
 # ── 数据文件辅助 ──────────────────────────────────────────────────────
 def _read_json(filename: str) -> list:
     path = DATA_DIR / filename
-    if not path.exists():
-        path.write_text("[]", encoding="utf-8")
-        return []
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return []
+    with _data_lock:
+        if not path.exists():
+            path.write_text("[]", encoding="utf-8")
+            return []
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return []
 
 
 def _write_json(filename: str, data: list):
-    (DATA_DIR / filename).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    with _data_lock:
+        (DATA_DIR / filename).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+_migrate_accounts()
 
 
 # ── 页面 ────────────────────────────────────────────────────────────────
@@ -144,7 +161,7 @@ def _start_background_optimization(request_id: str, raw_text: str, theme_path: s
             result = call_llm(prompt, raw_text)
             if not result:
                 with _opt_lock:
-                    _opt_store[request_id] = {"status": "failed"}
+                    _opt_store[request_id] = {"status": "failed", "_ts": time.time()}
                 return
             html = convert_markdown_to_wechat_html(result, theme_path)
             with _opt_lock:
@@ -152,10 +169,11 @@ def _start_background_optimization(request_id: str, raw_text: str, theme_path: s
                     "status": "done",
                     "html": html,
                     "markdown": result,
+                    "_ts": time.time(),
                 }
         except Exception:
             with _opt_lock:
-                _opt_store[request_id] = {"status": "failed"}
+                _opt_store[request_id] = {"status": "failed", "_ts": time.time()}
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
@@ -169,14 +187,18 @@ def api_optimize_stream():
         return jsonify({"error": "request_id required"}), 400
 
     def generate():
-        for _ in range(60):  # 最多等 30 秒
+        for _ in range(60):
             with _opt_lock:
                 result = _opt_store.pop(request_id, None)
+                now = time.time()
+                expired = [k for k, v in _opt_store.items() if now - v.get("_ts", 0) > _OPT_MAX_AGE]
+                for k in expired:
+                    del _opt_store[k]
             if result is not None:
+                result.pop("_ts", None)
                 yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
                 return
             time.sleep(0.5)
-        # 超时视为失败，清理残留条目
         with _opt_lock:
             _opt_store.pop(request_id, None)
         yield f"data: {json.dumps({'status': 'timeout'}, ensure_ascii=False)}\n\n"
@@ -209,7 +231,13 @@ def api_polish():
 # ── 公众号管理 ──────────────────────────────────────────────────────────
 @app.route("/api/accounts")
 def api_accounts():
-    return jsonify(_read_json("accounts.json"))
+    accounts = _read_json("accounts.json")
+    safe = []
+    for a in accounts:
+        a_copy = dict(a)
+        a_copy["appsecret"] = "***"
+        safe.append(a_copy)
+    return jsonify(safe)
 
 
 @app.route("/api/accounts", methods=["POST"])
@@ -230,7 +258,7 @@ def api_add_account():
         "id": uuid.uuid4().hex[:12],
         "nickname": nickname,
         "appid": appid,
-        "appsecret": appsecret,
+        "appsecret": encrypt(appsecret),
     }
     accounts.append(account)
     _write_json("accounts.json", accounts)
@@ -324,7 +352,7 @@ def api_push():
 
     # 获取 Access Token
     try:
-        token = token_manager.get_token(account["appid"], account["appsecret"])
+        token = token_manager.get_token(account["appid"], decrypt(account["appsecret"]))
     except Exception as e:
         return jsonify({"success": False, "error": f"token error: {str(e)}"}), 500
 

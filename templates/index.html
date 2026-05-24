@@ -513,7 +513,6 @@
     font-size: 13px;
     color: var(--primary-purple);
     z-index: 10;
-    display: flex;
     align-items: center;
     gap: 6px;
   }
@@ -743,6 +742,51 @@
   .btn-sm {
     padding: 6px 14px !important;
     font-size: 13px !important;
+  }
+
+  @media (max-width: 768px) {
+    .app-container {
+      flex-direction: column;
+      height: auto;
+      padding: 8px;
+    }
+    .left-panel, .right-panel {
+      width: 100%;
+      min-width: 0;
+    }
+    .left-panel {
+      border-right: none;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-right: 0;
+      padding-bottom: 12px;
+    }
+    .right-panel {
+      padding-left: 0;
+      padding-top: 12px;
+    }
+    .phone-frame {
+      display: none;
+    }
+    .preview-frame {
+      width: 100%;
+    }
+    .modal-content {
+      width: 95vw;
+      max-width: none;
+    }
+    .title-section {
+      padding: 0 0 12px 0;
+    }
+    .title-section h1 {
+      font-size: 22px;
+    }
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+    .toolbar {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
   }
 </style>
 </head>
@@ -1071,7 +1115,12 @@ var sseSource = null;
 // ===== 加载主题列表 =====
 function loadThemes() {
   fetch('/api/themes')
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      if (!res.ok) {
+        return res.json().then(function(d) { throw new Error(d.error || 'render error ' + res.status); });
+      }
+      return res.json();
+    })
     .then(function(themes) {
       var sel = document.getElementById('theme-select');
       sel.innerHTML = '';
@@ -1089,6 +1138,9 @@ function loadThemes() {
     })
     .catch(function(err) {
       console.error('load themes failed:', err);
+      showToast('主题加载失败，请刷新页面重试', 'error');
+      var sel = document.getElementById('theme-select');
+      sel.innerHTML = '<option value="">加载失败，请刷新</option>';
     });
 }
 
@@ -1105,12 +1157,17 @@ function doRender(text, themeId) {
   isShowingOptimized = false;
   document.getElementById('ai-indicator').classList.remove('visible');
 
+  var renderMode = localStorage.getItem('renderMode') || 'auto';
+  var skipPreprocess = (renderMode === 'manual');
   fetch('/api/render', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ raw_text: text, theme_id: themeId })
+    body: JSON.stringify({ raw_text: text, theme_id: themeId, skip_preprocess: skipPreprocess })
   })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(d) { throw new Error(d.error || 'error ' + res.status); });
+      return res.json();
+    })
     .then(function(data) {
       loading.classList.remove('visible');
       if (data.html) {
@@ -1173,7 +1230,6 @@ function startSSE(requestId) {
 
 function showAIIndicator() {
   document.getElementById('ai-indicator').classList.add('visible');
-  switchToOptimized();
 }
 
 function switchToOptimized() {
@@ -1187,7 +1243,7 @@ function switchToLocal() {
   if (!localHtml) return;
   updateAllPreviews(localHtml);
   isShowingOptimized = false;
-  document.getElementById('ai-indicator').textContent = 'AI 已优化';
+  document.getElementById('ai-indicator').textContent = 'AI 已优化 (点击查看)';
 }
 
 function triggerRender() {
@@ -1261,7 +1317,10 @@ document.getElementById('btn-start-polish').addEventListener('click', function()
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: original, style: style })
   })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(d) { throw new Error(d.error || 'error ' + res.status); });
+      return res.json();
+    })
     .then(function(data) {
       loading.style.display = 'none';
       if (data.success) {
@@ -1610,7 +1669,7 @@ function refreshAccountList() {
           '<div style="font-weight:600;color:var(--text-primary);font-size:14px;">' + escapeHtml(a.nickname) + '</div>' +
           '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;font-family:monospace;">' + escapeHtml(a.appid) + '</div>' +
           '</div>' +
-          '<button onclick="deleteAccount(\'' + a.id + '\')" style="padding:6px 14px;font-size:12px;font-weight:500;border:1px solid rgba(239,68,68,0.3);color:#ef4444;background:rgba(239,68,68,0.08);border-radius:8px;cursor:pointer;transition:all 0.3s ease;hover:{background:rgba(239,68,68,0.15);}">' +
+          '<button data-delete-id="' + escapeHtml(a.id) + '" style="padding:6px 14px;font-size:12px;font-weight:500;border:1px solid rgba(239,68,68,0.3);color:#ef4444;background:rgba(239,68,68,0.08);border-radius:8px;cursor:pointer;">' +
           '删除' +
           '</button>' +
           '</div>';
@@ -1656,7 +1715,8 @@ function deleteAccount(id) {
     .then(function(d) {
       if (d.success) { showToast('已删除', 'success'); refreshAccountList(); }
       else { showToast('删除失败', 'error'); }
-    });
+    })
+    .catch(function() { showToast('删除请求失败', 'error'); });
 }
 
 document.getElementById('show-appsecret').addEventListener('change', function() {
@@ -1666,8 +1726,38 @@ document.getElementById('show-appsecret').addEventListener('change', function() 
 
 document.getElementById('btn-preview-full').addEventListener('click', function() {
   var previewWindow = window.open('', '_blank');
-  previewWindow.document.write(currentHtml);
+  if (!previewWindow) {
+    showToast('预览被浏览器拦截，请允许弹窗', 'error');
+    return;
+  }
+  previewWindow.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>预览</title></head><body>' + currentHtml + '</body></html>');
   previewWindow.document.close();
+});
+
+// ===== 快捷键 =====
+document.addEventListener('keydown', function(e) {
+  var isCtrl = e.ctrlKey || e.metaKey;
+  if (!isCtrl) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    var text = document.getElementById('input-area').value;
+    if (text.trim()) doRender(text, currentThemeId);
+  } else if (e.key === 's' || e.key === 'S') {
+    e.preventDefault();
+    var text = document.getElementById('input-area').value.trim();
+    if (text) {
+      addHistoryRecord(extractTitle(), '手动保存', text);
+      showToast('已保存到历史', 'success');
+    }
+  } else if (e.key === 'p' || e.key === 'P') {
+    e.preventDefault();
+    document.getElementById('btn-push').click();
+  }
+});
+
+document.getElementById('account-list').addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-delete-id]');
+  if (btn) deleteAccount(btn.getAttribute('data-delete-id'));
 });
 
 // ===== 启动 =====

@@ -313,7 +313,7 @@ def convert_wikilinks(text: str, vault_root: Path, output_dir: Path) -> str:
         for search_root in search_roots:
             if not search_root.exists():
                 continue
-            for root, dirs, files in os.walk(search_root, followlinks=True):
+            for root, dirs, files in os.walk(search_root, followlinks=False):
                 if filename in files:
                     img_path = Path(root) / filename
                     images_dir.mkdir(parents=True, exist_ok=True)

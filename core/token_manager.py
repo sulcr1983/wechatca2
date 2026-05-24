@@ -22,6 +22,7 @@ class TokenManager:
             params={"grant_type": "client_credential", "appid": appid, "secret": appsecret},
             timeout=15,
         )
+        resp.raise_for_status()
         data = resp.json()
         if "access_token" not in data:
             raise Exception(f"获取Token失败: {data.get('errcode', '?')} {data.get('errmsg', '')}")

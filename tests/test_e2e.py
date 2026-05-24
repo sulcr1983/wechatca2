@@ -84,7 +84,7 @@ def test_index():
         r = c.get("/")
         assert r.status_code == 200
         assert b"<!DOCTYPE html>" in r.data
-        assert b"WechatAI Formatter" in r.data
+        assert b"SuperSu" in r.data
 
 
 @test("GET /api/themes 返回主题列表")
@@ -736,7 +736,7 @@ def test_ui_elements():
 
         required = [
             # Header
-            "WechatAI Formatter",
+            "SuperSu",
             "theme-select",
             "account-select",
             # Panels

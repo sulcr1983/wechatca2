@@ -5,7 +5,7 @@ import re
 _SENTENCE_WORDS = re.compile(
     r'(?:是|了|在|就|都|很|不|也|我|你|他|她|它|们|这|那|会|能|要|可以|已经|'
     r'因为|所以|但是|如果|虽然|而且|然后|之后|之|与|及|或|把|被|让|给|对|从|到|'
-    r'应该|可能|必须|一定|怎么|怎样|怎么样|为什么|什么|哪|哪)'
+    r'应该|可能|必须|一定|怎么|怎样|怎么样|为什么|什么|哪)'
 )
 
 
@@ -68,7 +68,7 @@ def preprocess(text: str) -> str:
             continue
 
         # 引号开头 → 引用块
-        if stripped.startswith('「') or stripped.startswith('”') or stripped.startswith('”'):
+        if stripped.startswith('\u300c') or stripped.startswith('\u201c') or stripped.startswith('\u201d'):
             md_lines.append(f'> {stripped}')
             continue
 
