@@ -747,6 +747,20 @@
     font-size: 13px !important;
   }
 
+  #onboarding-overlay.show {
+    display: flex;
+  }
+  .ai-need-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(234, 179, 8, 0.15);
+    color: #b45309;
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+
   @media (max-width: 768px) {
     .app-container {
       flex-direction: column;
@@ -846,7 +860,7 @@
 
 <!-- ===== 底部操作栏 ===== -->
 <footer>
-  <button id="btn-polish">✨ AI 润色</button>
+  <button id="btn-polish" class="ai-btn">✨ AI 润色</button>
   <button id="btn-copy">📋 复制</button>
   <button id="btn-history">📁 历史</button>
   <button id="btn-push" class="primary">📤 一键推送</button>
@@ -892,7 +906,7 @@
       <label style="font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:10px;display:block;">📝 摘要（80-100字）</label>
       <div style="display:flex;gap:12px;">
         <textarea id="push-summary" placeholder="输入摘要或使用 AI 生成" style="flex:1;min-height:80px;padding:12px;border:1px solid rgba(139,92,246,0.2);border-radius:12px;background:rgba(255,255,255,0.6);font-size:14px;font-family:inherit;resize:vertical;"></textarea>
-        <button id="btn-gen-summary" style="padding:12px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);color:var(--primary-purple);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;white-space:nowrap;">
+        <button id="btn-gen-summary" class="ai-btn" style="padding:12px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);color:var(--primary-purple);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;white-space:nowrap;">
           🤖 AI 生成
         </button>
       </div>
@@ -910,7 +924,7 @@
           </div>
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
-          <button id="btn-gen-cover" style="padding:12px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);color:var(--primary-purple);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;">
+          <button id="btn-gen-cover" class="ai-btn" style="padding:12px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);color:var(--primary-purple);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;">
             🎨 AI 生成标题图
           </button>
           <div id="cover-loading" style="display:none;font-size:13px;color:var(--primary-purple);padding-left:8px;">
@@ -1190,6 +1204,46 @@
 
     <div class="modal-actions">
       <button class="close-modal">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 新手引导弹窗 ===== -->
+<div id="onboarding-overlay" style="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--bg-primary,#fff);border-radius:20px;padding:36px;width:480px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#8b5cf6 0%,#3b82f6 100%);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">🚀</div>
+      <h2 style="margin:0;font-size:22px;color:var(--text-primary,#1f2937);">欢迎使用 WechatAI Formatter！</h2>
+      <p style="font-size:14px;color:var(--text-secondary,#6b7280);margin-top:8px;">三步上手，轻松排版推送公众号文章</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:28px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);">
+        <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">1</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary,#1f2937);">📝 粘贴文章 → 立刻预览</div>
+          <div style="font-size:13px;color:var(--text-secondary,#6b7280);margin-top:4px;">无需任何配置，粘贴文本即可实时预览排版效果</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:14px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);">
+        <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">2</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary,#1f2937);">🤖 配置 AI → 解锁润色 / 摘要</div>
+          <div style="font-size:13px;color:var(--text-secondary,#6b7280);margin-top:4px;">填入 API Key 开启 AI 润色、智能摘要和标题图生成</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
+        <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">3</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary,#1f2937);">📤 配置公众号 → 一键推送</div>
+          <div style="font-size:13px;color:var(--text-secondary,#6b7280);margin-top:4px;">添加公众号 AppID 和 AppSecret，直接推送草稿箱</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button id="btn-onboarding-dismiss" style="flex:1;padding:14px;border:1px solid rgba(139,92,246,0.2);border-radius:12px;background:transparent;color:var(--text-primary,#1f2937);font-size:14px;font-weight:500;cursor:pointer;">我知道了，开始使用</button>
+      <button id="btn-onboarding-config" style="flex:1;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#8b5cf6 0%,#3b82f6 100%);color:white;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(139,92,246,0.3);">立即配置 AI</button>
     </div>
   </div>
 </div>
@@ -2159,6 +2213,56 @@ document.getElementById('btn-save-ai').addEventListener('click', function() {
 // ===== 启动 =====
 loadThemes();
 loadAIPlatforms();
+
+// ── 新手引导 ──
+function checkOnboarding() {
+  if (localStorage.getItem('wf_onboarding_done')) return;
+  fetch('/api/ai-config')
+    .then(function(r) { return r.json(); })
+    .then(function(config) {
+      if (!config.api_key || config.api_key === '****') {
+        document.getElementById('onboarding-overlay').classList.add('show');
+      }
+    })
+    .catch(function() {});
+}
+
+function dismissOnboarding() {
+  localStorage.setItem('wf_onboarding_done', '1');
+  document.getElementById('onboarding-overlay').classList.remove('show');
+}
+
+document.getElementById('btn-onboarding-dismiss').addEventListener('click', dismissOnboarding);
+document.getElementById('btn-onboarding-config').addEventListener('click', function() {
+  dismissOnboarding();
+  var modal = document.getElementById('settings-modal');
+  modal.classList.remove('hidden');
+  var content = modal.querySelector('.modal-content');
+  if (content) content.scrollTop = content.scrollHeight;
+});
+
+// ── AI 功能提示标记 ──
+function updateAIHints() {
+  fetch('/api/ai-config')
+    .then(function(r) { return r.json(); })
+    .then(function(config) {
+      var hasAI = !!(config.api_key && config.api_key !== '****');
+      document.querySelectorAll('.ai-btn').forEach(function(btn) {
+        var existing = btn.querySelector('.ai-need-badge');
+        if (existing) existing.remove();
+        if (!hasAI) {
+          var badge = document.createElement('span');
+          badge.className = 'ai-need-badge';
+          badge.textContent = '需配置 AI';
+          btn.appendChild(badge);
+        }
+      });
+    })
+    .catch(function() {});
+}
+
+setTimeout(checkOnboarding, 100);
+setTimeout(updateAIHints, 500);
 </script>
 
 </body>
