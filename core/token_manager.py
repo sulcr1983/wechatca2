@@ -25,7 +25,9 @@ class TokenManager:
         resp.raise_for_status()
         data = resp.json()
         if "access_token" not in data:
-            raise Exception(f"获取Token失败: {data.get('errcode', '?')} {data.get('errmsg', '')}")
+            errcode = data.get("errcode", "?")
+            errmsg = data.get("errmsg", "")
+            raise Exception(f"[{errcode}] {errmsg}")
 
         token = data["access_token"]
         expires_in = data.get("expires_in", 7200)

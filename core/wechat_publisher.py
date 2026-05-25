@@ -37,7 +37,8 @@ def filter_html_images(html: str) -> str:
     return re.sub(r"<img[^>]*/?>", "", html)
 
 
-def push_to_draft(token: str, title: str, html_content: str, digest: str = "", thumb_media_id: str = "") -> str | None:
+def push_to_draft(token: str, title: str, html_content: str, digest: str = "", thumb_media_id: str = "") -> str | dict:
+    """推送到草稿箱。成功返回 media_id 字符串，失败返回 dict 包含 errcode 和 errmsg"""
     url = f"https://api.weixin.qq.com/cgi-bin/draft/add?access_token={token}"
     data = {
         "articles": [{
@@ -55,4 +56,4 @@ def push_to_draft(token: str, title: str, html_content: str, digest: str = "", t
     result = resp.json()
     if "media_id" in result:
         return result["media_id"]
-    return None
+    return result

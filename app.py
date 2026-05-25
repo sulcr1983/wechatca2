@@ -12,6 +12,7 @@ load_dotenv()
 from datetime import datetime
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
+import requests
 
 app = Flask(__name__)
 
@@ -24,7 +25,10 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 TEMP_COVERS_DIR.mkdir(parents=True, exist_ok=True)
 
 from core.format_engine import convert_markdown_to_wechat_html
-from core.ai_client import call_llm
+from core.ai_client import (
+    call_llm, get_current_config, update_config, test_connection,
+    PLATFORM_TEMPLATES,
+)
 from core.token_manager import token_manager
 from core.wechat_publisher import push_to_draft, upload_permanent_material, filter_html_images
 from core.image_gen import generate_cover
@@ -367,9 +371,12 @@ def api_push():
     html_content = filter_html_images(html_content)
 
     # 推送
-    media_id = push_to_draft(token, title, html_content, summary, thumb_media_id)
-    if not media_id:
-        return jsonify({"success": False, "error": "微信推送失败，请检查公众号权限和网络"}), 500
+    result = push_to_draft(token, title, html_content, summary, thumb_media_id)
+    if isinstance(result, dict):
+        errcode = result.get("errcode", "")
+        errmsg = result.get("errmsg", "")
+        return jsonify({"success": False, "error": f"[{errcode}] {errmsg}"}), 500
+    media_id = result
 
     # 保存历史
     history = _read_json("history.json")
@@ -383,6 +390,75 @@ def api_push():
     _write_json("history.json", history[:20])
 
     return jsonify({"success": True, "media_id": media_id})
+
+
+# ── AI 配置 API ─────────────────────────────────────────────────────────
+
+@app.route("/api/ai-config", methods=["GET"])
+def api_ai_config():
+    """获取当前 AI 配置"""
+    return jsonify(get_current_config())
+
+
+@app.route("/api/ai-config", methods=["POST"])
+def api_ai_config_update():
+    """更新 AI 配置"""
+    data = request.get_json(force=True) or {}
+    config = update_config(
+        platform=data.get("platform", "custom"),
+        base_url=data.get("base_url", ""),
+        api_key=data.get("api_key", ""),
+        model=data.get("model", ""),
+    )
+    return jsonify({"success": True, "config": config})
+
+
+@app.route("/api/ai-config/test", methods=["POST"])
+def api_ai_config_test():
+    """测试 AI 连接"""
+    data = request.get_json(force=True) or {}
+    result = test_connection(
+        platform=data.get("platform", "custom"),
+        base_url=data.get("base_url", ""),
+        api_key=data.get("api_key", ""),
+        model=data.get("model", ""),
+    )
+    return jsonify(result)
+
+
+@app.route("/api/ai-platforms", methods=["GET"])
+def api_ai_platforms():
+    """获取支持的平台列表"""
+    return jsonify({
+        k: {"name": v["name"], "base_url": v["base_url"], "model": v["model"]}
+        for k, v in PLATFORM_TEMPLATES.items()
+    })
+
+
+# ── 获取服务器公网 IP ───────────────────────────────────────────────────
+_server_ip_cache = {"ip": None, "time": 0}
+
+
+def get_server_ip():
+    now = time.time()
+    if _server_ip_cache["ip"] and now - _server_ip_cache["time"] < 300:
+        return _server_ip_cache["ip"]
+    try:
+        r = requests.get("https://api.ipify.org?format=json", timeout=5)
+        r.raise_for_status()
+        ip = r.json().get("ip", "")
+        _server_ip_cache["ip"] = ip
+        _server_ip_cache["time"] = now
+        return ip
+    except Exception:
+        return ""
+
+
+@app.route("/api/server-ip", methods=["GET"])
+def api_server_ip():
+    """获取当前服务器公网 IP"""
+    ip = get_server_ip()
+    return jsonify({"ip": ip})
 
 
 # ── 启动 ────────────────────────────────────────────────────────────────

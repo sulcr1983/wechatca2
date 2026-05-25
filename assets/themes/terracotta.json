@@ -26,7 +26,8 @@
       "margin_top": "24px",
       "margin_bottom": "12px",
       "line_height": "1.2",
-      "box_shadow": "0 2px 8px rgba(200,100,66,0.2)"
+      "box_shadow": "0 2px 8px rgba(200,100,66,0.2)",
+      "font_family": "Georgia, serif"
     },
     "h2": {
       "font_size": "20px",
@@ -37,7 +38,8 @@
       "padding": "0 0 8px 12px",
       "margin_top": "32px",
       "margin_bottom": "12px",
-      "line_height": "1.2"
+      "line_height": "1.2",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h3": {
       "font_size": "18px",
@@ -47,7 +49,8 @@
       "padding": "0 0 6px 12px",
       "margin_top": "32px",
       "margin_bottom": "12px",
-      "line_height": "1.2"
+      "line_height": "1.2",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "p": {
       "font_size": "15px",
@@ -56,7 +59,8 @@
       "margin_top": "0",
       "margin_bottom": "20px",
       "letter_spacing": "0.5px",
-      "text_align": "left"
+      "text_align": "left",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "blockquote": {
       "border_left": "4px solid #C86442",
@@ -78,7 +82,8 @@
       "margin_bottom": "0",
       "letter_spacing": "0.1em",
       "font_style": "normal",
-      "background": "transparent"
+      "background": "transparent",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "strong": {
       "font_weight": "bold",
@@ -204,7 +209,8 @@
       "font_size": "15px",
       "color": "#3F3F3F",
       "line_height": "1.75",
-      "letter_spacing": "0.5px"
+      "letter_spacing": "0.5px",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "list_wrapper": {
       "margin_top": "15px",
@@ -231,7 +237,8 @@
       "color": "#999999",
       "margin_bottom": "6px",
       "line_height": "1.6",
-      "word_break": "break-all"
+      "word_break": "break-all",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "footnote_sup": {
       "font_size": "12px",
@@ -257,7 +264,8 @@
       "font_size": "14px",
       "color": "#3F3F3F",
       "line_height": "1.8",
-      "letter_spacing": "0.3px"
+      "letter_spacing": "0.3px",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h4": {
       "font_size": "17px",
@@ -267,7 +275,8 @@
       "padding": "0 0 0 8px",
       "margin_top": "24px",
       "margin_bottom": "8px",
-      "line_height": "1.3"
+      "line_height": "1.3",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h5": {
       "font_size": "16px",
@@ -276,7 +285,8 @@
       "padding": "0",
       "margin_top": "20px",
       "margin_bottom": "6px",
-      "line_height": "1.3"
+      "line_height": "1.3",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h6": {
       "font_size": "15px",
@@ -285,7 +295,8 @@
       "padding": "0",
       "margin_top": "16px",
       "margin_bottom": "6px",
-      "line_height": "1.3"
+      "line_height": "1.3",
+      "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     }
   },
   "dark_mode": {

@@ -11,41 +11,292 @@
     "footnote_bg": "#fffaf8"
   },
   "styles": {
-    "wrapper": { "background_color": "#fffaf8", "padding": "16px" },
-    "h1": { "font_size": "26px", "font_weight": "600", "color": "#e898a8", "line_height": "1.4", "margin_top": "0", "margin_bottom": "32px", "text_align": "center", "letter_spacing": "0.06em", "padding": "16px 24px", "background": "linear-gradient(180deg, rgba(248,165,192,0.08), rgba(248,165,192,0.02))", "border_radius": "16px" },
-    "h2": { "font_size": "21px", "font_weight": "500", "color": "#d87890", "line_height": "1.4", "margin_top": "32px", "margin_bottom": "16px", "padding_left": "12px", "border_left": "3px solid #f0b0c0", "letter_spacing": "0.04em" },
-    "h3": { "font_size": "18px", "font_weight": "500", "color": "#e898a8", "line_height": "1.4", "margin_top": "24px", "margin_bottom": "14px", "padding": "6px 12px", "background": "rgba(240,176,192,0.06)", "border_radius": "12px" },
-    "p": { "font_size": "15px", "color": "#5a4a4a", "line_height": "1.85", "margin_top": "0", "margin_bottom": "20px", "letter_spacing": "0.04em", "text_align": "left" },
-    "blockquote": { "border_left": "3px solid #f0b0c0", "background": "rgba(240,176,192,0.06)", "padding": "18px 22px", "border_radius": "12px", "margin_top": "16px", "margin_bottom": "22px", "font_size": "15px", "color": "#886868", "line_height": "1.8" },
-    "blockquote_p": { "font_size": "15px", "color": "#886868", "line_height": "1.8", "margin_bottom": "0" },
-    "strong": { "font_weight": "600", "color": "#d87890" },
-    "em": { "font_style": "italic", "color": "#c07080" },
-    "a": { "color": "#e898a8", "text_decoration": "none" },
-    "img": { "max_width": "100%", "border_radius": "12px", "display": "block", "box_shadow": "0 4px 12px rgba(232,152,168,0.12)" },
-    "img_wrapper": { "background": "#ffffff", "border_radius": "14px", "padding": "6px", "margin_top": "16px", "margin_bottom": "16px" },
-    "hr": { "margin_top": "36px", "margin_bottom": "36px", "height": "1px", "background": "linear-gradient(to right, transparent, rgba(240,176,192,0.3), rgba(240,176,192,0.3), transparent)", "border": "none", "width": "60%" },
-    "code": { "background": "#fff5f5", "padding": "3px 8px", "border_radius": "8px", "font_size": "90%", "color": "#d87890", "font_family": "Menlo, Monaco, Consolas, monospace" },
-    "code_block": { "background": "#fff5f5", "border_radius": "10px", "margin_top": "18px", "margin_bottom": "18px", "overflow": "hidden", "box_shadow": "0 2px 8px rgba(232,152,168,0.06)" },
-    "code_header": { "display": "flex", "align_items": "center", "height": "30px", "padding": "0 12px", "background": "rgba(240,176,192,0.1)" },
-    "pre": { "background": "#fff5f5", "color": "#5a4a4a", "padding": "16px", "border_radius": "0", "overflow_x": "auto", "margin_top": "0", "margin_bottom": "0", "font_size": "13px", "line_height": "1.5", "white_space": "pre-wrap", "word_wrap": "break-word", "word_break": "break-all" },
-    "pre_code": { "background": "none", "padding": "0", "color": "#5a4a4a", "font_size": "13px", "font_family": "Menlo, Monaco, Consolas, monospace" },
-    "table": { "width": "100%", "border_collapse": "separate", "margin_top": "18px", "margin_bottom": "18px", "font_size": "14px", "border_spacing": "0", "border_radius": "12px", "overflow": "hidden", "box_shadow": "0 2px 8px rgba(232,152,168,0.06)" },
-    "th": { "background": "rgba(240,176,192,0.1)", "padding": "12px 16px", "text_align": "left", "font_weight": "500", "color": "#d87890", "border_bottom": "1px solid rgba(240,176,192,0.15)", "font_size": "13px" },
-    "td": { "padding": "12px 16px", "font_size": "14px", "line_height": "1.6", "background": "#ffffff", "color": "#5a4a4a", "border_bottom": "1px solid rgba(240,176,192,0.06)" },
-    "list_item_bullet": { "color": "#f0b0c0", "margin_right": "8px", "font_weight": "bold" },
-    "ol_item_bullet": { "display": "inline-flex", "align_items": "center", "justify_content": "center", "width": "22px", "height": "22px", "min_width": "22px", "background": "rgba(240,176,192,0.12)", "color": "#d87890", "border_radius": "50%", "font_size": "12px", "font_weight": "500", "margin_right": "8px", "margin_top": "4px" },
-    "list_item_text": { "font_size": "15px", "color": "#5a4a4a", "line_height": "1.85", "letter_spacing": "0.04em" },
-    "list_wrapper": { "margin_top": "16px", "margin_bottom": "16px" },
-    "list_item_row": { "display": "flex", "margin_bottom": "6px", "align_items": "flex-start" },
-    "footnote_section": { "margin_top": "32px", "padding_top": "16px", "border_top": "1px dashed rgba(240,176,192,0.2)" },
-    "footnote_title": { "font_size": "13px", "font_weight": "500", "color": "#aa99a0", "margin_bottom": "10px" },
-    "footnote_item": { "font_size": "12px", "color": "#aa99a0", "margin_bottom": "6px", "line_height": "1.6", "word_break": "break-all" },
-    "footnote_sup": { "font_size": "11px", "color": "#f0b0c0", "vertical_align": "super", "margin_left": "2px" },
-    "callout": { "background": "rgba(240,176,192,0.06)", "border_left": "3px solid #f0b0c0", "padding": "16px 20px", "margin_top": "16px", "margin_bottom": "16px", "border_radius": "12px" },
-    "callout_title": { "font_weight": "500", "color": "#d87890", "margin_bottom": "8px", "font_size": "15px" },
-    "callout_content": { "font_size": "14px", "color": "#886868", "line_height": "1.8", "letter_spacing": "0.04em" },
-    "h4": { "font_size": "17px", "font_weight": "500", "color": "#d87890", "padding": "0", "margin_top": "22px", "margin_bottom": "8px", "line_height": "1.4" },
-    "h5": { "font_size": "15px", "font_weight": "400", "color": "#887878", "padding": "0", "margin_top": "18px", "margin_bottom": "6px", "line_height": "1.4" },
-    "h6": { "font_size": "14px", "font_weight": "400", "color": "#aa8888", "padding": "0", "margin_top": "14px", "margin_bottom": "6px", "line_height": "1.4" }
+    "wrapper": {
+      "background_color": "#fffaf8",
+      "padding": "16px"
+    },
+    "h1": {
+      "font_size": "26px",
+      "font_weight": "600",
+      "color": "#e898a8",
+      "line_height": "1.4",
+      "margin_top": "0",
+      "margin_bottom": "32px",
+      "text_align": "center",
+      "letter_spacing": "0.06em",
+      "padding": "16px 24px",
+      "background": "linear-gradient(180deg, rgba(248,165,192,0.08), rgba(248,165,192,0.02))",
+      "border_radius": "16px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "h2": {
+      "font_size": "21px",
+      "font_weight": "500",
+      "color": "#d87890",
+      "line_height": "1.4",
+      "margin_top": "32px",
+      "margin_bottom": "16px",
+      "padding_left": "12px",
+      "border_left": "3px solid #f0b0c0",
+      "letter_spacing": "0.04em",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "h3": {
+      "font_size": "18px",
+      "font_weight": "500",
+      "color": "#e898a8",
+      "line_height": "1.4",
+      "margin_top": "24px",
+      "margin_bottom": "14px",
+      "padding": "6px 12px",
+      "background": "rgba(240,176,192,0.06)",
+      "border_radius": "12px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "p": {
+      "font_size": "15px",
+      "color": "#5a4a4a",
+      "line_height": "1.85",
+      "margin_top": "0",
+      "margin_bottom": "20px",
+      "letter_spacing": "0.04em",
+      "text_align": "left",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "blockquote": {
+      "border_left": "3px solid #f0b0c0",
+      "background": "rgba(240,176,192,0.06)",
+      "padding": "18px 22px",
+      "border_radius": "12px",
+      "margin_top": "16px",
+      "margin_bottom": "22px",
+      "font_size": "15px",
+      "color": "#886868",
+      "line_height": "1.8"
+    },
+    "blockquote_p": {
+      "font_size": "15px",
+      "color": "#886868",
+      "line_height": "1.8",
+      "margin_bottom": "0",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "strong": {
+      "font_weight": "600",
+      "color": "#d87890"
+    },
+    "em": {
+      "font_style": "italic",
+      "color": "#c07080"
+    },
+    "a": {
+      "color": "#e898a8",
+      "text_decoration": "none"
+    },
+    "img": {
+      "max_width": "100%",
+      "border_radius": "12px",
+      "display": "block",
+      "box_shadow": "0 4px 12px rgba(232,152,168,0.12)"
+    },
+    "img_wrapper": {
+      "background": "#ffffff",
+      "border_radius": "14px",
+      "padding": "6px",
+      "margin_top": "16px",
+      "margin_bottom": "16px"
+    },
+    "hr": {
+      "margin_top": "36px",
+      "margin_bottom": "36px",
+      "height": "1px",
+      "background": "linear-gradient(to right, transparent, rgba(240,176,192,0.3), rgba(240,176,192,0.3), transparent)",
+      "border": "none",
+      "width": "60%"
+    },
+    "code": {
+      "background": "#fff5f5",
+      "padding": "3px 8px",
+      "border_radius": "8px",
+      "font_size": "90%",
+      "color": "#d87890",
+      "font_family": "Menlo, Monaco, Consolas, monospace"
+    },
+    "code_block": {
+      "background": "#fff5f5",
+      "border_radius": "10px",
+      "margin_top": "18px",
+      "margin_bottom": "18px",
+      "overflow": "hidden",
+      "box_shadow": "0 2px 8px rgba(232,152,168,0.06)"
+    },
+    "code_header": {
+      "display": "flex",
+      "align_items": "center",
+      "height": "30px",
+      "padding": "0 12px",
+      "background": "rgba(240,176,192,0.1)"
+    },
+    "pre": {
+      "background": "#fff5f5",
+      "color": "#5a4a4a",
+      "padding": "16px",
+      "border_radius": "0",
+      "overflow_x": "auto",
+      "margin_top": "0",
+      "margin_bottom": "0",
+      "font_size": "13px",
+      "line_height": "1.5",
+      "white_space": "pre-wrap",
+      "word_wrap": "break-word",
+      "word_break": "break-all"
+    },
+    "pre_code": {
+      "background": "none",
+      "padding": "0",
+      "color": "#5a4a4a",
+      "font_size": "13px",
+      "font_family": "Menlo, Monaco, Consolas, monospace"
+    },
+    "table": {
+      "width": "100%",
+      "border_collapse": "separate",
+      "margin_top": "18px",
+      "margin_bottom": "18px",
+      "font_size": "14px",
+      "border_spacing": "0",
+      "border_radius": "12px",
+      "overflow": "hidden",
+      "box_shadow": "0 2px 8px rgba(232,152,168,0.06)"
+    },
+    "th": {
+      "background": "rgba(240,176,192,0.1)",
+      "padding": "12px 16px",
+      "text_align": "left",
+      "font_weight": "500",
+      "color": "#d87890",
+      "border_bottom": "1px solid rgba(240,176,192,0.15)",
+      "font_size": "13px"
+    },
+    "td": {
+      "padding": "12px 16px",
+      "font_size": "14px",
+      "line_height": "1.6",
+      "background": "#ffffff",
+      "color": "#5a4a4a",
+      "border_bottom": "1px solid rgba(240,176,192,0.06)"
+    },
+    "list_item_bullet": {
+      "color": "#f0b0c0",
+      "margin_right": "8px",
+      "font_weight": "bold"
+    },
+    "ol_item_bullet": {
+      "display": "inline-flex",
+      "align_items": "center",
+      "justify_content": "center",
+      "width": "22px",
+      "height": "22px",
+      "min_width": "22px",
+      "background": "rgba(240,176,192,0.12)",
+      "color": "#d87890",
+      "border_radius": "50%",
+      "font_size": "12px",
+      "font_weight": "500",
+      "margin_right": "8px",
+      "margin_top": "4px"
+    },
+    "list_item_text": {
+      "font_size": "15px",
+      "color": "#5a4a4a",
+      "line_height": "1.85",
+      "letter_spacing": "0.04em",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "list_wrapper": {
+      "margin_top": "16px",
+      "margin_bottom": "16px"
+    },
+    "list_item_row": {
+      "display": "flex",
+      "margin_bottom": "6px",
+      "align_items": "flex-start"
+    },
+    "footnote_section": {
+      "margin_top": "32px",
+      "padding_top": "16px",
+      "border_top": "1px dashed rgba(240,176,192,0.2)"
+    },
+    "footnote_title": {
+      "font_size": "13px",
+      "font_weight": "500",
+      "color": "#aa99a0",
+      "margin_bottom": "10px"
+    },
+    "footnote_item": {
+      "font_size": "12px",
+      "color": "#aa99a0",
+      "margin_bottom": "6px",
+      "line_height": "1.6",
+      "word_break": "break-all",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "footnote_sup": {
+      "font_size": "11px",
+      "color": "#f0b0c0",
+      "vertical_align": "super",
+      "margin_left": "2px"
+    },
+    "callout": {
+      "background": "rgba(240,176,192,0.06)",
+      "border_left": "3px solid #f0b0c0",
+      "padding": "16px 20px",
+      "margin_top": "16px",
+      "margin_bottom": "16px",
+      "border_radius": "12px"
+    },
+    "callout_title": {
+      "font_weight": "500",
+      "color": "#d87890",
+      "margin_bottom": "8px",
+      "font_size": "15px"
+    },
+    "callout_content": {
+      "font_size": "14px",
+      "color": "#886868",
+      "line_height": "1.8",
+      "letter_spacing": "0.04em",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "h4": {
+      "font_size": "17px",
+      "font_weight": "500",
+      "color": "#d87890",
+      "padding": "0",
+      "margin_top": "22px",
+      "margin_bottom": "8px",
+      "line_height": "1.4",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "h5": {
+      "font_size": "15px",
+      "font_weight": "400",
+      "color": "#887878",
+      "padding": "0",
+      "margin_top": "18px",
+      "margin_bottom": "6px",
+      "line_height": "1.4",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    },
+    "h6": {
+      "font_size": "14px",
+      "font_weight": "400",
+      "color": "#aa8888",
+      "padding": "0",
+      "margin_top": "14px",
+      "margin_bottom": "6px",
+      "line_height": "1.4",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
+    }
   }
 }

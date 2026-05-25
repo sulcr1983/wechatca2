@@ -1,30 +1,27 @@
-import subprocess
 import sys
 import os
+import threading
 import time
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
 
-def install_deps():
-    req_path = os.path.join(os.path.dirname(__file__), "requirements.txt")
-    if not os.path.exists(req_path):
-        print("[launcher] requirements.txt not found, skipping dependency check")
-        return
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    print("[launcher] checking dependencies...")
-    result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-r", req_path, "-q"],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        print("[launcher] pip install failed:")
-        print(result.stderr)
-        sys.exit(1)
-    print("[launcher] dependencies ready")
+sys.path.insert(0, resource_path('.'))
 
+from app import app
 
 if __name__ == "__main__":
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    install_deps()
-    print("[launcher] starting app...")
-    subprocess.run([sys.executable, "app.py"])
+    import webbrowser
+    def open_browser():
+        time.sleep(2)
+        webbrowser.open('http://127.0.0.1:5000')
+    
+    threading.Thread(target=open_browser, daemon=True).start()
+    
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)

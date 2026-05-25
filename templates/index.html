@@ -117,10 +117,7 @@
     gap: 10px;
     font-size: 20px;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--accent-blue) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-purple-dark);
     margin-right: auto;
   }
   header .logo::before {
@@ -614,24 +611,26 @@
   /* ===== Toast ===== */
   #toast {
     position: fixed;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 24px;
+    right: 24px;
     background: rgba(31, 41, 55, 0.9);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     color: white;
-    padding: 12px 32px;
+    padding: 12px 24px;
     border-radius: 12px;
     font-size: 14px;
     font-weight: 500;
     z-index: 200;
     opacity: 0;
+    transform: translateX(20px);
     transition: all 0.3s ease;
     pointer-events: none;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    max-width: 360px;
+    word-break: break-word;
   }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(-5px); }
+  #toast.show { opacity: 1; transform: translateX(0); }
   #toast.success { 
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.9) 0%, rgba(20, 184, 166, 0.9) 100%);
   }
@@ -851,7 +850,7 @@
 
 <!-- ===== 推送弹窗 ===== -->
 <div id="push-modal" class="modal hidden">
-  <div class="modal-content" style="width:620px;">
+  <div class="modal-content" style="width:620px;max-height:85vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;gap:12px;">
       <div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6 0%,#3b82f6 100%);display:flex;align-items:center;justify-content:center;font-size:18px;">📤</div>
       <div>
@@ -1039,6 +1038,10 @@
         <label id="polish-result-label">润色结果</label>
         <div style="position:relative;">
           <textarea id="polish-result" style="min-height:280px;" placeholder="点击「开始润色」生成结果..."></textarea>
+          <div id="polish-placeholder" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(248,250,252,0.9);border-radius:12px;pointer-events:none;">
+            <span style="font-size:32px;margin-bottom:8px;">✨</span>
+            <span style="font-size:13px;color:var(--text-secondary);">AI 润色后的内容将显示在这里</span>
+          </div>
           <span id="polish-loading" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--primary-purple);font-size:14px;font-weight:500;">AI 润色中...</span>
         </div>
       </div>
@@ -1054,10 +1057,20 @@
 
 <!-- ===== 历史记录弹窗 ===== -->
 <div id="history-modal" class="modal hidden">
-  <div class="modal-content" style="width:580px;">
-    <h3>推送历史</h3>
+  <div class="modal-content" style="width:480px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);display:flex;align-items:center;justify-content:center;font-size:16px;">📁</div>
+      <div>
+        <h3 style="margin:0;">推送历史</h3>
+        <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;">查看和管理已推送的文章</p>
+      </div>
+    </div>
     <div id="history-list" class="history-list">
-      <p class="history-empty">暂无推送记录</p>
+      <div style="text-align:center;padding:48px 20px;">
+        <span style="font-size:48px;display:block;margin-bottom:16px;">📭</span>
+        <p style="color:var(--text-secondary);font-size:14px;">暂无推送记录</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:6px;">推送文章后将在这里显示</p>
+      </div>
     </div>
     <div class="modal-actions">
       <button id="btn-clear-history" style="color:#ef4444;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);margin-right:auto;">清空记录</button>
@@ -1068,35 +1081,111 @@
 
 <!-- ===== 设置弹窗 ===== -->
 <div id="settings-modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>⚙️ 系统设置</h3>
-    
-    <label>AI 服务配置</label>
-    <div style="background:rgba(139,92,246,0.05);padding:14px;border-radius:10px;">
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">当前配置：阿里云百炼 API</p>
-      <p style="font-size:12px;color:#9ca3af;">API 密钥已从 .env 文件加载</p>
+  <div class="modal-content" style="width:540px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);display:flex;align-items:center;justify-content:center;font-size:18px;">⚙️</div>
+      <div>
+        <h3 style="margin:0;">系统设置</h3>
+        <p style="font-size:13px;color:var(--text-secondary);margin-top:2px;">配置公众号和 AI 服务</p>
+      </div>
     </div>
 
-    <label>渲染设置</label>
-    <div style="display:flex;gap:16px;">
-      <label class="radio-label" style="margin:0;">
-        <input type="radio" name="render-mode" value="auto" checked> 自动优化
-      </label>
-      <label class="radio-label" style="margin:0;">
-        <input type="radio" name="render-mode" value="manual"> 仅本地渲染
-      </label>
+    <!-- ===== 公众号设置 ===== -->
+    <div style="border:1px solid rgba(139,92,246,0.15);border-radius:16px;padding:20px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);display:flex;align-items:center;justify-content:center;font-size:14px;">💬</div>
+        <label style="font-size:15px;font-weight:600;color:var(--text-primary);margin:0;">公众号设置</label>
+      </div>
+
+      <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:18px;">⚠️</span>
+          <div style="flex:1;">
+            <p style="font-size:13px;color:#92400e;font-weight:500;margin-bottom:6px;">推送前必须配置 IP 白名单</p>
+            <p style="font-size:12px;color:#b45309;line-height:1.6;margin-bottom:8px;">微信要求将服务器 IP 添加到公众号后台的 IP 白名单中，否则推送会失败。</p>
+            <div style="background:rgba(255,255,255,0.6);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <div>
+                <span style="font-size:11px;color:#b45309;">当前服务器 IP：</span>
+                <span id="server-ip-display" style="font-size:14px;font-weight:600;color:#92400e;font-family:monospace;">获取中...</span>
+              </div>
+              <button id="btn-copy-server-ip" style="padding:4px 10px;border:1px solid rgba(146,64,14,0.3);border-radius:6px;background:rgba(255,255,255,0.8);font-size:11px;color:#92400e;cursor:pointer;font-weight:500;">📋 复制</button>
+            </div>
+            <a href="https://www.google.com/search?q=微信公众号+IP白名单+怎么添加" target="_blank" style="font-size:12px;color:var(--primary-purple);text-decoration:none;font-weight:500;">🔍 搜索：怎么添加 IP 白名单 →</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="settings-account-list" style="margin-bottom:16px;">
+        <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:20px;">暂无公众号</p>
+      </div>
+
+      <div style="border-top:1px solid rgba(139,92,246,0.1);padding-top:16px;">
+        <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">公众号名称</label>
+        <input id="settings-acct-nickname" placeholder="如：So talk" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;margin-bottom:10px;">
+
+        <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">AppID</label>
+        <input id="settings-acct-appid" placeholder="wxe2bd55ee50e1b7c5" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;font-family:monospace;margin-bottom:10px;">
+
+        <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">AppSecret</label>
+        <input id="settings-acct-appsecret" type="password" placeholder="8bff1ee143028ae747c6376a30814c75" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;font-family:monospace;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <input id="settings-show-appsecret" type="checkbox" style="width:14px;height:14px;">
+          <label for="settings-show-appsecret" style="font-size:12px;color:var(--text-secondary);cursor:pointer;">显示 AppSecret</label>
+        </div>
+
+        <button id="btn-settings-add-account" style="width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);font-size:14px;cursor:pointer;color:white;font-weight:600;">✅ 添加公众号</button>
+      </div>
     </div>
 
-    <label>快捷键</label>
-    <div style="background:rgba(139,92,246,0.05);padding:14px;border-radius:10px;">
-      <p style="font-size:13px;color:var(--text-primary);margin-bottom:4px;">Ctrl/Cmd + Enter → 快速渲染</p>
-      <p style="font-size:13px;color:var(--text-primary);margin-bottom:4px;">Ctrl/Cmd + S → 保存到历史</p>
-      <p style="font-size:13px;color:var(--text-primary);">Ctrl/Cmd + P → 一键推送</p>
+    <!-- ===== AI API 设置 ===== -->
+    <div style="border:1px solid rgba(139,92,246,0.15);border-radius:16px;padding:20px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);display:flex;align-items:center;justify-content:center;font-size:14px;">🤖</div>
+        <label style="font-size:15px;font-weight:600;color:var(--text-primary);margin:0;">AI API 设置</label>
+      </div>
+
+      <div style="background:rgba(139,92,246,0.05);padding:12px 14px;border-radius:10px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:13px;color:var(--text-secondary);">当前平台</span>
+          <span id="ai-config-platform-name" style="font-size:13px;font-weight:600;color:var(--text-primary);">加载中...</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text-secondary);">状态</span>
+          <span id="ai-config-status" style="font-size:13px;">加载中...</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+          <span style="font-size:13px;color:var(--text-secondary);">模型</span>
+          <span id="ai-config-model" style="font-size:13px;font-weight:500;color:var(--text-primary);">-</span>
+        </div>
+      </div>
+
+      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">选择平台</label>
+      <select id="ai-platform-select" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;margin-bottom:12px;">
+        <option value="">加载中...</option>
+      </select>
+
+      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">API Base URL</label>
+      <input id="ai-base-url" type="text" placeholder="https://api.example.com/v1" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;font-family:monospace;margin-bottom:12px;">
+
+      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">API Key</label>
+      <input id="ai-api-key" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;font-family:monospace;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <input id="show-ai-key" type="checkbox" style="width:14px;height:14px;">
+        <label for="show-ai-key" style="font-size:12px;color:var(--text-secondary);cursor:pointer;">显示 API Key</label>
+      </div>
+
+      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">模型名称</label>
+      <input id="ai-model" type="text" placeholder="gpt-4o-mini" style="width:100%;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.8);font-size:14px;font-family:monospace;margin-bottom:16px;">
+
+      <div style="display:flex;gap:10px;">
+        <button id="btn-test-ai" style="flex:1;padding:10px;border:1px solid rgba(139,92,246,0.2);border-radius:10px;background:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;color:var(--primary-purple);font-weight:500;">🔌 测试连接</button>
+        <button id="btn-save-ai" style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--primary-purple) 0%,var(--accent-blue) 100%);font-size:13px;cursor:pointer;color:white;font-weight:500;">💾 保存配置</button>
+      </div>
+      <div id="ai-test-result" style="margin-top:10px;font-size:13px;display:none;"></div>
     </div>
 
     <div class="modal-actions">
       <button class="close-modal">关闭</button>
-      <button id="btn-reset-settings" style="color:#ef4444;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);">重置设置</button>
     </div>
   </div>
 </div>
@@ -1296,6 +1385,7 @@ document.getElementById('btn-polish').addEventListener('click', function() {
   document.getElementById('polish-original').value = text;
   document.getElementById('polish-result').value = '';
   document.getElementById('polish-loading').style.display = 'none';
+  document.getElementById('polish-placeholder').style.display = 'flex';
   document.getElementById('btn-apply-polish').style.display = 'none';
   document.getElementById('btn-start-polish').style.display = '';
   document.getElementById('polish-result-label').textContent = '润色结果';
@@ -1309,7 +1399,9 @@ document.getElementById('btn-start-polish').addEventListener('click', function()
 
   var loading = document.getElementById('polish-loading');
   var resultArea = document.getElementById('polish-result');
+  var placeholder = document.getElementById('polish-placeholder');
   loading.style.display = 'block';
+  placeholder.style.display = 'none';
   resultArea.value = '';
 
   fetch('/api/polish', {
@@ -1363,30 +1455,119 @@ document.querySelectorAll('.close-modal').forEach(function(btn) {
 
 document.getElementById('btn-settings').addEventListener('click', function() {
   loadSettings();
+  refreshSettingsAccountList();
   document.getElementById('settings-modal').classList.remove('hidden');
 });
 
 function loadSettings() {
-  var renderMode = localStorage.getItem('renderMode') || 'auto';
-  document.querySelector(`input[name="render-mode"][value="${renderMode}"]`).checked = true;
+  // 确保平台列表已加载后再加载配置
+  if (Object.keys(_aiPlatforms).length === 0) {
+    loadAIPlatforms();
+  } else {
+    loadAIConfig();
+  }
+  // 加载服务器 IP
+  loadServerIP();
 }
 
-function saveRenderMode(mode) {
-  localStorage.setItem('renderMode', mode);
+function loadServerIP() {
+  fetch('/api/server-ip')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var el = document.getElementById('server-ip-display');
+      if (el) {
+        el.textContent = d.ip || '获取失败';
+      }
+    })
+    .catch(function() {
+      var el = document.getElementById('server-ip-display');
+      if (el) {
+        el.textContent = '获取失败';
+      }
+    });
 }
 
-document.querySelectorAll('input[name="render-mode"]').forEach(function(radio) {
-  radio.addEventListener('change', function() {
-    saveRenderMode(this.value);
-  });
+document.getElementById('btn-copy-server-ip').addEventListener('click', function() {
+  var ip = document.getElementById('server-ip-display').textContent;
+  if (ip && ip !== '获取中...' && ip !== '获取失败') {
+    navigator.clipboard.writeText(ip).then(function() {
+      showToast('IP 已复制到剪贴板', 'success');
+    }).catch(function() {
+      showToast('复制失败，请手动复制', 'error');
+    });
+  }
 });
 
-document.getElementById('btn-reset-settings').addEventListener('click', function() {
-  if (!confirm('确定重置所有设置？')) return;
-  localStorage.removeItem('renderMode');
-  localStorage.removeItem('theme');
-  document.querySelector('input[name="render-mode"][value="auto"]').checked = true;
-  showToast('设置已重置', 'success');
+// 设置弹窗内的公众号列表刷新
+function refreshSettingsAccountList() {
+  fetch('/api/accounts')
+    .then(function(r) { return r.json(); })
+    .then(function(accounts) {
+      var container = document.getElementById('settings-account-list');
+      if (!accounts.length) {
+        container.innerHTML = '<div style="text-align:center;padding:24px;border:2px dashed rgba(139,92,246,0.2);border-radius:12px;background:rgba(139,92,246,0.03);"><span style="font-size:32px;display:block;margin-bottom:8px;">📭</span><p style="color:var(--text-secondary);font-size:13px;">暂无公众号</p><p style="color:#9ca3af;font-size:11px;margin-top:4px;">在下方添加</p></div>';
+        return;
+      }
+      container.innerHTML = accounts.map(function(a) {
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,0.7);border-radius:10px;margin-bottom:8px;border:1px solid rgba(139,92,246,0.1);">' +
+          '<div><div style="font-weight:600;font-size:14px;">' + escapeHtml(a.nickname) + '</div><div style="font-size:11px;color:var(--text-secondary);font-family:monospace;">' + escapeHtml(a.appid) + '</div></div>' +
+          '<button onclick="deleteSettingsAccount(\'' + a.id + '\')" style="padding:4px 12px;font-size:12px;border:1px solid rgba(239,68,68,0.3);color:#ef4444;background:rgba(239,68,68,0.08);border-radius:6px;cursor:pointer;">删除</button>' +
+          '</div>';
+      }).join('');
+    })
+    .catch(function() {
+      document.getElementById('settings-account-list').innerHTML = '<p style="color:var(--text-secondary);font-size:13px;text-align:center;">加载失败</p>';
+    });
+}
+
+function deleteSettingsAccount(id) {
+  if (!confirm('确定删除该公众号？')) return;
+  fetch('/api/accounts/' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) {
+        showToast('已删除', 'success');
+        refreshSettingsAccountList();
+        loadAccounts();
+      } else {
+        showToast('删除失败', 'error');
+      }
+    });
+}
+
+// 设置弹窗内添加公众号
+document.getElementById('btn-settings-add-account').addEventListener('click', function() {
+  var nickname = document.getElementById('settings-acct-nickname').value.trim();
+  var appid = document.getElementById('settings-acct-appid').value.trim();
+  var appsecret = document.getElementById('settings-acct-appsecret').value.trim();
+  if (!nickname || !appid || !appsecret) {
+    showToast('请填写完整信息', 'error');
+    return;
+  }
+
+  fetch('/api/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nickname: nickname, appid: appid, appsecret: appsecret })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) {
+        showToast('公众号已添加', 'success');
+        document.getElementById('settings-acct-nickname').value = '';
+        document.getElementById('settings-acct-appid').value = '';
+        document.getElementById('settings-acct-appsecret').value = '';
+        refreshSettingsAccountList();
+        loadAccounts();
+      } else {
+        showToast('添加失败: ' + (d.error || ''), 'error');
+      }
+    });
+});
+
+document.getElementById('settings-show-appsecret').addEventListener('change', function() {
+  var input = document.getElementById('settings-acct-appsecret');
+  input.type = this.checked ? 'text' : 'password';
 });
 
 document.querySelectorAll('.modal').forEach(function(modal) {
@@ -1625,7 +1806,16 @@ document.getElementById('btn-confirm-push').addEventListener('click', function()
       cover_temp_filename: coverFilename
     })
   })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(d) {
+          throw new Error(d.error || '服务器错误 (' + r.status + ')');
+        }, function() {
+          throw new Error('服务器错误 (' + r.status + ')');
+        });
+      }
+      return r.json();
+    })
     .then(function(d) {
       document.getElementById('btn-confirm-push').textContent = '📤 确认推送';
       document.getElementById('btn-confirm-push').disabled = false;
@@ -1637,13 +1827,32 @@ document.getElementById('btn-confirm-push').addEventListener('click', function()
         var articleText = document.getElementById('input-area').value;
         addHistoryRecord(title, accountName, articleText);
       } else {
-        showToast('推送失败: ' + (d.error || ''), 'error');
+        var errMsg = d.error || '未知错误';
+        // 识别白名单错误
+        if (errMsg.indexOf('40164') !== -1 || errMsg.indexOf('whitelist') !== -1 || errMsg.indexOf('not in whitelist') !== -1 || errMsg.indexOf('invalid ip') !== -1) {
+          showToast('❌ 推送失败：IP 未在白名单中。请去公众号后台添加当前服务器 IP 到白名单。', 'error');
+        } else if (errMsg.indexOf('40001') !== -1 || errMsg.indexOf('access_token') !== -1) {
+          showToast('❌ 推送失败：Access Token 无效，请检查 AppID 和 AppSecret 是否正确。', 'error');
+        } else if (errMsg.indexOf('45009') !== -1) {
+          showToast('❌ 推送失败：接口调用超过频率限制，请稍后再试。', 'error');
+        } else {
+          showToast('❌ 推送失败: ' + errMsg, 'error');
+        }
       }
     })
     .catch(function(e) {
       document.getElementById('btn-confirm-push').textContent = '📤 确认推送';
       document.getElementById('btn-confirm-push').disabled = false;
-      showToast('请求失败: ' + e.message, 'error');
+      var errMsg = e.message || '网络错误';
+      if (errMsg.indexOf('Failed to fetch') !== -1 || errMsg.indexOf('NetworkError') !== -1) {
+        showToast('❌ 网络连接失败，请检查服务器是否运行。', 'error');
+      } else if (errMsg.indexOf('40164') !== -1 || errMsg.indexOf('whitelist') !== -1 || errMsg.indexOf('invalid ip') !== -1) {
+        showToast('❌ 推送失败：IP 未在白名单中。请去公众号后台添加当前服务器 IP 到白名单。', 'error');
+      } else if (errMsg.indexOf('40001') !== -1) {
+        showToast('❌ 推送失败：Access Token 无效，请检查 AppID 和 AppSecret 是否正确。', 'error');
+      } else {
+        showToast('❌ 推送失败: ' + errMsg, 'error');
+      }
     });
 });
 
@@ -1702,6 +1911,7 @@ document.getElementById('btn-add-account').addEventListener('click', function() 
         document.getElementById('acct-appid').value = '';
         document.getElementById('acct-appsecret').value = '';
         refreshAccountList();
+        loadAccounts();  // 同步刷新推送弹窗的下拉列表
       } else {
         showToast('添加失败: ' + (d.error || ''), 'error');
       }
@@ -1760,8 +1970,143 @@ document.getElementById('account-list').addEventListener('click', function(e) {
   if (btn) deleteAccount(btn.getAttribute('data-delete-id'));
 });
 
+// ===== AI 配置 =====
+var _aiPlatforms = {};
+
+function loadAIPlatforms() {
+  fetch('/api/ai-platforms')
+    .then(function(r) { return r.json(); })
+    .then(function(platforms) {
+      _aiPlatforms = platforms;
+      var sel = document.getElementById('ai-platform-select');
+      sel.innerHTML = '';
+      Object.keys(platforms).forEach(function(key) {
+        var opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = platforms[key].name;
+        sel.appendChild(opt);
+      });
+      loadAIConfig();
+    })
+    .catch(function(err) {
+      console.error('load platforms failed:', err);
+    });
+}
+
+function loadAIConfig() {
+  fetch('/api/ai-config')
+    .then(function(r) { return r.json(); })
+    .then(function(config) {
+      console.log('AI config loaded:', config);
+      var platformName = '未配置';
+      var statusHtml = '<span style="color:#ef4444;">● 未配置</span>';
+      if (config.platform && _aiPlatforms[config.platform]) {
+        platformName = _aiPlatforms[config.platform].name;
+        statusHtml = '<span style="color:#22c55e;">● 已配置</span>';
+      }
+      document.getElementById('ai-config-platform-name').textContent = platformName;
+      document.getElementById('ai-config-status').innerHTML = statusHtml;
+      document.getElementById('ai-config-model').textContent = '模型: ' + (config.model || '默认');
+
+      var platformSel = document.getElementById('ai-platform-select');
+      var baseUrlInput = document.getElementById('ai-base-url');
+      var apiKeyInput = document.getElementById('ai-api-key');
+      var modelInput = document.getElementById('ai-model');
+
+      if (config.platform && platformSel) {
+        platformSel.value = config.platform;
+      }
+      if (config.base_url && baseUrlInput) {
+        baseUrlInput.value = config.base_url;
+        console.log('Set base_url to:', config.base_url);
+      }
+      if (config.api_key_masked && apiKeyInput) {
+        apiKeyInput.placeholder = config.api_key_masked;
+      }
+      if (config.model && modelInput) {
+        modelInput.value = config.model;
+        console.log('Set model to:', config.model);
+      }
+    })
+    .catch(function(err) {
+      console.error('load config failed:', err);
+    });
+}
+
+document.getElementById('ai-platform-select').addEventListener('change', function() {
+  var platform = _aiPlatforms[this.value];
+  if (platform) {
+    document.getElementById('ai-base-url').value = platform.base_url || '';
+    document.getElementById('ai-model').value = platform.model || '';
+  }
+});
+
+document.getElementById('show-ai-key').addEventListener('change', function() {
+  var input = document.getElementById('ai-api-key');
+  input.type = this.checked ? 'text' : 'password';
+});
+
+document.getElementById('btn-test-ai').addEventListener('click', function() {
+  var platform = document.getElementById('ai-platform-select').value;
+  var baseUrl = document.getElementById('ai-base-url').value.trim();
+  var apiKey = document.getElementById('ai-api-key').value.trim();
+  var model = document.getElementById('ai-model').value.trim();
+
+  var resultEl = document.getElementById('ai-test-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<span style="color:var(--primary-purple);">⏳ 测试中...</span>';
+
+  fetch('/api/ai-config/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform: platform, base_url: baseUrl, api_key: apiKey, model: model })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) {
+        resultEl.innerHTML = '<span style="color:#22c55e;">✅ ' + (d.message || '连接成功') + '</span>';
+      } else {
+        resultEl.innerHTML = '<span style="color:#ef4444;">❌ ' + (d.error || '连接失败') + '</span>';
+      }
+    })
+    .catch(function(e) {
+      resultEl.innerHTML = '<span style="color:#ef4444;">❌ 请求失败: ' + e.message + '</span>';
+    });
+});
+
+document.getElementById('btn-save-ai').addEventListener('click', function() {
+  var platform = document.getElementById('ai-platform-select').value;
+  var baseUrl = document.getElementById('ai-base-url').value.trim();
+  var apiKey = document.getElementById('ai-api-key').value.trim();
+  var model = document.getElementById('ai-model').value.trim();
+
+  if (!baseUrl || !apiKey) {
+    showToast('请填写 Base URL 和 API Key', 'error');
+    return;
+  }
+
+  fetch('/api/ai-config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform: platform, base_url: baseUrl, api_key: apiKey, model: model })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) {
+        showToast('AI 配置已保存', 'success');
+        loadAIConfig();
+      } else {
+        showToast('保存失败: ' + (d.error || ''), 'error');
+      }
+    })
+    .catch(function(e) {
+      showToast('保存失败: ' + e.message, 'error');
+    });
+});
+
 // ===== 启动 =====
 loadThemes();
+loadAIPlatforms();
 </script>
 
 </body>

@@ -27,7 +27,8 @@
       "border_left": "5px solid #9b7fd4",
       "border_radius": "13px",
       "background": "linear-gradient(180deg, rgba(236,228,255,0.98) 0%, rgba(245,240,255,0.98) 100%)",
-      "border": "1px solid rgba(155,127,212,0.22)"
+      "border": "1px solid rgba(155,127,212,0.22)",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h2": {
       "font_size": "22px",
@@ -39,7 +40,8 @@
       "padding": "9px 14px",
       "border_left": "3px solid #9b7fd4",
       "border_radius": "12px",
-      "background": "linear-gradient(90deg, rgba(236,228,255,0.94) 0%, rgba(236,228,255,0.2) 74%, rgba(236,228,255,0) 100%)"
+      "background": "linear-gradient(90deg, rgba(236,228,255,0.94) 0%, rgba(236,228,255,0.2) 74%, rgba(236,228,255,0) 100%)",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h3": {
       "font_size": "20px",
@@ -49,7 +51,8 @@
       "margin_top": "28px",
       "margin_bottom": "14px",
       "padding_left": "12px",
-      "border_left": "3px solid rgba(155,127,212,0.6)"
+      "border_left": "3px solid rgba(155,127,212,0.6)",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "p": {
       "font_size": "15px",
@@ -58,7 +61,8 @@
       "margin_top": "0",
       "margin_bottom": "18px",
       "letter_spacing": "0.02em",
-      "text_align": "left"
+      "text_align": "left",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "blockquote": {
       "border_left": "4px solid #9b7fd4",
@@ -77,7 +81,8 @@
       "line_height": "1.75",
       "margin_bottom": "0",
       "letter_spacing": "0.02em",
-      "background": "transparent"
+      "background": "transparent",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "strong": {
       "font_weight": "700",
@@ -204,7 +209,8 @@
       "font_size": "15px",
       "color": "#3d3155",
       "line_height": "1.75",
-      "letter_spacing": "0.5px"
+      "letter_spacing": "0.5px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "list_wrapper": {
       "margin_top": "15px",
@@ -231,7 +237,8 @@
       "color": "#999999",
       "margin_bottom": "6px",
       "line_height": "1.6",
-      "word_break": "break-all"
+      "word_break": "break-all",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "footnote_sup": {
       "font_size": "12px",
@@ -257,7 +264,8 @@
       "font_size": "14px",
       "color": "#3d3155",
       "line_height": "1.8",
-      "letter_spacing": "0.3px"
+      "letter_spacing": "0.3px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h4": {
       "font_size": "19px",
@@ -267,7 +275,8 @@
       "padding": "0 0 0 8px",
       "margin_top": "24px",
       "margin_bottom": "8px",
-      "line_height": "1.3"
+      "line_height": "1.3",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h5": {
       "font_size": "18px",
@@ -276,7 +285,8 @@
       "padding": "0",
       "margin_top": "20px",
       "margin_bottom": "6px",
-      "line_height": "1.3"
+      "line_height": "1.3",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h6": {
       "font_size": "15px",
@@ -285,7 +295,8 @@
       "padding": "0",
       "margin_top": "16px",
       "margin_bottom": "6px",
-      "line_height": "1.3"
+      "line_height": "1.3",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     }
   },
   "dark_mode": {
