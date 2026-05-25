@@ -1400,38 +1400,30 @@ document.getElementById('btn-polish').addEventListener('click', function() {
 document.getElementById('btn-start-polish').addEventListener('click', function() {
   var original = document.getElementById('polish-original').value.trim();
   var style = document.querySelector('input[name="polish-style"]:checked').value;
-
-  var loading = document.getElementById('polish-loading');
+  var btn = this;
   var resultArea = document.getElementById('polish-result');
   var placeholder = document.getElementById('polish-placeholder');
-  loading.style.display = 'block';
   placeholder.style.display = 'none';
   resultArea.value = '';
 
-  fetch('/api/polish', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: original, style: style })
-  })
-    .then(function(res) {
-      if (!res.ok) return res.json().then(function(d) { throw new Error(d.error || 'error ' + res.status); });
-      return res.json();
-    })
-    .then(function(data) {
-      loading.style.display = 'none';
-      if (data.success) {
-        resultArea.value = data.polished_text;
-        document.getElementById('btn-apply-polish').style.display = '';
-        document.getElementById('btn-start-polish').style.display = 'none';
-        document.getElementById('polish-result-label').textContent = '润色结果（可编辑）';
-      } else {
-        showToast('润色失败: ' + (data.error || '未知错误'), 'error');
-      }
-    })
-    .catch(function(err) {
-      loading.style.display = 'none';
-      showToast('润色请求失败: ' + err.message, 'error');
+  withAIFeedback(btn, function(signal) {
+    return fetch('/api/polish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: original, style: style }),
+      signal: signal
     });
+  }, {
+    onSuccess: function(data) {
+      resultArea.value = data.polished_text;
+      document.getElementById('btn-apply-polish').style.display = '';
+      btn.style.display = 'none';
+      document.getElementById('polish-result-label').textContent = '润色结果（可编辑）';
+    },
+    onError: function(e) {
+      showToast('润色失败: ' + (e.error || e.message || '未知错误'), 'error');
+    }
+  });
 });
 
 document.getElementById('btn-apply-polish').addEventListener('click', function() {
@@ -1684,7 +1676,63 @@ function showToast(msg, type) {
   t.textContent = msg;
   t.className = type || '';
   t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ===== AI 操作通用反馈 =====
+function withAIFeedback(button, fetchFn, opts) {
+  var originText = button.textContent;
+  button.disabled = true;
+  var dotCount = 0;
+  var slowShown = false;
+
+  var dotInterval = setInterval(function() {
+    dotCount = (dotCount + 1) % 4;
+    var dots = Array(dotCount + 1).join('.');
+    button.textContent = '\uD83E\uDD16 AI 思考中' + dots;
+    if (dotCount === 0 && !slowShown) {
+      button.textContent += '\n\u23F3 网络较慢，请继续等待...';
+      slowShown = true;
+    }
+  }, 2000);
+
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 35000);
+
+  var signal = controller.signal;
+
+  function done() {
+    clearInterval(dotInterval);
+    clearTimeout(timeoutId);
+    button.disabled = false;
+    button.textContent = originText;
+  }
+
+  var req = fetchFn(signal);
+
+  Promise.resolve(req)
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'error ' + r.status); });
+      return r.json();
+    })
+    .then(function(data) {
+      done();
+      if (data.success) {
+        if (opts.onSuccess) opts.onSuccess(data);
+      } else {
+        if (opts.onError) opts.onError(data);
+        else showToast('操作失败: ' + (data.error || '未知错误'), 'error');
+      }
+    })
+    .catch(function(err) {
+      done();
+      if (err.name === 'AbortError') {
+        showToast('AI 请求超时，请检查网络或 API Key 配置', 'error');
+      } else {
+        if (opts.onError) opts.onError(err);
+        else showToast('请求失败: ' + err.message, 'error');
+      }
+    });
 }
 
 // ===== 推送弹窗 =====
@@ -1725,21 +1773,19 @@ function loadAccounts() {
 document.getElementById('btn-gen-summary').addEventListener('click', function() {
   var text = document.getElementById('input-area').value.trim();
   if (!text) { showToast('请先在左侧输入文本', 'error'); return; }
-  var loading = document.getElementById('summary-loading');
+  var btn = this;
   var resultArea = document.getElementById('push-summary');
-  loading.style.display = 'inline';
-  fetch('/api/summary', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ article_text: text })
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      loading.style.display = 'none';
-      if (d.success) { resultArea.value = d.summary; }
-      else { showToast('摘要生成失败: ' + (d.error || ''), 'error'); }
-    })
-    .catch(function(e) { loading.style.display = 'none'; showToast('请求失败: ' + e.message, 'error'); });
+  withAIFeedback(btn, function(signal) {
+    return fetch('/api/summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ article_text: text }),
+      signal: signal
+    });
+  }, {
+    onSuccess: function(d) { resultArea.value = d.summary; },
+    onError: function(e) { showToast('摘要生成失败: ' + (e.error || e.message || ''), 'error'); }
+  });
 });
 
 // ── 标题图生成 ──
@@ -1747,34 +1793,33 @@ document.getElementById('btn-gen-cover').addEventListener('click', function() {
   var title = extractTitle();
   var text = document.getElementById('input-area').value;
   if (!title) { showToast('无法提取标题', 'error'); return; }
-  var loading = document.getElementById('cover-loading');
+  var btn = this;
   var preview = document.getElementById('cover-preview');
   var placeholder = document.getElementById('cover-placeholder');
-  loading.style.display = 'block';
   preview.src = '';
   preview.style.display = 'none';
   placeholder.style.display = 'flex';
   coverFilename = '';
 
-  fetch('/api/cover-image', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: title, full_text: text })
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      loading.style.display = 'none';
-      if (d.success) {
-        preview.src = d.image_url;
-        preview.style.display = 'block';
-        placeholder.style.display = 'none';
-        coverFilename = d.image_url.split('/').pop();
-        document.getElementById('cover-filename-display').textContent = coverFilename;
-      } else {
-        showToast('标题图生成失败: ' + (d.error || ''), 'error');
-      }
-    })
-    .catch(function(e) { loading.style.display = 'none'; showToast('请求失败: ' + e.message, 'error'); });
+  withAIFeedback(btn, function(signal) {
+    return fetch('/api/cover-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, full_text: text }),
+      signal: signal
+    });
+  }, {
+    onSuccess: function(d) {
+      preview.src = d.image_url;
+      preview.style.display = 'block';
+      placeholder.style.display = 'none';
+      coverFilename = d.image_url.split('/').pop();
+      document.getElementById('cover-filename-display').textContent = coverFilename;
+    },
+    onError: function(e) {
+      showToast('标题图生成失败: ' + (e.error || e.message || ''), 'error');
+    }
+  });
 });
 
 function extractTitle() {
