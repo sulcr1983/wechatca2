@@ -10,15 +10,12 @@
     python3 format.py --input article.md --format plain  # 纯 HTML 输出（无微信兼容处理）
 """
 
-import argparse
 import json
 import os
 import re
 import shutil
 import sys
 import uuid
-import webbrowser
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import markdown
@@ -1660,6 +1657,10 @@ def format_for_output(content: str, input_path: Path, theme: dict,
 
 # ── 主流程 ──────────────────────────────────────────────────────────────
 def main():
+    import argparse
+    import webbrowser
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     parser = argparse.ArgumentParser(description="微信公众号文章排版工具")
     parser.add_argument("--input", "-i", required=True, help="输入 Markdown 文件路径")
     parser.add_argument("--theme", "-t", default=DEFAULT_THEME, help=f"主题名称（默认: {DEFAULT_THEME}）")
