@@ -33,8 +33,11 @@ def upload_permanent_material(token: str, image_bytes: bytes, filename: str = "c
         return None
 
 
-def filter_html_images(html: str) -> str:
-    return re.sub(r"<img[^>]*/?>", "", html)
+def filter_html_images(html: str) -> tuple[str, int]:
+    """移除 HTML 中的 <img> 标签。返回 (清洗后的HTML, 移除图片数量)"""
+    count = len(re.findall(r"<img[^>]*/?>", html))
+    cleaned = re.sub(r"<img[^>]*/?>", "", html)
+    return cleaned, count
 
 
 def push_to_draft(token: str, title: str, html_content: str, digest: str = "", thumb_media_id: str = "") -> str | dict:

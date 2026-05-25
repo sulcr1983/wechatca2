@@ -637,6 +637,10 @@
   #toast.error { 
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(249, 115, 22, 0.9) 100%);
   }
+  #toast.warning { 
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.9) 0%, rgba(245, 158, 11, 0.9) 100%);
+    color: #1c1917;
+  }
 
   /* ===== 历史记录 ===== */
   .history-list { max-height: 400px; overflow-y: auto; }
@@ -1820,6 +1824,9 @@ document.getElementById('btn-confirm-push').addEventListener('click', function()
       document.getElementById('btn-confirm-push').textContent = '📤 确认推送';
       document.getElementById('btn-confirm-push').disabled = false;
       if (d.success) {
+        if (d.warning) {
+          showToast(d.warning, 'warning');
+        }
         showToast('推送成功！草稿 media_id: ' + d.media_id, 'success');
         document.getElementById('push-modal').classList.add('hidden');
         var sel = document.getElementById('push-account-select');
