@@ -29,7 +29,7 @@ def _extract_keywords(title: str, full_text: str) -> list[str]:
 Return only comma-separated keywords, no explanation.
 
 Title: {title}
-Text: {full_text[:2000]}"""
+Text: {full_text[:500]}"""
 
     result = call_llm("You are a visual keyword extractor. Return only comma-separated English keywords.", prompt)
     if not result:
@@ -144,8 +144,12 @@ def _generate_fallback(title: str) -> io.BytesIO:
 def generate_cover(title: str, full_text: str) -> bytes:
     """生成标题图，返回 PNG bytes
 
-    流程：LLM提取关键词 → 文生图API → 叠加标题 → 失败则fallback纯色背景
+    流程：先检查文生图 API 是否配置 → 未配置直接 fallback → LLM提取关键词 → 文生图 → 叠加标题 → 失败 fallback
     """
+    if not IMAGE_GEN_BASE_URL or not IMAGE_GEN_API_KEY:
+        buf = _generate_fallback(title)
+        return buf.read()
+
     keywords = _extract_keywords(title, full_text)
     bg = _generate_background(keywords)
 
