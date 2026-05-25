@@ -33,7 +33,7 @@ from core.token_manager import token_manager
 from core.wechat_publisher import push_to_draft, upload_permanent_material, filter_html_images
 from core.image_gen import generate_cover
 from core.preprocessor import preprocess
-from core.crypto_utils import encrypt, decrypt
+from core.crypto_utils import encrypt, decrypt, _migrate_key_location, _decrypt_with_key
 
 # ── 后台 LLM 优化结果暂存 ──────────────────────────────────────────────
 _opt_store = {}
@@ -41,14 +41,30 @@ _opt_lock = threading.Lock()
 _data_lock = threading.Lock()
 _OPT_MAX_AGE = 120
 
-# ── 启动时迁移旧明文 appsecret ──────────────────────────────────────────
+# ── 启动时迁移旧明文 appsecret + 旧密钥位置迁移 ─────────────────────────
 def _migrate_accounts():
+    old_key = _migrate_key_location()
     accounts = _read_json("accounts.json")
     changed = False
+
+    if old_key:
+        for a in accounts:
+            raw = a.get("appsecret", "")
+            if raw.startswith("enc:"):
+                try:
+                    plain = _decrypt_with_key(raw, old_key)
+                    a["appsecret"] = encrypt(plain)
+                    changed = True
+                except Exception:
+                    pass
+        print("[WechatCA2] 密钥已自动迁移到系统安全位置，已重新加密数据")
+
     for a in accounts:
-        if a.get("appsecret") and not a["appsecret"].startswith("enc:"):
-            a["appsecret"] = encrypt(a["appsecret"])
+        raw = a.get("appsecret", "")
+        if raw and not raw.startswith("enc:"):
+            a["appsecret"] = encrypt(raw)
             changed = True
+
     if changed:
         _write_json("accounts.json", accounts)
 
@@ -372,6 +388,8 @@ def api_push():
 
     # 推送
     result = push_to_draft(token, title, html_content, summary, thumb_media_id)
+    if not result:
+        return jsonify({"success": False, "error": "推送失败"}), 500
     if isinstance(result, dict):
         errcode = result.get("errcode", "")
         errmsg = result.get("errmsg", "")

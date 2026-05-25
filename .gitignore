@@ -16,6 +16,9 @@ venv/
 data/
 temp_covers/
 
+# 加密密钥（旧位置，迁移后删除）
+data/.secret_key
+
 # IDE
 .vscode/
 .idea/
