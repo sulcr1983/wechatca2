@@ -9,6 +9,8 @@ load_dotenv()
 
 import requests
 
+from core.crypto_utils import encrypt, decrypt
+
 logger = logging.getLogger(__name__)
 
 # 内置平台配置模板
@@ -75,11 +77,22 @@ CONFIG_PATH = Path(__file__).parent.parent / "data" / "ai_config.json"
 
 
 def _load_config():
-    """加载 AI 配置"""
+    """加载 AI 配置（api_key 自动解密 + 明文迁移）"""
     if CONFIG_PATH.exists():
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+                config = json.load(f)
+            raw_key = config.get("api_key", "")
+            if raw_key.startswith("enc:"):
+                config["api_key"] = decrypt(raw_key)
+            elif raw_key:
+                encrypted = encrypt(raw_key)
+                config["api_key"] = encrypted
+                CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                    json.dump(config, f, ensure_ascii=False, indent=2)
+                config["api_key"] = decrypt(encrypted)
+            return config
         except Exception:
             pass
     # 默认从环境变量读取
@@ -92,10 +105,13 @@ def _load_config():
 
 
 def _save_config(config: dict):
-    """保存 AI 配置"""
+    """保存 AI 配置（api_key 加密存储）"""
+    saved = dict(config)
+    if saved.get("api_key"):
+        saved["api_key"] = encrypt(saved["api_key"])
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+        json.dump(saved, f, ensure_ascii=False, indent=2)
 
 
 def get_current_config():
