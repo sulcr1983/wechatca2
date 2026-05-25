@@ -7,6 +7,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+*.spec
 
 # 虚拟环境
 venv/
@@ -19,6 +20,11 @@ temp_covers/
 
 # 加密密钥（旧位置，迁移后删除）
 data/.secret_key
+
+# 测试截图
+tests/**/*.png
+tests/**/snapshot.txt
+tests/screenshot_*.png
 
 # IDE
 .vscode/
