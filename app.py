@@ -41,6 +41,20 @@ _opt_lock = threading.Lock()
 _data_lock = threading.Lock()
 _OPT_MAX_AGE = 120
 
+
+def _cleanup_opt_store():
+    while True:
+        time.sleep(60)
+        now = time.time()
+        with _opt_lock:
+            expired = [k for k, v in list(_opt_store.items()) if now - v.get("_ts", 0) > _OPT_MAX_AGE]
+            for k in expired:
+                del _opt_store[k]
+
+
+threading.Thread(target=_cleanup_opt_store, daemon=True).start()
+
+
 # ── 启动时迁移旧明文 appsecret + 旧密钥位置迁移 ─────────────────────────
 def _migrate_accounts():
     old_key = _migrate_key_location()
@@ -207,18 +221,14 @@ def api_optimize_stream():
         return jsonify({"error": "request_id required"}), 400
 
     def generate():
-        for _ in range(60):
+        for _ in range(30):
             with _opt_lock:
                 result = _opt_store.pop(request_id, None)
-                now = time.time()
-                expired = [k for k, v in _opt_store.items() if now - v.get("_ts", 0) > _OPT_MAX_AGE]
-                for k in expired:
-                    del _opt_store[k]
             if result is not None:
                 result.pop("_ts", None)
                 yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
                 return
-            time.sleep(0.5)
+            time.sleep(1.0)
         with _opt_lock:
             _opt_store.pop(request_id, None)
         yield f"data: {json.dumps({'status': 'timeout'}, ensure_ascii=False)}\n\n"
