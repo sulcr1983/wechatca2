@@ -394,7 +394,7 @@ def api_push():
             thumb_media_id = upload_permanent_material(token, cover_path.read_bytes(), cover_temp_filename) or ""
 
     # 过滤正文图片
-    html_content = filter_html_images(html_content)
+    html_content, removed_count = filter_html_images(html_content)
 
     # 推送
     result = push_to_draft(token, title, html_content, summary, thumb_media_id)
@@ -417,7 +417,10 @@ def api_push():
     })
     _write_json("history.json", history[:20])
 
-    return jsonify({"success": True, "media_id": media_id})
+    resp = {"success": True, "media_id": media_id}
+    if removed_count > 0:
+        resp["warning"] = f"文章包含 {removed_count} 张图片，已自动移除。图片请在微信公众号后台手动添加。"
+    return jsonify(resp)
 
 
 # ── AI 配置 API ─────────────────────────────────────────────────────────
