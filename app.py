@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import uuid
 import webbrowser
@@ -53,6 +54,23 @@ def _cleanup_opt_store():
 
 
 threading.Thread(target=_cleanup_opt_store, daemon=True).start()
+
+_COVER_UUID_RE = re.compile(r"^[a-f0-9]{32}\.png$")
+
+
+def _cleanup_temp_covers():
+    while True:
+        time.sleep(3600)
+        now = time.time()
+        for f in TEMP_COVERS_DIR.glob("*.png"):
+            if _COVER_UUID_RE.match(f.name) and now - f.stat().st_mtime > 7200:
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+
+
+threading.Thread(target=_cleanup_temp_covers, daemon=True).start()
 
 
 # ── 启动时迁移旧明文 appsecret + 旧密钥位置迁移 ─────────────────────────
@@ -355,6 +373,8 @@ def api_cover_image():
 
 @app.route("/temp_covers/<filename>")
 def serve_cover(filename):
+    if not _COVER_UUID_RE.match(filename):
+        return jsonify({"error": "invalid filename"}), 400
     return send_from_directory(str(TEMP_COVERS_DIR), filename)
 
 
@@ -416,6 +436,13 @@ def api_push():
         "time": datetime.now().isoformat(),
     })
     _write_json("history.json", history[:20])
+
+    # 推送成功后删除临时封面图
+    if cover_temp_filename and _COVER_UUID_RE.match(cover_temp_filename):
+        try:
+            (TEMP_COVERS_DIR / cover_temp_filename).unlink(missing_ok=True)
+        except Exception:
+            pass
 
     resp = {"success": True, "media_id": media_id}
     if removed_count > 0:

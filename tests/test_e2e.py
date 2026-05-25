@@ -350,7 +350,7 @@ def test_cover_empty_title():
 @test("GET /temp_covers/<不存在的文件> → 404")
 def test_cover_not_found():
     with app.test_client() as c:
-        r = c.get("/temp_covers/nonexistent_xyz.png")
+        r = c.get("/temp_covers/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png")
         assert r.status_code == 404
 
 
