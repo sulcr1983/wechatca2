@@ -5,7 +5,8 @@ import re
 _SENTENCE_WORDS = re.compile(
     r'(?:是|了|在|就|都|很|不|也|我|你|他|她|它|们|这|那|会|能|要|可以|已经|'
     r'因为|所以|但是|如果|虽然|而且|然后|之后|之|与|及|或|把|被|让|给|对|从|到|'
-    r'应该|可能|必须|一定|怎么|怎样|怎么样|为什么|什么|哪)'
+    r'应该|可能|必须|一定|怎么|怎样|怎么样|为什么|什么|哪|'
+    r'效果|发展|问题|方法|内容|情况|原因|结果|作用|影响|过程|特点|优势|功能|目的|意义)'
 )
 
 
@@ -20,7 +21,7 @@ def preprocess(text: str) -> str:
     md_lines = []
     in_code_block = False
 
-    for line in lines:
+    for i, line in enumerate(lines):
         stripped = line.strip()
 
         if not stripped:
@@ -58,11 +59,20 @@ def preprocess(text: str) -> str:
             md_lines.append(f'## {stripped}')
             continue
 
-        # 短行 + 无句尾标点 + 不像完整句子 → 可能是标题
+        # 短行标题检测
+        # 孤立行：前后有空行或文件边界
+        prev_empty = i == 0 or not lines[i - 1].strip()
+        next_empty = i == len(lines) - 1 or not lines[i + 1].strip()
+        is_isolated = prev_empty and next_empty
+
+        has_comma = ',' in stripped or '，' in stripped
+
         if (
-            len(stripped) <= 16
-            and not re.search(r'[。！？，、；：””…\)】》”！？，、；：””…\)】》]$', stripped[-1])
-            and not _looks_like_sentence(stripped)
+            is_isolated
+            and len(stripped) <= 12
+            and not stripped.startswith('\u300c')
+            and not re.search(r'[。！？，、；：\u201c\u201d…\)】》！？，、；：\u201c\u201d…\)】》]$', stripped[-1])
+            and not has_comma
         ):
             md_lines.append(f'## {stripped}')
             continue
