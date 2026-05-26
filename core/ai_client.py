@@ -64,6 +64,12 @@ PLATFORM_TEMPLATES = {
         "model": "Qwen/Qwen2.5-72B-Instruct",
         "auth_type": "bearer",
     },
+    "tokenpool": {
+        "name": "TokenPool",
+        "base_url": "https://api.tokenpool.co/v1",
+        "model": "gpt-4o-mini",
+        "auth_type": "bearer",
+    },
     "custom": {
         "name": "自定义 OpenAI 兼容",
         "base_url": "",

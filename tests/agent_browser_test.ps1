@@ -3,9 +3,13 @@
 
 $ErrorActionPreference = "Stop"
 $env:CHROME_PATH = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+$projectRoot = "D:\test\wechatca2"
 
-$shotsDir = "tests\agent_browser_screenshots"
+$shotsDir = "$projectRoot\tests\agent_browser_screenshots"
 New-Item -ItemType Directory -Force -Path $shotsDir | Out-Null
+
+# 清理可能遗留的 agent-browser socket，避免冲突
+Remove-Item -Path "$env:USERPROFILE\.agent-browser\*.sock" -Force -ErrorAction SilentlyContinue
 
 function Shot($name) {
     $path = $shotsDir + "\" + $name + ".png"

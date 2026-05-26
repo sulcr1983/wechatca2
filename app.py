@@ -404,14 +404,26 @@ def api_push():
     try:
         token = token_manager.get_token(account["appid"], decrypt(account["appsecret"]))
     except Exception as e:
-        return jsonify({"success": False, "error": f"token error: {str(e)}"}), 500
+        err_str = str(e)
+        if "[40164]" in err_str:
+            record_wechat_detected_ip(err_str)
+        return jsonify({"success": False, "error": f"token error: {err_str}"}), 500
 
-    # 上传封面图
+    # 上传封面图（微信 API 要求必须传 thumb_media_id）
     thumb_media_id = ""
+    cover_bytes = None
     if cover_temp_filename:
         cover_path = TEMP_COVERS_DIR / cover_temp_filename
         if cover_path.exists():
-            thumb_media_id = upload_permanent_material(token, cover_path.read_bytes(), cover_temp_filename) or ""
+            cover_bytes = cover_path.read_bytes()
+    else:
+        try:
+            cover_bytes = generate_cover(title, html_content)
+        except Exception:
+            pass
+
+    if cover_bytes:
+        thumb_media_id = upload_permanent_material(token, cover_bytes, "cover.png") or ""
 
     # 过滤正文图片
     html_content, removed_count = filter_html_images(html_content)
@@ -423,6 +435,9 @@ def api_push():
     if isinstance(result, dict):
         errcode = result.get("errcode", "")
         errmsg = result.get("errmsg", "")
+        print(f"[PUSH DEBUG] 微信返回错误: [{errcode}] {errmsg}")
+        if errcode == 40164:
+            record_wechat_detected_ip(errmsg)
         return jsonify({"success": False, "error": f"[{errcode}] {errmsg}"}), 500
     media_id = result
 
@@ -495,12 +510,12 @@ def api_ai_platforms():
 
 # ── 获取服务器公网 IP ───────────────────────────────────────────────────
 _server_ip_cache = {"ip": None, "time": 0}
+_wechat_detected_ip = ""
 
 
 def get_server_ip():
+    """获取公网 IP，每次实时请求，失败时回退到缓存"""
     now = time.time()
-    if _server_ip_cache["ip"] and now - _server_ip_cache["time"] < 300:
-        return _server_ip_cache["ip"]
     try:
         r = requests.get("https://api.ipify.org?format=json", timeout=5)
         r.raise_for_status()
@@ -509,14 +524,28 @@ def get_server_ip():
         _server_ip_cache["time"] = now
         return ip
     except Exception:
-        return ""
+        return _server_ip_cache.get("ip", "") or ""
+
+
+def record_wechat_detected_ip(errmsg: str):
+    """从微信 40164 错误消息中提取并记录微信实际检测到的 IP"""
+    global _wechat_detected_ip
+    import re
+    match = re.search(r'invalid ip\s+([\d.]+)', errmsg)
+    if match:
+        _wechat_detected_ip = match.group(1)
+        app.logger.info("record_wechat_detected_ip: %s", _wechat_detected_ip)
 
 
 @app.route("/api/server-ip", methods=["GET"])
 def api_server_ip():
-    """获取当前服务器公网 IP"""
+    """获取当前服务器 IP（含微信检测到的 IP，如果有）"""
     ip = get_server_ip()
-    return jsonify({"ip": ip})
+    result = {"ip": ip}
+    if _wechat_detected_ip:
+        result["wechat_ip"] = _wechat_detected_ip
+    app.logger.info("server-ip: wechat_ip=%s", _wechat_detected_ip)
+    return jsonify(result)
 
 
 # ── 启动 ────────────────────────────────────────────────────────────────

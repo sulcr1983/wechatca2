@@ -101,4 +101,13 @@ def preprocess(text: str) -> str:
             prev_empty = False
             result.append(line)
 
+    # 将第一行非空内容自动作为大标题（如果尚未标记为标题）
+    for i, line in enumerate(result):
+        if line.strip():
+            stripped = line.strip()
+            # 如果第一行不是标题、引用、列表、代码块等结构化标记
+            if not stripped.startswith(('#', '>', '-', '*', '```', '|')):
+                result[i] = f'# {stripped}'
+            break
+
     return '\n'.join(result)

@@ -7,11 +7,19 @@ load_dotenv()
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
-from core.ai_client import call_llm
+from core.ai_client import call_llm, get_current_config
 
 IMAGE_GEN_BASE_URL = os.getenv("IMAGE_GEN_BASE_URL") or os.getenv("AI_URL", "")
 IMAGE_GEN_API_KEY = os.getenv("IMAGE_GEN_API_KEY") or os.getenv("AI_API_KEY", "")
 IMAGE_GEN_MODEL = os.getenv("IMAGE_GEN_MODEL") or os.getenv("AI_IMAGE_MODEL", "gpt-image-2")
+
+_IMAGE_GEN_PLATFORMS = {
+    "aliyun_bailian": {"models": ["qwen-image-2.0-pro", "wan2.7-image-pro"]},
+    "openai": {"models": ["dall-e-3", "gpt-image-2"]},
+    "siliconflow": {"models": ["Qwen/Qwen2.5-72B-Instruct"]},
+}
+
+_NON_IMAGE_GEN_PLATFORMS = {"deepseek", "zhipu", "moonshot", "claude", "gemini", "tokenpool", "custom"}
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 _FONT_CANDIDATES = [
@@ -21,6 +29,34 @@ _FONT_CANDIDATES = [
 ]
 FONT_PATH = next((p for p in _FONT_CANDIDATES if os.path.isfile(p)), "")
 COVER_WIDTH, COVER_HEIGHT = 900, 383
+
+
+def _platform_supports_image_gen(platform: str) -> bool:
+    """检测当前平台是否支持图片生成"""
+    if platform in _IMAGE_GEN_PLATFORMS:
+        return True
+    if platform in _NON_IMAGE_GEN_PLATFORMS:
+        return False
+    return False
+
+
+def _get_image_config() -> dict:
+    """获取图片生成配置：优先从 ai_config.json 读取，再回退到环境变量"""
+    ai_config = get_current_config()
+    platform = ai_config.get("platform", "")
+
+    if platform in _IMAGE_GEN_PLATFORMS:
+        base_url = ai_config.get("base_url", "")
+        api_key = ai_config.get("api_key", "")
+        models = _IMAGE_GEN_PLATFORMS[platform]["models"]
+        model = models[0] if models else ""
+        return {"base_url": base_url, "api_key": api_key, "model": model}
+
+    return {
+        "base_url": IMAGE_GEN_BASE_URL,
+        "api_key": IMAGE_GEN_API_KEY,
+        "model": IMAGE_GEN_MODEL,
+    }
 
 
 def _extract_keywords(title: str, full_text: str) -> list[str]:
@@ -38,21 +74,21 @@ Text: {full_text[:500]}"""
     return keywords[:8] if keywords else ["modern", "clean", "professional"]
 
 
-def _generate_background(keywords: list[str]) -> Image.Image | None:
+def _generate_background(keywords: list[str], base_url: str = "", api_key: str = "", model: str = "") -> Image.Image | None:
     """调用文生图 API 生成背景图，失败返回 None"""
-    if not IMAGE_GEN_BASE_URL or not IMAGE_GEN_API_KEY:
+    if not base_url or not api_key:
         return None
 
     prompt = f"Clean professional background for article cover, {', '.join(keywords)}, minimalistic, modern, soft colors, no text, no letters, no words"
     try:
         resp = requests.post(
-            f"{IMAGE_GEN_BASE_URL}/images/generations",
+            f"{base_url}/images/generations",
             headers={
-                "Authorization": f"Bearer {IMAGE_GEN_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
             json={
-                "model": IMAGE_GEN_MODEL,
+                "model": model,
                 "prompt": prompt,
                 "n": 1,
                 "size": "900x383",
@@ -144,14 +180,22 @@ def _generate_fallback(title: str) -> io.BytesIO:
 def generate_cover(title: str, full_text: str) -> bytes:
     """生成标题图，返回 PNG bytes
 
-    流程：先检查文生图 API 是否配置 → 未配置直接 fallback → LLM提取关键词 → 文生图 → 叠加标题 → 失败 fallback
+    流程：检查平台是否支持文生图 → 从 ai_config.json 获取配置 → LLM提取关键词 → 文生图 → 叠加标题 → 失败 fallback
     """
-    if not IMAGE_GEN_BASE_URL or not IMAGE_GEN_API_KEY:
+    ai_config = get_current_config()
+    platform = ai_config.get("platform", "")
+
+    if not _platform_supports_image_gen(platform):
+        buf = _generate_fallback(title)
+        return buf.read()
+
+    img_cfg = _get_image_config()
+    if not img_cfg["base_url"] or not img_cfg["api_key"]:
         buf = _generate_fallback(title)
         return buf.read()
 
     keywords = _extract_keywords(title, full_text)
-    bg = _generate_background(keywords)
+    bg = _generate_background(keywords, img_cfg["base_url"], img_cfg["api_key"], img_cfg["model"])
 
     if bg is not None:
         img = _draw_title_overlay(bg, title)
