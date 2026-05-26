@@ -1,6 +1,9 @@
 import time
 import threading
+import logging
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class TokenManager:
@@ -50,9 +53,11 @@ class TokenManager:
                         token = data["access_token"]
                         expires_in = data.get("expires_in", 7200)
                         self._cache[appid] = {"token": token, "expires_at": time.time() + expires_in}
+                        logger.info("get_token ok for appid=%s, expires_in=%s", appid[:6], expires_in)
                         return token
                     errcode = data.get("errcode", "?")
                     errmsg = data.get("errmsg", "")
+                    logger.warning("get_token wechat error [%s] %s for appid=%s", errcode, errmsg, appid[:6])
                     last_exc = Exception(f"[{errcode}] {errmsg}")
                 except requests.RequestException as e:
                     last_exc = e

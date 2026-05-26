@@ -40,19 +40,35 @@ def filter_html_images(html: str) -> tuple[str, int]:
     return cleaned, count
 
 
+def _truncate_to_bytes(text: str, max_bytes: int = 64) -> str:
+    """按 UTF-8 字节数截断，不截断多字节字符"""
+    if not text:
+        return text
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+    while len(encoded) > max_bytes:
+        text = text[:-1]
+        encoded = text.encode("utf-8")
+    return text
+
+
 def push_to_draft(token: str, title: str, html_content: str, digest: str = "", thumb_media_id: str = "") -> str | dict:
     """推送到草稿箱。成功返回 media_id 字符串，失败返回 dict 包含 errcode 和 errmsg"""
     url = f"https://api.weixin.qq.com/cgi-bin/draft/add?access_token={token}"
-    data = {
-        "articles": [{
-            "title": title,
-            "content": html_content,
-            "digest": digest,
-            "thumb_media_id": thumb_media_id,
-            "need_open_comment": 0,
-            "only_fans_can_comment": 0,
-        }]
+    title = title[:64]
+    digest = _truncate_to_bytes(digest, 64)
+    article = {
+        "title": title,
+        "content": html_content,
+        "digest": digest,
+        "need_open_comment": 0,
+        "only_fans_can_comment": 0,
     }
+    if thumb_media_id:
+        article["thumb_media_id"] = thumb_media_id
+    data = {"articles": [article]}
+    print(f"[PUSH BODY] {json.dumps(data, ensure_ascii=False)}")
     body = json.dumps(data, ensure_ascii=False).encode("utf-8")
     resp = requests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
     resp.raise_for_status()

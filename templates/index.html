@@ -302,10 +302,10 @@
   }
   .phone-shell {
     width: 375px;
-    height: 780px;
+    height: 620px;
     background: linear-gradient(170deg, #555558 0%, #3a3a3d 30%, #2c2c2f 60%, #222225 100%);
-    border-radius: 54px;
-    padding: 3px;
+    border-radius: 44px;
+    padding: 2px;
     box-shadow:
       0 0 0 1px rgba(255,255,255,0.06),
       0 30px 80px rgba(0,0,0,0.55),
@@ -317,10 +317,10 @@
   .phone-shell::before {
     content: '';
     position: absolute;
-    top: 180px;
+    top: 100px;
     right: -4px;
     width: 3px;
-    height: 60px;
+    height: 50px;
     background: linear-gradient(to bottom, #4a4a4d, #3a3a3d);
     border-radius: 0 2px 2px 0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
@@ -328,20 +328,20 @@
   .phone-shell::after {
     content: '';
     position: absolute;
-    top: 120px;
+    top: 160px;
     right: -4px;
     width: 3px;
-    height: 80px;
+    height: 60px;
     background: linear-gradient(to bottom, #4a4a4d, #3a3a3d, #4a4a4d);
     border-radius: 0 2px 2px 0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
   }
   .phone-action-button {
     position: absolute;
-    top: 155px;
+    top: 120px;
     left: -4px;
     width: 3px;
-    height: 40px;
+    height: 35px;
     background: linear-gradient(to bottom, #4a4a4d, #3a3a3d);
     border-radius: 2px 0 0 2px;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
@@ -350,7 +350,7 @@
     width: 100%;
     height: 100%;
     background: #0a0a0a;
-    border-radius: 51px;
+    border-radius: 42px;
     padding: 0;
     overflow: hidden;
     position: relative;
@@ -358,26 +358,26 @@
   }
   .phone-dynamic-island {
     position: absolute;
-    top: 11px;
+    top: 4px;
     left: 50%;
     transform: translateX(-50%);
-    width: 126px;
-    height: 36px;
+    width: 80px;
+    height: 18px;
     background: #0a0a0a;
-    border-radius: 18px;
+    border-radius: 9px;
     z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
     box-shadow:
       inset 0 1px 2px rgba(255,255,255,0.06),
       0 0 0 1px rgba(255,255,255,0.03);
   }
   .phone-dynamic-island::before {
     content: '';
-    width: 10px;
-    height: 10px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: radial-gradient(circle at 40% 35%, #1a2a4a, #0d1520);
     box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
@@ -388,14 +388,27 @@
     background: white;
     border-radius: 0;
     overflow: hidden;
-    padding-top: 58px;
+    padding: 0;
   }
   #phone-preview-frame {
     width: 100%;
     height: 100%;
+    margin: 0;
     border: none;
     background: white;
     display: block;
+  }
+  .phone-home-indicator {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 1.5px;
+    z-index: 10;
+    backdrop-filter: blur(10px);
   }
 
   /* ===== 底部操作栏 ===== */
@@ -902,6 +915,7 @@
             <div class="phone-screen">
               <iframe id="phone-preview-frame" sandbox="allow-same-origin"></iframe>
             </div>
+            <div class="phone-home-indicator"></div>
           </div>
         </div>
       </div>
@@ -955,12 +969,10 @@
 
     <div style="margin-top:20px;">
       <label style="font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:10px;display:block;">📝 摘要（80-100字）</label>
-      <div style="display:flex;gap:12px;">
-        <textarea id="push-summary" placeholder="输入摘要或使用 AI 生成" style="flex:1;min-height:80px;padding:12px;border:1px solid rgba(139,92,246,0.2);border-radius:12px;background:rgba(255,255,255,0.6);font-size:14px;font-family:inherit;resize:vertical;"></textarea>
-        <button id="btn-gen-summary" class="ai-btn" style="padding:12px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);color:var(--primary-purple);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;white-space:nowrap;">
-          🤖 AI 生成
-        </button>
-      </div>
+      <textarea id="push-summary" placeholder="输入摘要或使用 AI 生成" style="width:100%;min-height:120px;padding:12px;border:1px solid rgba(139,92,246,0.2);border-radius:12px;background:rgba(255,255,255,0.6);font-size:14px;font-family:inherit;resize:vertical;margin-bottom:10px;"></textarea>
+      <button id="btn-gen-summary" class="ai-btn" style="padding:10px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(59,130,246,0.1) 100%);color:var(--primary-purple);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;">
+        🤖 AI 生成
+      </button>
       <span id="summary-loading" style="display:none;font-size:12px;color:var(--primary-purple);margin-left:8px;">AI 思考中...</span>
     </div>
 
@@ -999,24 +1011,26 @@
     </div>
 
     <div id="push-error" style="display:none;margin-top:16px;padding:14px;border-radius:14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);">
-      <div style="display:flex;align-items:flex-start;gap:10px;">
-        <span style="font-size:18px;">⚠️</span>
-        <div style="flex:1;">
-          <p style="font-size:14px;font-weight:600;color:#991b1b;margin-bottom:8px;">推送失败：IP 未在白名单中</p>
-          <p style="font-size:13px;color:#b91c1c;line-height:1.6;margin-bottom:8px;">
-            请将以下服务器 IP 添加到微信公众号后台的「IP 白名单」中，否则无法调用 API。
-          </p>
-          <div style="background:rgba(255,255,255,0.7);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <div>
-              <span style="font-size:12px;color:#991b1b;">服务器 IP：</span>
-              <span id="push-server-ip" style="font-size:15px;font-weight:700;color:#7f1d1d;font-family:monospace;">获取中...</span>
-            </div>
-            <button onclick="copyPushIP()" style="padding:4px 10px;border:1px solid rgba(153,27,27,0.3);border-radius:6px;background:rgba(255,255,255,0.8);font-size:11px;color:#991b1b;cursor:pointer;font-weight:500;">📋 复制 IP</button>
+  <div style="display:flex;align-items:flex-start;gap:10px;">
+    <span style="font-size:18px;">⚠️</span>
+    <div style="flex:1;">
+      <p id="push-error-msg" style="font-size:14px;font-weight:600;color:#991b1b;margin-bottom:8px;"></p>
+      <div id="push-error-ip-hint" style="display:none;">
+        <p style="font-size:13px;color:#b91c1c;line-height:1.6;margin-bottom:8px;">
+          请将以下服务器 IP 添加到微信公众号后台的「IP 白名单」中，否则无法调用 API。
+        </p>
+        <div style="background:rgba(255,255,255,0.7);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div>
+            <span style="font-size:12px;color:#991b1b;">服务器 IP：</span>
+            <span id="push-server-ip" style="font-size:15px;font-weight:700;color:#7f1d1d;font-family:monospace;">获取中...</span>
           </div>
-          <a href="https://developers.weixin.qq.com/doc/oplatform/developers/basic_func/ip_whitelist.html" target="_blank" style="font-size:13px;color:var(--primary-purple);text-decoration:none;font-weight:500;">📖 查看 IP 白名单设置教程 →</a>
+          <button onclick="copyPushIP()" style="padding:4px 10px;border:1px solid rgba(153,27,27,0.3);border-radius:6px;background:rgba(255,255,255,0.8);font-size:11px;color:#991b1b;cursor:pointer;font-weight:500;">📋 复制 IP</button>
         </div>
+        <a href="https://developers.weixin.qq.com/doc/oplatform/developers/basic_func/ip_whitelist.html" target="_blank" style="font-size:13px;color:var(--primary-purple);text-decoration:none;font-weight:500;">📖 查看 IP 白名单设置教程 →</a>
       </div>
     </div>
+  </div>
+</div>
 
     <div class="modal-actions" style="margin-top:20px;">
       <button class="close-modal" style="padding:12px 28px;border:1px solid rgba(139,92,246,0.2);border-radius:12px;background:rgba(255,255,255,0.8);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.3s ease;color:var(--text-primary);">
@@ -1233,6 +1247,20 @@
         <label style="font-size:15px;font-weight:600;color:var(--text-primary);margin:0;">AI API 设置</label>
       </div>
 
+      <div style="background:linear-gradient(135deg,rgba(59,130,246,0.08) 0%,rgba(139,92,246,0.08) 100%);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="font-size:16px;">💡</span>
+          <div>
+            <p style="font-size:12px;color:#4b5563;line-height:1.6;margin:0;">
+              推荐使用 <strong>阿里云百炼</strong>（文本+图片一站式，新用户送 7000 万 tokens 免费额度）
+            </p>
+            <a href="https://bailian.console.aliyun.com/" target="_blank" style="display:inline-block;margin-top:6px;font-size:12px;color:#6366f1;font-weight:500;text-decoration:none;">
+              🔗 前往免费申请 →
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div style="background:rgba(139,92,246,0.05);padding:12px 14px;border-radius:10px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <span style="font-size:13px;color:var(--text-secondary);">当前平台</span>
@@ -1445,10 +1473,12 @@ document.getElementById('btn-full-preview').addEventListener('click', function()
   this.classList.add('active');
   document.getElementById('btn-phone-preview').classList.remove('active');
   document.getElementById('phone-frame').classList.remove('visible');
+  document.getElementById('preview-frame').style.display = 'block';
 });
 document.getElementById('btn-phone-preview').addEventListener('click', function() {
   this.classList.add('active');
   document.getElementById('btn-full-preview').classList.remove('active');
+  document.getElementById('preview-frame').style.display = 'none';
   document.getElementById('phone-frame').classList.add('visible');
   var frame = document.getElementById('phone-preview-frame');
   frame.srcdoc = currentHtml;
@@ -1552,19 +1582,23 @@ function loadSettings() {
 }
 
 function loadServerIP() {
-  fetch('/api/server-ip')
+  var url = '/api/server-ip?_t=' + Date.now();
+  fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var el = document.getElementById('server-ip-display');
-      if (el) {
-        el.textContent = d.ip || '获取失败';
+      if (!el) return;
+      if (d.wechat_ip) {
+        el.textContent = d.wechat_ip + '（微信检测）';
+      } else if (d.ip) {
+        el.textContent = d.ip;
+      } else {
+        el.textContent = '获取失败';
       }
     })
     .catch(function() {
       var el = document.getElementById('server-ip-display');
-      if (el) {
-        el.textContent = '获取失败';
-      }
+      if (el) el.textContent = '获取失败';
     });
 }
 
@@ -1826,6 +1860,7 @@ var coverFilename = '';
 document.getElementById('btn-push').addEventListener('click', function() {
   var text = document.getElementById('input-area').value.trim();
   if (!text) { showToast('请先在左侧输入文本', 'error'); return; }
+  hidePushError();
   document.getElementById('push-modal').classList.remove('hidden');
   document.getElementById('push-title').value = extractTitle();
   document.getElementById('push-word-count').value = text.length + ' 字';
@@ -1966,7 +2001,7 @@ document.getElementById('btn-confirm-push').addEventListener('click', function()
       } else {
         var errMsg = d.error || '未知错误';
         if (errMsg.indexOf('40164') !== -1 || errMsg.indexOf('whitelist') !== -1 || errMsg.indexOf('not in whitelist') !== -1 || errMsg.indexOf('invalid ip') !== -1) {
-          showPushIPError();
+          showPushIPError(errMsg);
         } else if (errMsg.indexOf('40001') !== -1 || errMsg.indexOf('access_token') !== -1) {
           showToast('❌ 推送失败：Access Token 无效，请检查 AppID 和 AppSecret 是否正确。', 'error');
         } else if (errMsg.indexOf('45009') !== -1) {
@@ -1983,7 +2018,7 @@ document.getElementById('btn-confirm-push').addEventListener('click', function()
       if (errMsg.indexOf('Failed to fetch') !== -1 || errMsg.indexOf('NetworkError') !== -1) {
         showToast('❌ 网络连接失败，请检查服务器是否运行。', 'error');
       } else if (errMsg.indexOf('40164') !== -1 || errMsg.indexOf('whitelist') !== -1 || errMsg.indexOf('invalid ip') !== -1) {
-        showPushIPError();
+        showPushIPError(errMsg);
       } else if (errMsg.indexOf('40001') !== -1) {
         showToast('❌ 推送失败：Access Token 无效，请检查 AppID 和 AppSecret 是否正确。', 'error');
       } else {
@@ -1992,13 +2027,33 @@ document.getElementById('btn-confirm-push').addEventListener('click', function()
     });
 });
 
-function showPushIPError() {
+function showPushIPError(errMsg) {
   document.getElementById('push-error').style.display = 'block';
-  fetch('/api/server-ip').then(function(r) { return r.json(); }).then(function(d) {
-    document.getElementById('push-server-ip').textContent = d.ip || '获取失败';
-  }).catch(function() {
-    document.getElementById('push-server-ip').textContent = '获取失败';
-  });
+  document.getElementById('push-error-msg').textContent = '推送失败：' + (errMsg || 'IP 未在白名单中');
+  document.getElementById('push-error-ip-hint').style.display = 'block';
+
+  // 从微信错误消息中提取实际检测到的 IP（如 "invalid ip 14.145.46.42"）
+  var wechatIp = '';
+  var match = errMsg && errMsg.match(/invalid ip\s+([\d.]+)/);
+  if (match) {
+    wechatIp = match[1];
+  }
+
+  if (wechatIp) {
+    document.getElementById('push-server-ip').textContent = wechatIp + '（微信检测）';
+  } else {
+    fetch('/api/server-ip?_t=' + Date.now()).then(function(r) { return r.json(); }).then(function(d) {
+      document.getElementById('push-server-ip').textContent = d.ip || '获取失败';
+    }).catch(function() {
+      document.getElementById('push-server-ip').textContent = '获取失败';
+    });
+  }
+}
+
+function hidePushError() {
+  document.getElementById('push-error').style.display = 'none';
+  document.getElementById('push-error-msg').textContent = '';
+  document.getElementById('push-error-ip-hint').style.display = 'none';
 }
 
 function copyPushIP() {
@@ -2158,6 +2213,10 @@ function loadAIConfig() {
       var statusHtml = '<span style="color:#ef4444;">● 未配置</span>';
       if (config.platform && _aiPlatforms[config.platform]) {
         platformName = _aiPlatforms[config.platform].name;
+      } else if (config.platform) {
+        platformName = config.platform;
+      }
+      if (config.api_key && config.base_url) {
         statusHtml = '<span style="color:#22c55e;">● 已配置</span>';
       }
       document.getElementById('ai-config-platform-name').textContent = platformName;
@@ -2276,9 +2335,11 @@ function checkOnboarding() {
         var content = modal.querySelector('.modal-content');
         if (content) content.scrollTop = content.scrollHeight;
       }
+      localStorage.setItem('wf_onboarding_done', '1');
     })
-    .catch(function() {});
-  localStorage.setItem('wf_onboarding_done', '1');
+    .catch(function() {
+      localStorage.setItem('wf_onboarding_done', '1');
+    });
 }
 
 // ── AI 功能提示标记 ──
