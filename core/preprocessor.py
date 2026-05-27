@@ -66,13 +66,19 @@ def preprocess(text: str) -> str:
         is_isolated = prev_empty and next_empty
 
         has_comma = ',' in stripped or '，' in stripped
+        
+        # 排除常见非标题词（单字、内容词等）
+        common_non_title = {'内容', '简介', '说明', '备注', '注意', '提示', '参考', '来源', '链接'}
 
         if (
             is_isolated
             and len(stripped) <= 12
+            and len(stripped) >= 2
             and not stripped.startswith('\u300c')
-            and not re.search(r'[。！？，、；：\u201c\u201d…\)】》！？，、；：\u201c\u201d…\)】》]$', stripped[-1])
+            and not re.search(r'[。！？，、；：\u201c\u201d…\)】》]$', stripped[-1])
             and not has_comma
+            and stripped not in common_non_title
+            and not _looks_like_sentence(stripped)
         ):
             md_lines.append(f'## {stripped}')
             continue

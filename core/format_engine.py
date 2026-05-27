@@ -95,7 +95,7 @@ def hello():
 
 # ── 路径 ────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
-SKILL_DIR = SCRIPT_DIR
+SKILL_DIR = SCRIPT_DIR.parent  # 项目根目录
 THEMES_DIR = SKILL_DIR / "assets" / "themes"
 TEMPLATE_DIR = SKILL_DIR / "templates"
 
