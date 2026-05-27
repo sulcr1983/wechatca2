@@ -925,6 +925,7 @@
 
 <!-- ===== 底部操作栏 ===== -->
 <footer>
+  <button id="btn-ai-format" class="ai-btn">📝 AI 排版</button>
   <button id="btn-polish" class="ai-btn">✨ AI 润色</button>
   <button id="btn-copy">📋 复制</button>
   <button id="btn-history">📁 历史</button>
@@ -1119,6 +1120,38 @@
 
 <!-- ===== Toast ===== -->
 <div id="toast"></div>
+
+<!-- ===== AI 排版弹窗 ===== -->
+<div id="ai-format-modal" class="modal hidden">
+  <div class="modal-content" style="width:740px;">
+    <h3>📝 AI 智能排版</h3>
+    <p style="font-size:14px;color:var(--text-secondary);margin-top:4px;">自动分析文本结构，生成结构化 Markdown 格式</p>
+
+    <div style="display:flex;gap:20px;margin-top:20px;">
+      <div style="flex:1;">
+        <label>原始文本</label>
+        <textarea id="format-original" readonly style="min-height:320px;background:rgba(248,250,252,0.8);"></textarea>
+      </div>
+      <div style="flex:1;">
+        <label>排版结果（Markdown）</label>
+        <div style="position:relative;">
+          <textarea id="format-result" style="min-height:320px;font-family:monospace;font-size:13px;" placeholder="点击「开始排版」生成结果..."></textarea>
+          <div id="format-placeholder" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(248,250,252,0.9);border-radius:12px;pointer-events:none;">
+            <span style="font-size:32px;margin-bottom:8px;">📝</span>
+            <span style="font-size:13px;color:var(--text-secondary);">AI 排版后的 Markdown 将显示在这里</span>
+          </div>
+          <span id="format-loading" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--primary-purple);font-size:14px;font-weight:500;">AI 分析排版中...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="close-modal" id="btn-format-cancel">取消</button>
+      <button id="btn-start-format" class="primary">🤖 开始排版</button>
+      <button id="btn-apply-format" style="display:none;">应用结果</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== AI 润色弹窗 ===== -->
 <div id="polish-modal" class="modal hidden">
@@ -1492,6 +1525,65 @@ document.getElementById('ai-indicator').addEventListener('click', function() {
   } else {
     switchToOptimized();
   }
+});
+
+// ===== AI 智能排版 =====
+document.getElementById('btn-ai-format').addEventListener('click', function() {
+  var text = document.getElementById('input-area').value.trim();
+  if (!text) {
+    showToast('请先在左侧输入文本', 'error');
+    return;
+  }
+  document.getElementById('format-original').value = text;
+  document.getElementById('format-result').value = '';
+  document.getElementById('format-loading').style.display = 'none';
+  document.getElementById('format-placeholder').style.display = 'flex';
+  document.getElementById('btn-apply-format').style.display = 'none';
+  document.getElementById('btn-start-format').style.display = '';
+  document.getElementById('ai-format-modal').classList.remove('hidden');
+});
+
+document.getElementById('btn-start-format').addEventListener('click', function() {
+  var original = document.getElementById('format-original').value;
+  var btn = this;
+  var resultArea = document.getElementById('format-result');
+  var placeholder = document.getElementById('format-placeholder');
+  placeholder.style.display = 'none';
+  resultArea.value = '';
+
+  withAIFeedback(btn, function(signal) {
+    return fetch('/api/ai-format', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: original }),
+      signal: signal
+    });
+  }, {
+    onSuccess: function(data) {
+      resultArea.value = data.markdown;
+      document.getElementById('btn-apply-format').style.display = '';
+      btn.style.display = 'none';
+    },
+    onError: function(e) {
+      showToast('排版失败: ' + (e.error || e.message || '未知错误'), 'error');
+    }
+  });
+});
+
+document.getElementById('btn-apply-format').addEventListener('click', function() {
+  var formatted = document.getElementById('format-result').value;
+  if (!formatted.trim()) {
+    showToast('没有可应用的排版结果', 'error');
+    return;
+  }
+  var inputArea = document.getElementById('input-area');
+  inputArea.value = formatted;
+  inputArea.dispatchEvent(new Event('input', { bubbles: true }));
+  document.getElementById('ai-format-modal').classList.add('hidden');
+});
+
+document.getElementById('btn-format-cancel').addEventListener('click', function() {
+  document.getElementById('ai-format-modal').classList.add('hidden');
 });
 
 // ===== AI 润色 =====

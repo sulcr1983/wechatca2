@@ -34,7 +34,7 @@ from core.token_manager import token_manager
 from core.wechat_publisher import push_to_draft, upload_permanent_material, filter_html_images
 from core.image_gen import generate_cover
 from core.preprocessor import preprocess
-from core.crypto_utils import encrypt, decrypt, _migrate_key_location, _decrypt_with_key
+from core.crypto_utils import encrypt, decrypt
 
 # ── 后台 LLM 优化结果暂存 ──────────────────────────────────────────────
 _opt_store = {}
@@ -73,23 +73,10 @@ def _cleanup_temp_covers():
 threading.Thread(target=_cleanup_temp_covers, daemon=True).start()
 
 
-# ── 启动时迁移旧明文 appsecret + 旧密钥位置迁移 ─────────────────────────
+# ── 启动时迁移旧明文 appsecret ──────────────────────────────────────────
 def _migrate_accounts():
-    old_key = _migrate_key_location()
     accounts = _read_json("accounts.json")
     changed = False
-
-    if old_key:
-        for a in accounts:
-            raw = a.get("appsecret", "")
-            if raw.startswith("enc:"):
-                try:
-                    plain = _decrypt_with_key(raw, old_key)
-                    a["appsecret"] = encrypt(plain)
-                    changed = True
-                except Exception:
-                    pass
-        print("[WechatCA2] 密钥已自动迁移到系统安全位置，已重新加密数据")
 
     for a in accounts:
         raw = a.get("appsecret", "")
@@ -274,6 +261,40 @@ def api_polish():
         return jsonify({"success": False, "error": "LLM call failed"}), 500
 
     return jsonify({"success": True, "polished_text": result})
+
+
+# ── AI 智能排版 ────────────────────────────────────────────────────────
+@app.route("/api/ai-format", methods=["POST"])
+def api_ai_format():
+    """AI智能排版：将平铺直叙的文本转换为结构化Markdown"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "error": "invalid json"}), 400
+
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"success": False, "error": "text is empty"}), 400
+
+    system_prompt = (
+        "你是一名专业的内容排版助手。请将用户提供的文本转换为结构清晰的Markdown格式。\n\n"
+        "规则：\n"
+        "1. 使用 ## 作为二级标题（不要使用 #）\n"
+        "2. 使用 ### 作为三级标题\n"
+        "3. 段落之间用空行分隔\n"
+        "4. 将重要关键词用 **加粗** 标记\n"
+        "5. 如果有列举内容，使用 - 或 1. 等列表格式\n"
+        "6. 如果有引用内容，使用 > 开头\n"
+        "7. 保持原文语义不变，不添加额外内容\n"
+        "8. 输出语言与输入保持一致\n"
+        "9. 不要添加任何解释文字，只输出Markdown格式的文本"
+    )
+
+    result = call_llm(system_prompt, text)
+
+    if not result:
+        return jsonify({"success": False, "error": "AI排版失败，请检查AI配置"}), 500
+
+    return jsonify({"success": True, "markdown": result})
 
 
 # ── 公众号管理 ──────────────────────────────────────────────────────────
@@ -490,6 +511,15 @@ def api_ai_config_update():
 def api_ai_config_test():
     """测试 AI 连接"""
     data = request.get_json(force=True) or {}
+    
+    # 如果没有提供参数，使用当前保存的配置
+    if not data.get("base_url") or not data.get("api_key"):
+        config = get_current_config()
+        data["platform"] = data.get("platform", config.get("platform", "custom"))
+        data["base_url"] = data.get("base_url", config.get("base_url", ""))
+        data["api_key"] = data.get("api_key", config.get("api_key", ""))
+        data["model"] = data.get("model", config.get("model", ""))
+    
     result = test_connection(
         platform=data.get("platform", "custom"),
         base_url=data.get("base_url", ""),
