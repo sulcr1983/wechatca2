@@ -70,7 +70,9 @@
 
 ## 4. 回滚点
 
-- **本次修复对应提交**：执行 `git log --oneline -1` 查看（提交信息以 `fix:` 开头，含 F1/F2/F3 与工程说明）。
+- **本次修复对应提交（回滚点）**：`978005fee305fa24f375a2b6bfcd1368ad28b741`
+  - 提交信息：`fix: 修复小红书封面缺失 + 关闭孤儿LLM调用 + 重写集成测试`
+  - 回滚到修复前：`git revert 978005f` 或 `git checkout 978005f~1 -- <file>`
 - 如需回滚 F2 单独回退：恢复 `app.py` 中 `_start_background_optimization` 的自动触发调用（约 `app.py:177-178` 附近，见该处注释）。
 - 如需回滚 F1：卸载 playwright 依赖，并改回 `requirements.txt` 标注为可选。
 
