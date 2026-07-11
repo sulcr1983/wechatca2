@@ -7,10 +7,13 @@
 """
 
 import json
+import logging
 import re
 from pathlib import Path
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def upload_permanent_material(token: str, image_bytes: bytes, filename: str = "cover.png") -> str | None:
@@ -68,7 +71,7 @@ def push_to_draft(token: str, title: str, html_content: str, digest: str = "", t
     if thumb_media_id:
         article["thumb_media_id"] = thumb_media_id
     data = {"articles": [article]}
-    print(f"[PUSH BODY] {json.dumps(data, ensure_ascii=False)}")
+    logger.debug("[PUSH BODY] %s", json.dumps(data, ensure_ascii=False))
     body = json.dumps(data, ensure_ascii=False).encode("utf-8")
     resp = requests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
     resp.raise_for_status()

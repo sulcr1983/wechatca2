@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import logging
 from pathlib import Path
 
@@ -80,14 +81,24 @@ PLATFORM_TEMPLATES = {
 
 # 配置文件路径
 CONFIG_PATH = Path(__file__).parent.parent / "data" / "ai_config.json"
+_config_cache = {"data": None, "ts": 0}
+_CACHE_TTL = 30
 
 
 def _load_config():
     """加载 AI 配置（api_key 自动解密 + 明文迁移）"""
+    now = time.time()
+    if _config_cache["data"] and now - _config_cache["ts"] < _CACHE_TTL:
+        return dict(_config_cache["data"])
     if CONFIG_PATH.exists():
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 config = json.load(f)
+            if not isinstance(config, dict):
+                config = {}
+            # 空配置或无关键字段时回退到环境变量
+            if not config.get("base_url") and not config.get("api_key"):
+                raise ValueError("empty config, fallback to env")
             raw_key = config.get("api_key", "")
             if raw_key.startswith("enc:"):
                 config["api_key"] = decrypt(raw_key)
@@ -98,20 +109,26 @@ def _load_config():
                 with open(CONFIG_PATH, "w", encoding="utf-8") as f:
                     json.dump(config, f, ensure_ascii=False, indent=2)
                 config["api_key"] = decrypt(encrypted)
+            _config_cache["data"] = dict(config)
+            _config_cache["ts"] = time.time()
             return config
         except Exception:
             pass
     # 默认从环境变量读取
-    return {
+    default = {
         "platform": "aliyun_bailian",
         "base_url": os.getenv("LLM_BASE_URL") or os.getenv("AI_URL", ""),
         "api_key": os.getenv("LLM_API_KEY") or os.getenv("AI_API_KEY", ""),
         "model": os.getenv("LLM_MODEL") or os.getenv("AI_MODEL", "qwen-max"),
     }
+    _config_cache["data"] = dict(default)
+    _config_cache["ts"] = time.time()
+    return default
 
 
 def _save_config(config: dict):
     """保存 AI 配置（api_key 加密存储）"""
+    _config_cache["data"] = None
     saved = dict(config)
     if saved.get("api_key"):
         saved["api_key"] = encrypt(saved["api_key"])

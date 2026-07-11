@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperSu — 内容排版引擎</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:    #f5f3ef;
+    --bg-surface: #faf9f6;
+    --bg-raised:  #ffffff;
+    --bg-hover:   #f0ede8;
+    --border:     #e4e0d9;
+    --border-hi:  #d1ccc3;
+    --text:       #1a1814;
+    --text-soft:  #5c564a;
+    --text-muted: #9a9488;
+    --accent:     #c8832e;
+    --accent-dim: #a0681e;
+    --accent-glow: rgba(200,131,46,.1);
+    --red:        #d9484e;
+    --green:      #4a9e6e;
+    --radius-sm:  6px;
+    --radius:     10px;
+    --radius-lg:  14px;
+    --font:       "DM Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono:  "JetBrains Mono", "Cascadia Code", monospace;
+    --shadow-sm:  0 1px 2px rgba(0,0,0,.05);
+    --shadow:     0 2px 12px rgba(0,0,0,.06);
+    --shadow-lg:  0 8px 30px rgba(0,0,0,.08);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size: 15px; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Layout ── */
+  .app {
+    max-width: 1200px; margin: 0 auto;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    padding: 0 24px 24px;
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    display: flex; align-items: center; gap: 4px;
+    padding: 12px 20px; margin-top: 20px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+  .topbar .logo {
+    font-weight: 700; font-size: 1.05rem;
+    color: var(--text);
+    margin-right: 28px; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar .logo::before {
+    content: ""; width: 8px; height: 8px;
+    background: var(--accent); border-radius: 3px;
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .tab-btn {
+    padding: 8px 18px; border-radius: var(--radius-sm);
+    font-size: .85rem; font-weight: 500;
+    border: 1px solid transparent; background: transparent;
+    color: var(--text-soft); cursor: pointer;
+    transition: all .18s ease; font-family: var(--font);
+    letter-spacing: .01em;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--bg-hover); }
+  .tab-btn.active {
+    background: var(--accent-glow); color: var(--accent);
+    border-color: rgba(200,131,46,.2);
+  }
+
+  /* ── Page ── */
+  .page { display: none; flex: 1; }
+  .page.active { display: flex; flex-direction: column; margin-top: 16px; gap: 16px; }
+
+  /* ═════════════════════════════════════ */
+  /* WECHAT                              */
+  /* ═════════════════════════════════════ */
+  .wechat-main {
+    display: grid;
+    grid-template-columns: 1fr 190px 1.1fr;
+    gap: 0;
+    height: 2100px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  /* Col: Text */
+  .col-text {
+    display: flex; flex-direction: column;
+    position: relative; min-height: 0;
+  }
+  .col-text::after {
+    content: ""; position: absolute; right: 0; top: 0; bottom: 0;
+    width: 1px; background: var(--border);
+  }
+  .text-toolbar {
+    flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+  .text-tb-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .text-tb-dot:nth-child(1) { background: var(--red); }
+  .text-tb-dot:nth-child(2) { background: var(--accent); }
+  .text-tb-dot:nth-child(3) { background: var(--green); }
+  .text-tb-label {
+    margin-left: auto; font-size: .75rem;
+    color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .col-text textarea {
+    flex: 1; width: 100%; padding: 24px;
+    resize: none; border: none; outline: none;
+    background: transparent;
+    color: var(--text); font-size: .9rem;
+    line-height: 1.85; font-family: var(--font);
+  }
+  .col-text textarea::placeholder { color: var(--text-muted); }
+
+  /* Col: Templates */
+  .col-templates {
+    display: flex; flex-direction: column;
+    background: var(--bg-raised);
+    position: relative; min-height: 0;
+  }
+  .col-templates::after {
+    content: ""; position: absolute; right: 0; top: 0; bottom: 0;
+    width: 1px; background: var(--border);
+  }
+  .tpl-header {
+    flex-shrink: 0;
+    padding: 14px 16px;
+    font-size: .72rem; font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tpl-count {
+    font-size: .68rem; color: var(--accent);
+    background: var(--accent-glow);
+    padding: 2px 8px; border-radius: 100px;
+    font-weight: 600;
+  }
+  .tpl-list {
+    flex: 1; overflow-y: scroll; padding: 6px;
+  }
+  .tpl-list::-webkit-scrollbar { width: 8px; }
+  .tpl-list::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+  .tpl-list::-webkit-scrollbar-track { background: transparent; }
+
+  .tpl-item {
+    padding: 10px 14px; margin: 2px 0;
+    border-radius: var(--radius-sm); cursor: pointer;
+    font-size: .8rem; color: var(--text-soft);
+    transition: all .14s ease;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border: 1px solid transparent;
+  }
+  .tpl-item:hover { background: var(--bg-hover); color: var(--text); }
+  .tpl-item.active {
+    background: var(--accent-glow); color: var(--accent);
+    border-color: rgba(200,131,46,.18);
+    font-weight: 600;
+  }
+
+  /* Col: Preview */
+  .col-preview { display: flex; flex-direction: column; min-height: 0; }
+  .pv-toolbar {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 4px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+  .pv-toolbar .spacer { flex: 1; }
+  .pv-btn {
+    padding: 5px 12px; border-radius: var(--radius-sm);
+    font-size: .78rem; border: 1px solid transparent;
+    background: transparent; color: var(--text-muted);
+    cursor: pointer; font-family: var(--font);
+    transition: all .14s ease; font-weight: 500;
+  }
+  .pv-btn:hover { color: var(--text); background: var(--bg-hover); }
+  .pv-btn.active {
+    border-color: rgba(200,131,46,.25); color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .pv-content {
+    flex: 1; overflow-y: auto;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(200,131,46,.03) 0%, transparent 70%),
+      var(--bg-surface);
+  }
+  .pv-empty {
+    text-align: center; color: var(--text-muted);
+    font-size: .82rem;
+  }
+  .pv-empty-icon {
+    width: 48px; height: 48px; border-radius: var(--radius);
+    border: 1px dashed var(--border-hi);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px; font-size: 1.2rem;
+  }
+  .pv-card {
+    width: 100%; max-width: 380px;
+    padding: 32px 28px; border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow);
+    transition: all .25s ease;
+  }
+
+  /* ── Footer + AI ── */
+  .wechat-footer {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0;
+  }
+  .wechat-footer .spacer { flex: 1; }
+  .btn {
+    padding: 9px 16px; border-radius: var(--radius-sm);
+    font-size: .82rem; font-family: var(--font);
+    font-weight: 500; cursor: pointer;
+    transition: all .16s ease;
+    border: 1px solid var(--border);
+    background: var(--bg-raised); color: var(--text-soft);
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { border-color: var(--border-hi); color: var(--text); background: var(--bg-hover); }
+  .btn-primary {
+    background: var(--accent); border-color: var(--accent);
+    color: #ffffff; font-weight: 600;
+    box-shadow: 0 2px 12px var(--accent-glow);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .ai-toggle {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: var(--radius-sm);
+    font-size: .82rem; font-family: var(--font);
+    font-weight: 500; cursor: pointer;
+    transition: all .16s ease;
+    border: 1px solid var(--border);
+    background: var(--bg-raised); color: var(--text-soft);
+    white-space: nowrap; user-select: none;
+  }
+  .ai-toggle:hover { border-color: var(--border-hi); color: var(--text); }
+  .ai-toggle.open {
+    border-color: rgba(200,131,46,.3); color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .ai-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+  .ai-panel {
+    overflow: hidden; max-height: 0;
+    transition: max-height .35s ease, margin .35s ease;
+    margin: 0;
+  }
+  .ai-panel.open { max-height: 140px; margin-top: 4px; }
+  .ai-panel-inner {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; padding: 14px 0;
+  }
+  .ai-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-raised); cursor: pointer;
+    transition: all .18s ease;
+  }
+  .ai-card:hover {
+    border-color: rgba(200,131,46,.25);
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .ai-card-icon {
+    width: 40px; height: 40px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: var(--accent-glow);
+  }
+  .ai-card-label { font-size: .85rem; font-weight: 600; color: var(--text); }
+  .ai-card-hint { font-size: .75rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* ═════════════════════════════════════ */
+  /* SOCIAL                              */
+  /* ═════════════════════════════════════ */
+  .social-main {
+    flex: 1; display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    gap: 0; min-height: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .social-ctrl {
+    border-right: 1px solid var(--border);
+    overflow-y: auto; background: var(--bg-raised);
+  }
+  .s-section {
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .s-section:last-child { border-bottom: none; }
+  .s-label {
+    font-size: .72rem; font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .s-step {
+    width: 22px; height: 22px; border-radius: var(--radius-sm);
+    background: var(--accent-glow); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .68rem; font-weight: 700;
+    border: 1px solid rgba(200,131,46,.2);
+  }
+
+  .plt-toggles { display: flex; gap: 6px; }
+  .plt-btn {
+    flex: 1; padding: 9px 0; text-align: center;
+    border-radius: var(--radius-sm); font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer; font-family: var(--font);
+    transition: all .14s ease;
+  }
+  .plt-btn:hover { color: var(--text); border-color: var(--border-hi); }
+  .plt-btn.active {
+    border-color: rgba(200,131,46,.3); color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .s-textarea {
+    width: 100%; min-height: 90px; padding: 12px 14px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg-surface); color: var(--text);
+    font-size: .82rem; resize: vertical; outline: none;
+    font-family: var(--font); line-height: 1.75;
+    transition: border-color .18s ease;
+  }
+  .s-textarea::placeholder { color: var(--text-muted); }
+  .s-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .s-counter { font-size: .7rem; color: var(--text-muted); text-align: right; margin-top: 6px; font-family: var(--font-mono); }
+
+  .style-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .style-tab {
+    padding: 6px 14px; border-radius: 100px;
+    font-size: .75rem; font-weight: 500;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer; font-family: var(--font);
+    transition: all .14s ease;
+  }
+  .style-tab:hover { color: var(--text); border-color: var(--border-hi); }
+  .style-tab.active {
+    border-color: rgba(200,131,46,.3); color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .tpl-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    max-height: 140px; overflow-y: auto;
+    padding-right: 2px;
+  }
+  .tpl-grid::-webkit-scrollbar { width: 3px; }
+  .tpl-grid::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+  .tpl-mini {
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    cursor: pointer; font-size: .78rem; text-align: center;
+    color: var(--text-soft); transition: all .14s ease;
+  }
+  .tpl-mini:hover { border-color: var(--border-hi); background: var(--bg-hover); }
+  .tpl-mini.selected {
+    border-color: var(--accent); background: var(--accent-glow);
+    color: var(--accent); font-weight: 600;
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  .img-slots { display: flex; flex-direction: column; gap: 6px; }
+  .img-slot {
+    padding: 12px 14px; border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-hi);
+    cursor: pointer; font-size: .78rem; color: var(--text-muted);
+    transition: all .14s ease; display: flex; align-items: center; gap: 10px;
+  }
+  .img-slot:hover { border-color: var(--accent); color: var(--text); background: var(--bg-hover); }
+  .img-slot .tag {
+    font-size: .68rem; padding: 3px 8px; border-radius: 100px;
+    background: var(--accent-glow); color: var(--accent); flex-shrink: 0;
+    font-weight: 600; font-family: var(--font-mono);
+  }
+
+  .gen-btn {
+    width: 100%; padding: 15px 0; border-radius: var(--radius-sm);
+    font-size: .95rem; font-weight: 600;
+    border: none; cursor: pointer; font-family: var(--font);
+    background: var(--accent); color: #ffffff;
+    transition: all .18s ease;
+    box-shadow: 0 4px 20px var(--accent-glow);
+    letter-spacing: .02em;
+  }
+  .gen-btn:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 28px var(--accent-glow); }
+  .gen-btn:active { transform: translateY(0); }
+  .gen-hint {
+    font-size: .7rem; color: var(--text-muted);
+    text-align: center; margin-top: 10px;
+    font-family: var(--font-mono);
+  }
+
+  /* Social preview */
+  .social-preview {
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(200,131,46,.04) 0%, transparent 70%),
+      var(--bg-surface);
+  }
+  .spv-empty { text-align: center; color: var(--text-muted); font-size: .82rem; }
+  .spv-card {
+    width: 230px; border-radius: var(--radius-lg);
+    background: var(--bg-raised); overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+  .spv-card-body {
+    padding: 32px 22px; display: flex; flex-direction: column; gap: 10px; text-align: center;
+  }
+  .spv-tag { font-size: .65rem; color: var(--accent); letter-spacing: .15em; text-transform: uppercase; font-weight: 600; }
+  .spv-title { font-size: 1.3rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+  .spv-divider { width: 40px; height: 2px; background: var(--accent); margin: 0 auto; border-radius: 2px; opacity: .6; }
+  .spv-desc { font-size: .75rem; color: var(--text-muted); line-height: 1.7; }
+
+  /* Social results */
+  .social-results {
+    border-left: 1px solid var(--border);
+    padding: 20px; overflow-y: auto;
+    background: var(--bg-raised);
+  }
+  .result-label {
+    font-size: .72rem; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .result-label::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+  }
+  .result-card {
+    margin-bottom: 14px; border-radius: var(--radius);
+    overflow: hidden; cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all .2s ease;
+  }
+  .result-card:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .result-card-body { aspect-ratio: 3/4; }
+  .result-card-label {
+    padding: 10px 14px; font-size: .72rem; color: var(--text-muted);
+    text-align: center; border-top: 1px solid var(--border);
+    background: var(--bg-surface); font-family: var(--font-mono);
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
+    padding: 12px 28px; border-radius: 100px;
+    background: var(--text); color: var(--bg-raised);
+    font-size: .82rem; font-weight: 500;
+    opacity: 0; transition: opacity .3s ease, transform .3s ease;
+    pointer-events: none; z-index: 100;
+    font-family: var(--font);
+    box-shadow: 0 4px 20px rgba(0,0,0,.12);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1000px) {
+    .wechat-main { grid-template-columns: 1fr; }
+    .col-templates { display: none; }
+    .social-main { grid-template-columns: 1fr; }
+    .social-preview, .social-results { display: none; }
+    .app { padding: 0 12px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Topbar -->
+<nav class="topbar">
+  <span class="logo">SuperSu</span>
+  <button class="tab-btn active" id="tab-wechat" onclick="switchPage('wechat')">公众号排版</button>
+  <button class="tab-btn" id="tab-social" onclick="switchPage('social')">小红书封面</button>
+</nav>
+
+<!-- ═══════════ WECHAT PAGE ═══════════ -->
+<div class="page active" id="page-wechat">
+
+  <div class="wechat-main">
+    <!-- Col 1: Text -->
+    <div class="col-text">
+      <div class="text-toolbar">
+        <span class="text-tb-dot"></span>
+        <span class="text-tb-dot"></span>
+        <span class="text-tb-dot"></span>
+        <span class="text-tb-label">纯文本编辑</span>
+      </div>
+      <textarea placeholder="在此粘贴纯文本...
+
+支持 Markdown 基础语法。系统自动检测标题、列表、引用。
+在右侧模板列表中选择一个模板，预览区实时展示排版效果。
+
+今天分享一个有趣的项目——
+我完成了一个阳光星盘系统。
+
+核心功能：
+它可以精确计算出生时刻的星盘图
+支持 12 宫位和相位解读
+用行星的落点分析个人特质
+
+开发初衷：
+市面上大多工具都是英文的
+我想做一个完全本地化、中文友好的版本
+数据不外传，全部在本地完成
+
+#阳光星盘 #个人项目 #星盘工具
+">今天分享一个有趣的项目——
+我完成了一个阳光星盘系统。
+
+核心功能：
+它可以精确计算出生时刻的星盘图
+支持 12 宫位和相位解读
+用行星的落点分析个人特质
+
+开发初衷：
+市面上大多工具都是英文的
+我想做一个完全本地化、中文友好的版本
+数据不外传，全部在本地完成
+
+#阳光星盘 #个人项目 #星盘工具</textarea>
+    </div>
+
+    <!-- Col 2: Templates -->
+    <div class="col-templates">
+      <div class="tpl-header">模板<span class="tpl-count" id="tpl-count">23</span></div>
+      <div class="tpl-list" id="tpl-list"></div>
+    </div>
+
+    <!-- Col 3: Preview -->
+    <div class="col-preview">
+      <div class="pv-toolbar">
+        <span class="pv-btn active">HTML</span>
+        <span class="pv-btn">手机</span>
+        <span class="spacer"></span>
+      </div>
+      <div class="pv-content" id="pv-content">
+        <div class="pv-empty">
+          <div class="pv-empty-icon">&#9702;</div>
+          选择模板查看排版效果
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Panel -->
+  <div class="ai-panel" id="ai-panel">
+    <div class="ai-panel-inner">
+      <div class="ai-card" onclick="toast('打开 AI 排版弹窗 → 开始智能排版')">
+        <div class="ai-card-icon">T</div>
+        <div>
+          <div class="ai-card-label">AI 智能排版</div>
+          <div class="ai-card-hint">自动优化 Markdown 排版格式</div>
+        </div>
+      </div>
+      <div class="ai-card" onclick="toast('打开 AI 润色弹窗 → 去AI味 / 正式 / 轻松')">
+        <div class="ai-card-icon">*</div>
+        <div>
+          <div class="ai-card-label">AI 润色文字</div>
+          <div class="ai-card-hint">去AI味 / 正式 / 轻松三种风格</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="wechat-footer">
+    <span class="btn" onclick="toast('复制 HTML → 剪贴板')">复制</span>
+    <span class="btn" onclick="toast('打开历史记录')">历史</span>
+    <span class="spacer"></span>
+    <span class="btn btn-primary" onclick="toast('推送到公众号草稿箱')">一键推送</span>
+    <span class="ai-toggle" id="ai-toggle" onclick="toggleAI()"><span class="ai-dot"></span> 工具</span>
+  </div>
+</div>
+
+<!-- ═══════════ SOCIAL PAGE ═══════════ -->
+<div class="page" id="page-social">
+
+  <div class="social-main">
+    <!-- Col 1: Controls -->
+    <div class="social-ctrl">
+      <div class="s-section">
+        <div class="s-label"><span class="s-step">1</span> 目标平台</div>
+        <div class="plt-toggles">
+          <button class="plt-btn active" id="plt-xhs" onclick="selectPlatform('xhs')">小红书 3:4</button>
+          <button class="plt-btn" id="plt-wx" onclick="selectPlatform('wx')">微信封面</button>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-label"><span class="s-step">2</span> 文案内容</div>
+        <textarea class="s-textarea" placeholder="输入文案，AI 自动提取标题..." id="social-text"></textarea>
+        <div class="s-counter" id="social-char-count">0 / 500</div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-label"><span class="s-step">3</span> 选择风格</div>
+        <div class="style-tabs">
+          <button class="style-tab active" onclick="selectStyleGroup('editorial')">Editorial</button>
+          <button class="style-tab" onclick="selectStyleGroup('swiss')">Swiss</button>
+          <button class="style-tab" onclick="selectStyleGroup('blcaptain')">BLCaptain</button>
+        </div>
+        <div class="tpl-grid" id="social-tpl-grid"></div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-label"><span class="s-step">4</span> 封面配图</div>
+        <div class="img-slots">
+          <div class="img-slot" onclick="toast('上传 1080×1440 图片')">
+            <span class="tag">3:4</span> 封面主图 — 点击上传
+          </div>
+          <div class="img-slot" onclick="toast('上传 1080×1080 图片')">
+            <span class="tag">1:1</span> 方形配图
+          </div>
+          <div class="img-slot" onclick="toast('上传 2100×900 图片')">
+            <span class="tag">21:9</span> 宽幅底图
+          </div>
+        </div>
+      </div>
+
+      <div class="s-section">
+        <button class="gen-btn" onclick="simulateGenerate()">生成封面</button>
+        <div class="gen-hint">Ctrl + Enter 快速生成</div>
+      </div>
+    </div>
+
+    <!-- Col 2: Preview -->
+    <div class="social-preview">
+      <div class="spv-empty" id="spv-empty">选择模板后预览</div>
+      <div class="spv-card" id="spv-card" style="display:none;">
+        <div class="spv-card-body">
+          <div class="spv-tag">Editorial</div>
+          <div class="spv-title">阳光星盘</div>
+          <div class="spv-divider"></div>
+          <div class="spv-desc">精确计算出生时刻星盘<br>12 宫位相位解读</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 3: Results -->
+    <div class="social-results">
+      <div class="result-label">生成结果</div>
+      <div id="results-empty" style="text-align:center;color:var(--text-muted);font-size:.78rem;padding:40px 0;">
+        暂无记录<br>
+        <span style="opacity:.5;">点击「生成封面」开始</span>
+      </div>
+      <div id="results-list" style="display:none;">
+        <div class="result-card">
+          <div class="result-card-body" style="background:linear-gradient(135deg,#e8d5c0,#d4a06a);"></div>
+          <div class="result-card-label">cover-01.png · 6.1 MB</div>
+        </div>
+        <div class="result-card">
+          <div class="result-card-body" style="background:linear-gradient(135deg,#c0d5e8,#6aa0d4);"></div>
+          <div class="result-card-label">essay-02.png · 4.2 MB</div>
+        </div>
+        <div class="result-card">
+          <div class="result-card-body" style="background:linear-gradient(135deg,#d5e8c0,#6ad45e);"></div>
+          <div class="result-card-label">quote-03.png · 3.8 MB</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast-el"></div>
+
+<script>
+// ── Page switch ──
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── WeChat templates ──
+const templates = [
+  '暖阳卡片','清新卡片','海洋卡片','报纸风格','杂志风格','水墨风韵',
+  '咖啡屋','赤陶','薄荷新绿','落日琥珀','薰衣草梦','字节跳动',
+  'GitHub','少数派','午夜模式','活力运动','包豪斯','中国风',
+  '微信原生','金色极简','蓝色聚焦','优雅绿意','粗犷蓝调',
+  '时尚','终端绿','落日金','落日渐变','软纸','樱花','纯白',
+  '晨露','单片眼镜','极简红','极简藏蓝','极简灰','极简蓝',
+  '聚焦红','聚焦金','行政','优雅藏蓝','优雅蓝','编辑','点阵',
+  '赛博霓虹','立方','牛皮纸','合同','子弹笔记','宽幅',
+  '粗犷藏蓝','粗犷绿','秋叶','极光'
+];
+let activeTpl = null;
+
+function renderTplList() {
+  const list = document.getElementById('tpl-list');
+  document.getElementById('tpl-count').textContent = templates.length;
+  list.innerHTML = templates.map(t =>
+    `<div class="tpl-item${activeTpl===t?' active':''}" onclick="selectTpl('${t}')">${t}</div>`
+  ).join('');
+}
+
+function selectTpl(name) {
+  activeTpl = name;
+  renderTplList();
+  document.getElementById('pv-content').innerHTML = `
+    <div class="pv-card" style="background:${previewBg(name)}; border-color: ${name==='午夜模式'?'var(--border)':'rgba(200,131,46,.15)'};">
+      <div style="font-size:.7rem;color:var(--accent);letter-spacing:.1em;font-weight:600;margin-bottom:10px;text-transform:uppercase;">${name}</div>
+      <div style="font-size:1.3rem;font-weight:700;margin-bottom:12px;color:${name==='午夜模式'?'var(--text)':'var(--text)'};letter-spacing:-.01em;">阳光星盘系统</div>
+      <div style="font-size:.85rem;color:${name==='午夜模式'?'var(--text-soft)':'var(--text-soft)'};line-height:1.8;">
+        精确计算出生时刻星盘，支持12宫位相位解读，中文友好，本地计算。
+      </div>
+      <div style="font-size:.72rem;color:${name==='午夜模式'?'var(--accent)':'var(--accent-dim)'};margin-top:14px;">#阳光星盘 #个人项目</div>
+    </div>`;
+  toast('已选择「' + name + '」');
+}
+
+function previewBg(name) {
+  const map = {
+    '暖阳卡片':'#fef9f0','清新卡片':'#f0f9f4','海洋卡片':'#f0f5f9',
+    '报纸风格':'#f9f9f7','杂志风格':'#fdf8f4','水墨风韵':'#f5f2ef',
+    '咖啡屋':'#f9f5f0','中国风':'#fdf5f5','午夜模式':'#1a1f27',
+    '微信原生':'#f5fdf5','金色极简':'#fdfaf5'
+  };
+  return map[name] || '#faf8f5';
+}
+
+// ── AI toggle ──
+let aiOpen = false;
+function toggleAI() {
+  aiOpen = !aiOpen;
+  document.getElementById('ai-panel').classList.toggle('open', aiOpen);
+  document.getElementById('ai-toggle').classList.toggle('open', aiOpen);
+}
+
+// ── Social: platform ──
+function selectPlatform(p) {
+  document.getElementById('plt-xhs').classList.toggle('active', p==='xhs');
+  document.getElementById('plt-wx').classList.toggle('active', p==='wx');
+}
+
+// ── Social: style tabs ──
+const styleMap = {
+  editorial: ['杂志封面','暖调静物','暗房冲印','经典排版'],
+  swiss:      ['极简几何','网格系统','不对称版','瑞士红'],
+  blcaptain:  ['SP-01 雾野','SP-02 暖书房','SL-01 电蓝','SL-02 石墨薄荷']
+};
+
+function selectStyleGroup(g) {
+  document.querySelectorAll('.style-tab').forEach(b => b.classList.remove('active'));
+  const tabs = document.querySelectorAll('.style-tab');
+  const idx = {editorial:0, swiss:1, blcaptain:2}[g];
+  if (tabs[idx]) tabs[idx].classList.add('active');
+
+  const grid = document.getElementById('social-tpl-grid');
+  grid.innerHTML = styleMap[g].map(s =>
+    `<div class="tpl-mini" onclick="selectSocTpl('${s}', this)">${s}</div>`
+  ).join('');
+}
+
+function selectSocTpl(name, el) {
+  document.querySelectorAll('#social-tpl-grid .tpl-mini').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('spv-empty').style.display = 'none';
+  document.getElementById('spv-card').style.display = 'block';
+  toast('选中: ' + name);
+}
+
+// ── Social: simulate generate ──
+function simulateGenerate() {
+  toast('正在生成...');
+  setTimeout(() => {
+    document.getElementById('results-empty').style.display = 'none';
+    document.getElementById('results-list').style.display = 'block';
+    toast('3 张封面已生成');
+  }, 1200);
+}
+
+// ── Char counter ──
+document.getElementById('social-text').addEventListener('input', function() {
+  document.getElementById('social-char-count').textContent = this.value.length + ' / 500';
+});
+
+// ── Toast ──
+function toast(msg) {
+  const el = document.getElementById('toast-el');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(-6px)';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(0)';
+  }, 1800);
+}
+
+// ── Init ──
+renderTplList();
+selectStyleGroup('editorial');
+</script>
+</div>
+</body>
+</html>

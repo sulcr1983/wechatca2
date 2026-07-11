@@ -2,6 +2,7 @@ import os
 import re
 import json
 import uuid
+import secrets
 import webbrowser
 import threading
 import time
@@ -35,6 +36,7 @@ from core.wechat_publisher import push_to_draft, upload_permanent_material, filt
 from core.image_gen import generate_cover
 from core.preprocessor import preprocess
 from core.crypto_utils import encrypt, decrypt
+from blcaptain_bridge import BLCaptainBridge
 
 # ── 后台 LLM 优化结果暂存 ──────────────────────────────────────────────
 _opt_store = {}
@@ -148,7 +150,7 @@ def api_themes():
 def api_render():
     data = request.get_json()
     if not data:
-        return jsonify({"error": "invalid json"}), 400
+        return jsonify({"success": False, "error": "invalid json"}), 400
 
     raw_text = data.get("raw_text", "")
     theme_id = data.get("theme_id", "bold-blue")
@@ -156,7 +158,7 @@ def api_render():
 
     theme_path = THEMES_DIR / f"{theme_id}.json"
     if not theme_path.exists():
-        return jsonify({"error": f"theme not found: {theme_id}"}), 404
+        return jsonify({"success": False, "error": f"theme not found: {theme_id}"}), 404
 
     # 本地预处理：纯文本 → Markdown（除非跳过）
     if skip_preprocess:
@@ -169,11 +171,16 @@ def api_render():
     try:
         html = convert_markdown_to_wechat_html(markdown, str(theme_path))
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-    # 后台异步 LLM 优化（仅在首次渲染时）
-    if not skip_preprocess:
-        _start_background_optimization(request_id, raw_text, str(theme_path))
+    # 后台异步 LLM 优化 —— 已默认关闭。
+    # 原因：前端（index.html）当前未接入 SSE 消费（/api/optimize-stream 的结果无人读取，
+    # 已用 grep 核验 index.html 对 optimize/EventSource/optimize-stream 引用为 0），
+    # 而每次非 skip 渲染都会发起一次真实外部 LLM 调用并产生限流风险，且无任何用户价值。
+    # 设计意图见 HANDOFF.md，但该链路在最近一次前端重写中未被保留。
+    # 如需重新启用，请先在前端接入 SSE 消费逻辑，再取消下方注释。
+    # if not skip_preprocess:
+    #     _start_background_optimization(request_id, raw_text, str(theme_path))
 
     return jsonify({
         "html": html,
@@ -223,7 +230,7 @@ def _start_background_optimization(request_id: str, raw_text: str, theme_path: s
 def api_optimize_stream():
     request_id = request.args.get("request_id", "")
     if not request_id:
-        return jsonify({"error": "request_id required"}), 400
+        return jsonify({"success": False, "error": "request_id required"}), 400
 
     def generate():
         for _ in range(30):
@@ -395,8 +402,13 @@ def api_cover_image():
 @app.route("/temp_covers/<filename>")
 def serve_cover(filename):
     if not _COVER_UUID_RE.match(filename):
-        return jsonify({"error": "invalid filename"}), 400
+        return jsonify({"success": False, "error": "invalid filename"}), 400
     return send_from_directory(str(TEMP_COVERS_DIR), filename)
+
+
+@app.route("/output/<path:filepath>")
+def serve_output(filepath):
+    return send_from_directory(str(BASE_DIR / "output"), filepath)
 
 
 # ── 推送草稿箱 ──────────────────────────────────────────────────────────
@@ -456,7 +468,7 @@ def api_push():
     if isinstance(result, dict):
         errcode = result.get("errcode", "")
         errmsg = result.get("errmsg", "")
-        print(f"[PUSH DEBUG] 微信返回错误: [{errcode}] {errmsg}")
+        app.logger.error("微信返回错误: [%s] %s", errcode, errmsg)
         if errcode == 40164:
             record_wechat_detected_ip(errmsg)
         return jsonify({"success": False, "error": f"[{errcode}] {errmsg}"}), 500
@@ -484,6 +496,120 @@ def api_push():
     if removed_count > 0:
         resp["warning"] = f"文章包含 {removed_count} 张图片，已自动移除。图片请在微信公众号后台手动添加。"
     return jsonify(resp)
+
+
+# ── 小红书封面生成 ───────────────────────────────────────────────────────
+
+@app.route("/api/social/generate", methods=["POST"])
+def api_social_generate():
+    data = request.get_json() or {}
+    text = data.get("text", "").strip()
+    style = data.get("style", "editorial")
+    if not text:
+        return jsonify({"success": False, "error": "请输入文案内容"}), 400
+
+    task_id = data.get("task_id") or secrets.token_hex(4)
+    output_dir = BASE_DIR / "output" / task_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    base_url = request.host_url.rstrip("/")
+
+    # 判断渲染引擎：blcaptain 风格 (sp-*/sl-*) vs 归藏风格
+    is_blcaptain = style.startswith(("sp-", "sl-")) or style in (
+        "mist", "warm", "coastal", "night", "hearth", "blue", "mint", "coral", "lime"
+    )
+
+    try:
+        if is_blcaptain:
+            bridge = BLCaptainBridge()
+            result = bridge.generate(text, style=style, output_dir=str(output_dir))
+            # BLCaptain PNGs 在 output_dir/output/ 子目录
+            image_list = []
+            for img in result["images"]:
+                rel = os.path.relpath(img["path"], str(BASE_DIR / "output")).replace("\\", "/")
+                image_list.append({**img, "url": f"{base_url}/output/{rel}"})
+        else:
+            import guizang_renderer
+            result = guizang_renderer.render_social_cards(
+                text=text, output_dir=str(output_dir), style=style,
+            )
+            paths = [result.get("xhs", ""), result.get("square", ""), result.get("wide", "")]
+            image_list = []
+            for p in paths:
+                if not p:
+                    continue
+                fname = os.path.basename(p)
+                t = "xhs" if fname.startswith("xhs") else ("square" if fname.startswith("square") else "wide")
+                image_list.append({"file": fname, "url": f"{base_url}/output/{task_id}/{fname}", "type": t})
+    except Exception as e:
+        # fallback 到归藏渲染器
+        try:
+            import guizang_renderer
+            result = guizang_renderer.render_social_cards(
+                text=text, output_dir=str(output_dir), style="editorial",
+            )
+            paths = [result.get("xhs", ""), result.get("square", ""), result.get("wide", "")]
+            image_list = []
+            for p in paths:
+                if not p:
+                    continue
+                fname = os.path.basename(p)
+                t = "xhs" if fname.startswith("xhs") else ("square" if fname.startswith("square") else "wide")
+                image_list.append({"file": fname, "url": f"{base_url}/output/{task_id}/{fname}", "type": t})
+        except Exception as e2:
+            return jsonify({"success": False, "error": f"渲染失败: {str(e2)[:500]}"}), 500
+
+    return jsonify({
+        "task_id": task_id,
+        "images": image_list,
+        "output_dir": str(output_dir),
+        "engine": "blcaptain" if is_blcaptain else "guizang",
+    })
+
+
+@app.route("/api/social/styles", methods=["GET"])
+def api_social_styles():
+    """列出所有可用风格（归藏 + BLCaptain）"""
+    return jsonify({
+        "guizang": [
+            {"id": "editorial", "name": "Editorial 杂志风", "group": "归藏"},
+            {"id": "swiss", "name": "Swiss 瑞士风", "group": "归藏"},
+        ],
+        "blcaptain": BLCaptainBridge.list_styles(),
+    })
+
+
+@app.route("/api/social/thumbnails", methods=["GET"])
+def api_social_thumbnails():
+    thumb_dir = BASE_DIR / "assets" / "social-thumb"
+    if not thumb_dir.exists():
+        return jsonify([])
+    thumbnails = []
+    for f in sorted(thumb_dir.iterdir()):
+        if f.suffix.lower() == ".png":
+            thumbnails.append({
+                "id": f.stem,
+                "url": f"/assets/social-thumb/{f.name}",
+            })
+    return jsonify(thumbnails)
+
+
+@app.route("/open-folder", methods=["POST"])
+def api_open_folder():
+    path = (request.get_json() or {}).get("path", "")
+    if not path:
+        return jsonify({"success": False, "error": "路径不能为空"}), 400
+    # 只允许打开项目内目录
+    real = os.path.realpath(path)
+    if not real.startswith(str(BASE_DIR)):
+        return jsonify({"success": False, "error": "不允许打开项目外目录"}), 403
+    if not os.path.isdir(real):
+        return jsonify({"success": False, "error": f"目录不存在: {path}"}), 400
+    try:
+        os.startfile(real)
+        return jsonify({"success": True, "path": real})
+    except OSError as e:
+        return jsonify({"success": False, "error": f"无法打开目录: {str(e)}"}), 500
 
 
 # ── AI 配置 API ─────────────────────────────────────────────────────────

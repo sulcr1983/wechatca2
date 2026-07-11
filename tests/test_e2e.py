@@ -554,34 +554,29 @@ def test_sse_failed():
         assert "failed" in data_str
 
 
-@test("SSE: 渲染后自动后台优化 + SSE 消费")
+@test("SSE: 优化结果消费链路（后台优化已默认关闭，直接验证 SSE 读取）")
 def test_sse_full_flow():
-    with patch("app.call_llm") as mock_llm:
-        mock_llm.return_value = "## LLM优化标题\n\nLLM优化后的段落。\n\n- 列表A\n- 列表B"
+    # 后台 LLM 优化当前默认关闭（前端未接入 SSE 消费，见 app.py 注释）。
+    # 此处直接验证 SSE 消费链路：预置一份优化结果，确认 /api/optimize-stream 能正确吐出。
+    fake_id = "sse_full_fixed_01"
+    with _opt_lock:
+        _opt_store[fake_id] = {
+            "status": "done",
+            "html": "<section>LLM 优化后的段落内容。</section>",
+            "markdown": "## LLM优化标题\n\nLLM优化后的段落。\n\n- 列表A\n- 列表B",
+        }
 
-        with app.test_client() as c:
-            r = c.post("/api/render", json={
-                "raw_text": "人工智能概述\n\n人工智能就是让机器具备类似人类的思维能力。",
-                "theme_id": "monocle"
-            })
-            data = r.get_json()
-            req_id = data["request_id"]
-
-            # 等待后台线程完成
-            time.sleep(1.5)
-
-            # 通过 SSE 消费结果
-            r2 = c.get(f"/api/optimize-stream?request_id={req_id}")
-            sse_data = r2.get_data(as_text=True)
-            assert "data: " in sse_data
-            # 解析 SSE
-            lines = [l for l in sse_data.split("\n") if l.startswith("data: ")]
-            assert len(lines) >= 1
-            result = json.loads(lines[0][6:])
-            assert result["status"] in ("done", "failed", "timeout")
-            if result["status"] == "done":
-                assert len(result["html"]) > 0
-                assert len(result["markdown"]) > 0
+    with app.test_client() as c:
+        r2 = c.get(f"/api/optimize-stream?request_id={fake_id}")
+        sse_data = r2.get_data(as_text=True)
+        assert "data: " in sse_data
+        # 解析 SSE
+        lines = [l for l in sse_data.split("\n") if l.startswith("data: ")]
+        assert len(lines) >= 1
+        result = json.loads(lines[0][6:])
+        assert result["status"] == "done"
+        assert len(result["html"]) > 0
+        assert len(result["markdown"]) > 0
 
 
 # ── 数据文件持久化 ──

@@ -1,4 +1,4 @@
-# CLAUDE.md — SuperSu 个人工具项目规则
+# AGENTS.md — SuperSu 个人工具项目规则
 
 ## 1. 项目定位
 
@@ -48,11 +48,12 @@ output/                 封面渲染输出
 ```bash
 # 启动
 pip install -r requirements.txt
+playwright install chromium      # 必需：小红书封面生成依赖 Chromium，缺则 /api/social/generate 报 500
 python app.py                    # http://127.0.0.1:5000
 
 # 测试
-python tests/test_e2e.py         # 50 个 E2E 用例
-python tests/test_integration.py # 集成测试（需先启动服务）
+python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 40/41 通过
+python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
 
 # 清理端口
 taskkill //F //IM python.exe
@@ -86,7 +87,7 @@ taskkill //F //IM python.exe
 #page-wechat
   .header           → 模式切换 + 主题选择 + AI 按钮（折叠隐藏）
   .main-body
-    .editor         → textarea（24px 字体）
+    .editor         → #input-area（textarea，放大字体，响应式 rem）
     .preview        → iframe 实时预览
   .footer           → 底部操作栏
   弹窗层             → AI 润色/推送/公众号管理/历史记录
@@ -116,9 +117,9 @@ taskkill //F //IM python.exe
 - `render_worker.py` 和 `guizang_renderer.py` 都需要 `playwright install chromium`
 - `assets/social-thumb/` 为空时需运行 `gen_thumbnails.py`
 - 测试用 `app.test_client()` 避免端口冲突
-- SSE 30 秒超时，优化结果 120 秒缓存
+- SSE 30 秒超时，优化结果 120 秒缓存；⚠️ 后台 LLM 优化（_start_background_optimization）默认已关闭（前端未接入 SSE 消费），见 F2 修复
 - Windows 上 `os.startfile()` 需 try/except 捕获 OSError
-- 字体已全局放大 40%（基准：24px/22px/21px/20px 层级）
+- 字体已放大（响应式 rem 层级，编辑区 #input-area 最大约 1.25rem/20px；非字面 24px）
 - 公众号和小红书两套 CSS 独立命名空间，互不污染
 
 ## 10. 设计约束
@@ -126,4 +127,4 @@ taskkill //F //IM python.exe
 - AI 功能默认折叠，不自动触发
 - 核心流程：输入 → 自动预处理 → 选主题 → 渲染（零 AI 参与）
 - 新增功能采用并存模式，不替换现有工作代码
-- 所有修改跑 E2E 验证（50/50）
+- 所有修改跑 E2E 验证（test_e2e 40/41）+ 集成测试（test_integration 35/35）
