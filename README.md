@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
-[![Tests](https://img.shields.io/badge/Tests-50%20passed-brightgreen?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-E2E%2040%2F41%20%7C%20Int%2035%2F35-blue?style=flat-square)](tests/)
 
 ---
 
@@ -88,8 +88,9 @@ docs/prototypes/        早期 HTML 原型
 ## 测试
 
 ```bash
-python tests/test_e2e.py         # 50 项全量测试
-python tests/test_integration.py # 前后端联动测试
+python tests/test_e2e.py         # E2E 40/41（1 项陈旧 UI 断言待清，目标 41/41）
+python tests/test_integration.py # 集成测试 35/35（需先起服务）
+python tests/test_headed_userflow.py # 有头 E2E 7/7（Playwright，需 chromium）
 ```
 
 ---

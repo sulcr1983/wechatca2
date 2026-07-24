@@ -136,3 +136,48 @@ taskkill //F //IM python.exe
 - 核心流程：输入 → 自动预处理 → 选主题 → 渲染（零 AI 参与）
 - 新增功能采用并存模式，不替换现有工作代码
 - 所有修改跑 E2E 验证（test_e2e 40/41）+ 集成测试（test_integration 35/35）
+
+## 11. Agent 工程纪律（通用宪法适配）
+
+> 本节承载「通用 Agent 宪法」的工程纪律，已适配 SuperSu。唯一真源见本文件；Claude 端 `claude.md` 经 `@AGENTS.md` 导入；WorkBuddy 端在任务内 `@AGENTS.md` 引用生效。
+
+### 真源优先级
+事实冲突按序：① 当前源码 / 测试 / 脚本 / 运行日志 / git 状态；② 本文件与 `claude.md`；③ `.workbuddy/memory/MEMORY.md`、`HANDOFF.md`、`CLOSURE.md`；④ `README.md`、`references/`；⑤ archive 历史仅作模式证据，不覆盖当前事实。冲突先报告再等确认。
+
+### 推理闸（编码前必答）
+- 实际要解决什么问题？谁创建 / 调用 / 消费这个概念？
+- 当前真源在哪？是否已有同职责模块（封面引擎已有归藏 + BLCaptain，勿再造第三套）？
+- 唯一 owner 是哪层？UI / 脚本 / prompt 不得私造业务真相。
+- 更简单保守的设计是什么？最大回归风险用什么证据阻断？
+
+### 设计规则
+- 共享语义单真源进 `core/`；`scripts/`、`core/blcaptain_bridge.py` 只做协议映射 / 接线，不拥有核心语义。
+- 生成物只读不手改：`public/` 下 `themes/*.json`、`cover-templates/` 为配置真源；`blcaptain-style-skill/` 是 vendored 子项目（自带 `.git`），其生成输出 `DO NOT EDIT`，改源后重生成。
+- 不顺手重构、不删已有注释、不修改风格（Karpathy 四原则见 §2）。
+
+### 错误分级
+- 阻断：破坏核心功能 / owner 边界 / 密钥安全 / 数据真相 / 测试门禁 / 用户关键体验。当轮必须收掉。
+- 设计风险：架构漂移、运行面失控，须说明取舍与验收入口。
+- 可记录债务：不影响本轮，须说明原因与后续入口（如 E2E 陈旧 1 项 → 目标 41/41）。
+- 无关优化：不进入本轮，禁借机扩大改造。
+
+### 验收规则（须给真实证据）
+- 声称完成前必须提供本轮实际运行的命令 / 测试 / 日志 / 截图 / 出图证据。
+- 改动跑 E2E（`test_e2e` 40/41）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG。
+- warning / lint / 测试计数漂移 / 文档索引缺失 / 本轮 TODO 按缺陷处理，除非明确记为非本轮债务。
+- UI 改动须检查真实渲染（headed E2E 7/7），不只看代码。
+
+### Git 边界
+- 禁止 `git add .`；只 stage 本任务相关文件。
+- 嵌套仓库 `blcaptain-style-skill/` 与父仓分别审计、分别提交，勿将其改动吸入父仓。
+- `.env`、`data/`（含加密 AppSecret）、`.workbuddy/`、`output/`、`uploads/`、`blcaptain-style-skill/` 已被 gitignore，禁止 force-add。
+- dirty worktree 中不回滚 / 覆盖 / 吸入用户未授权改动。
+
+### 文档分层与回写
+- 内部真源：`AGENTS.md` / `MEMORY.md` / `HANDOFF.md` / `CLOSURE.md`；外部用户：`README.md`。
+- 改代码 / 接口 / 配置 / 架构边界 / 用户行为后，必须同步对应文档（含本文件与 README 测试计数）。
+- 单任务结束执行 `CLOSURE.md` 收尾程序（更新文档、受控提交、必要时写 `docs/task_closure_*.md`）。
+
+### 对外贡献 / 多 Agent
+- 个人工具，对外 PR 前先读贡献规则、一次一问题、不混入无关改动。
+- 多 agent 仅用于互不干扰的独立域；子 agent 结论须主 agent 对照代码 / 测试验收。
