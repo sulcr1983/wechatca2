@@ -29,11 +29,17 @@ core/
   token_manager.py      微信 Access Token 管理（线程安全单例）
   wechat_publisher.py   微信公众号 API（素材上传 + 草稿推送）
   crypto_utils.py       API Key 加密存储
-render_worker.py        归藏封面渲染（基于 cover-templates 模板）
-guizang_renderer.py     归藏封面渲染（自包含版，备用）
+  blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js）
+  guizang_renderer.py   归藏封面渲染（自包含版，备用）
+scripts/
+  render_worker.py      归藏封面渲染（基于 cover-templates 模板）
+  gen_thumbnails.py     用 Playwright 生成封面缩略图
+  gen_thumbnails_pil.py 用 PIL 生成占位缩略图（无 Playwright 时）
+  run_headed_test.bat   有头浏览器 E2E 测试启动脚本
+  start_app.ps1         应用启动脚本（PowerShell）
 templates/
   index.html            单页前端（公众号 + 小红书双页面）
-assets/
+public/                 静态资源（原 assets/，由 /assets/* 路由提供）
   themes/               53 套排版主题 JSON
   cover-templates/      10 套归藏封面模板（swiss/editorial 各 4-6 套）
   images/               封面模板库存图
@@ -41,6 +47,8 @@ assets/
 references/             归藏设计系统参考文档
 data/                   运行时数据（配置/账号/历史）
 output/                 封面渲染输出
+docs/
+  prototypes/           早期 HTML 原型（prototype_*.html）
 ```
 
 ## 4. 启动与停止
@@ -113,8 +121,8 @@ taskkill //F //IM python.exe
 
 ## 9. 已知注意事项
 
-- `render_worker.py` 和 `guizang_renderer.py` 都需要 `playwright install chromium`
-- `assets/social-thumb/` 为空时需运行 `gen_thumbnails.py`
+- `scripts/render_worker.py` 和 `core/guizang_renderer.py` 都需要 `playwright install chromium`
+- `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`
 - 测试用 `app.test_client()` 避免端口冲突
 - SSE 30 秒超时，优化结果 120 秒缓存
 - Windows 上 `os.startfile()` 需 try/except 捕获 OSError

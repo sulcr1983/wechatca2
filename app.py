@@ -19,7 +19,7 @@ import requests
 app = Flask(__name__)
 
 BASE_DIR = Path(__file__).parent
-THEMES_DIR = BASE_DIR / "assets" / "themes"
+THEMES_DIR = BASE_DIR / "public" / "themes"
 DATA_DIR = BASE_DIR / "data"
 TEMP_COVERS_DIR = BASE_DIR / "temp_covers"
 
@@ -36,7 +36,7 @@ from core.wechat_publisher import push_to_draft, upload_permanent_material, filt
 from core.image_gen import generate_cover
 from core.preprocessor import preprocess
 from core.crypto_utils import encrypt, decrypt
-from blcaptain_bridge import BLCaptainBridge
+from core.blcaptain_bridge import BLCaptainBridge
 
 # ── 后台 LLM 优化结果暂存 ──────────────────────────────────────────────
 _opt_store = {}
@@ -411,6 +411,12 @@ def serve_output(filepath):
     return send_from_directory(str(BASE_DIR / "output"), filepath)
 
 
+@app.route("/assets/<path:filename>")
+def serve_public_assets(filename):
+    # 静态资源（原 assets/）统一放在 public/，通过 /assets/* 提供
+    return send_from_directory(str(BASE_DIR / "public"), filename)
+
+
 # ── 推送草稿箱 ──────────────────────────────────────────────────────────
 @app.route("/api/push", methods=["POST"])
 def api_push():
@@ -529,7 +535,7 @@ def api_social_generate():
                 rel = os.path.relpath(img["path"], str(BASE_DIR / "output")).replace("\\", "/")
                 image_list.append({**img, "url": f"{base_url}/output/{rel}"})
         else:
-            import guizang_renderer
+            from core import guizang_renderer
             result = guizang_renderer.render_social_cards(
                 text=text, output_dir=str(output_dir), style=style,
             )
@@ -544,7 +550,7 @@ def api_social_generate():
     except Exception as e:
         # fallback 到归藏渲染器
         try:
-            import guizang_renderer
+            from core import guizang_renderer
             result = guizang_renderer.render_social_cards(
                 text=text, output_dir=str(output_dir), style="editorial",
             )
@@ -581,7 +587,7 @@ def api_social_styles():
 
 @app.route("/api/social/thumbnails", methods=["GET"])
 def api_social_thumbnails():
-    thumb_dir = BASE_DIR / "assets" / "social-thumb"
+    thumb_dir = BASE_DIR / "public" / "social-thumb"
     if not thumb_dir.exists():
         return jsonify([])
     thumbnails = []

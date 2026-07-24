@@ -20,21 +20,21 @@
 ### 模块：app.py (Flask 主服务)
 - **状态**：Confirmed
 - **是否可运行**：是，服务在 `http://127.0.0.1:5000` 运行中
-- **依赖模块**：core/*, templates/index.html, assets/themes/*
+- **依赖模块**：core/*, templates/index.html, public/themes/*
 - **失败点**：无（已验证 GET / -> 200, GET /api/themes -> 200, POST /api/render -> 200）
 - **影响范围**：全部
 
 ### 模块：templates/index.html (前端)
 - **状态**：Confirmed
 - **是否可运行**：是，浏览器正常渲染，1233 行，浅色暖调主题
-- **依赖模块**：app.py (提供 API)，assets/themes/* (53 个 JSON 主题)
+- **依赖模块**：app.py (提供 API)，public/themes/* (53 个 JSON 主题)
 - **失败点**：用户反馈"页面还是旧的"——可能因浏览器缓存，按 Ctrl+F5 后显示新页面
 - **影响范围**：全部前端交互
 
 ### 模块：core/format_engine.py (排版引擎)
 - **状态**：Confirmed
 - **是否可运行**：是（1835 行，函数 convert_markdown_to_wechat_html 可用）
-- **依赖模块**：assets/themes/*.json
+- **依赖模块**：public/themes/*.json
 - **失败点**：无
 - **影响范围**：POST /api/render
 
@@ -80,14 +80,14 @@
 - **失败点**：Unknown
 - **影响范围**：账号管理中 appsecret 存储
 
-### 模块：guizang_renderer.py (归藏风格封面渲染)
+### 模块：core/guizang_renderer.py (归藏风格封面渲染)
 - **状态**：Confirmed
 - **是否可运行**：是（已测试过，输出到 output/ 目录）
-- **依赖模块**：assets/cover-templates/*, assets/images/*, templates/social/*
+- **依赖模块**：public/cover-templates/*, public/images/*, templates/social/*
 - **失败点**：无
 - **影响范围**：POST /api/social/generate (editorial/swiss 风格)
 
-### 模块：blcaptain_bridge.py (BLCaptain 风格封面渲染)
+### 模块：core/blcaptain_bridge.py (BLCaptain 风格封面渲染)
 - **状态**：Confirmed
 - **是否可运行**：是（需 Node.js 环境，调用 blcaptain-style-skill/bin/blcaptain-style.mjs）
 - **依赖模块**：Node.js, blcaptain-style-skill/ 目录
@@ -101,7 +101,7 @@
 - **失败点**：部分测试依赖 LLM（polish/summary 等），API Key 无效时可能失败
 - **影响范围**：测试覆盖
 
-### 模块：prototype_full.html / prototype_ai_simplify.html (旧原型)
+### 模块：docs/prototypes/prototype_full.html / docs/prototypes/prototype_ai_simplify.html (旧原型)
 - **状态**：Confirmed（废弃）
 - **是否可运行**：否，用户明确说"原型图不管了"
 - **依赖模块**：无
@@ -116,24 +116,24 @@
 |------|------|--------|------|------------|
 | `app.py` | Flask 主入口，约 23 条路由（@app.route 实测，非 50） | stable | high | core/*, templates/ |
 | `templates/index.html` | 前端页面 SPA，1233 行 | stable | medium | app.py API |
-| `core/format_engine.py` | Markdown → 微信 HTML 转换，1835 行 | stable | medium | assets/themes/* |
+| `core/format_engine.py` | Markdown → 微信 HTML 转换，1835 行 | stable | medium | public/themes/* |
 | `core/preprocessor.py` | 纯文本 → Markdown 规则引擎 | stable | low | 无 |
 | `core/ai_client.py` | 多平台 LLM 客户端 | stable | low | .env config |
 | `core/image_gen.py` | Pillow 封面图生成 | stable | low | Pillow, fonts |
 | `core/wechat_publisher.py` | 微信 API 草稿箱推送 | stable | high | token_manager |
 | `core/token_manager.py` | 微信 Access Token 管理 | stable | medium | 微信公众号 |
 | `core/crypto_utils.py` | AppSecret 加密/解密 | unknown | medium | 无 |
-| `guizang_renderer.py` | 归藏风格封面 HTML→PNG | stable | low | assets/cover-templates/* |
-| `blcaptain_bridge.py` | BLCaptain 风格封面 (Node.js) | stable | medium | Node.js, blcaptain-style-skill/ |
+| `core/guizang_renderer.py` | 归藏风格封面 HTML→PNG | stable | low | public/cover-templates/* |
+| `core/blcaptain_bridge.py` | BLCaptain 风格封面 (Node.js) | stable | medium | Node.js, blcaptain-style-skill/ |
 | `start_flask.py` | 启动脚本（带自动打开浏览器） | stable | low | app.py |
 | `launcher.py` | PyInstaller 打包入口 | stable | low | app.py |
-| `assets/themes/*.json` | 53 个排版主题配置 | stable | low | format_engine |
-| `assets/cover-templates/*` | 归藏风格的 HTML 封面模板 | stable | low | guizang_renderer |
-| `assets/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
+| `public/themes/*.json` | 53 个排版主题配置 | stable | low | format_engine |
+| `public/cover-templates/*` | 归藏风格的 HTML 封面模板 | stable | low | guizang_renderer |
+| `public/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
 | `.env.example` | 环境变量模板 | stable | low | 无 |
 | `tests/test_e2e.py` | 端到端测试，41 个函数 | stable | low | Flask test client |
-| `prototype_full.html` | 旧原型（废弃） | obsolete | none | 无 |
-| `prototype_ai_simplify.html` | 旧原型（废弃） | obsolete | none | 无 |
+| `docs/prototypes/prototype_full.html` | 旧原型（废弃） | obsolete | none | 无 |
+| `docs/prototypes/prototype_ai_simplify.html` | 旧原型（废弃） | obsolete | none | 无 |
 
 ---
 
@@ -337,7 +337,7 @@ pyinstaller launcher.py  # 未验证
    - suspected cause：代码无 AI 配置检查
    - workaround：先配置 AI 设置
 
-5. **prototype_full.html 和 prototype_ai_simplify.html 残留在项目根目录**
+5. **早期原型（prototype_full / prototype_ai_simplify）已迁移至 docs/prototypes/**
    - description：2 个废弃的原型文件 2000+ 行，与主 index.html 无关
    - trigger：不触发
    - risk：低，但可能误导开发者
@@ -357,7 +357,7 @@ pyinstaller launcher.py  # 未验证
 - **风险**：低，不影响后端 API
 - **是否验证**：是，服务启动正常，API 调用正常
 
-### 变更 2：prototype_full.html 修改（已废弃）
+### 变更 2：docs/prototypes/prototype_full.html 修改（已废弃）
 - **改动**：修复 CSS 高度 2100px 和滚动条问题
 - **影响**：无（用户已说不做原型图）
 - **风险**：无
@@ -386,7 +386,7 @@ pyinstaller launcher.py  # 未验证
 - **validation criteria**：用户在浏览器看到浅色暖调新设计，而非旧的深色页面
 
 ### DO NOT DO
-- 不要碰 prototype_full.html 和 prototype_ai_simplify.html（已废弃）
+- 不要碰 docs/prototypes/prototype_full.html 和 docs/prototypes/prototype_ai_simplify.html（已废弃）
 - 不要重构 backend API 结构（约 23 条路由，当前够用）
 - 不要添加新功能除非用户明确要求（用户说过"到时再慢慢修"）
 - 不要添加自动缓存清理/版本号（用户按 Ctrl+F5 即可，过度设计）

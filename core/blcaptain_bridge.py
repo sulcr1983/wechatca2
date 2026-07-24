@@ -37,7 +37,7 @@ STYLE_MAP = {
 class BLCaptainBridge:
     def __init__(self, blcaptain_dir: str | None = None, node_bin: str = "node"):
         if blcaptain_dir is None:
-            blcaptain_dir = Path(__file__).resolve().parent / "blcaptain-style-skill"
+            blcaptain_dir = Path(__file__).resolve().parent.parent / "blcaptain-style-skill"
         self.blcaptain_dir = Path(blcaptain_dir)
         self.cli = self.blcaptain_dir / "bin" / "blcaptain-style.mjs"
         self.node_bin = node_bin
@@ -61,8 +61,8 @@ class BLCaptainBridge:
         return result
 
     def _pick_stock_image(self) -> str:
-        """从项目 assets/images/ 获取库存图"""
-        stock_dir = Path(__file__).resolve().parent / "assets" / "images"
+        """从项目 public/images/ 获取库存图"""
+        stock_dir = Path(__file__).resolve().parent.parent / "public" / "images"
         images = sorted(stock_dir.glob("*.jpg")) + sorted(stock_dir.glob("*.png"))
         if images:
             return str(images[0])

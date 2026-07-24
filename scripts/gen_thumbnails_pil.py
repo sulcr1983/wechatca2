@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-THUMB_DIR = Path(__file__).resolve().parent / "assets" / "social-thumb"
+THUMB_DIR = Path(__file__).resolve().parent.parent / "public" / "social-thumb"
 THUMB_W = 360
 THUMB_H = 480
 

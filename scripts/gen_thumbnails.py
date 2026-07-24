@@ -14,8 +14,8 @@ from playwright.sync_api import sync_playwright
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("gen_thumbnails")
 
-THUMB_DIR = Path(__file__).resolve().parent / "assets" / "social-thumb"
-COVER_DIR = Path(__file__).resolve().parent / "assets" / "cover-templates"
+THUMB_DIR = Path(__file__).resolve().parent.parent / "public" / "social-thumb"
+COVER_DIR = Path(__file__).resolve().parent.parent / "public" / "cover-templates"
 
 THUMB_W = 360
 THUMB_H = 480

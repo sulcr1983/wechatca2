@@ -71,11 +71,16 @@ core/
   token_manager.py      微信 Token 管理
   wechat_publisher.py   公众号草稿推送
   crypto_utils.py       API Key 加密
-render_worker.py        归藏封面渲染器
-guizang_renderer.py     归藏封面渲染器（备用）
+  blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js）
+  guizang_renderer.py   归藏封面渲染器（备用）
+scripts/
+  render_worker.py      归藏封面渲染器
+  gen_thumbnails.py     用 Playwright 生成封面缩略图
+  gen_thumbnails_pil.py 用 PIL 生成占位缩略图
 templates/index.html    单页前端
-assets/themes/          53 套主题 JSON
-assets/cover-templates/ 10 套封面模板
+public/themes/          53 套主题 JSON
+public/cover-templates/ 10 套封面模板
+docs/prototypes/        早期 HTML 原型
 ```
 
 ---

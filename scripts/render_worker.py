@@ -120,8 +120,8 @@ def render_social_cards(
 ):
     os.makedirs(output_dir, exist_ok=True)
 
-    project_root = Path(__file__).resolve().parent
-    cover_templates_dir = project_root / "assets" / "cover-templates"
+    project_root = Path(__file__).resolve().parent.parent
+    cover_templates_dir = project_root / "public" / "cover-templates"
 
     # 1. 匹配模板目录
     available = sorted(d for d in cover_templates_dir.iterdir() if d.is_dir())
@@ -166,7 +166,7 @@ def render_social_cards(
     cover_img_src = cover_img_match.group(1) if cover_img_match else "../../images/01-old-photos.jpg"
 
     # 从模板目录解析图片路径到项目根
-    template_images_dir = project_root / "assets" / "images"
+    template_images_dir = project_root / "public" / "images"
     cover_img_name = Path(cover_img_src).name  # e.g. "05-swing.jpg"
     cover_img_path = template_images_dir / cover_img_name
     if not cover_img_path.exists():
