@@ -26,8 +26,8 @@
 
 ### 模块：templates/index.html (前端)
 - **状态**：Confirmed
-- **是否可运行**：是，浏览器正常渲染，1233 行，浅色暖调主题
-- **依赖模块**：app.py (提供 API)，public/themes/* (53 个 JSON 主题)
+- **是否可运行**：是，浏览器正常渲染，浅色暖调主题
+- **依赖模块**：app.py (提供 API)，public/themes/* (92 个 JSON 主题：45 原创 + 47 开源适配)
 - **失败点**：用户反馈"页面还是旧的"——可能因浏览器缓存，按 Ctrl+F5 后显示新页面
 - **影响范围**：全部前端交互
 
@@ -58,6 +58,13 @@
 - **依赖模块**：Pillow
 - **失败点**：无
 - **影响范围**：POST /api/cover-image
+
+### 模块：core/image_search.py (联网搜图)
+- **状态**：Confirmed 🆕
+- **是否可运行**：是（双轨：Wikimedia Commons 免 key 默认可用；Pexels 需 PEXELS_API_KEY）
+- **依赖模块**：requests
+- **失败点**：无网络时 fallback 到本地 public/images/
+- **影响范围**：POST /api/social/generate 的自动底图搜索
 
 ### 模块：core/wechat_publisher.py (微信 API 推送)
 - **状态**：Confirmed
@@ -127,7 +134,7 @@
 | `core/blcaptain_bridge.py` | BLCaptain 风格封面 (Node.js) | stable | medium | Node.js, blcaptain-style-skill/ |
 | `start_flask.py` | 启动脚本（带自动打开浏览器） | stable | low | app.py |
 | `launcher.py` | PyInstaller 打包入口 | stable | low | app.py |
-| `public/themes/*.json` | 53 个排版主题配置 | stable | low | format_engine |
+| `public/themes/*.json` | 92 个排版主题配置（45 原创 + 47 xh-* 开源适配） | stable | low | format_engine |
 | `public/cover-templates/*` | 归藏风格的 HTML 封面模板 | stable | low | guizang_renderer |
 | `public/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
 | `.env.example` | 环境变量模板 | stable | low | 无 |
@@ -189,16 +196,19 @@
 
 ```
 POST /api/social/generate {text, style}
+  → image_search.search_background(text)        // 🆕 自动联网搜底图（Wikimedia/Pexels/本地兜底）
   → 判断风格是否 BLCaptain (is_blcaptain)
-  → 如果是：BLCaptainBridge.generate(text, style, output_dir)
+  → 如果是：BLCaptainBridge.generate(text, style, output_dir, bg_image=bg.path)
     → Node.js 子进程 blcaptain-style.mjs
+    → 注入自动搜到的真实照片作背景
     → 输出 PNG 到 output/<task_id>/output/
-  → 如果是归藏：guizang_renderer.render_social_cards(text, output_dir, style)
+  → 如果是归藏：guizang_renderer.render_social_cards(text, output_dir, style, images=merged)
     → 读取 cover-templates HTML
-    → 填充模板变量
+    → 底图以 base64 data URI 内嵌（避免 Playwright file:// 安全拦截）
+    → 填充模板变量 + 真实照片底图
     → 生成 3 张 PNG（3:4 / 1:1 / 21:9）
     → 输出到 output/<task_id>/
-  → 返回 {images: [{file, url, type}]}
+  → 返回 {images: [{file, url, type}], background: {source, author, license, query}}
 ```
 
 ### 副链路：封面图生成（标题图）
@@ -374,6 +384,15 @@ pyinstaller launcher.py  # 未验证
 - **影响**：主链路 + 封面链路均健康；渲染不再白烧外部 LLM。
 - **风险**：低。
 - **是否验证**：是（E2E 40/41；集成 35/35；封面实跑出图）。
+
+### 变更 4：自动联网搜底图 + 主题去重 + 开源适配（2026-07-25）🆕
+- **新增 `core/image_search.py`**：双轨联网搜图模块。默认 Wikimedia Commons（免 key，自定义 UA 防 403）；检测到 `PEXELS_API_KEY` 自动升级 Pexels。规则提取中文→英文关键词（零 AI）。缓存到 `data/bg_cache/`，返回 `{path, source, author, license, query}`。
+- **接线**：`app.py::api_social_generate()` 渲染前调用 `search_background()`；BLCaptain 接收 `bg_image` 参数；归藏接收 `images=merged`（用户上传覆盖自动底图）；前端结果区下方显示 `#bg-credit` 署名条。
+- **关键修复**：`guizang_renderer._resolve_img()` 从 `file://` URI 改为 base64 `data:` URI 内嵌——Playwright `set_content()` 下浏览器安全策略拦截 file://，导致底图静默丢失。
+- **主题去重 + 开源适配**：从 xiaohu-wechat-format 适配 47 套开源主题（xh-* 前缀），删除 84 套颜色克隆 + 8 套原创撞色重复。最终 **92 套 = 45 原创 + 47 开源**。
+- **验证**：live API 三引擎（editorial/swiss/sp-mist）均返回真实 PNG + 真实网图底图；有头 E2E 0 console 错误；署名条文案正确。
+- **影响**：封面生成核心价值链「搜图→渲染→展示→署名」完整闭环。
+- **风险**：低。Wikimedia 无 key 但有请求频率限制（实际使用远低于上限）。
 
 ---
 

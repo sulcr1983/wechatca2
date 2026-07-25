@@ -35,6 +35,7 @@ from core.ai_client import (
 from core.token_manager import token_manager
 from core.wechat_publisher import push_to_draft, upload_permanent_material, filter_html_images
 from core.image_gen import generate_cover
+from core import image_search
 from core.preprocessor import preprocess
 from core.crypto_utils import encrypt, decrypt
 from core.blcaptain_bridge import BLCaptainBridge
@@ -163,9 +164,15 @@ def api_themes():
     for f in sorted(THEMES_DIR.glob("*.json")):
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
+            colors = data.get("colors") or {}
             themes.append({
                 "id": f.stem,
                 "name": data.get("name", f.stem),
+                "colors": {
+                    "primary": colors.get("primary", "#888888"),
+                    "accent": colors.get("accent", "#c0832e"),
+                    "background": colors.get("background", "#ffffff"),
+                },
             })
         except Exception:
             pass
@@ -564,6 +571,15 @@ def api_social_generate():
             except Exception as e:
                 app.logger.warning("配图解码失败 %s: %s", key, e)
 
+    # 自动联网搜底图（双轨：PEXELS_API_KEY 优先 → Wikimedia 免 key → 本地兜底）
+    bg = image_search.search_background(text)
+    auto_images = {}
+    if bg and bg.get("path"):
+        for ratio in ("xhs", "square", "wide"):
+            auto_images[ratio] = bg["path"]
+    # 用户手动上传的图优先于自动底图
+    merged_images = {**auto_images, **uploaded_images}
+
     # 判断渲染引擎：blcaptain 风格 (sp-*/sl-*) vs 归藏风格
     is_blcaptain = style.startswith(("sp-", "sl-")) or style in (
         "mist", "warm", "coastal", "night", "hearth", "blue", "mint", "coral", "lime"
@@ -572,7 +588,10 @@ def api_social_generate():
     try:
         if is_blcaptain:
             bridge = BLCaptainBridge()
-            result = bridge.generate(text, style=style, output_dir=str(output_dir))
+            result = bridge.generate(
+                text, style=style, output_dir=str(output_dir),
+                bg_image=bg["path"] if bg else None,
+            )
             # BLCaptain PNGs 在 output_dir/output/ 子目录
             image_list = []
             for img in result["images"]:
@@ -581,7 +600,7 @@ def api_social_generate():
         else:
             from core import guizang_renderer
             result = guizang_renderer.render_social_cards(
-                text=text, output_dir=str(output_dir), style=style, images=uploaded_images,
+                text=text, output_dir=str(output_dir), style=style, images=merged_images,
             )
             paths = [result.get("xhs", ""), result.get("square", ""), result.get("wide", "")]
             image_list = []
@@ -596,7 +615,7 @@ def api_social_generate():
         try:
             from core import guizang_renderer
             result = guizang_renderer.render_social_cards(
-                text=text, output_dir=str(output_dir), style="editorial", images=uploaded_images,
+                text=text, output_dir=str(output_dir), style="editorial", images=merged_images,
             )
             paths = [result.get("xhs", ""), result.get("square", ""), result.get("wide", "")]
             image_list = []
@@ -614,6 +633,7 @@ def api_social_generate():
         "images": image_list,
         "output_dir": str(output_dir),
         "engine": "blcaptain" if is_blcaptain else "guizang",
+        "background": bg,
     })
 
 

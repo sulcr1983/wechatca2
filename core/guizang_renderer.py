@@ -20,6 +20,8 @@ import re
 import time
 import json
 import logging
+import base64
+import mimetypes
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -388,12 +390,15 @@ def render_social_cards(
     if title:
         long_title = title
     
-    # 2. 解析图片
+    # 2. 解析图片（转为 data URI 内嵌，避免 Playwright set_content 下 file:// 被浏览器安全策略拦截）
     def _resolve_img(key):
         if images and key in images:
             p = images[key]
             if os.path.isfile(p):
-                return Path(p).resolve().as_uri()
+                ext = os.path.splitext(p)[1].lower()
+                mime = mimetypes.guess_type(p)[0] or "image/jpeg"
+                b64 = base64.b64encode(Path(p).read_bytes()).decode()
+                return f"data:{mime};base64,{b64}"
         return ""
     
     xhs_img = _resolve_img("xhs")

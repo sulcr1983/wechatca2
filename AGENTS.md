@@ -6,8 +6,8 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 核心理念：**纯文本进，排版出。不用 AI 就不开 AI。**
 
 - 自动 Markdown 预处理（本地规则，零延迟零费用）
-- 53 套主题自动排版（Markdown → 微信内联 HTML）
-- 小红书封面生成（归藏设计系统 + 后续接入 BLCaptain）
+- **92 套**主题自动排版（45 原创 + 47 开源适配；Markdown → 微信内联 HTML）
+- 小红书封面生成（双引擎：归藏 Guizang + BLCaptain 9 风格；**自动联网搜真图作底图**）
 - AI 功能（润色/摘要/封面图）默认隐藏，按需展开
 
 ## 2. Karpathy 四原则
@@ -22,33 +22,32 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 ```
 app.py                  Flask 主应用（路由 + SSE + API）
 core/
-  format_engine.py      排版引擎（53 主题，Markdown → 微信 HTML）
+  format_engine.py      排版引擎（92 主题，Markdown → 微信 HTML）
   preprocessor.py       纯文本 → Markdown（正则规则，零延迟）
+  image_search.py       联网搜图（Wikimedia/Pexels 双轨；免 key 默认可用）
   ai_client.py          多平台 LLM 客户端（润色/摘要/排版）
-  image_gen.py          封面图生成（LLM 关键词 → 文生图 → PIL 叠加）
+  image_gen.py          AI 封面图生成（LLM 关键词 → 文生图 → PIL 叠加）
   token_manager.py      微信 Access Token 管理（线程安全单例）
   wechat_publisher.py   微信公众号 API（素材上传 + 草稿推送）
   crypto_utils.py       API Key 加密存储
-  blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js）
-  guizang_renderer.py   归藏封面渲染（自包含版，备用）
+  blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js，9 风格）
+  guizang_renderer.py   归藏封面渲染器（Playwright HTML→PNG，data URI 内嵌底图）
 scripts/
-  render_worker.py      归藏封面渲染（基于 cover-templates 模板）
-  gen_thumbnails.py     用 Playwright 生成封面缩略图
-  gen_thumbnails_pil.py 用 PIL 生成占位缩略图（无 Playwright 时）
-  run_headed_test.bat   有头浏览器 E2E 测试启动脚本
-  start_app.ps1         应用启动脚本（PowerShell）
+  adapt_external_themes.py  开源主题适配脚本
+  remove_dup_themes.py      去重脚本
 templates/
-  index.html            单页前端（公众号 + 小红书双页面）
+  index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）
 public/                 静态资源（原 assets/，由 /assets/* 路由提供）
-  themes/               53 套排版主题 JSON
-  cover-templates/      10 套归藏封面模板（swiss/editorial 各 4-6 套）
-  images/               封面模板库存图
+  themes/               92 套排版主题 JSON（45 原创 + 47 xh-* 开源适配）
+  cover-templates/      归藏封面模板
+  images/               封面库存图（最终兜底）
   social-thumb/         模板缩略图
 references/             归藏设计系统参考文档
-data/                   运行时数据（配置/账号/历史）
+data/                   运行时数据（配置/账号/历史/bg_cache 图片缓存）
 output/                 封面渲染输出
 docs/
-  prototypes/           早期 HTML 原型（prototype_*.html）
+  screenshots/          README 配图
+  prototypes/           早期 HTML 原型（已废弃）
 ```
 
 ## 4. 启动与停止
@@ -89,26 +88,39 @@ taskkill //F //IM python.exe
 | GET | `/api/social/thumbnails` | 模板缩略图列表 |
 | POST | `/open-folder` | 打开本地文件夹 |
 
-## 6. 公众号页面关键元素
+## 6. 公众号页面关键元素（顶部模板条 + 双区布局）
 
 ```
 #page-wechat
-  .header           → 模式切换 + 主题选择 + AI 按钮（折叠隐藏）
-  .main-body
-    .editor         → #input-area（textarea，放大字体，响应式 rem）
-    .preview        → iframe 实时预览
-  .footer           → 底部操作栏
-  弹窗层             → AI 润色/推送/公众号管理/历史记录
+  .tab-bar              → 页面切换（公众号排版 | 小红书封面）+ 设置按钮
+  .tpl-bar              → 顶部紧凑模板条（固定高度 ~135px）
+    #tpl-strip           → 横向色卡网格（92 张 .tpl-card，换行滚动）
+    #tpl-search          → 内联搜索过滤框
+    .tpl-toggle          → 收起/展开按钮
+  .wechat-body           → 下方双区 grid（0.85fr | 1.15fr）
+    .col-text            → 左：#input-area（textarea，响应式 rem）
+    .col-preview         → 右：手机预览框（390×760）+ 底部操作栏
+      #preview-frame     → iframe 实时预览（srcdoc blob URL）
+    .btn-copy / btn-history / btn-push / AI 按钮
 ```
 
-## 7. 小红书页面关键元素（归藏 7 步工作流）
+## 7. 小红书页面关键元素（双引擎 + 自动搜图）
 
 ```
 #page-social
-  .studio-header    → 返回 + 标题 + 状态
-  .studio-body
-    .studio-controls  → 文案输入 + 模板网格 + 图片上传 + 生成按钮
-    .studio-preview   → 模板预览 + 生成结果 + 大图查看
+  .social-ctrl          → 左控制面板（~260px）
+    #social-text         → 文案输入 textarea（500 字限制）
+    #social-char-count   → 字数计数器
+    #social-tpl-grid      → 风格选择网格（.tpl-mini[data-style]）
+      归藏: editorial / swiss
+      BLCaptain: sp-mist / sp-warm / sp-coastal / sp-night / sp-hearth
+                sl-blue / sl-mint / sl-coral / sl-lime
+    #btn-generate-cover  → 一键生成按钮
+  .social-right          → 右双区（flex 容器）
+    .social-preview      → 上：模板预览卡（固定高度 ~200px）
+    .social-results      → 下：结果画廊（自适应网格 .results-grid）
+      .result-card       → 封面缩略图（3:4），点击 → Lightbox 大图预览
+    #bg-credit           → 底图署名条（来源/作者/许可/关键词，自动显示）
 ```
 
 ## 8. 测试工作流

@@ -13,7 +13,7 @@
 - **单一真源**：
   - 设计真源 = `references/` 归藏设计系统文档（本文件**只引用、不重复**其内容）。
   - 运行时契约真源（social）= `GET /api/social/styles` 返回的**规范 id**（已运行时确认）。
-  - 运行时契约真源（wechat）= `GET /api/themes` 返回的 **53 套主题 JSON**（含 `id` / `name` 字段）。
+  - 运行时契约真源（wechat）= `GET /api/themes` 返回的 **92 套主题 JSON**（含 `id` / `name` 字段；45 原创 + 47 xh-* 开源适配）。
   - 当前实现事实 = 本节下方代码行（已逐条 `grep` / 运行时核验）。
 - **验收规则**：所有结论均带 **验证标签**（运行时验证 / 代码验证 / 设计意图），无"凭截图猜"的结论。
 - **不瞎重构**：本文件只描述契约，不改代码；代码修复是独立任务。
@@ -131,25 +131,28 @@
 
 公众号页是 SuperSu 的**核心功能入口**（默认激活页），实现"纯文本进 → Markdown 自动预处理 → 选主题 → 微信内联 HTML 排版预览 → 复制/推送"的主工作流。
 
-**当前 DOM 结构**（`index.html:474-569`）：
+**当前 DOM 结构**（`index.html:585-680`，2026-07-25 PM 重排后）：
 ```
 #page-wechat（.page.active）
-├── .wechat-grid（三栏 CSS Grid）
-│   ├── .col-text        → #input-area（textarea，示例文案）
-│   ├── .col-templates   → #tpl-list（53 套主题 .tpl-item）
-│   └── .col-preview     → #preview-frame（iframe，blob URL 渲染）
+├── .tpl-bar（顶部紧凑模板条，固定高度 ~135px）
+│   ├── #tpl-strip（横向色卡网格 .tpl-card[data-tpl]，92 张卡换行滚动）
+│   ├── #tpl-search（内联搜索过滤框）
+│   └── .tpl-toggle（收起/展开按钮）
+├── .wechat-body（grid 2 列：0.85fr | 1.15fr）
+│   ├── .col-text        → #input-area（textarea）
+│   └── .col-preview     → #preview-frame（iframe，blob URL 渲染）+ 底部操作栏
 ├── #ai-panel            → AI 智能排版 + AI 润色卡片（折叠隐藏）
 └── .wechat-footer       → 复制 / 历史 / 一键推送 / AI 工具切换
 ```
 
 **交互链路**（已运行时验证正常）：
-1. 页面加载 → `loadThemes()` → `GET /api/themes` → 获得 53 套主题 JSON 数组 ✅
-2. 用户点击 `.tpl-item[data-tpl]` → `activeTpl = t.id` → `doRender()` ✅
+1. 页面加载 → `loadThemes()` → `GET /api/themes` → 获得 **92 套**主题 JSON 数组 ✅
+2. 用户点击 `.tpl-card[data-tpl]` → `activeTpl = t.id` → `doRender()` ✅
 3. `doRender()` → `POST /api/render {raw_text, theme_id}` → 返回 HTML ✅
 4. `showPreview(html)` → 写入 iframe `src = URL.createObjectURL(blob)` ✅
 5. 复制/推送弹窗均可打开 ✅
 
-**E2E 证据**：有头浏览器遍历 53 套主题逐一点击，全部返回 200 且预览刷新（`output/e2e_audit/report.json`）；截图 `04_wechat_rendered.png` 确认预览区展示真实渲染效果（Monocle 生活 / 黑藤青 / 报纸等主题名可见）。
+**E2E 证据**：有头浏览器遍历 **92 套**主题逐一点击，全部返回 200 且预览刷新。
 
 ### 2.2 偏差清单
 
@@ -290,7 +293,7 @@
 | D-3 | P1 | ✅ 已修复 | `index.html` `@media(max-width:800px)` 移除 `.social-preview,.social-results{display:none}`，改为单列堆叠 | 真实浏览器验证 `d3_social_visibility` 两者 `display:flex,visible:true` |
 | W-1 | P1 | ✅ 已修复 | `index.html` 移动端 `.col-templates` 由 `display:none` 改为 `max-height:42vh;overflow:auto` 可滚动访问（替代原 select 方案，等价满足"可访问"契约） | 真实浏览器验证 `w1_col_templates:{display:"flex",visible:true}` |
 | D-5 | P2 | ⚠️ 部分残留 | 前端分组用静态 `guizang`/`blcaptain` tab，未直接读 API `group` 字段；但 11 个 id 均已可达、可区分 | 代码验证 + 运行时验证 |
-| W-2 | P2 | ⏸ 未做（低优先，非阻断） | AGENTS.md §6 DOM 描述待同步为三栏 grid | 文档对照 |
+| W-2 | P2 | ✅ 已修复（2026-07-25 洁癖同步） | `AGENTS.md` §6 已更新为实际 DOM 结构（tpl-bar + wechat-body 双区布局）；§7 社交页也已更新为 .social-ctrl/.social-right/.results-grid/.lightbox | 文档对照 + 代码验证 |
 
 ### 6.2 修正说明：D-2 / D-4 源文件引用更正
 
@@ -311,6 +314,8 @@
 ### 6.4 残留与后续
 
 - **D-5（P2）**：前端分组为静态 `guizang`/`blcaptain`，与 API `group` 字段（`归藏`/`静纸`/`实证`）命名不完全对齐。功能无碍（11 id 全可达），若需语义精确可改为动态渲染 API `group`。
-- **W-2（P2）**：AGENTS.md §6 公众号页 DOM 描述（`.header`/`.main-body`/`.footer`）与实际三栏 grid 不一致，待文档同步。
+- **W-2（P2）**：✅ **已解决**（2026-07-25 洁癖操作中同步 AGENTS.md §6/§7 为实际 DOM 结构）。
 - **死代码清理（建议）**：`scripts/render_worker.py` 确认无人导入，可择机删除，避免与 `core/guizang_renderer.py` 双份实现漂移。
 - **`public/prototypes/` 重复副本**：与 `docs/prototypes/` 内容重复且未被应用引用，建议清理（当前未被提交）。
+
+> 🆕 **2026-07-25 新增能力**：自动联网搜图作底图（`core/image_search.py`）。封面生成链路新增「搜图→注入底图→渲染→署名」完整闭环。非偏差修复，属功能增强。详见 HANDOFF.md 变更 4。

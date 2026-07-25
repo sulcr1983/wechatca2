@@ -52,7 +52,7 @@ GALLERY_THEMES = [
     # 活力动态（4）
     "sports", "bauhaus", "chinese", "wechat-native",
     # 模板布局（4，每种布局1个代表）
-    "minimal-gold", "focus-blue", "elegant-green", "bold-blue",
+    "minimal-gray", "bold-navy", "bold-green", "bold-blue",
 ]
 
 # Gallery 示例文章（写死，不用用户文章）
@@ -1533,7 +1533,7 @@ def generate_gallery(rendered_map: dict, theme_map: dict,
         ("科技产品", ["bytedance", "github", "sspai", "midnight"]),
         ("文艺随笔", ["terracotta", "mint-fresh", "sunset-amber", "lavender-dream"]),
         ("活力动态", ["sports", "bauhaus", "chinese", "wechat-native"]),
-        ("模板布局", ["minimal-gold", "focus-blue", "elegant-green", "bold-blue"]),
+        ("模板布局", ["minimal-gray", "bold-navy", "bold-green", "bold-blue"]),
     ]
     buttons_html = ""
     btn_index = 0

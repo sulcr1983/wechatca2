@@ -68,7 +68,8 @@ class BLCaptainBridge:
             return str(images[0])
         raise FileNotFoundError(f"No stock images found in {stock_dir}")
 
-    def generate(self, text: str, style: str = "sp-mist", output_dir: str | None = None) -> dict:
+    def generate(self, text: str, style: str = "sp-mist", output_dir: str | None = None,
+                 bg_image: str | None = None) -> dict:
         style_id = STYLE_MAP.get(style, style)
 
         if output_dir is None:
@@ -100,11 +101,11 @@ class BLCaptainBridge:
         for card in brief.get("cards", []):
             if card.get("imageRequest"):
                 if not stock:
-                    stock = self._pick_stock_image()
+                    stock = bg_image or self._pick_stock_image()
                 card["image"] = {
                     "src": stock.replace("\\", "/"),
                     "position": "center 30%",
-                    "provenance": "[local-stock-image]",
+                    "provenance": "[web-search]" if bg_image else "[local-stock-image]",
                 }
 
         with open(brief_path, "w", encoding="utf-8") as f:

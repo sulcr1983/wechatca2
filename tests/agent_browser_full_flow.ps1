@@ -61,7 +61,7 @@ Start-Sleep -Seconds 4
 Shot "04_input_and_render"
 
 # 6. Switch themes (test multiple)
-$themes = @("bold-blue", "elegant-navy", "minimal-gray", "aurora", "autumn-leaf")
+$themes = @("bold-blue", "bold-navy", "minimal-gray", "aurora", "autumn-leaf")
 for ($i = 0; $i -lt $themes.Count; $i++) {
     agent-browser select "#theme-select" $themes[$i]
     Start-Sleep -Seconds 2

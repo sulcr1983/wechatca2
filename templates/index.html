@@ -45,7 +45,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
-.app { max-width: 1200px; margin:0 auto; display:flex; flex-direction:column; min-height:100vh; padding:0 20px 20px; }
+.app { max-width: 1200px; margin:0 auto; display:flex; flex-direction:column; height:100vh; overflow:hidden; padding:0 20px 20px; }
 
 /* ── Topbar ── */
 .topbar {
@@ -88,20 +88,92 @@ body {
 .topbar .top-btn:hover { border-color:var(--border-hi); color:var(--text); background:var(--bg-hover); }
 
 /* ── Page ── */
-.page { display:none; flex-direction:column; flex:1; margin-top:12px; gap:12px; }
+.page { display:none; flex-direction:column; flex:1; min-height:0; margin-top:12px; gap:12px; }
 .page.active { display:flex; }
 
 /* ═══════════ WECHAT ═══════════ */
-.wechat-grid {
-  display:grid;
-  grid-template-columns:1fr 185px 1.1fr;
-  min-height:0;
+/* 顶部紧凑模板条：横向色卡，避免长列表撑开页面 */
+.tpl-bar {
+  flex-shrink:0;
+  display:flex; flex-direction:column; gap:8px;
+  padding:10px 14px;
   background:var(--bg-surface);
   border:1px solid var(--border);
-  border-radius:var(--radius-lg); overflow:visible;
+  border-radius:var(--radius-lg);
   box-shadow:var(--shadow);
 }
-.col { display:flex; flex-direction:column; min-height:0; position:relative; overflow:visible; }
+.tpl-bar-head { display:flex; align-items:center; gap:10px; }
+.tpl-bar-title {
+  font-size:.72rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.tpl-search {
+  margin-left:auto; width:180px; max-width:42vw;
+  padding:6px 11px; border-radius:var(--radius-sm);
+  border:1px solid var(--border); background:var(--bg-surface);
+  color:var(--text); font-size:.78rem; outline:none; font-family:var(--font);
+  transition:border-color .16s ease;
+}
+.tpl-search:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+.tpl-search::placeholder { color:var(--text-muted); }
+
+.tpl-toggle {
+  margin-left:10px; flex-shrink:0;
+  padding:6px 12px; border-radius:var(--radius-sm);
+  font-size:.74rem; font-weight:500; cursor:pointer; font-family:var(--font);
+  border:1px solid var(--border); background:var(--bg-surface);
+  color:var(--text-soft); transition:all .12s ease; white-space:nowrap;
+}
+.tpl-toggle:hover { border-color:var(--border-hi); color:var(--text); }
+.tpl-toggle.open { border-color:rgba(200,131,46,.3); color:var(--accent); background:var(--accent-glow); }
+
+/* 色卡条：换行网格 + 限高纵向滚动（不再横向拉拽） */
+.tpl-strip {
+  display:flex; flex-wrap:wrap; gap:6px;
+  max-height:140px; overflow-y:auto; overflow-x:hidden;
+  padding:2px 2px 6px; min-height:0;
+}
+.tpl-strip::-webkit-scrollbar { width:6px; }
+.tpl-strip::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:4px; }
+.tpl-strip::-webkit-scrollbar-track { background:transparent; }
+
+/* 收起态：隐藏色卡条，输入框/预览区获得最大高度 */
+.tpl-bar.collapsed .tpl-strip { display:none; }
+
+.tpl-card {
+  flex:0 0 auto; width:92px; height:62px;
+  border-radius:var(--radius-sm); border:1px solid var(--border);
+  background:var(--bg-raised); cursor:pointer; overflow:hidden;
+  display:flex; flex-direction:column;
+  transition:all .12s ease; position:relative;
+}
+.tpl-card:hover { border-color:var(--border-hi); transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+.tpl-card.active {
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--accent-glow), 0 0 12px var(--accent-glow);
+}
+.tpl-card .swatch { height:26px; display:flex; overflow:hidden; }
+.tpl-card .swatch i { flex:1; display:block; }
+.tpl-card .tname {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:0 5px; font-size:.68rem; color:var(--text-soft);
+  text-align:center; line-height:1.15;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tpl-card.active .tname { color:var(--accent); font-weight:600; }
+.tpl-empty { font-size:.74rem; color:var(--text-muted); padding:6px 2px; }
+
+/* 下方双区：输入框 | 预览 */
+.wechat-body {
+  display:grid; flex:1; min-height:0;
+  grid-template-columns:0.85fr 1.15fr;
+  grid-template-rows:minmax(0,1fr);
+  background:var(--bg-surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg); overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.col { display:flex; flex-direction:column; min-height:0; position:relative; overflow:hidden; }
 .col+.col::before {
   content:""; position:absolute; left:0; top:0; bottom:0; width:1px; background:var(--border); z-index:1;
 }
@@ -126,38 +198,11 @@ body {
 }
 .col-text textarea::placeholder { color:var(--text-muted); }
 
-/* Templates */
-.tpl-header {
-  flex-shrink:0; padding:10px 14px;
-  font-size:.72rem; font-weight:600;
-  letter-spacing:.1em; text-transform:uppercase;
-  color:var(--text-muted); border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:7px;
-}
+/* Templates count badge (reused in top bar) */
 .tpl-count {
   font-size:.65rem; color:var(--accent);
   background:var(--accent-glow);
   padding:2px 8px; border-radius:100px; font-weight:600;
-}
-.tpl-list {
-  height:2100px; overflow-y:auto; padding:4px;
-}
-.tpl-list::-webkit-scrollbar { width:6px; }
-.tpl-list::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:4px; }
-.tpl-list::-webkit-scrollbar-track { background:transparent; }
-.tpl-item {
-  padding:7px 12px; margin:1px 4px;
-  border-radius:var(--radius-sm); cursor:pointer;
-  font-size:.78rem; color:var(--text-soft);
-  transition:all .12s ease;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  border:1px solid transparent;
-}
-.tpl-item:hover { background:var(--bg-hover); color:var(--text); }
-.tpl-item.active {
-  background:var(--accent-glow); color:var(--accent);
-  border-color:rgba(200,131,46,.18);
-  font-weight:600;
 }
 
 /* Preview */
@@ -187,8 +232,8 @@ body {
 #preview-frame { width:100%; height:100%; border:none; background:white; border-radius:var(--radius-sm); }
 .preview-content.phone-frame { padding:18px; }
 .preview-content.phone-frame #preview-frame {
-  width:340px; max-width:86%; height:600px;
-  border:10px solid #14151a; border-radius:34px;
+  width:390px; max-width:92%; height:760px;
+  border:12px solid #14151a; border-radius:38px;
   box-shadow:0 12px 40px rgba(0,0,0,.16);
   background:white;
 }
@@ -247,7 +292,7 @@ body {
 /* ═══════════ SOCIAL ═══════════ */
 .social-grid {
   flex:1; display:grid;
-  grid-template-columns:270px 1fr 250px;
+  grid-template-columns:260px 1fr;
   min-height:0;
   background:var(--bg-surface);
   border:1px solid var(--border);
@@ -256,6 +301,17 @@ body {
 }
 .social-ctrl { overflow-y:auto; background:var(--bg-raised); }
 .social-ctrl .col+.col::before { display:none; }
+
+/* 右侧双区：预览(上) + 结果画廊(下) */
+.social-right {
+  display:flex; flex-direction:column; min-height:0; overflow:hidden;
+}
+.social-preview {
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  padding:24px; min-height:200px;
+  background:radial-gradient(ellipse at 50% 40%, rgba(200,131,46,.04) 0%, transparent 70%), var(--bg-surface);
+  border-bottom:1px solid var(--border);
+}
 
 .s-section { padding:16px 18px; border-bottom:1px solid var(--border); }
 .s-section:last-child { border-bottom:none; }
@@ -370,26 +426,68 @@ body {
 .spv-divider { width:36px; height:2px; background:var(--accent); margin:0 auto; border-radius:2px; opacity:.5; }
 .spv-desc { font-size:.73rem; color:var(--text-muted); line-height:1.6; }
 
-/* Social results */
-.social-results { padding:16px; overflow-y:auto; background:var(--bg-raised); }
+/* Social results — 缩略图画廊（横向网格，充分利用宽度） */
+.social-results {
+  flex:1; min-height:0;
+  padding:14px 16px; overflow-y:auto; overflow-x:hidden;
+  background:var(--bg-surface);
+}
 .result-label {
   font-size:.72rem; font-weight:600; letter-spacing:.08em;
   text-transform:uppercase; color:var(--text-muted);
-  margin-bottom:12px; display:flex; align-items:center; gap:6px;
+  margin-bottom:10px; display:flex; align-items:center; gap:6px;
 }
 .result-label::after { content:""; flex:1; height:1px; background:var(--border); }
-.result-card {
-  margin-bottom:10px; border-radius:var(--radius);
-  overflow:hidden; cursor:pointer;
-  border:1px solid var(--border); transition:all .18s ease;
+.results-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+  gap:10px;
 }
-.result-card:hover { border-color:var(--border-hi); transform:translateY(-2px); box-shadow:var(--shadow); }
-.result-card-body { aspect-ratio:3/4; }
+.result-card {
+  border-radius:var(--radius); overflow:hidden; cursor:pointer;
+  border:1px solid var(--border); transition:all .18s ease;
+  background:var(--bg-raised);
+}
+.result-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow); }
+.result-card-img {
+  width:100%; aspect-ratio:3/4; object-fit:cover; display:block;
+}
 .result-card-label {
-  padding:8px 12px; font-size:.7rem; color:var(--text-muted);
+  padding:6px 8px; font-size:.68rem; color:var(--text-muted);
   text-align:center; border-top:1px solid var(--border);
   background:var(--bg-surface); font-family:var(--font-mono);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+.bg-credit {
+  margin-top:10px; padding:8px 10px; font-size:.66rem; line-height:1.5;
+  color:var(--text-muted); background:var(--bg-surface);
+  border:1px dashed var(--border); border-radius:var(--radius-sm);
+}
+.bg-credit b { color:var(--accent); font-weight:600; }
+
+/* 结果大图 Lightbox */
+.lightbox {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(8px);
+  display:none; justify-content:center; align-items:center;
+  animation:lbIn .2s ease;
+}
+@keyframes lbIn { from{opacity:0} to{opacity:1} }
+.lightbox.show { display:flex; }
+.lightbox img {
+  max-width:90vw; max-height:90vh;
+  border-radius:var(--radius-lg);
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
+  object-fit:contain;
+}
+.lightbox-close {
+  position:absolute; top:16px; right:20px;
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(255,255,255,.15); color:#fff;
+  border:none; cursor:pointer; font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s;
+}
+.lightbox-close:hover { background:rgba(255,255,255,.3); }
 
 /* ── MODALS ── */
 .modal {
@@ -461,12 +559,13 @@ body {
 
 /* ── Responsive ── */
 @media (max-width:800px) {
-  .wechat-grid { grid-template-columns:1fr; }
-  /* W-1 修复：移动端不再隐藏主题列表，改为堆叠 + 限高滚动，53 套主题仍可选取 */
-  .col-templates { max-height:42vh; overflow:auto; border:1px solid var(--border); }
+  .wechat-body { grid-template-columns:1fr; flex:none; height:auto; }
+  .col { overflow:visible; }
+  .col-text { min-height:240px; }
+  .col-preview { min-height:72vh; }
   .social-grid { grid-template-columns:1fr; }
   /* D-3 修复：移动端不再隐藏预览与结果，改为堆叠可见（移除 display:none） */
-  .app { padding:0 10px 10px; }
+  .app { padding:0 10px 10px; height:auto; min-height:100vh; overflow:visible; }
 }
 </style>
 </head>
@@ -484,7 +583,19 @@ body {
 
 <!-- ═══════════ 公众号排版 ═══════════ -->
 <div class="page active" id="page-wechat">
-  <div class="wechat-grid">
+  <!-- 顶部紧凑模板条 -->
+  <div class="tpl-bar">
+    <div class="tpl-bar-head">
+      <span class="tpl-bar-title">模板风格</span>
+      <span class="tpl-count" id="tpl-count">0</span>
+      <input class="tpl-search" id="tpl-search" type="text" placeholder="筛选模板…" />
+      <button class="tpl-toggle open" id="tpl-toggle" type="button">收起 ▴</button>
+    </div>
+    <div class="tpl-strip" id="tpl-strip"></div>
+  </div>
+
+  <!-- 下方双区：输入框 | 预览 -->
+  <div class="wechat-body">
     <!-- Col 1: Text -->
     <div class="col col-text">
       <div class="editor-header">
@@ -526,13 +637,7 @@ body {
 #阳光星盘 #个人项目 #星盘工具</textarea>
     </div>
 
-    <!-- Col 2: Templates -->
-    <div class="col col-templates">
-      <div class="tpl-header">模板<span class="tpl-count" id="tpl-count">0</span></div>
-      <div class="tpl-list" id="tpl-list"></div>
-    </div>
-
-    <!-- Col 3: Preview -->
+    <!-- Col 2: Preview -->
     <div class="col col-preview">
       <div class="preview-header">
         <button class="pv-btn active" data-preview="html">HTML</button>
@@ -618,28 +723,38 @@ body {
       </div>
     </div>
 
-    <!-- Col 2: Preview -->
-    <div class="col social-preview">
-      <div class="spv-empty" id="spv-empty">选择风格后预览</div>
-      <div class="spv-card" id="spv-card" style="display:none;">
-        <div class="spv-card-body">
-          <div class="spv-tag" id="spv-tag">Editorial</div>
-          <div class="spv-title" id="spv-title">阳光星盘</div>
-          <div class="spv-divider"></div>
-          <div class="spv-desc" id="spv-desc">精确计算出生时刻星盘<br>12 宫位相位解读</div>
+    <!-- 右侧双区：预览(上) + 结果画廊(下) -->
+    <div class="social-right">
+      <!-- Preview -->
+      <div class="social-preview">
+        <div class="spv-empty" id="spv-empty">选择风格后预览</div>
+        <div class="spv-card" id="spv-card" style="display:none;">
+          <div class="spv-card-body">
+            <div class="spv-tag" id="spv-tag">Editorial</div>
+            <div class="spv-title" id="spv-title">阳光星盘</div>
+            <div class="spv-divider"></div>
+            <div class="spv-desc" id="spv-desc">精确计算出生时刻星盘<br>12 宫位相位解读</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Col 3: Results -->
-    <div class="col social-results">
-      <div class="result-label">生成结果</div>
-      <div id="results-empty" style="text-align:center;color:var(--text-muted);font-size:.76rem;padding:30px 0;">
-        暂无记录<br><span style="opacity:.5;">点击「生成封面」开始</span>
+      <!-- Results Gallery -->
+      <div class="social-results">
+        <div class="result-label">生成结果</div>
+        <div id="results-empty" style="text-align:center;color:var(--text-muted);font-size:.76rem;padding:30px 0;">
+          暂无记录<br><span style="opacity:.5;">点击「生成封面」开始</span>
+        </div>
+        <div class="results-grid" id="results-list" style="display:none;"></div>
+        <div class="bg-credit" id="bg-credit" style="display:none;"></div>
       </div>
-      <div id="results-list" style="display:none;"></div>
     </div>
   </div>
+</div>
+
+<!-- Lightbox for full-size result preview -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lb-close">&times;</button>
+  <img id="lb-img" src="" alt="封面预览" />
 </div>
 
 <!-- ── Toast ── -->
@@ -656,7 +771,8 @@ let aiOpen = false;
 
 // ── DOM refs ──
 const inputArea = document.getElementById('input-area');
-const tplList = document.getElementById('tpl-list');
+const tplStrip = document.getElementById('tpl-strip');
+const tplSearch = document.getElementById('tpl-search');
 const tplCount = document.getElementById('tpl-count');
 const pvContent = document.getElementById('pv-content');
 const pvEmpty = document.getElementById('pv-empty-state');
@@ -690,20 +806,52 @@ async function loadThemes() {
   }
 }
 
-function renderTplList() {
+function renderTplList(filter = '') {
+  const kw = (filter || '').trim().toLowerCase();
+  const list = kw ? themes.filter(t => (t.name || '').toLowerCase().includes(kw)) : themes;
   tplCount.textContent = themes.length;
-  tplList.innerHTML = themes.map(t => 
-    `<div class="tpl-item${activeTpl===t.id?' active':''}" data-tpl="${t.id}">${t.name}</div>`
-  ).join('');
+  if (!list.length) {
+    tplStrip.innerHTML = `<div class="tpl-empty">无匹配模板</div>`;
+    return;
+  }
+  tplStrip.innerHTML = list.map(t => {
+    const c = t.colors || {};
+    const sw = [c.primary, c.accent, c.background]
+      .map(col => `<i style="background:${col}"></i>`).join('');
+    return `<div class="tpl-card${activeTpl===t.id?' active':''}" data-tpl="${t.id}" title="${t.name}">
+      <div class="swatch">${sw}</div>
+      <div class="tname">${t.name}</div>
+    </div>`;
+  }).join('');
 }
 
-tplList.addEventListener('click', e => {
-  const item = e.target.closest('.tpl-item');
+tplStrip.addEventListener('click', e => {
+  const item = e.target.closest('.tpl-card');
   if (!item) return;
   const name = item.dataset.tpl;
   activeTpl = name;
-  renderTplList();
+  renderTplList(tplSearch.value);
   doRender();
+});
+
+// 顶部内联筛选（紧凑，非下拉）：实时过滤模板色卡
+tplSearch.addEventListener('input', () => {
+  const bar = document.querySelector('.tpl-bar');
+  if (tplSearch.value && bar.classList.contains('collapsed')) {
+    bar.classList.remove('collapsed');
+    tplToggle.classList.add('open');
+    tplToggle.textContent = '收起 ▴';
+  }
+  renderTplList(tplSearch.value);
+});
+
+// 模板库收起/展开：收起后输入框与预览区获得更大高度
+const tplToggle = document.getElementById('tpl-toggle');
+tplToggle.addEventListener('click', () => {
+  const bar = document.querySelector('.tpl-bar');
+  const collapsed = bar.classList.toggle('collapsed');
+  tplToggle.classList.toggle('open', !collapsed);
+  tplToggle.textContent = collapsed ? '展开模板库 ▾' : '收起 ▴';
 });
 
 // =================================
@@ -1358,11 +1506,30 @@ document.getElementById('btn-generate-cover').addEventListener('click', async ()
     const images = (data.images || (Array.isArray(data) ? data : []))
       .slice().sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
     list.innerHTML = images.map(r => `
-      <div class="result-card">
+      <div class="result-card" data-src="${r.url}">
         <img class="result-card-img" src="${r.url}" alt="${r.file || 'cover'}" loading="lazy" />
         <div class="result-card-label">${r.file || 'cover'} · ${r.type || ''}</div>
       </div>
     `).join('');
+    // 点击缩略图 → Lightbox 大图预览
+    list.querySelectorAll('.result-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const lb = document.getElementById('lightbox');
+        document.getElementById('lb-img').src = card.dataset.src;
+        lb.classList.add('show');
+      });
+    });
+    // 底图来源署名（Pexels/Wikimedia/本地），保持封面干净只在结果区展示
+    const credit = document.getElementById('bg-credit');
+    if (data.background && data.background.source) {
+      const b = data.background;
+      const who = b.author ? ` · ${b.author}` : '';
+      const lic = b.license ? `（${b.license}）` : '';
+      credit.innerHTML = `底图来源：<b>${b.source}</b>${who} ${lic}<br>关键词「${b.query || ''}」自动联网搜索`;
+      credit.style.display = 'block';
+    } else {
+      credit.style.display = 'none';
+    }
     toast('封面已生成');
   } catch(e) {
     toast('生成失败: ' + e.message);
@@ -1423,6 +1590,14 @@ loadSocialStyles().then(() => {
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
 setupUploadSlots();
 loadThemes();
+
+// Lightbox: 点击背景/关闭按钮 → 关闭
+document.getElementById('lb-close').addEventListener('click', () => {
+  document.getElementById('lightbox').classList.remove('show');
+});
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
 
 // =================================
 // TOAST
