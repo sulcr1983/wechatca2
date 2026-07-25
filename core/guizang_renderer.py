@@ -168,8 +168,10 @@ def _build_guizang_html(style: str, long_title: str, lead: str,
       position: absolute;
       inset: 0;
       z-index: 1;
-      background: linear-gradient(180deg, rgba(0,0,0,.3) 0%, rgba(0,0,0,.5) 55%, rgba(0,0,0,.7) 100%);
       pointer-events: none;
+      /* D-2 修复：废除全画布纯黑渐变（image-overlay.md 铁律：禁止 uniform full-canvas falloff / pure black）。
+         改为局部、图像色调(#0a0a0b)、峰值≤0.30 的底部 tint，文字区外完全透明。 */
+      background: linear-gradient(180deg, rgba(10,10,11,0) 50%, rgba(10,10,11,0.30) 100%);
     }}
     .poster.xhs .content {{
       justify-content: flex-end;
@@ -231,6 +233,14 @@ def _build_guizang_html(style: str, long_title: str, lead: str,
       width: 1080px;
       height: 1080px;
     }}
+    .poster.square .img-overlay {{
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      /* D-2：局部、图像色调、峰值 0.30 的径向 tint，居中于标题区，外缘透明 */
+      background: radial-gradient(72% 60% at 50% 50%, rgba(10,10,11,0.30) 0%, rgba(10,10,11,0) 100%);
+    }}
     .poster.square .content {{
       padding: 88px;
       justify-content: center;
@@ -250,6 +260,14 @@ def _build_guizang_html(style: str, long_title: str, lead: str,
     .poster.wide {{
       width: 2100px;
       height: 900px;
+    }}
+    .poster.wide .img-overlay {{
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      /* D-2：左侧单向局部 tint，仅护住左栏文字区，向右淡出 */
+      background: linear-gradient(90deg, rgba(10,10,11,0.30) 0%, rgba(10,10,11,0) 60%);
     }}
     .poster.wide .content {{
       padding: 80px 120px;
@@ -301,7 +319,7 @@ def _build_guizang_html(style: str, long_title: str, lead: str,
   <!-- ===== XHS 3:4 Cover ===== -->
   <section class="poster xhs" id="xhs-cover">
     {f'<img class="cover-img" src="{xhs_img}" alt="cover">' if xhs_img else ''}
-    <div class="img-overlay"></div>
+    {f'<div class="img-overlay"></div>' if xhs_img else ''}
     <div class="grain"></div>
     <div class="content">
       <div class="issue-row">
@@ -321,7 +339,7 @@ def _build_guizang_html(style: str, long_title: str, lead: str,
   <!-- ===== Square 1:1 Cover ===== -->
   <section class="poster square" id="square-cover">
     {f'<img class="cover-img" src="{square_img or xhs_img}" alt="cover">' if (square_img or xhs_img) else ''}
-    <div class="img-overlay"></div>
+    {f'<div class="img-overlay"></div>' if (square_img or xhs_img) else ''}
     <div class="grain"></div>
     <div class="content">
       <h1 class="square-title">{long_title}</h1>
@@ -331,8 +349,8 @@ def _build_guizang_html(style: str, long_title: str, lead: str,
 
   <!-- ===== Wide 21:9 Cover ===== -->
   <section class="poster wide" id="wide-cover">
-    {f'<img class="cover-img" src="{wide_img or xhs_img}" alt="cover" style="opacity:.3;">' if (wide_img or xhs_img) else ''}
-    <div class="img-overlay"></div>
+    {f'<img class="cover-img" src="{wide_img or xhs_img}" alt="cover">' if (wide_img or xhs_img) else ''}
+    {f'<div class="img-overlay"></div>' if (wide_img or xhs_img) else ''}
     <div class="grain"></div>
     <div class="content">
       <div class="wide-layout">

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>小红书 Studio · 归藏设计契约原型（Swiss / Editorial 双模式）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ══ 归藏设计语言 · 应用层变量（取自 references/theme-presets + components）══
+     说明：工具 chrome 借用归藏"纸墨 + 几何"语言；封面本体严格按 theme-presets 10 套 palette。 */
+  :root{
+    --paper:#f3f0e8;            /* Ink Classic 纸色（归藏默认纸奶白） */
+    --paper-2:#ebe6da;
+    --ink:#0a0a0b;
+    --muted:#68625a;
+    --line:rgba(10,10,11,.22);  /* 发丝线 */
+    --line-hi:rgba(10,10,11,.40);
+    --accent:#002FA7;           /* 默认单一强调色（IKB Blue，Swiss 默认） */
+    --accent-on:#ffffff;
+    --sans:Inter,"Helvetica Neue",Helvetica,"Noto Sans SC",sans-serif;
+    --sans-zh:"Noto Sans SC",Inter,sans-serif;
+    --serif-zh:"Noto Serif SC","Songti SC",serif;
+    --serif-en:"Playfair Display",serif;
+    --mono:"IBM Plex Mono",monospace;
+    --sp-5:16px; --sp-6:24px; --sp-7:32px; --sp-8:40px;
+  }
+  *{box-sizing:border-box}
+  html{font-size:15px}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ── 归藏 chrome：无圆角 / 发丝线 / 无阴影 / 单色块强调 ── */
+  .studio{max-width:1200px;margin:0 auto;padding:var(--sp-6)}
+  .studio-header{
+    display:flex;align-items:center;gap:14px;
+    padding-bottom:var(--sp-5);border-bottom:1px solid var(--line);
+  }
+  .studio-header .back{font-size:22px;line-height:1;color:var(--muted);cursor:pointer}
+  .studio-header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.01em;font-family:var(--sans)}
+  .studio-header .status{
+    margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);
+    border:1px solid var(--line);padding:4px 10px;
+  }
+
+  /* 7 步工作流步骤条（归藏发丝线风格，非卡片） */
+  .steps{
+    display:flex;align-items:center;gap:0;margin:var(--sp-6) 0;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:10px 0;overflow-x:auto;
+  }
+  .step{display:flex;align-items:center;gap:8px;padding:0 14px;white-space:nowrap;color:var(--muted);font-size:12px}
+  .step .n{
+    width:22px;height:22px;flex:0 0 22px;border:1px solid var(--line-hi);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;color:var(--ink);
+  }
+  .step.active{color:var(--ink)}
+  .step.active .n{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .step-sep{flex:0 0 1px;height:18px;background:var(--line)}
+
+  .studio-body{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-7);align-items:start;margin-top:var(--sp-6)}
+
+  /* ── 左：控制区 ── */
+  .panel{
+    background:var(--paper-2);border:1px solid var(--line);
+    padding:var(--sp-6);
+  }
+  .panel h2{
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 var(--sp-5);font-weight:500;
+  }
+  textarea{
+    width:100%;min-height:120px;resize:vertical;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink);
+    padding:12px;font-family:var(--sans-zh);font-size:14px;line-height:1.6;outline:none;
+  }
+  textarea:focus{border-color:var(--ink)}
+  .char-count{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin:6px 2px var(--sp-6)}
+
+  /* 模式切换：Swiss / Editorial（归藏两种互斥视觉系统） */
+  .mode-switch{display:flex;gap:0;border:1px solid var(--line);margin-bottom:var(--sp-5)}
+  .mode-btn{
+    flex:1;padding:9px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;
+    background:var(--paper);color:var(--muted);border:0;font-family:var(--sans);
+  }
+  .mode-btn.active{background:var(--ink);color:var(--paper)}
+
+  /* 模板/风格选择器（归藏卡片：Swiss=无圆角无阴影纯色块；Editorial=corners-sm 小圆角 + 极柔阴影） */
+  .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:var(--sp-6)}
+  .tpl-mini{
+    cursor:pointer;border:1px solid var(--line);background:var(--paper);
+    padding:0;overflow:hidden;font-family:var(--sans);
+  }
+  .tpl-swatch{height:54px;display:flex;align-items:flex-end;padding:6px}
+  .tpl-swatch .tag{font-family:var(--mono);font-size:9px;letter-spacing:.06em}
+  .tpl-label{padding:5px 7px;font-size:11px;color:var(--ink);border-top:1px solid var(--line)}
+  .tpl-mini.selected{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .tpl-mini.swiss .tpl-swatch{border-radius:0}
+  .tpl-mini.editorial .tpl-swatch{border-radius:0 0 3px 3px} /* corners-sm */
+
+  .btn-generate{
+    width:100%;padding:13px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+    font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.02em;
+  }
+  .btn-generate:active{transform:translateY(1px)}
+
+  .hint{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--muted);margin-top:12px}
+  .hint b{color:var(--ink);font-weight:500}
+
+  /* ── 右：预览 + 结果 ── */
+  .preview-card{border:1px solid var(--line);background:var(--paper);padding:var(--sp-5)}
+  .preview-card h2{
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 var(--sp-5);font-weight:500;
+  }
+  /* 封面展示框：固定 3:4 比例，按归藏 r-3x4 */
+  .cover-frame{width:100%;aspect-ratio:3/4;background:#fff;border:1px solid var(--line);overflow:hidden}
+  .cover-frame img{display:block;width:100%;height:100%;object-fit:cover}
+
+  .result-wrap{margin-top:var(--sp-6)}
+  .result-card{border:1px solid var(--line);background:var(--paper);max-width:320px}
+  .result-card img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-bottom:1px solid var(--line)}
+  .result-meta{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .result-meta a{color:var(--ink);text-decoration:none;font-weight:500}
+
+  .proto-tag{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:18px;text-align:right}
+
+  /* D-3 修复：移动端堆叠而非隐藏 */
+  @media (max-width:800px){
+    .studio-body{grid-template-columns:1fr}
+    .steps{font-size:11px}
+  }
+</style>
+</head>
+<body>
+<div class="studio">
+  <div class="studio-header">
+    <span class="back">‹</span>
+    <h1>小红书封面 Studio</h1>
+    <span class="status">归藏契约 · 原型</span>
+  </div>
+
+  <!-- 7 步工作流（归藏 workflow：Intake→Story→Mode→Plan→Build→Render→Deliver） -->
+  <div class="steps" id="steps">
+    <div class="step active"><span class="n">1</span>文案</div><span class="step-sep"></span>
+    <div class="step"><span class="n">2</span>风格</div><span class="step-sep"></span>
+    <div class="step"><span class="n">3</span>模板</div><span class="step-sep"></span>
+    <div class="step"><span class="n">4</span>上传</div><span class="step-sep"></span>
+    <div class="step"><span class="n">5</span>生成</div><span class="step-sep"></span>
+    <div class="step"><span class="n">6</span>预览</div><span class="step-sep"></span>
+    <div class="step"><span class="n">7</span>导出</div>
+  </div>
+
+  <div class="studio-body">
+    <!-- 左：控制区 -->
+    <section class="panel">
+      <h2>文案与风格</h2>
+      <textarea id="social-text" placeholder="输入笔记文案，自动提取标题/描述…">用 AI 点亮内容创作
+阳光星盘系统：一键排版 + 自动封面，让创作回归内容本身</textarea>
+      <div class="char-count" id="social-char-count">0 / 500</div>
+
+      <div class="mode-switch" id="mode-switch">
+        <button class="mode-btn active" data-mode="swiss">Swiss 国际主义</button>
+        <button class="mode-btn" data-mode="editorial">Editorial 杂志</button>
+      </div>
+
+      <div class="tpl-grid" id="social-tpl-grid"></div>
+
+      <button class="btn-generate" id="btn-generate-cover">生成封面</button>
+      <div class="hint">
+        <b>契约要点（修 D-4）：</b>选择器 value = theme-presets 规范 id；每个 palette 视觉可区分。
+        Swiss 用 Inter + 字重 ≤300 大标题 + 单 accent + 无圆角无阴影；Editorial 用 Noto Serif SC 衬线 + 纸纹氛围层。
+        结果卡用 <b>&lt;img src=真实封面&gt;</b>（修 D-1），非占位渐变。
+      </div>
+    </section>
+
+    <!-- 右：预览 + 结果 -->
+    <section>
+      <div class="preview-card" style="margin-bottom:var(--sp-6)">
+        <h2>实时预览 · 所选风格</h2>
+        <div class="cover-frame"><img id="spv-cover" alt="封面预览"></div>
+      </div>
+
+      <div class="result-wrap">
+        <div class="preview-card">
+          <h2>生成结果</h2>
+          <div class="result-card">
+            <img id="result-img" alt="封面结果" />
+            <div class="result-meta">
+              <span id="result-meta">未生成</span>
+              <a id="result-dl" href="#">下载</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="proto-tag">PROTOTYPE · guizang-studio-target</div>
+</div>
+
+<script>
+/* ══ 单一真源：theme-presets.md 的 10 套 palette（6 Editorial + 4 Swiss）══
+   id 取自 palette 名；风格(mode) 决定字体与几何语言。每个 palette 视觉可区分 → 修 D-4。 */
+const PALETTES = [
+  // ── Swiss International（4 accent）──
+  {id:"ikb-blue",     mode:"swiss", name:"IKB 蓝",      paper:"#fafaf8", ink:"#0a0a0a", grey2:"#d4d4d2", grey3:"#737373", accent:"#002FA7", accentOn:"#ffffff"},
+  {id:"lemon-yellow",mode:"swiss", name:"柠檬黄",       paper:"#fafaf8", ink:"#0a0a0a", grey2:"#d4d4d2", grey3:"#737373", accent:"#FFD500", accentOn:"#0a0a0a"},
+  {id:"lemon-green",  mode:"swiss", name:"柠檬绿",       paper:"#fafaf8", ink:"#0a0a0a", grey2:"#d4d4d2", grey3:"#737373", accent:"#C5E803", accentOn:"#0a0a0a"},
+  {id:"safety-orange",mode:"swiss",name:"安全橙",       paper:"#fafaf8", ink:"#0a0a0a", grey2:"#d4d4d2", grey3:"#737373", accent:"#FF6B35", accentOn:"#ffffff"},
+  // ── Editorial Magazine × E-ink（6 palette）──
+  {id:"ink-classic",  mode:"editorial", name:"墨黑经典", paper:"#f3f0e8", ink:"#0a0a0b", muted:"#68625a", accent:"#111111", line:"rgba(10,10,11,.22)"},
+  {id:"indigo-porc",  mode:"editorial", name:"靛蓝瓷",   paper:"#f2f4f5", ink:"#0a1f3d", muted:"#5f6d78", accent:"#315d93", line:"rgba(10,31,61,.20)"},
+  {id:"forest-ink",   mode:"editorial", name:"森林墨",   paper:"#f5f1e8", ink:"#16251b", muted:"#5d665d", accent:"#2e6b4f", line:"rgba(22,37,27,.22)"},
+  {id:"kraft-paper",  mode:"editorial", name:"牛皮纸",   paper:"#eedfc7", ink:"#2a1e13", muted:"#755f49", accent:"#9b5a2e", line:"rgba(42,30,19,.24)"},
+  {id:"dune",         mode:"editorial", name:"沙丘",     paper:"#f0e6d2", ink:"#1f1a14", muted:"#6f6557", accent:"#8f7650", line:"rgba(31,26,20,.22)"},
+  {id:"midnight-ink", mode:"editorial", name:"午夜墨",   paper:"#0e0d0c", ink:"#ece2cf", muted:"#9a8c75", accent:"#d4a04a", line:"rgba(236,226,207,.22)"},
+];
+
+let activeMode = "swiss";
+let activeId = null;
+
+/* ── 生成真实归藏风格封面（1080×1440，3:4，严格按 theme-presets/components）── */
+function coverSVG(p){
+  const W=1080,H=1440, M=80;
+  if(p.mode==="swiss"){
+    // Swiss 铁律：无圆角/无阴影/无渐变；Inter 大标题 weight 200-300；单 accent；发丝线网格；左上对齐
+    return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${H}'>
+      <rect width='${W}' height='${H}' fill='${p.paper}'/>
+      <line x1='${M}' y1='${M}' x2='${W-M}' y2='${M}' stroke='${p.grey2}' stroke-width='1'/>
+      <line x1='${M}' y1='${H-M}' x2='${W-M}' y2='${H-M}' stroke='${p.grey2}' stroke-width='1'/>
+      <text x='${M}' y='420' font-family='Inter, sans-serif' font-size='132' font-weight='200' fill='${p.ink}'>用 AI 点亮</text>
+      <text x='${M}' y='560' font-family='Inter, sans-serif' font-size='132' font-weight='200' fill='${p.ink}'>内容创作</text>
+      <rect x='${M}' y='640' width='220' height='12' fill='${p.accent}'/>
+      <text x='${M}' y='720' font-family='Inter, sans-serif' font-size='30' font-weight='400' fill='${p.grey3}'>阳光星盘系统 · 一键排版</text>
+      <text x='${M}' y='${H-M+4}' font-family='IBM Plex Mono, monospace' font-size='22' letter-spacing='2' fill='${p.grey3}'>SUPERSU · XHS 3:4 · ${p.id.toUpperCase()}</text>
+    </svg>`;
+  } else {
+    // Editorial 铁律：纸纹氛围层 + 衬线大标题(Noto Serif SC weight 500 宽字距) + 克制配色
+    const grain = p.id==="midnight-ink"
+      ? `<rect width='${W}' height='${H}' fill='url(#g)' opacity='.26'/>`
+      : `<rect width='${W}' height='${H}' fill='url(#g)' opacity='.5'/>`;
+    return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${H}'>
+      <defs><pattern id='g' width='6' height='6' patternUnits='userSpaceOnUse'>
+        <circle cx='1' cy='1' r='.7' fill='${p.accent}' opacity='.12'/></pattern></defs>
+      <rect width='${W}' height='${H}' fill='${p.paper}'/>
+      ${grain}
+      <text x='${M}' y='430' font-family='Noto Serif SC, serif' font-size='116' font-weight='500' letter-spacing='4' fill='${p.ink}'>用 AI 点亮</text>
+      <text x='${M}' y='560' font-family='Noto Serif SC, serif' font-size='116' font-weight='500' letter-spacing='4' fill='${p.ink}'>内容创作</text>
+      <line x1='${M}' y1='640' x2='${M+240}' y2='640' stroke='${p.accent}' stroke-width='2'/>
+      <text x='${M}' y='716' font-family='Noto Serif SC, serif' font-size='28' fill='${p.muted}'>阳光星盘系统 · 一键排版</text>
+      <text x='${M}' y='${H-M+4}' font-family='IBM Plex Mono, monospace' font-size='20' letter-spacing='2' fill='${p.muted}'>VOL.01 · 2026 · ${p.id.toUpperCase()}</text>
+    </svg>`;
+  }
+}
+function svgURI(p){ return "data:image/svg+xml;utf8," + encodeURIComponent(coverSVG(p)); }
+
+/* ── 渲染模板网格（仅显示当前 mode 的 palette）── */
+function renderGrid(){
+  const grid = document.getElementById("social-tpl-grid");
+  const items = PALETTES.filter(p=>p.mode===activeMode);
+  grid.innerHTML = items.map(p=>{
+    const sw = p.mode==="swiss"
+      ? `<div style="background:${p.paper}"></div><div style="width:40px;height:8px;background:${p.accent}"></div>`
+      : `<div style="background:${p.paper}"></div><div style="width:40px;height:2px;background:${p.accent};margin-top:4px"></div>`;
+    return `<div class="tpl-mini ${p.mode} ${p.id===activeId?'selected':''}" data-id="${p.id}" data-mode="${p.mode}">
+      <div class="tpl-swatch">${sw}</div>
+      <div class="tpl-label">${p.name}</div>
+    </div>`;
+  }).join("");
+  grid.querySelectorAll(".tpl-mini").forEach(el=>el.onclick=()=>{
+    activeId = el.dataset.id;
+    const p = PALETTES.find(x=>x.id===activeId);
+    document.getElementById("spv-cover").src = svgURI(p);
+    renderGrid();
+  });
+}
+
+/* ── 模式切换 ── */
+document.getElementById("mode-switch").querySelectorAll(".mode-btn").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll(".mode-btn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    activeMode = b.dataset.mode; activeId=null;
+    document.getElementById("spv-cover").removeAttribute("src");
+    renderGrid();
+  };
+});
+
+/* ── 生成：结果卡真实 <img> 绑定（D-1 修复）── */
+document.getElementById("btn-generate-cover").onclick = ()=>{
+  const p = PALETTES.find(x=>x.id===activeId) || PALETTES.find(x=>x.mode===activeMode);
+  if(!p){ alert("请先选择风格模板"); return; }
+  const img = document.getElementById("result-img");
+  img.src = svgURI(p);
+  document.getElementById("result-meta").textContent = `${p.name} · ${p.id}`;
+  document.getElementById("result-dl").href = svgURI(p);
+};
+
+/* ── 文案计数 ── */
+const ta = document.getElementById("social-text");
+function syncCount(){ document.getElementById("social-char-count").textContent = ta.value.length + " / 500"; }
+ta.addEventListener("input", syncCount);
+
+renderGrid(); syncCount();
+</script>
+</body>
+</html>

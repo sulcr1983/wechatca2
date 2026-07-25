@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperSu 公众号排版 · 归藏设计契约原型（Swiss 几何）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ══ 归藏 Swiss 几何语言（功能型工具 = Swiss 模式，见 references/SKILL：AI/产品工具用 Swiss）══
+     Inter + Noto Sans SC；无圆角/无阴影/无渐变；发丝线；单一 IKB Blue 强调色。 */
+  :root {
+    --paper:#fafaf8;
+    --paper-2:#f0f0ee;
+    --ink:#0a0a0a;
+    --grey-2:#d4d4d2;
+    --grey-3:#737373;
+    --accent:#002FA7;
+    --accent-on:#ffffff;
+    --line:rgba(10,10,10,.22);
+    --sans:Inter,"Helvetica Neue",Helvetica,"Noto Sans SC",sans-serif;
+    --sans-zh:"Noto Sans SC",Inter,sans-serif;
+    --mono:"IBM Plex Mono",monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size:15px; }
+  body { background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased; }
+
+  /* ── 顶栏 ── */
+  .topbar { display:flex; align-items:center; gap:0; border-bottom:1px solid var(--line); max-width:1200px; margin:0 auto; }
+  .logo { font-weight:600; font-size:1rem; padding:14px 20px; display:flex; align-items:center; gap:8px; letter-spacing:.01em; }
+  .logo .mk { width:9px; height:9px; background:var(--accent); }
+  .tab-btn { padding:14px 20px; border:0; background:transparent; color:var(--grey-3); cursor:pointer; font-family:var(--sans); font-size:.82rem; font-weight:500; border-bottom:2px solid transparent; }
+  .tab-btn.active { color:var(--ink); border-bottom-color:var(--ink); }
+  .topbar .spacer { flex:1; }
+  .status { font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--grey-3); padding:0 20px; }
+
+  /* ── 页面 ── */
+  .page { display:none; max-width:1200px; margin:0 auto; padding:var(--sp-6,24px) 20px; }
+  .page.active { display:block; }
+  :root{ --sp-6:24px; }
+
+  /* ═══ WECHAT GRID（归藏：发丝线分隔，无圆角无阴影）═══ */
+  .wechat-grid {
+    display:grid; grid-template-columns: 1fr 200px 1.1fr;
+    border:1px solid var(--line); background:var(--paper);
+  }
+  .col { padding:16px; min-height:460px; }
+  .col-text { border-right:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+  .col-templates { border-right:1px solid var(--line); background:var(--paper-2); padding:12px 8px; }
+  .col-preview { display:flex; flex-direction:column; gap:8px; }
+
+  /* 编辑区 */
+  .editor-label { font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--grey-3); }
+  #input-area {
+    width:100%; min-height:300px; padding:14px; resize:vertical;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink);
+    font-family:var(--sans-zh); font-size:.9rem; line-height:1.75; outline:none;
+  }
+  #input-area:focus { border-color:var(--ink); }
+
+  /* 主题列表（归藏列表项，选中=ink 块，无圆角） */
+  .tpl-header { font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--grey-3); margin-bottom:8px; display:flex; justify-content:space-between; }
+  .tpl-count { background:var(--ink); color:var(--paper); padding:1px 7px; }
+  .tpl-list { display:flex; flex-direction:column; }
+  .tpl-item { padding:7px 10px; cursor:pointer; color:var(--grey-3); font-size:.78rem; border-left:2px solid transparent; transition:background .1s; }
+  .tpl-item:hover { background:var(--paper); color:var(--ink); }
+  .tpl-item.active { background:var(--ink); color:var(--paper); border-left-color:var(--accent); font-weight:500; }
+
+  /* 移动端主题选择条（W-1 修复：归藏化底部 select，非隐藏） */
+  .mobile-theme-bar { display:none; margin-bottom:10px; }
+  .mobile-theme-label { font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--grey-3); margin-bottom:5px; }
+  .mobile-theme-select { width:100%; padding:9px 12px; border:1px solid var(--line); background:var(--paper); color:var(--ink); font-family:var(--sans-zh); font-size:.82rem; outline:none; }
+
+  /* 预览 */
+  .preview-label { font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--grey-3); display:flex; gap:8px; align-items:center; }
+  .preview-content { flex:1; border:1px solid var(--line); background:#fff; min-height:380px; position:relative; overflow:hidden; }
+  #preview-frame { width:100%; height:100%; border:none; min-height:380px; }
+  .pv-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--grey-3); font-family:var(--mono); font-size:.72rem; }
+
+  /* 底部操作（归藏：无圆角按钮，主操作=ink 块） */
+  .wechat-footer { display:flex; align-items:center; gap:10px; padding:14px 0; }
+  .btn { padding:8px 18px; border:1px solid var(--line); background:transparent; color:var(--ink); font-family:var(--sans); font-size:.82rem; font-weight:500; cursor:pointer; }
+  .btn:hover { background:var(--paper-2); }
+  .btn-primary { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .wechat-footer .spacer { flex:1; }
+  .ai-toggle { font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--grey-3); display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .ai-dot { width:6px; height:6px; background:var(--accent); }
+
+  /* 响应式：移动端堆叠 + 主题选择条出现（W-1 修复，非 display:none） */
+  @media (max-width:800px) {
+    .wechat-grid { grid-template-columns:1fr; }
+    .col-templates { display:none; }
+    .mobile-theme-bar { display:block; }
+    .col-preview { min-height:320px; }
+  }
+  .proto-tag { font-family:var(--mono); font-size:10px; color:var(--grey-3); text-align:right; margin-top:16px; }
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <span class="logo"><span class="mk"></span>SuperSu</span>
+  <button class="tab-btn active" data-pg="wechat">公众号排版</button>
+  <button class="tab-btn" data-pg="social">小红书封面</button>
+  <span class="spacer"></span>
+  <span class="status" id="status-el">连接中…</span>
+</nav>
+
+<div class="page active" id="page-wechat">
+  <div class="wechat-grid">
+    <!-- Col 1: 编辑 -->
+    <div class="col col-text">
+      <div class="editor-label">纯文本编辑</div>
+      <textarea id="input-area" placeholder="粘贴纯文本…支持 Markdown。系统自动检测标题、列表、引用。">今天分享一个有趣的项目——
+我完成了一个阳光星盘系统。
+
+核心功能：
+它可以精确计算出生时刻的星盘图
+支持 12 宫位和相位解读
+
+#阳光星盘 #个人项目</textarea>
+
+      <!-- W-1 修复：移动端主题选择条（归藏化） -->
+      <div class="mobile-theme-bar">
+        <div class="mobile-theme-label">选择模板 <span id="mobile-tpl-count">0</span></div>
+        <select class="mobile-theme-select" id="mobile-tpl-select"><option value="">— 选择模板 —</option></select>
+      </div>
+    </div>
+
+    <!-- Col 2: 主题（桌面） -->
+    <div class="col col-templates">
+      <div class="tpl-header">模板 <span class="tpl-count" id="tpl-count">0</span></div>
+      <div class="tpl-list" id="tpl-list"></div>
+    </div>
+
+    <!-- Col 3: 预览 -->
+    <div class="col col-preview">
+      <div class="preview-label">实时预览</div>
+      <div class="preview-content" id="pv-content">
+        <div class="pv-empty" id="pv-empty-state">选择模板查看排版效果</div>
+        <iframe id="preview-frame" style="display:none;" sandbox="allow-same-origin"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="wechat-footer">
+    <button class="btn" id="btn-copy">复制</button>
+    <button class="btn" id="btn-history">历史</button>
+    <span class="spacer"></span>
+    <button class="btn btn-primary" id="btn-push">一键推送</button>
+    <span class="ai-toggle"><span class="ai-dot"></span> AI 工具</span>
+  </div>
+</div>
+
+<div class="page" id="page-social">
+  <div style="padding:60px 0;font-family:var(--mono);font-size:.8rem;color:var(--grey-3);">
+    小红书封面页 → 见 <code>social-studio-target.html</code>
+  </div>
+</div>
+
+<div class="proto-tag">PROTOTYPE · wechat-studio-target (guizang swiss)</div>
+
+<script>
+let themes = []; let activeTpl = null;
+const inputArea=document.getElementById('input-area');
+const tplList=document.getElementById('tpl-list');
+const tplCount=document.getElementById('tpl-count');
+const mobileSelect=document.getElementById('mobile-tpl-select');
+const mobileTplCount=document.getElementById('mobile-tpl-count');
+const pvContent=document.getElementById('pv-content');
+const pvEmpty=document.getElementById('pv-empty-state');
+const previewFrame=document.getElementById('preview-frame');
+const statusEl=document.getElementById('status-el');
+
+document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('page-'+btn.dataset.pg).classList.add('active');
+}));
+
+async function loadThemes(){
+  try{
+    const res=await fetch('/api/themes');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    themes=Array.isArray(data)?data:(data.themes||[]);
+    statusEl.textContent='已连接 · '+themes.length+' 套';
+    renderTplList(); renderMobileSelect();
+  }catch(e){
+    themes=[{id:'monocle',name:'Monocle 生活'},{id:'bauhaus',name:'包豪斯'},{id:'vogue',name:'Vogue 时尚'},{id:'ink',name:'水墨'},{id:'minimal-gray',name:'极简灰'},{id:'chinese',name:'中国风'},{id:'editorial',name:'杂志风'},{id:'terminal-green',name:'终端绿'}];
+    statusEl.textContent='离线 · Demo';
+    renderTplList(); renderMobileSelect();
+  }
+}
+function renderTplList(){
+  tplCount.textContent=themes.length;
+  tplList.innerHTML=themes.map(t=>`<div class="tpl-item${activeTpl===t.id?' active':''}" data-tpl="${t.id}">${t.name}</div>`).join('');
+}
+function renderMobileSelect(){
+  mobileTplCount.textContent=themes.length;
+  mobileSelect.innerHTML='<option value="">— 选择模板 —</option>'+themes.map(t=>`<option value="${t.id}" ${activeTpl===t.id?'selected':''}>${t.name}</option>`).join('');
+}
+tplList.addEventListener('click',e=>{const it=e.target.closest('.tpl-item'); if(it) selectTheme(it.dataset.tpl);});
+mobileSelect.addEventListener('change',()=>{if(mobileSelect.value) selectTheme(mobileSelect.value);});
+function selectTheme(id){activeTpl=id; renderTplList(); renderMobileSelect(); doRender();}
+
+let timer=null;
+function doRender(){const t=inputArea.value.trim(); if(!t||!activeTpl)return; clearTimeout(timer); timer=setTimeout(()=>performRender(t,activeTpl),280);}
+async function performRender(text,themeId){
+  try{
+    const res=await fetch('/api/render',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw_text:text,theme_id:themeId})});
+    const data=await res.json(); if(!res.ok) throw new Error(data.error||'render failed');
+    showPreview(data.html||'');
+  }catch(e){ console.error(e); }
+}
+function showPreview(html){
+  pvEmpty.style.display='none'; previewFrame.style.display='block';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  previewFrame.src=URL.createObjectURL(blob);
+}
+inputArea.addEventListener('input',()=>{if(activeTpl)doRender();});
+loadThemes();
+</script>
+</body>
+</html>

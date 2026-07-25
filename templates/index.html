@@ -451,9 +451,10 @@ body {
 /* ── Responsive ── */
 @media (max-width:800px) {
   .wechat-grid { grid-template-columns:1fr; }
-  .col-templates { display:none; }
+  /* W-1 修复：移动端不再隐藏主题列表，改为堆叠 + 限高滚动，53 套主题仍可选取 */
+  .col-templates { max-height:42vh; overflow:auto; border:1px solid var(--border); }
   .social-grid { grid-template-columns:1fr; }
-  .social-preview,.social-results { display:none; }
+  /* D-3 修复：移动端不再隐藏预览与结果，改为堆叠可见（移除 display:none） */
   .app { padding:0 10px 10px; }
 }
 </style>
@@ -588,8 +589,7 @@ body {
       <div class="s-section">
         <div class="s-label"><span class="s-step">3</span> 风格模板</div>
         <div class="style-tabs">
-          <button class="style-tab" data-group="editorial">Editorial</button>
-          <button class="style-tab" data-group="swiss">Swiss</button>
+          <button class="style-tab active" data-group="guizang">归藏 Guizang</button>
           <button class="style-tab" data-group="blcaptain">BLCaptain</button>
         </div>
         <div class="tpl-grid" id="social-tpl-grid"></div>
@@ -1177,20 +1177,34 @@ async function testAiConfig(btn) {
 // =================================
 // SOCIAL
 // =================================
-const styleMap = {
-  editorial: ['杂志封面','暖调静物','暗房冲印','经典排版'],
-  swiss: ['极简几何','网格系统','不对称版','瑞士红'],
-  blcaptain: ['SP-01 雾野','SP-02 暖书房','SL-01 电蓝','SL-02 石墨薄荷']
-};
+// 风格列表由后端 /api/social/styles 提供（归藏 editorial/swiss + BLCaptain sp-*/sl-*）
+// 废除硬编码中文 styleMap：前端只发规范 id，后端无需改动（D-4 修复）
+let socialStyles = { guizang: [], blcaptain: [] };
 let activeSocialStyle = null;
-let activeSocialGroup = 'editorial';
+let activeSocialGroup = 'guizang';
+
+async function loadSocialStyles() {
+  try {
+    const res = await fetch('/api/social/styles');
+    const data = await res.json();
+    socialStyles.guizang = data.guizang || [];
+    socialStyles.blcaptain = data.blcaptain || [];
+  } catch (e) {
+    // 兜底：保证归藏两风格可用
+    socialStyles.guizang = [
+      {id:'editorial', name:'Editorial 杂志风'},
+      {id:'swiss', name:'Swiss 瑞士风'}
+    ];
+    socialStyles.blcaptain = [];
+  }
+}
 
 function renderSocialTpls(group) {
   const grid = document.getElementById('social-tpl-grid');
   activeSocialGroup = group;
-  const items = styleMap[group] || [];
+  const items = socialStyles[group] || [];
   grid.innerHTML = items.map(s => 
-    `<div class="tpl-mini" data-style="${s}">${s}</div>`
+    `<div class="tpl-mini" data-style="${s.id}">${s.name}</div>`
   ).join('');
 }
 
@@ -1213,7 +1227,7 @@ document.getElementById('social-tpl-grid').addEventListener('click', e => {
   activeSocialStyle = item.dataset.style;
   document.getElementById('spv-empty').style.display = 'none';
   document.getElementById('spv-card').style.display = 'block';
-  document.getElementById('spv-tag').textContent = activeSocialGroup;
+  document.getElementById('spv-tag').textContent = item.textContent || activeSocialGroup;
   const text = document.getElementById('social-text').value.trim();
   document.getElementById('spv-title').textContent = extractSocialTitle(text) || '阳光星盘';
   document.getElementById('spv-desc').textContent = extractSocialDesc(text) || '封面描述';
@@ -1266,11 +1280,12 @@ document.getElementById('btn-generate-cover').addEventListener('click', async ()
     document.getElementById('results-empty').style.display = 'none';
     const list = document.getElementById('results-list');
     list.style.display = 'block';
-    const results = data.results || [data];
-    list.innerHTML = results.map(r => `
+    // D-1 修复：结果卡绑定后端返回的真实图片 url（data.images），废除写死渐变占位块
+    const images = data.images || (Array.isArray(data) ? data : []);
+    list.innerHTML = images.map(r => `
       <div class="result-card">
-        <div class="result-card-body" style="background:linear-gradient(135deg,#e8d5c0,#d4a06a);"></div>
-        <div class="result-card-label">${r.filename || 'cover.png'} · ${r.size || '—'}</div>
+        <img class="result-card-img" src="${r.url}" alt="${r.file || 'cover'}" loading="lazy" />
+        <div class="result-card-label">${r.file || 'cover'} · ${r.type || ''}</div>
       </div>
     `).join('');
     toast('封面已生成');
@@ -1306,8 +1321,11 @@ document.getElementById('btn-history').addEventListener('click', () => {
 // =================================
 // INIT
 // =================================
-renderSocialTpls('editorial');
-document.querySelector('.style-tab')?.classList.add('active');
+// 启动：从后端拉取规范风格 id 并默认渲染归藏组（D-4）
+loadSocialStyles().then(() => {
+  renderSocialTpls('guizang');
+  document.querySelector('.style-tab[data-group="guizang"]')?.classList.add('active');
+});
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
 loadThemes();
 
