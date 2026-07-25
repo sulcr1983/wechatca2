@@ -185,6 +185,13 @@ body {
 .pv-empty { text-align:center; color:var(--text-muted); font-size:.8rem; }
 .pv-empty-icon { width:44px;height:44px;border-radius:var(--radius);border:1px dashed var(--border-hi);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.1rem; }
 #preview-frame { width:100%; height:100%; border:none; background:white; border-radius:var(--radius-sm); }
+.preview-content.phone-frame { padding:18px; }
+.preview-content.phone-frame #preview-frame {
+  width:340px; max-width:86%; height:600px;
+  border:10px solid #14151a; border-radius:34px;
+  box-shadow:0 12px 40px rgba(0,0,0,.16);
+  background:white;
+}
 
 /* Footer */
 .wechat-footer {
@@ -319,8 +326,12 @@ body {
   border:1px dashed var(--border-hi); cursor:pointer;
   font-size:.76rem; color:var(--text-muted);
   transition:all .12s ease; display:flex; align-items:center; gap:8px;
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  position:relative; overflow:hidden;
 }
 .img-slot:hover { border-color:var(--accent); color:var(--text); background:var(--bg-hover); }
+.img-slot.has-img { color:transparent; border-color:var(--accent); }
+.img-slot.has-img .tag { visibility:hidden; }
 .img-slot .tag {
   font-size:.65rem; padding:2px 7px; border-radius:100px;
   background:var(--accent-glow); color:var(--accent); flex-shrink:0;
@@ -527,7 +538,6 @@ body {
         <button class="pv-btn active" data-preview="html">HTML</button>
         <button class="pv-btn" data-preview="phone">手机</button>
         <span class="spacer"></span>
-        <span id="ai-indicator" style="display:none;font-size:.74rem;color:var(--accent);font-weight:500;">AI 已优化</span>
       </div>
       <div class="preview-content" id="pv-content">
         <div class="pv-empty" id="pv-empty-state">
@@ -596,10 +606,10 @@ body {
       </div>
       <div class="s-section">
         <div class="s-label"><span class="s-step">4</span> 封面配图</div>
-        <div class="img-slots">
-          <div class="img-slot" onclick="toast('上传 1080×1440 图片')"><span class="tag">3:4</span> 封面主图</div>
-          <div class="img-slot" onclick="toast('上传 1080×1080 图片')"><span class="tag">1:1</span> 方形配图</div>
-          <div class="img-slot" onclick="toast('上传 2100×900 图片')"><span class="tag">21:9</span> 宽幅底图</div>
+        <div class="img-slots" id="img-slots">
+          <label class="img-slot" data-ratio="xhs" data-w="1080" data-h="1440"><span class="tag">3:4</span> 封面主图<input type="file" accept="image/*" hidden></label>
+          <label class="img-slot" data-ratio="square" data-w="1080" data-h="1080"><span class="tag">1:1</span> 方形配图<input type="file" accept="image/*" hidden></label>
+          <label class="img-slot" data-ratio="wide" data-w="2100" data-h="900"><span class="tag">21:9</span> 宽幅底图<input type="file" accept="image/*" hidden></label>
         </div>
       </div>
       <div class="s-section">
@@ -651,7 +661,6 @@ const tplCount = document.getElementById('tpl-count');
 const pvContent = document.getElementById('pv-content');
 const pvEmpty = document.getElementById('pv-empty-state');
 const previewFrame = document.getElementById('preview-frame');
-const aiIndicator = document.getElementById('ai-indicator');
 
 // =================================
 // PAGE SWITCH
@@ -741,6 +750,8 @@ document.querySelectorAll('[data-preview]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('[data-preview]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    const pc = document.getElementById('pv-content');
+    if (pc) pc.classList.toggle('phone-frame', btn.dataset.preview === 'phone');
   });
 });
 
@@ -768,7 +779,7 @@ document.getElementById('btn-ai-format').addEventListener('click', async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'failed');
-    if (data.formatted) inputArea.value = data.formatted;
+    if (data.markdown) inputArea.value = data.markdown;
     toast('AI 排版完成');
     doRender();
   } catch(e) {
@@ -832,7 +843,7 @@ async function startPolish(btn) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'failed');
-    resultArea.value = data.polished || '';
+    resultArea.value = data.polished_text || '';
     btn.style.display = 'none';
     modal.querySelector('#polish-apply').style.display = '';
   } catch(e) {
@@ -894,7 +905,7 @@ function openPushModal() {
       </div>
       <label>封面图</label>
       <div style="display:flex;gap:10px;align-items:center;">
-        <div style="width:120px;height:80px;border-radius:var(--radius-sm);border:1px dashed var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-muted);">预览</div>
+        <div id="cover-preview" style="width:120px;height:80px;border-radius:var(--radius-sm);border:1px dashed var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-muted);overflow:hidden;">预览</div>
         <div>
           <button class="secondary" onclick="genCover(this)" style="font-size:.75rem;">AI 生成封面</button>
           <p id="cover-status" style="font-size:.68rem;color:var(--text-muted);margin-top:4px;"></p>
@@ -923,7 +934,7 @@ async function loadAccounts() {
   try {
     const res = await fetch('/api/accounts');
     const data = await res.json();
-    const accounts = data.accounts || [];
+    const accounts = Array.isArray(data) ? data : (data.accounts || []);
     sel.innerHTML = '<option value="">请选择公众号</option>' + 
       accounts.map(a => `<option value="${a.id}">${a.nickname}</option>`).join('');
   } catch(e) { console.error(e); }
@@ -950,6 +961,7 @@ async function genSummary(btn) {
   btn.disabled = false;
 }
 
+let lastCoverFilename = '';
 async function genCover(btn) {
   const title = document.getElementById('push-title').value;
   if (!title) { toast('请先填写标题'); return; }
@@ -963,6 +975,10 @@ async function genCover(btn) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'failed');
+    const url = data.image_url || '';
+    lastCoverFilename = url ? url.split('/').pop() : '';
+    const prev = document.getElementById('cover-preview');
+    if (prev) prev.innerHTML = url ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">` : '预览';
     document.getElementById('cover-status').textContent = '封面已生成';
     toast('封面已生成');
   } catch(e) {
@@ -983,7 +999,7 @@ async function confirmPush(btn) {
     const res = await fetch('/api/push', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({account_id: accountId, title, html: lastHtml, summary})
+      body:JSON.stringify({account_id: accountId, title, html: lastHtml, summary, cover_temp_filename: lastCoverFilename})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'push failed');
@@ -1032,7 +1048,7 @@ async function loadAccountList() {
   try {
     const res = await fetch('/api/accounts');
     const data = await res.json();
-    const accounts = data.accounts || [];
+    const accounts = Array.isArray(data) ? data : (data.accounts || []);
     if (!accounts.length) {
       el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:.8rem;">暂无公众号配置</div>';
       return;
@@ -1120,8 +1136,8 @@ async function loadPlatforms() {
   try {
     const res = await fetch('/api/ai-platforms');
     const data = await res.json();
-    const platforms = data.platforms || [];
-    sel.innerHTML = platforms.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    const platforms = (data && typeof data === 'object' && !Array.isArray(data)) ? data : {};
+    sel.innerHTML = Object.entries(platforms).map(([k, v]) => `<option value="${k}">${v.name || k}</option>`).join('');
   } catch(e) { console.error(e); }
 }
 
@@ -1264,16 +1280,72 @@ function extractSocialDesc(text) {
   return lines.slice(0,2).map(l => l.slice(0,20)).join('<br>');
 }
 
+// =================================
+// 配图上传（Flag5 修复：真实文件选择 + 客户端比例校验 + base64 随生成请求发送）
+// 社区成熟方案：URL.createObjectURL + Image.naturalWidth/Height 校验比例，
+// revokeObjectURL 防内存泄漏；EXIF 方向用 createImageBitmap({imageOrientation:"none"}) 兜底。
+// =================================
+const socialUploads = {};
+
+function setupUploadSlots() {
+  const slots = document.getElementById('img-slots');
+  if (!slots) return;
+  slots.addEventListener('change', e => {
+    const input = e.target;
+    if (!input.matches('input[type=file]')) return;
+    const slot = input.closest('.img-slot');
+    if (!slot) return;
+    const ratio = slot.dataset.ratio;
+    const expW = parseInt(slot.dataset.w, 10);
+    const expH = parseInt(slot.dataset.h, 10);
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast('请选择图片文件'); input.value = ''; return; }
+    if (file.size > 15 * 1024 * 1024) { toast('图片过大（>15MB）'); input.value = ''; return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const actual = img.naturalWidth / img.naturalHeight;
+      const expected = expW / expH;
+      if (Math.abs(actual - expected) / expected > 0.04) {
+        toast(`比例不符：建议 ${expW}×${expH}（当前约 ${img.naturalWidth}×${img.naturalHeight}）`);
+        input.value = '';
+        delete socialUploads[ratio];
+        slot.classList.remove('has-img');
+        slot.style.backgroundImage = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        socialUploads[ratio] = reader.result; // data:image/...;base64,...
+        slot.classList.add('has-img');
+        slot.style.backgroundImage = `url(${reader.result})`;
+        toast('已载入配图');
+      };
+      reader.readAsDataURL(file);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      toast('图片解析失败');
+      input.value = '';
+    };
+    img.src = url;
+  });
+}
+
 document.getElementById('btn-generate-cover').addEventListener('click', async () => {
   const text = document.getElementById('social-text').value.trim();
   if (!text) { toast('请先输入文案'); return; }
   if (!activeSocialStyle) { toast('请先选择风格模板'); return; }
+  const platformBtn = document.querySelector('.plt-btn.active');
+  const platform = platformBtn ? platformBtn.dataset.platform : 'xhs';
   toast('正在生成封面...');
   try {
     const res = await fetch('/api/social/generate', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text, style: activeSocialStyle, platform: 'xhs'})
+      body:JSON.stringify({text, style: activeSocialStyle, platform, images: socialUploads})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'generate failed');
@@ -1281,7 +1353,10 @@ document.getElementById('btn-generate-cover').addEventListener('click', async ()
     const list = document.getElementById('results-list');
     list.style.display = 'block';
     // D-1 修复：结果卡绑定后端返回的真实图片 url（data.images），废除写死渐变占位块
-    const images = data.images || (Array.isArray(data) ? data : []);
+    // Flag4 修复：按所选平台重排主图（xhs→3:4 优先，wx→1:1 优先）
+    const order = platform === 'wx' ? ['square','xhs','wide'] : ['xhs','square','wide'];
+    const images = (data.images || (Array.isArray(data) ? data : []))
+      .slice().sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
     list.innerHTML = images.map(r => `
       <div class="result-card">
         <img class="result-card-img" src="${r.url}" alt="${r.file || 'cover'}" loading="lazy" />
@@ -1310,12 +1385,31 @@ document.getElementById('btn-history').addEventListener('click', () => {
     <div class="modal-content" style="width:520px;">
       <h3>历史记录</h3>
       <p class="modal-desc">已推送的文章列表</p>
-      <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:.8rem;">暂无历史记录</div>
+      <div id="history-list" style="text-align:center;padding:40px;color:var(--text-muted);font-size:.8rem;">加载中...</div>
       <div class="modal-actions">
         <button class="secondary" onclick="this.closest('.modal').remove()">关闭</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
+  // Flag3 修复：从后端 /api/history 读取真实推送历史（api_push 已落盘 data/history.json）
+  fetch('/api/history').then(r => r.json()).then(data => {
+    const list = document.getElementById('history-list');
+    const items = Array.isArray(data) ? data : (data.history || []);
+    if (!items.length) {
+      list.textContent = '暂无历史记录';
+      return;
+    }
+    list.style.textAlign = 'left';
+    list.style.padding = '8px 0';
+    list.innerHTML = items.map(h => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+        <div><span style="font-weight:600;font-size:.82rem;">${h.title || '无标题'}</span><span style="font-size:.7rem;color:var(--text-muted);margin-left:8px;">${h.account || ''}</span></div>
+        <span style="font-size:.68rem;color:var(--text-muted);">${h.time || ''}</span>
+      </div>`).join('');
+  }).catch(() => {
+    const list = document.getElementById('history-list');
+    if (list) list.textContent = '加载失败';
+  });
 });
 
 // =================================
@@ -1327,6 +1421,7 @@ loadSocialStyles().then(() => {
   document.querySelector('.style-tab[data-group="guizang"]')?.classList.add('active');
 });
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
+setupUploadSlots();
 loadThemes();
 
 // =================================

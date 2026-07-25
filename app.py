@@ -3,6 +3,7 @@ import re
 import json
 import uuid
 import secrets
+import base64
 import webbrowser
 import threading
 import time
@@ -119,6 +120,32 @@ def _read_json(filename: str) -> list:
 def _write_json(filename: str, data: list):
     with _data_lock:
         (DATA_DIR / filename).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _save_b64_image(b64_data: str, output_dir, prefix: str = "img") -> str:
+    """解码 base64 data URL 图片并落盘，返回绝对路径。
+
+    服务端二次校验（社区共识：客户端校验仅提升体验，不可信任）：
+    - 重垫 '=' 修正 padding（SO#47950867）
+    - 限制体积（<=8MB）防 DoS
+    - 校验 PNG/JPEG 魔数，拒绝非图片数据
+    """
+    header, _, payload = b64_data.partition(",")
+    if "base64" not in header:
+        raise ValueError("not base64")
+    raw = base64.b64decode(payload + "=" * (-len(payload) % 4))
+    if len(raw) > 8 * 1024 * 1024:
+        raise ValueError("image too large")
+    is_png = raw[:8] == b"\x89PNG\r\n\x1a\n"
+    is_jpeg = raw[:3] == b"\xff\xd8\xff"
+    if not (is_png or is_jpeg):
+        raise ValueError("unsupported image format")
+    ext = "png" if is_png else "jpg"
+    filename = f"{prefix}_{uuid.uuid4().hex[:8]}.{ext}"
+    path = Path(output_dir) / filename
+    path.write_bytes(raw)
+    return str(path.resolve())
+
 
 _migrate_accounts()
 
@@ -349,6 +376,13 @@ def api_delete_account(account_id):
     return jsonify({"success": True})
 
 
+# ── 推送历史（Flag3 修复：历史弹窗数据驱动） ────────────────────────────
+@app.route("/api/history", methods=["GET"])
+def api_history():
+    # api_push 成功时已把记录写入 data/history.json（见推送成功分支）
+    return jsonify(_read_json("history.json"))
+
+
 # ── AI 摘要 ─────────────────────────────────────────────────────────────
 @app.route("/api/summary", methods=["POST"])
 def api_summary():
@@ -520,6 +554,16 @@ def api_social_generate():
 
     base_url = request.host_url.rstrip("/")
 
+    # Flag5 修复：消费前端上传的配图（base64 data URL），解码落盘后传给渲染器做图层叠加
+    uploaded_images = {}
+    raw_images = data.get("images") or {}
+    if isinstance(raw_images, dict):
+        for key, b64 in raw_images.items():
+            try:
+                uploaded_images[key] = _save_b64_image(b64, output_dir, prefix=key)
+            except Exception as e:
+                app.logger.warning("配图解码失败 %s: %s", key, e)
+
     # 判断渲染引擎：blcaptain 风格 (sp-*/sl-*) vs 归藏风格
     is_blcaptain = style.startswith(("sp-", "sl-")) or style in (
         "mist", "warm", "coastal", "night", "hearth", "blue", "mint", "coral", "lime"
@@ -537,7 +581,7 @@ def api_social_generate():
         else:
             from core import guizang_renderer
             result = guizang_renderer.render_social_cards(
-                text=text, output_dir=str(output_dir), style=style,
+                text=text, output_dir=str(output_dir), style=style, images=uploaded_images,
             )
             paths = [result.get("xhs", ""), result.get("square", ""), result.get("wide", "")]
             image_list = []
@@ -552,7 +596,7 @@ def api_social_generate():
         try:
             from core import guizang_renderer
             result = guizang_renderer.render_social_cards(
-                text=text, output_dir=str(output_dir), style="editorial",
+                text=text, output_dir=str(output_dir), style="editorial", images=uploaded_images,
             )
             paths = [result.get("xhs", ""), result.get("square", ""), result.get("wide", "")]
             image_list = []
