@@ -40,6 +40,10 @@ blcaptain-style-skill/
 
 # 本次诊断临时产物（会话级，不入版本库）
 reports/
+.flask_run.log
+
+# 原型运行时副本（canonical 在 docs/prototypes/，供 Flask /assets/prototypes 预览）
+public/prototypes/
 
 # 本地启动脚本
 start_app.ps1
