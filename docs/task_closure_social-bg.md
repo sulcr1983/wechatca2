@@ -90,8 +90,8 @@
 
 ## 3. 回滚点
 
-- **本次提交**：（待 push 后填入 commit hash）
-  - 回滚：`git revert <hash>` 或 `git checkout <hash>~1 -- <file>`
+- **本次提交**：`31ab4ce`（已推送 origin main，2026-07-25）
+  - 回滚：`git revert 31ab4ce` 或 `git checkout 31ab4ce~1 -- <file>`
 - 如需单独回滚搜图功能：移除 `app.py` 中 image_search 导入和 search_background 调用；恢复 blcaptain_bridge/guizang_renderer 的旧签名。
 - 如需单独回滚主题变更：恢复被删的 8 个原创 JSON + 删除 47 个 xh-* JSON。
 
