@@ -32,14 +32,19 @@ python -c "from playwright.sync_api import sync_playwright; import os,sys; p=syn
     python -m playwright install chromium
 )
 
+REM —— 3) 由启动器负责开浏览器，避免与 app.py 内置自动打开重复 ——
+set SUPERSU_NO_AUTOBROWSER=1
+
 echo.
 echo ======================================================
-echo   SuperSu 正在启动...
-echo   浏览器会在 1~2 秒后自动打开 http://127.0.0.1:5000
-echo   如果浏览器没自动弹出，请手动打开上面的网址
+echo   SuperSu 正在启动，浏览器马上自动打开...
+echo   （若未自动弹出，请手动访问 http://127.0.0.1:5000）
 echo   关闭本窗口即停止服务（或按 Ctrl+C）
 echo ======================================================
 echo.
+
+REM 等服务就绪后自动打开默认浏览器（独立窗口等待 2 秒再弹，避免端口未就绪）
+start "" cmd /c "timeout /t 2 /nobreak >nul & start "" http://127.0.0.1:5000"
 
 python app.py
 pause

@@ -782,5 +782,7 @@ def open_browser():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
-    threading.Timer(1.5, open_browser).start()
+    # 若由启动器负责开浏览器（避免双开标签页），跳过内置自动打开
+    if not os.getenv("SUPERSU_NO_AUTOBROWSER"):
+        threading.Timer(1.5, open_browser).start()
     app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
