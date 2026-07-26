@@ -2,7 +2,7 @@
 chcp 65001 >nul
 REM ============================================================
 REM  SuperSu 一键启动器
-REM  双击本文件即可：自动装依赖 -> 启动服务 -> 打开浏览器
+REM  双击本文件：自动装依赖 -> 启动服务 -> 自动打开浏览器
 REM  关闭本窗口即停止服务（或按 Ctrl+C）
 REM ============================================================
 setlocal
@@ -12,7 +12,7 @@ set VENV=.\.venv\Scripts\python.exe
 
 REM —— 1) 首次运行：创建虚拟环境并安装全部依赖 ——
 if not exist "%VENV%" (
-    echo [初始化] 首次运行，正在创建虚拟环境并安装依赖（约需 1-3 分钟）...
+    echo [初始化] 首次运行，正在创建虚拟环境并安装依赖（约 1-3 分钟）...
     python -m venv .venv
     call .venv\Scripts\activate.bat
     python -m pip install --upgrade pip
@@ -27,24 +27,19 @@ python -c "import flask, playwright" 2>nul || (
     echo [修复] 检测到依赖缺失，正在重新安装...
     python -m pip install -r requirements.txt
 )
-python -c "from playwright.sync_api import sync_playwright; sync_playwright().start().stop()" 2>nul || (
+python -c "from playwright.sync_api import sync_playwright; import os,sys; p=sync_playwright().start(); ok=os.path.exists(p.chromium.executable_path); p.stop(); sys.exit(0 if ok else 1)" 2>nul || (
     echo [修复] 检测到浏览器缺失，正在下载 Chromium...
     python -m playwright install chromium
 )
 
-REM —— 3) 交给启动器开浏览器，避免与 app.py 内置自动打开重复 ——
-set SUPERSU_NO_AUTOBROWSER=1
-
 echo.
 echo ======================================================
 echo   SuperSu 正在启动...
-echo   稍后会自动打开浏览器： http://127.0.0.1:5000
-echo   本窗口关闭即停止服务（或按 Ctrl+C）
+echo   浏览器会在 1~2 秒后自动打开 http://127.0.0.1:5000
+echo   如果浏览器没自动弹出，请手动打开上面的网址
+echo   关闭本窗口即停止服务（或按 Ctrl+C）
 echo ======================================================
 echo.
-
-REM 等服务起来后再开浏览器（更稳，避免端口未就绪）
-start "" /min powershell -NoProfile -Command "Start-Sleep -Seconds 3; Start-Process 'http://127.0.0.1:5000'"
 
 python app.py
 pause
