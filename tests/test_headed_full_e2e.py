@@ -250,20 +250,21 @@ def run():
             check("填文案：字数统计更新", "/ 500" in cnt and cnt.split("/")[0].strip().isdigit() and int(cnt.split("/")[0]) > 0,
                   f"计数={cnt}")
 
-            # 16) 引擎切换（归藏）
-            page.click('.style-tab[data-group="guizang"]', timeout=5000)
+            # 16) 风格分组切换（动态 tab，按 API group 渲染，不依赖具体组名）
+            tabs = page.locator(".style-tab")
+            n_tabs = tabs.count()
+            check("风格分组：tab 数 ≥ 2（归藏/静纸/实证 等）", n_tabs >= 2, f"tab 数={n_tabs}")
+            tabs.nth(0).click(timeout=5000)
             page.wait_for_selector("#social-tpl-grid .tpl-mini", timeout=8000)
-            gz = page.locator("#social-tpl-grid .tpl-mini").count()
-            check("引擎切换：归藏风格卡加载", gz > 0, f"guizang 风格数={gz}")
-
-            # 17) 引擎切换（BLCaptain）
-            page.click('.style-tab[data-group="blcaptain"]', timeout=5000)
+            g0 = page.locator("#social-tpl-grid .tpl-mini").count()
+            check("风格分组：第 1 组（归藏）风格卡加载", g0 > 0, f"第1组风格数={g0}")
+            tabs.nth(1).click(timeout=5000)
             page.wait_for_selector("#social-tpl-grid .tpl-mini", timeout=8000)
-            bc = page.locator("#social-tpl-grid .tpl-mini").count()
-            check("引擎切换：BLCaptain 风格卡加载", bc > 0, f"blcaptain 风格数={bc}")
+            g1 = page.locator("#social-tpl-grid .tpl-mini").count()
+            check("风格分组：第 2 组（BLCaptain 子类）风格卡加载", g1 > 0, f"第2组风格数={g1}")
 
-            # 切回归藏并选首个风格（归藏渲染更快、稳定）
-            page.click('.style-tab[data-group="guizang"]', timeout=5000)
+            # 切回第 1 组并选首个风格（归藏渲染更快、稳定）
+            tabs.nth(0).click(timeout=5000)
             page.wait_for_selector("#social-tpl-grid .tpl-mini", timeout=8000)
             page.locator("#social-tpl-grid .tpl-mini").first.click(timeout=5000)
             page.wait_for_timeout(400)

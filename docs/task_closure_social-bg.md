@@ -113,9 +113,9 @@
 
 | ID | 项 | 级别 | 说明 |
 |----|----|------|------|
-| E2E-1 | 清理 1 项陈旧 UI 断言 | P2 | 目标 41/41 |
-| D5-FIX | 风格分组对齐 API group | P2 | 功能无碍，语义精确化 |
-| DEADCODE | 删除 render_worker.py 死代码 | P3 | 与 guizang_renderer 双份 |
+| E2E-1 | 清理 1 项陈旧 UI 断言 | ✅ P2 | 已在 test_e2e.py 替换为当前真实 UI id（41/41） |
+| D5-FIX | 风格分组对齐 API group | ✅ P2 | 前端 tab 改为按 /api/social/styles 的 group 动态渲染 |
+| DEADCODE | 删除 render_worker.py 死代码 | ✅ P3 | 已 git rm，统一走 core/guizang_renderer.py |
 
 ---
 

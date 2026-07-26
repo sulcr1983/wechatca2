@@ -28,16 +28,15 @@
 | SEL-1 | 首主题自动选中（输入即渲染） | 2026-07-26 | loadThemes 后 activeTpl=themes[0].id |
 | FILT-1 | 模板筛选匹配 name+id+group | 2026-07-26 | 英文 id（如 editorial）也可搜到 |
 | E2E-API | 后端 API 全端点 E2E | 2026-07-26 | tests/test_api_e2e.py，29/29 通过 |
-| E2E-UI | 前端有头全按钮 E2E（双页全量） | 2026-07-26 | tests/test_headed_full_e2e.py，26/26，0 报错 |
+| E2E-UI | 前端有头全按钮 E2E（双页全量） | 2026-07-26 | tests/test_headed_full_e2e.py，27/27，0 报错 |
 | CLEAN2 | 文档洁癖（AGENTS/HANDOFF 补记本轮） | 2026-07-26 | 复制/首主题/E2E/变更5 |
+| E2E-1 | 清理 E2E 陈旧 UI 断言 | 2026-07-26 | test_e2e.py 换真实 UI id，41/41 ✅ |
+| D5-FIX | 风格分组对齐 API group | 2026-07-26 | tab 按 /api/social/styles 的 group 动态渲染（3 组） |
+| DEADCODE | 删除 render_worker.py 死代码 | 2026-07-26 | git rm，统一走 core/guizang_renderer.py |
 
 ## 进行中 / 待办
 
-| # | 任务 | 优先级 | 说明 |
-|---|------|--------|------|
-| E2E-1 | 清理 E2E 中 1 项陈旧 UI 断言 | P2 | 目标 41/41（当前 40/41） |
-| D5-FIX | 风格分组对齐 API group 字段 | P2 | 功能无碍，语义精确化 |
-| DEADCODE | 删除 scripts/render_worker.py 死代码 | P3 | 与 guizang_renderer.py 双份 |
+> ✅ 全部清零，无遗留待办项。
 
 ---
 *最后更新：2026-07-26*

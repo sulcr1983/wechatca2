@@ -703,10 +703,7 @@ body {
       </div>
       <div class="s-section">
         <div class="s-label"><span class="s-step">3</span> 风格模板</div>
-        <div class="style-tabs">
-          <button class="style-tab active" data-group="guizang">归藏 Guizang</button>
-          <button class="style-tab" data-group="blcaptain">BLCaptain</button>
-        </div>
+        <div class="style-tabs" id="style-tabs"></div>
         <div class="tpl-grid" id="social-tpl-grid"></div>
       </div>
       <div class="s-section">
@@ -1391,24 +1388,52 @@ async function testAiConfig(btn) {
 // =================================
 // 风格列表由后端 /api/social/styles 提供（归藏 editorial/swiss + BLCaptain sp-*/sl-*）
 // 废除硬编码中文 styleMap：前端只发规范 id，后端无需改动（D-4 修复）
-let socialStyles = { guizang: [], blcaptain: [] };
+let socialStyles = {};
 let activeSocialStyle = null;
-let activeSocialGroup = 'guizang';
+let activeSocialGroup = '';
 
 async function loadSocialStyles() {
   try {
     const res = await fetch('/api/social/styles');
     const data = await res.json();
-    socialStyles.guizang = data.guizang || [];
-    socialStyles.blcaptain = data.blcaptain || [];
+    // 动态按每个风格的 group 字段分组（归藏 / 静纸 / 实证 …），
+    // 与后端 /api/social/styles 的 group 语义对齐（D-5 修复）
+    socialStyles = {};
+    for (const key of Object.keys(data)) {
+      for (const s of (data[key] || [])) {
+        const g = s.group || key;
+        (socialStyles[g] = socialStyles[g] || []).push(s);
+      }
+    }
   } catch (e) {
     // 兜底：保证归藏两风格可用
-    socialStyles.guizang = [
-      {id:'editorial', name:'Editorial 杂志风'},
-      {id:'swiss', name:'Swiss 瑞士风'}
-    ];
-    socialStyles.blcaptain = [];
+    socialStyles = { '归藏': [
+      {id:'editorial', name:'Editorial 杂志风', group:'归藏'},
+      {id:'swiss', name:'Swiss 瑞士风', group:'归藏'}
+    ] };
   }
+  renderStyleTabs();
+}
+
+// 按 API group 动态渲染风格分组 tab（替代写死的 guizang/blcaptain）
+function renderStyleTabs() {
+  const wrap = document.getElementById('style-tabs');
+  const groups = Object.keys(socialStyles);
+  wrap.innerHTML = groups.map((g, i) =>
+    `<button class="style-tab${i === 0 ? ' active' : ''}" data-group="${g}">${g}</button>`
+  ).join('');
+  wrap.querySelectorAll('.style-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      wrap.querySelectorAll('.style-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderSocialTpls(tab.dataset.group);
+      activeSocialStyle = null;
+      document.getElementById('spv-card').style.display = 'none';
+      document.getElementById('spv-empty').style.display = '';
+    });
+  });
+  activeSocialGroup = groups[0] || '';
+  renderSocialTpls(activeSocialGroup);
 }
 
 function renderSocialTpls(group) {
@@ -1419,17 +1444,6 @@ function renderSocialTpls(group) {
     `<div class="tpl-mini" data-style="${s.id}">${s.name}</div>`
   ).join('');
 }
-
-document.querySelectorAll('.style-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.style-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    renderSocialTpls(tab.dataset.group);
-    activeSocialStyle = null;
-    document.getElementById('spv-card').style.display = 'none';
-    document.getElementById('spv-empty').style.display = '';
-  });
-});
 
 document.getElementById('social-tpl-grid').addEventListener('click', e => {
   const item = e.target.closest('.tpl-mini');
@@ -1630,11 +1644,8 @@ document.getElementById('btn-history').addEventListener('click', () => {
 // =================================
 // INIT
 // =================================
-// 启动：从后端拉取规范风格 id 并默认渲染归藏组（D-4）
-loadSocialStyles().then(() => {
-  renderSocialTpls('guizang');
-  document.querySelector('.style-tab[data-group="guizang"]')?.classList.add('active');
-});
+// 启动：从后端拉取规范风格（含 group），动态渲染分组 tab 并默认选中第一组（D-4 + D-5）
+loadSocialStyles();
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
 setupUploadSlots();
 loadThemes();

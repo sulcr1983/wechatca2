@@ -246,7 +246,7 @@
 ### Phase 3 — 视觉与体验优化（P1/P2）
 | 步骤 | 偏差 | 改动位置 | 说明 |
 |---|---|---|---|
-| 3.1 | D-2 | `core/guizang_renderer.py`（原引用 `render_worker.py` 为死代码，见 §6.2） | 渲染配色对齐归藏铁律 ✅已修复 |
+| 3.1 | D-2 | `core/guizang_renderer.py`（原 `render_worker.py` 双份实现已于 2026-07-26 删除） | 渲染配色对齐归藏铁律 ✅已修复 |
 | 3.2 | D-5 | `index.html:589-594` | 分组对齐 API group |
 | 3.3 | W-2 | `AGENTS.md` §6 | 文档同步实际 DOM |
 

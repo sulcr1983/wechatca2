@@ -141,7 +141,7 @@ taskkill //F //IM python.exe
 
 ## 9. 已知注意事项
 
-- `scripts/render_worker.py` 和 `core/guizang_renderer.py` 都需要 `playwright install chromium`
+- 封面渲染统一走 `core/guizang_renderer.py`（需 `playwright install chromium`）；旧 `scripts/render_worker.py` 双份实现已删除
 - `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`
 - 测试用 `app.test_client()` 避免端口冲突
 - SSE 30 秒超时，优化结果 120 秒缓存；⚠️ 后台 LLM 优化（_start_background_optimization）默认已关闭（前端未接入 SSE 消费），见 F2 修复

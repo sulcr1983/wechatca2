@@ -730,37 +730,54 @@ def test_ui_elements():
         html = r.data.decode("utf-8")
 
         required = [
-            # Header
+            # branding + 双页面
             "SuperSu",
-            "theme-select",
-            "account-select",
-            # Panels
+            "page-wechat",
+            "page-social",
+            # 公众号：编辑器 / 预览 / 模板条
             "input-area",
             "preview-frame",
-            "phone-frame",
-            "phone-preview-frame",
-            # Footer
-            "btn-polish",
+            "tpl-strip",
+            "tpl-search",
+            "tpl-toggle",
+            # 公众号：操作按钮
             "btn-copy",
             "btn-history",
             "btn-push",
-            # Modals
-            "push-modal",
-            "account-mgmt-modal",
-            "polish-modal",
-            "history-modal",
-            # Indicators
-            "loading-indicator",
-            "render-error",
-            "ai-indicator",
-            # SSE functions
-            "startSSE",
-            "closeSSE",
-            "switchToOptimized",
-            "switchToLocal",
-            "updateAllPreviews",
+            "btn-settings",
+            # AI
+            "ai-toggle",
+            "ai-panel",
+            "btn-polish",
+            "btn-ai-format",
+            # 小红书
+            "social-text",
+            "social-tpl-grid",
+            "btn-generate-cover",
+            "social-char-count",
+            "results-list",
+            "bg-credit",
+            "lightbox",
+            "lb-img",
+            # 账号管理
+            "acct-list",
+            "acct-appid",
+            "acct-appsecret",
+            "acct-nickname",
+            # 推送
+            "push-account",
+            "push-title",
+            "push-summary",
+            # 润色
+            "polish-start",
+            "polish-result",
+            "polish-apply",
+            # AI 配置
+            "ai-api-key",
+            "ai-model",
+            "ai-platform",
             # Toast
-            "showToast",
+            "toast-el",
         ]
         missing = [elem for elem in required if elem not in html]
         assert len(missing) == 0, f"缺少元素: {missing}"
