@@ -167,11 +167,25 @@ graph TB
 
 ## 🚀 快速开始
 
-```bash
-# 1️⃣ 安装依赖
-pip install -r requirements.txt
+### ✅ 推荐：一键启动（零门槛）
 
-# 2️⃣ 安装 Chromium（封面生成必需）
+项目根目录有一份 **`start-app.bat`**，双击即可：
+
+1. 自动用项目自带的 `.venv` 运行（无需手动配环境）
+2. 首次缺失依赖/浏览器时自动补装
+3. 启动后**自动打开浏览器**到 `http://127.0.0.1:5000`
+4. 关闭那个黑窗口即停止服务（或按 `Ctrl+C`）
+
+> 💡 之前"双击 `app.py` 没反应"，是因为 Windows 用了系统默认 Python（没装依赖）一启动就报错退出了；用 `start-app.bat` 就不会有这个问题。
+
+### 🔧 手动启动（开发者）
+
+```bash
+# 1️⃣ 进入虚拟环境
+.venv\Scripts\activate
+
+# 2️⃣ 安装依赖（首次）
+pip install -r requirements.txt
 playwright install chromium
 
 # 3️⃣ 启动
