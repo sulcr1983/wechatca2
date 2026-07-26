@@ -394,6 +394,16 @@ pyinstaller launcher.py  # 未验证
 - **影响**：封面生成核心价值链「搜图→渲染→展示→署名」完整闭环。
 - **风险**：低。Wikimedia 无 key 但有请求频率限制（实际使用远低于上限）。
 
+### 变更 5：公众号复制富文本 + 首主题自动选中 + 全系统前后端 E2E（2026-07-26）🆕
+- **复制 bug 修复（用户反馈「点复制没反应/复制不到公众号」）**：原 `#btn-copy` 用 `navigator.clipboard.writeText(lastHtml)` 只写纯文本，粘贴到公众号是一坨 HTML 源码。改为 `ClipboardItem({'text/html', 'text/plain'})` 写富文本，公众号可直接渲染成排版样式；非安全上下文（局域网 IP / 旧浏览器）降级走隐藏 contenteditable + `execCommand('copy')`。
+- **首主题自动选中（根因修复）**：原 `activeTpl` 仅在手动点选模板时赋值，导致**刚进页面直接打字预览不渲染**。改为 `loadThemes()` 后自动 `activeTpl = themes[0].id` 并渲染，实现「输入即渲染」。
+- **模板筛选增强**：`renderTplList()` 过滤由仅匹配 `name` 扩展为同时匹配 `name + id + group`，英文 id（如 editorial）也可搜到。
+- **全系统 E2E（用户要求「所有按钮/输出/前后端都测一次」）**：
+  - 新增 `tests/test_api_e2e.py`：后端 21 个端点全量 HTTP 校验（含账号 CRUD 闭环、AI 优雅降级、静态资源、推送校验路径），**29/29 通过**。
+  - 新增 `tests/test_headed_full_e2e.py`：有头浏览器逐一点击公众号页 13 个交互 + 小红书页 10 个交互（含复制富文本探针、Lightbox 大图、底图署名），**26/26 通过，0 控制台报错**。
+- **验证**：双 E2E 全绿；Pillow 校验三张封面 PNG 均有效（xhs 1080×1440 / square 1080×1080 / wide 2100×900）。
+- **风险**：低。复制富文本依赖 `navigator.clipboard` 安全上下文，已做 execCommand 兜底。
+
 ---
 
 ## 9. 下一步开发建议

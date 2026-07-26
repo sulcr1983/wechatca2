@@ -798,17 +798,24 @@ async function loadThemes() {
     const res = await fetch('/api/themes');
     const data = await res.json();
     themes = Array.isArray(data) ? data : (data.themes || []);
-    renderTplList();
   } catch(e) {
     console.error('load themes error', e);
     themes = [];
-    renderTplList();
   }
+  // 默认选中第一套主题，使「输入即渲染」可用（无需先手动点选）
+  if (!activeTpl && themes.length) activeTpl = themes[0].id;
+  renderTplList();
+  if (activeTpl && inputArea.value.trim()) doRender();
 }
 
 function renderTplList(filter = '') {
   const kw = (filter || '').trim().toLowerCase();
-  const list = kw ? themes.filter(t => (t.name || '').toLowerCase().includes(kw)) : themes;
+  const list = kw
+    ? themes.filter(t =>
+        (t.name || '').toLowerCase().includes(kw) ||
+        (t.id || '').toLowerCase().includes(kw) ||
+        (t.group || '').toLowerCase().includes(kw))
+    : themes;
   tplCount.textContent = themes.length;
   if (!list.length) {
     tplStrip.innerHTML = `<div class="tpl-empty">无匹配模板</div>`;
@@ -1014,13 +1021,54 @@ function applyPolish(btn) {
 // =================================
 document.getElementById('btn-copy').addEventListener('click', async () => {
   if (!lastHtml) { toast('请先排版生成内容'); return; }
-  try {
-    await navigator.clipboard.writeText(lastHtml);
-    toast('HTML 已复制到剪贴板');
-  } catch(e) {
-    toast('复制失败');
+  // 纯文本兜底（同时写入 text/plain，便于粘贴到纯文本环境）
+  const plain = lastHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  // 非安全上下文（如局域网 IP 访问）/ 旧浏览器：直接同步走 execCommand 兜底，保留用户手势
+  if (!(navigator.clipboard && window.ClipboardItem)) {
+    const ok = copyByExecCommand(lastHtml);
+    toast(ok ? '已复制，可直接粘贴到公众号 ✅' : '复制失败，请手动选择预览内容复制');
+    return;
   }
+  let ok = false;
+  try {
+    // 主路径：写 text/html 富文本，公众号才能渲染成排版样式
+    const item = new ClipboardItem({
+      'text/html': new Blob([lastHtml], { type: 'text/html' }),
+      'text/plain': new Blob([plain], { type: 'text/plain' })
+    });
+    await navigator.clipboard.write([item]);
+    ok = true;
+  } catch (e) {
+    console.warn('clipboard.write(text/html) 失败，尝试 execCommand 兜底', e);
+    ok = copyByExecCommand(lastHtml);
+  }
+  toast(ok ? '已复制，可直接粘贴到公众号 ✅' : '复制失败，请手动选择预览内容复制');
 });
+
+// 富文本复制兜底：隐藏 contenteditable 承载 HTML → 选区 → execCommand('copy')
+function copyByExecCommand(html) {
+  try {
+    const box = document.createElement('div');
+    box.contentEditable = 'true';
+    box.style.position = 'fixed';
+    box.style.left = '-10000px';
+    box.style.top = '-10000px';
+    box.innerHTML = html;
+    document.body.appendChild(box);
+    const range = document.createRange();
+    range.selectNodeContents(box);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    const ok = document.execCommand('copy');
+    sel.removeAllRanges();
+    document.body.removeChild(box);
+    return ok;
+  } catch (e) {
+    console.error('execCommand 复制失败', e);
+    return false;
+  }
+}
 
 // =================================
 // PUSH

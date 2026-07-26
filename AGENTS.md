@@ -61,6 +61,8 @@ python app.py                    # http://127.0.0.1:5000
 # 测试
 python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 40/41 通过
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
+python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，21 项）— 29/29 通过
+python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，26 项）— 26/26 通过
 
 # 清理端口
 taskkill //F //IM python.exe
@@ -102,6 +104,9 @@ taskkill //F //IM python.exe
     .col-preview         → 右：手机预览框（390×760）+ 底部操作栏
       #preview-frame     → iframe 实时预览（srcdoc blob URL）
     .btn-copy / btn-history / btn-push / AI 按钮
+  ⚠️ 加载即自动选中第一套主题（activeTpl = themes[0].id）→ 输入即渲染，无需先手动点选
+  ⚠️ 复制按钮写入 text/html 富文本（ClipboardItem），公众号可直接粘贴成排版样式；
+     非安全上下文（局域网 IP / 旧浏览器）降级走隐藏 contenteditable + execCommand('copy')
 ```
 
 ## 7. 小红书页面关键元素（双引擎 + 自动搜图）
@@ -129,7 +134,9 @@ taskkill //F //IM python.exe
 1. python app.py                            ← 启动服务
 2. python tests/test_integration.py         ← 前后端联动测试
 3. python tests/test_e2e.py                 ← 全量 E2E
-4. 检查 output/ 目录                        ← 验证封面生成
+4. python tests/test_api_e2e.py             ← 后端 API 全端点 E2E（29 项）
+5. python tests/test_headed_full_e2e.py     ← 前端有头全按钮 E2E（双页 26 项）
+6. 检查 output/ 目录                        ← 验证封面生成
 ```
 
 ## 9. 已知注意事项
@@ -148,6 +155,7 @@ taskkill //F //IM python.exe
 - 核心流程：输入 → 自动预处理 → 选主题 → 渲染（零 AI 参与）
 - 新增功能采用并存模式，不替换现有工作代码
 - 所有修改跑 E2E 验证（test_e2e 40/41）+ 集成测试（test_integration 35/35）
+- 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 26 项，0 控制台报错）
 
 ## 11. Agent 工程纪律（通用宪法适配）
 
