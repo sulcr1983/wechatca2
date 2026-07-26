@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperSu 封装为 EXE 调研报告</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a; --txt:#e6e9ef;
+    --muted:#9aa3b2; --accent:#4f9dff; --good:#3ecf8e; --warn:#ffb454; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;font-size:15px}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:28px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+  h2{font-size:20px;margin:36px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+  h3{font-size:16px;margin:22px 0 8px;color:#cdd6e4}
+  p{margin:8px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .verdict{background:linear-gradient(135deg,#13243f,#1a1d24);border:1px solid #2d5a9e}
+  .verdict b{color:var(--accent);font-size:17px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#20242e;color:#cdd6e4;font-weight:600}
+  tr:nth-child(even) td{background:#161922}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .p-good{background:rgba(62,207,142,.15);color:var(--good)}
+  .p-warn{background:rgba(255,180,84,.15);color:var(--warn)}
+  .p-bad{background:rgba(255,107,107,.15);color:var(--bad)}
+  .bar{height:22px;background:#11141b;border-radius:6px;overflow:hidden;margin:6px 0;position:relative}
+  .bar > span{display:block;height:100%;background:linear-gradient(90deg,#3a6fd8,#4f9dff)}
+  .bar > b{position:absolute;right:8px;top:1px;font-size:12px;color:#fff}
+  .tag{font-size:12px;color:var(--muted)}
+  ul{margin:8px 0;padding-left:20px}
+  li{margin:5px 0}
+  code{background:#11141b;padding:2px 6px;border-radius:5px;font-size:13px;color:#ffd9a0}
+  .note{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;margin:10px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  .kpi{text-align:center;padding:14px}
+  .kpi .n{font-size:26px;font-weight:700;color:var(--accent)}
+  .kpi .l{font-size:12px;color:var(--muted)}
+  .foot{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>📦 SuperSu 封装为 EXE 调研报告</h1>
+  <div class="sub">调研日期 2026-07-26 · 目标：让使用者「双击即用」，无需装 Python / Node / 浏览器</div>
+
+  <div class="card verdict">
+    <p style="margin-top:0"><b>一句话结论：</b>对本项目（Flask + Playwright Chromium + Node.js 三件套）而言，
+    <b>「PyInstaller（--onedir 模式）+ Inno Setup 安装包」</b>是效果最好的 EXE 封装路线。</p>
+    <p style="margin-bottom:0">不要用 <code>--onefile</code>（每次启动解压、卡顿明显），也不要用 <b>Nuitka</b>（本项目不是计算密集型，且无收益却要承担 Playwright/PIL 等 C 扩展库的兼容性风险）。</p>
+  </div>
+
+  <h2>1. 背景与诉求</h2>
+  <p>使用者双击 <code>app.py</code> 毫无反应——因为 Windows 用系统默认 Python（未装依赖）去跑，秒报错退出。
+  即便改用一键启动器 <code>start-app.bat</code>，仍依赖本机已有 <b>Python 虚拟环境 + Playwright Chromium + Node.js</b> 三件套。</p>
+  <p>真正的诉求是：<b>打包成一个（或一套）EXE，双击就起服务并自动弹浏览器，目标机器零环境。</b></p>
+
+  <h2>2. 主流 Python→EXE 工具横向对比（2025–2026 视角）</h2>
+  <table>
+    <thead><tr><th>工具</th><th>原理</th><th>易用性</th><th>单包体积</th><th>启动速度</th><th>反编译难度</th><th>本项目适配度</th></tr></thead>
+    <tbody>
+      <tr><td><b>PyInstaller</b></td><td>打包字节码 + 解释器到临时目录运行</td><td><span class="pill p-good">★★★★★</span></td><td>大</td><td>中（onedir 较快）</td><td>低（pyc 易还原）</td><td><span class="pill p-good">最适配</span></td></tr>
+      <tr><td>Nuitka</td><td>Python→C→原生机器码</td><td><span class="pill p-warn">★★★★</span></td><td>小~中</td><td>快</td><td>高（机器码）</td><td><span class="pill p-warn">中等·有风险</span></td></tr>
+      <tr><td>cx_Freeze</td><td>打包目录 + setup 配置</td><td><span class="pill p-warn">★★★★</span></td><td>中</td><td>较快</td><td>低~中</td><td><span class="pill p-warn">中等</span></td></tr>
+      <tr><td>auto-py-to-exe</td><td>PyInstaller 的图形壳</td><td><span class="pill p-good">★★★★★</span></td><td>同 PyInstaller</td><td>同</td><td>低</td><td><span class="pill p-good">仅利于生成 spec</span></td></tr>
+      <tr><td>PyOxidizer</td><td>Rust 生态、内存内加载</td><td><span class="pill p-bad">★★</span></td><td>小~中</td><td>极快</td><td>中~高</td><td><span class="pill p-bad">过低·生态小</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note">关键事实：Playwright <b>官方文档明确支持 PyInstaller</b>（有专门章节，使用 <code>PLAYWRIGHT_BROWSERS_PATH=0</code> 将浏览器打进包）；而 Nuitka 对 Playwright、Pillow 这类含 C 扩展的库兼容性需要额外配置，社区踩坑案例较多。</div>
+
+  <h2>3. 本项目的真实瓶颈（实测体积）</h2>
+  <p>在本机实测，决定分发包大小的不是 Python 代码，而是两个<b>外部重量级运行时</b>：</p>
+  <div class="grid2">
+    <div class="card kpi"><div class="n">251M</div><div class="l">.venv（Flask/Playwright/PIL…）</div></div>
+    <div class="card kpi"><div class="n">~150M</div><div class="l">Playwright Chromium（仅 chromium 单浏览器）</div></div>
+    <div class="card kpi"><div class="n">100M</div><div class="l">Node.js 运行时（BLCaptain 引擎必需）</div></div>
+    <div class="card kpi"><div class="n">74M</div><div class="l">blcaptain-style-skill（含 node_modules）</div></div>
+  </div>
+  <h3>各目录体积占比（解压后分发包 ≈ 580M）</h3>
+  <div class="bar"><span style="width:43%"></span><b>.venv 251M</b></div>
+  <div class="bar"><span style="width:26%"></span><b>Chromium ~150M</b></div>
+  <div class="bar"><span style="width:17%"></span><b>Node 100M</b></div>
+  <div class="bar"><span style="width:13%"></span><b>blcaptain 74M</b></div>
+  <div class="bar"><span style="width:1%"></span><b>public 5.6M + 代码 &lt;1M</b></div>
+  <div class="note">⚠️ 本机 <code>ms-playwright</code> 缓存显示 1.4G，但那包含 firefox/webkit/ffmpeg 全套；本项目只用 chromium，单独 <code>playwright install chromium</code> 实际约 130–170MB。打包时应只装 chromium 以减小体积。</div>
+
+  <h3>两个外部引擎的硬依赖（来自源码确认）</h3>
+  <ul>
+    <li><b>归藏引擎</b> <code>core/guizang_renderer.py</code>：<code>p.chromium.launch()</code> → 必须随包带 <b>Playwright Chromium</b>。</li>
+    <li><b>BLCaptain 引擎</b> <code>core/blcaptain_bridge.py</code>：<code>subprocess.run([self.node_bin, ...])</code>，<code>node_bin</code> 默认系统 <code>node</code> → 必须随包带 <b>Node.exe</b> 并在代码里改指向。</li>
+  </ul>
+
+  <h2>4. 最终推荐：PyInstaller --onedir + Inno Setup</h2>
+  <div class="card">
+    <p style="margin-top:0"><b>为什么是它，而不是别的：</b></p>
+    <ul>
+      <li>✅ <b>Playwright 官方支持</b>：用 <code>PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium</code> 把浏览器打进包，无需用户联网下载。</li>
+      <li>✅ <b>Flask 资源处理成熟</b>：海量案例用 <code>sys._MEIPASS</code> 适配 <code>templates/</code> 与 <code>public/</code> 路径。</li>
+      <li>✅ <b>--onedir 优于 --onefile</b>：启动不二次解压、快；且方便把 Chromium、Node、封面引擎目录平铺进同一目录。</li>
+      <li>✅ <b>Inno Setup 收尾成「一键安装包」</b>：建桌面快捷方式、写卸载、可捆绑运行 <code>playwright install</code> 逻辑，体验最像正常软件。</li>
+      <li>✅ <b>本项目非计算密集</b>：Nuitka 的「编译加速」在这里几乎没有可感知收益，却要承担复杂 C 扩展库兼容性风险，不划算。</li>
+    </ul>
+  </div>
+
+  <h2>5. 打包需要做的代码改造</h2>
+  <table>
+    <thead><tr><th>改造点</th><th>做法</th></tr></thead>
+    <tbody>
+      <tr><td>Flask 资源路径</td><td>在 <code>app.py</code> 用 <code>sys._MEIPASS</code> 判断冻结环境，将 <code>template_folder</code>/<code>static_folder</code> 指向打包内目录</td></tr>
+      <tr><td>Node 运行时</td><td><code>BLCaptainBridge(node_bin=&lt;打包内 node.exe&gt;)</code>，或用环境变量注入；<code>blcaptain_dir</code> 指向打包内目录</td></tr>
+      <tr><td>Chromium</td><td>构建前 <code>PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium</code>；运行时让 <code>PLAYWRIGHT_BROWSERS_PATH</code> 指向打包内浏览器目录</td></tr>
+      <tr><td>PyInstaller 参数</td><td><code>--onedir --add-data "templates;templates" --add-data "public;public" --add-data "blcaptain-style-skill;blcaptain-style-skill" --add-data "node.exe;." --collect-all playwright</code></td></tr>
+      <tr><td>自动弹浏览器</td><td>入口 <code>__main__</code> 保留 <code>webbrowser.open("http://127.0.0.1:5000")</code>，打包后仍自动开</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. 体积与分发预估</h2>
+  <ul>
+    <li>解压后目录 ≈ <b>580M</b>（Python 251 + Chromium 150 + Node 100 + 封面引擎 74 + 静态 6）</li>
+    <li>Inno Setup LZMA 压缩后安装包 ≈ <b>280–380M</b></li>
+    <li>对比现状（start-app.bat 自动下载）：用户机器首次需联网下载 Chromium ~150MB 且需本机有 Node；EXE 方案一次性包含，<b>离线可用</b>。</li>
+  </ul>
+
+  <h2>7. 风险与坑清单</h2>
+  <ul>
+    <li>🔴 <b>杀软误报</b>：含浏览器内核的 EXE 极易被 Windows Defender 误报为病毒。建议代码签名，或安装包内附「加白名单说明」。</li>
+    <li>🟠 <b>版本锁定</b>：Playwright 库版本与 Chromium 版本必须严格一致，用 <code>requirements.txt</code> 锁定。</li>
+    <li>🟠 <b>临时目录权限</b>：PyInstaller 运行时解压到 <code>%TEMP%</code>，需保证写权限。</li>
+    <li>🟡 <b>构建慢</b>：PyInstaller 几分钟；若改用 Nuitka 会到 5–15 分钟且更易失败。</li>
+    <li>🟡 <b>体积大</b>：安装包 300M+，下载/分发成本高（相对「bat + 在线下载」方案）。</li>
+  </ul>
+
+  <h2>8. 替代方案对比</h2>
+  <table>
+    <thead><tr><th>方案</th><th>体验</th><th>工程量</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td><b>A. 现状 bat（已做）</b></td><td>需本机有 venv/Chromium/Node</td><td>低</td><td>自己/内部分发</td></tr>
+      <tr><td><b>B. PyInstaller onedir + Inno Setup</b></td><td>双击安装→桌面图标→自动弹浏览器，零环境</td><td>中</td><td><span class="pill p-good">给普通用户·推荐</span></td></tr>
+      <tr><td>C. 纯 Inno Setup 安装器（装 venv+Chromium+Node）</td><td>同 B，但底层仍是 Python 项目</td><td>中低</td><td>不想折腾 py→exe 时</td></tr>
+      <tr><td>D. Docker 镜像</td><td>需装 Docker，映射端口</td><td>低</td><td>服务器/云端</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9. 给使用者的决策建议</h2>
+  <div class="card">
+    <ul style="margin:0">
+      <li>🎯 目标＝「给不懂 Python 的普通用户一个双击即用的东西」→ 选 <b>方案 B</b>（PyInstaller onedir + Inno Setup），一次性包含 Chromium + Node，离线可用、自动弹浏览器。</li>
+      <li>🛠 目标＝「内部/自己用」→ 现状 bat 或方案 C 安装器足矣，不必 py→exe。</li>
+      <li>🚫 不建议 Nuitka：本项目无性能收益，且 Playwright/PIL 等 C 扩展库在 Nuitka 下兼容性风险高。</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    参考来源：PyInstaller/Nuitka 2026 对比（beatsyncpro.ai、CSDN 实战）、Flask 打包静态资源最佳实践、Playwright 官方 PyInstaller 文档（PLAYWRIGHT_BROWSERS_PATH=0）、PyInstaller+Inno Setup 安装包教程。
+    体积数据为 2026-07-26 本机实测（E:\test\wechatca2）。
+  </div>
+
+</div>
+</body>
+</html>
