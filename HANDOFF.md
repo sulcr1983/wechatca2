@@ -12,6 +12,7 @@
   - **Confirmed**：Flask 3.0+（Python 3.12+，仓库 `.venv` 为 3.12.10），JavaScript (vanilla)，HTML/CSS (custom properties)，Pillow，requests，python-dotenv，Playwright 1.61+
   - **Inferred**：Jinja2 (Flask 内置模板引擎)
 - **运行环境**：Windows，Python 3.12+，端口 5000
+- **Git 推送**：远端 `git@github.com:sulcr1983/wechatca2.git`。全局 `~/.ssh/config` 把 `github.com` 指向 hotnews 部署密钥（对本仓库无写权限，直接用会报 `denied to deploy key`）；本仓库已在 `.git/config` 设 `core.sshCommand` → `~/.ssh/id_ed25519_wechatca2`（专用部署密钥，2026-09-23 实推验证通过）。默认 `git push` 可用，勿删该配置
 - **是否可正常启动**：**Yes**（已验证）
 
 ---
