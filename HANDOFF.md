@@ -6,12 +6,13 @@
 
 - **项目名称**：SuperSu · 公众号排版 + 小红书封面生成工具
 - **项目目标（1句话）**：粘贴纯文本，自动排版为公众号风格 HTML，并可生成小红书封面图，AI 功能可选。
-- **当前状态**：可运行
+- **当前状态**：可运行且全测试矩阵全绿（2026-09-23 全量盘点 + 同日收口）
+- **最近盘点**：2026-09-23（实跑 52/52 · 35/35 · 29/29 · 32/32 · 7/7 · 12/12；原记录风险 6–10 已全部收掉，见 §7。⚠️ 唯一非绿项：上游 LLM 网关 `api.tokenpool.co` 当轮返 500，令有头全按钮套件记 2 条控制台 500、退出码 1——判据未放宽，属环境故障）
 - **技术栈（Confirmed / Inferred）**：
-  - **Confirmed**：Flask 3.0+ (Python 3.10+)，JavaScript (vanilla)，HTML/CSS (custom properties)，Pillow，requests，python-dotenv
+  - **Confirmed**：Flask 3.0+（Python 3.12+，仓库 `.venv` 为 3.12.10），JavaScript (vanilla)，HTML/CSS (custom properties)，Pillow，requests，python-dotenv，Playwright 1.61+
   - **Inferred**：Jinja2 (Flask 内置模板引擎)
-- **运行环境**：Windows，Python 3.10+，端口 5000
-- **是否可正常启动**：**Yes**（已验证，服务正在运行）
+- **运行环境**：Windows，Python 3.12+，端口 5000
+- **是否可正常启动**：**Yes**（已验证）
 
 ---
 
@@ -103,9 +104,10 @@
 
 ### 模块：tests (测试)
 - **状态**：Confirmed
-- **是否可运行**：是（41 个测试函数，涵盖 render/polish/summary/cover/accounts/push/SSE/preprocess）
-- **依赖模块**：Flask test client
-- **失败点**：部分测试依赖 LLM（polish/summary 等），API Key 无效时可能失败
+- **是否可运行**：是（2026-09-23 复核：test_e2e 52/52、test_integration 35/35、test_api_e2e 29/29、test_headed_full_e2e 32/32、test_headed_userflow 7/7、test_headed_wechat_copy 12/12。⚠️ 有头全按钮套件当轮退出码 1：上游 LLM 网关 `api.tokenpool.co` 返 500，`/api/polish` + `/api/summary` 无本地兜底 → 2 条控制台 500，判据不放宽，上游恢复即绿）
+- **依赖模块**：Flask test client / requests / Playwright Chromium
+- **失败点**：无（原 3 项已全部收掉：① tpl-list 陈旧断言 → 改断 `tpl-strip`；② test_e2e 清空 data/*.json → 改为快照 + atexit 还原，已用「写入脏数据后崩溃」实测还原成功；③ userflow 选择器陈旧 / 复制探针 `Object.keys(it.types)` 误报 → 改 `#tpl-strip .tpl-card` 与 `Array.from(it.types)`）
+- **硬化**：6 个测试脚本加 UTF-8 stdout 守卫（GBK 管道不再崩，无需再设 PYTHONIOENCODING）；3 个自起服务的脚本用 `PY = sys.executable` 取代硬编码 WorkBuddy venv 路径
 - **影响范围**：测试覆盖
 
 ### 模块：docs/prototypes/prototype_full.html / docs/prototypes/prototype_ai_simplify.html (旧原型)
@@ -121,8 +123,8 @@
 
 | 文件 | 作用 | Status | Risk | Dependency |
 |------|------|--------|------|------------|
-| `app.py` | Flask 主入口，约 23 条路由（@app.route 实测，非 50） | stable | high | core/*, templates/ |
-| `templates/index.html` | 前端页面 SPA，1233 行 | stable | medium | app.py API |
+| `app.py` | Flask 主入口，23 个路径 / 25 个路由装饰器（@app.route 实测） | stable | high | core/*, templates/ |
+| `templates/index.html` | 前端页面 SPA，1676 行 | stable | medium | app.py API |
 | `core/format_engine.py` | Markdown → 微信 HTML 转换，1835 行 | stable | medium | public/themes/* |
 | `core/preprocessor.py` | 纯文本 → Markdown 规则引擎 | stable | low | 无 |
 | `core/ai_client.py` | 多平台 LLM 客户端 | stable | low | .env config |
@@ -132,8 +134,8 @@
 | `core/crypto_utils.py` | AppSecret 加密/解密 | unknown | medium | 无 |
 | `core/guizang_renderer.py` | 归藏风格封面 HTML→PNG | stable | low | public/cover-templates/* |
 | `core/blcaptain_bridge.py` | BLCaptain 风格封面 (Node.js) | stable | medium | Node.js, blcaptain-style-skill/ |
-| `start_flask.py` | 启动脚本（带自动打开浏览器） | stable | low | app.py |
-| `launcher.py` | PyInstaller 打包入口 | stable | low | app.py |
+| `start_flask.py` | 冗余启动脚本（无浏览器打开逻辑、无任何引用；真实入口为 app.py / start-app.bat） | obsolete | low | app.py |
+| `launcher.py` | 打包入口占位（唯一引用方 build.yml 已于 2026-09-23 删除 → 现零引用；exe 路线已被否决） | obsolete | low | app.py |
 | `public/themes/*.json` | 92 个排版主题配置（45 原创 + 47 xh-* 开源适配） | stable | low | format_engine |
 | `public/cover-templates/*` | 归藏风格的 HTML 封面模板 | stable | low | guizang_renderer |
 | `public/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
@@ -292,22 +294,36 @@ python app.py
 ```
 已验证：服务可正常启动并运行
 
-### Test Command（Confirmed）
+### Test Command（2026-09-23 实跑复核）
 ```bash
-# 1) E2E（Flask test_client，无需起服务）：40/41 通过
-#    （1 项陈旧 UI 断言失败，与 F2 修复无关，属测试自身待清理）
+# 1) E2E（Flask test_client，无需起服务）：52/52 ✅
+#    data/*.json 已做「测试前快照 + atexit 还原」，不再清空真实配置
 python tests/test_e2e.py
 
-# 2) 集成测试（需先起服务 python app.py）：35/35 通过
-#    （已重写为对齐真实前端：字段名 raw_text/theme_id、真实元素 id、
-#      字体容错解析、动态取真实主题 id；封面生成项依赖 playwright+Chromium）
+# 2) 集成测试（需先起服务 python app.py）：35/35 ✅
 python tests/test_integration.py
+
+# 3) 后端 API 全端点（自起服务）：29/29 ✅
+#    ⚠️ 自起服务套件跑前预检端口 5000：被占则 ABORT(2)，避免连旧进程假通过
+python tests/test_api_e2e.py
+
+# 4) 前端有头全按钮（自起服务，需 Chromium）：32/32 ✅ 0 控制台报错
+#    含 AI 摘要 / AI 封面 / AI 润色应用 / 账号 UI 增删；断言「真实产出或真报错」
+#    刻意不点 确认推送 / 保存AI配置 / 测试连接（真实副作用）——由 test_api_e2e 覆盖后端
+python tests/test_headed_full_e2e.py
+
+# 5) 有头用户流程（需先起服务）：7/7 ✅
+python tests/test_headed_userflow.py
+
+# 6) 有头复制/推送/封面旧资产（自起服务）：12/12 ✅
+python tests/test_headed_wechat_copy.py
 ```
 
-### Build Command（Inferred）
+### Build Command（暂无）
 ```bash
-# 推测用于 PyInstaller 打包
-pyinstaller launcher.py  # 未验证
+# 无构建步骤：本项目为 Python 源码直跑（python app.py）
+# CI 构建工作流 .github/workflows/build.yml 已于 2026-09-23 删除（Nuitka 参数陈旧 + exe 封装被否决）
+# exe 封装结论见 docs/exe-packaging-report.html（PyInstaller + Inno Setup），尚未实施
 ```
 
 ---
@@ -352,6 +368,24 @@ pyinstaller launcher.py  # 未验证
    - trigger：不触发
    - risk：低，但可能误导开发者
    - workaround：可以删除（用户已确认"原型图不管了"）
+
+### 2026-09-23 全量盘点新增
+
+> 6–10 均为 2026-09-23 盘点发现，**同日全部收掉**，保留记录备查。
+
+6. **[MAJOR] test_e2e 会把用户数据清空 → ✅ 已修**
+   - 原状：`tests/test_e2e.py` 结尾无条件把 `data/*.json` 重写为 `[]`（accounts / history / ai_config）；本轮实跑后三文件均为 2 字节 `[]`，且 data/ 从未入库、无法从 git 恢复
+   - 修复：测试前快照内容 + `atexit` 还原（已有文件还原、测试新增文件删除）。已实测：跑完 41/41 后三文件 md5 不变；再模拟「写入脏数据后抛异常崩溃」，退出后脏数据被还原、新增文件被清除
+7. **[MAJOR] CI 工作流损坏且与决策矛盾 → ✅ 已删**
+   - `.github/workflows/build.yml` 用 Nuitka + `assets=` 旧路径（已更名 `public/`）+ `data=data`（gitignore 目录，CI 上不存在）+ `nuitka-onefile`（无效包），push 到 main 必失败；且 exe 封装已被用户否决
+   - 处置：`git rm .github/workflows/build.yml`（exe 路线调研结论仍保留在 `docs/exe-packaging-report.html`）
+8. **[MAJOR] requirements.txt playwright 版本声明过宽 → ✅ 已修**
+   - `playwright>=1.40` 与已记录事实「<1.61 driver 必挂」矛盾；已改为 `>=1.61`（两处 venv 实际均为 1.61.0）
+9. **[MINOR] 测试硬编码解释器绝对路径 → ✅ 已修**
+   - `test_api_e2e.py` / `test_headed_full_e2e.py` / `test_headed_wechat_copy.py` 原硬编码 WorkBuddy venv 绝对路径，换机即挂；已改为 `PY = sys.executable`
+10. **[MINOR] 本地领先 origin/main 4 个提交未推送 → ✅ 已推送**
+   - `87949b7` `66e8bc3` `ad80b7e` `7ebaade` 已推上 origin/main（走 HTTPS：SSH deploy key 绑定 hotnews_local，对 wechatca2 无写权限）
+   - ⚠️ 遗留：remote URL 仍是 SSH，后续直接 `git push` 会再被拒；要么改 remote 为 HTTPS，要么给 wechatca2 配对应 deploy key
 
 ---
 
@@ -400,15 +434,60 @@ pyinstaller launcher.py  # 未验证
 - **模板筛选增强**：`renderTplList()` 过滤由仅匹配 `name` 扩展为同时匹配 `name + id + group`，英文 id（如 editorial）也可搜到。
 - **全系统 E2E（用户要求「所有按钮/输出/前后端都测一次」）**：
   - 新增 `tests/test_api_e2e.py`：后端 21 个端点全量 HTTP 校验（含账号 CRUD 闭环、AI 优雅降级、静态资源、推送校验路径），**29/29 通过**。
-  - 新增 `tests/test_headed_full_e2e.py`：有头浏览器逐一点击公众号页 13 个交互 + 小红书页 10 个交互（含复制富文本探针、Lightbox 大图、底图署名），**26/26 通过，0 控制台报错**。
+  - 新增 `tests/test_headed_full_e2e.py`：有头浏览器逐一点击公众号页 13 个交互 + 小红书页 10 个交互（含复制富文本探针、Lightbox 大图、底图署名），**26/26 通过，0 控制台报错**。（该套后续扩至 **32 项 / 32/32 通过**，见变更 7）
 - **验证**：双 E2E 全绿；Pillow 校验三张封面 PNG 均有效（xhs 1080×1440 / square 1080×1080 / wide 2100×900）。
 - **风险**：低。复制富文本依赖 `navigator.clipboard` 安全上下文，已做 execCommand 兜底。
+
+### 变更 6：全量盘点 + 同日收口（2026-09-23）🆕
+- **盘点基线（真实执行）**：test_e2e 41/41、test_integration 34/35（tpl-list 陈旧断言）、test_api_e2e 29/29、test_headed_full_e2e 27/27；封面三引擎（editorial/swiss/mist）实跑 200 + 真实 PNG（1.9–7.7MB）+ Wikimedia 实搜底图。
+- **文档修正**：`AGENTS.md` §4/§5/§6/§9/§10/§11 同步真实计数、补 5 条缺失路由、修正 `.topbar/.tab-btn` 结构。
+- **盘点发现的 5 项风险（6–10）当日全部收掉**：
+  - test_e2e 数据保护（快照 + atexit 还原，含崩溃路径实测）
+  - 删除损坏 CI `.github/workflows/build.yml`
+  - `requirements.txt` playwright `>=1.40` → `>=1.61`
+  - 3 个测试脚本 `PY = sys.executable` 取代硬编码 venv 路径
+  - 4 笔未推送提交推送至 origin/main
+- **测试资产修复**：集成 tpl-list → tpl-strip 断言；userflow `#tpl-list .tpl-item` → `#tpl-strip .tpl-card`；复制探针 `Object.keys(it.types)` → `Array.from(it.types)`；6 个脚本加 UTF-8 stdout 守卫。
+- **清理**：`output/`（752MB → 9.6MB）、`test_output/`、`temp_covers/` 缓存、`.pytest_cache`、`__pycache__`；保留 `output/e2e_audit/`（审计证据）、`reports/`、`data/`。
+- **收口后全矩阵（真实执行）**：41/41 · 35/35 · 29/29 · 32/32 · 7/7 · 12/12，共 **156/156 全绿**，且 `data/*.json` 跑测后 md5 不变。
+
+### 变更 7：有头套件补盲 5 个按钮 + 修掉自己的假阳性（2026-09-23）🆕
+- **背景**：核对 `templates/index.html` 全部 29 个 `<button>` 后发现，有头套件虽叫「全按钮」，实际有 8 个按钮的**前端点击链路**从未被点过（只有后端被 `test_api_e2e` 覆盖）。
+- **补测 5 个安全项**（用户选定范围）：`polish-apply`（应用到编辑区）、`genSummary`（AI 摘要）、`genCover`（AI 封面）、`addAccount` / `deleteAccount`（账号 UI 增删）。
+- **安全策略**：账号走「UI 建 → UI 删」自清理；套件加 `data/*.json` 快照 + atexit 还原（建账号会写 `accounts.json`）。实测跑完 `accounts.json` 仍为 `[]`、md5 不变。
+- **刻意不点 3 个**（真实副作用，后端已覆盖）：`confirmPush`（真打微信接口）、`saveAiConfig` / `testAiConfig`（会覆盖 `data/ai_config.json`）。
+- **修掉自己的假阳性**：初版用固定 `sleep` 判「优雅降级」，导致 LLM 响应慢（>3s / >8s）被误判成"降级"而**假通过**（当时 31/32，唯一 FAIL 正是等待过短）。改为 `wait_for_function` 轮询到「真实产出 or 真报错」，并把"超时未结束且未报错"判为 FAIL。
+- **修复后实测（真实产出）**：润色结果写回编辑区（50 字）、AI 摘要 90 字、AI 封面 `#cover-preview` 内真实 `<img>`、账号列表增删各 1 行 → **32/32 通过，0 控制台报错**。
+
+### 变更 8：智能排版「LLM 优先 / 本地兜底」+ 自起服务套件端口预检（2026-09-23）🆕
+- **背景**：用户问「能不能自动排版？」——现状是 `/api/ai-format` 未配 LLM 时直接 500「AI排版失败，请检查AI配置」，即"没有配置就什么也不给"。用户拍板：**按钮降级**（不做输入即自动跑 LLM，保持「AI 不自动触发」约束）。
+- **后端**：`core/ai_client.py` 新增 `is_configured()`（单真源：`base_url` + `api_key` 齐备）；`app.py:/api/ai-format` 三态——① LLM 成功 → `engine=llm`；② **未配置** → 本地 `preprocess` 兜底 `engine=local`（200，不是错误）；③ **已配置但调用失败** → 真报错 500，**不静默降级**。
+- **前端**：`#btn-ai-format` 按 `data.engine` 提示「AI 排版完成」或「未配置 AI，已用本地规则排版」。
+- **顺带修掉一个假通过陷阱**：三个「自起服务」套件（`test_api_e2e` / `test_headed_full_e2e` / `test_headed_wechat_copy`）原先不做端口预检——若用户自己的 `app.py` 正占着 5000，被测子进程 bind 失败退出，`wait_server()` 会连上**旧进程**，于是拿陈旧代码静默假通过。现统一加 `_port_busy()` 预检，命中则 ABORT（退出码 2）。
+- **实测证据**：`test_e2e` 新增 3 项分支测试（桩 `call_llm`/`is_configured` 覆盖 llm / local / 真报错三态）→ **44/44**；有头套件 AI 排版步改为读 toast + 断言编辑区真实改写，实跑 `toast='AI 排版完成'；50 字 → 61 字`（真实 LLM，5.4s）→ **32/32**；线上 `POST /api/ai-format` 返回 `engine=llm`。全矩阵 **44/44 · 35/35 · 29/29 · 32/32 · 7/7 · 12/12 = 159/159**。
+
+### 变更 9：智能排版改为「AI 只出结构决策 JSON，正文本地原样套用」（2026-09-23）🆕
+> ⚠️ 本条描述的「JSON 解析失败 → 500 真报错」契约已由 **变更 10** 取代（改为降级本地 + 说明原因）；计数 48/48 亦为当时值，现为 52/52。此处保留为历史记录。
+- **背景**：用户反馈 AI 排版「没啥变化 / 分节不稳定」——原实现让 LLM **重写整篇文章**再吐 Markdown，同一篇文章跑出 1/4/1 个小节；用户拍板「有问题先网络调研方案，不要自己造轮子折腾」「GitHub 上很多同类项目，去抄他们的方案」。
+- **调研结论（同类项目实测）**：`doocs/md`（13.4k★）AI 只有润色/翻译/总结，无自动分节；`caol64/wenyan-mcp` 无提示词；真正可抄的是 `Suxingyu111/ai-article-creator`——**每个 LLM 步骤都用结构化 schema（`OutlineResult`/`BodySection`），调用带 `response_format={"type":"json_object"}`，解析失败有兜底**；小标题写作规则来自 `CH3SH-LC/wechat-mp`（4-12 字、全文 3-5 个、句式家族统一、句尾不带标点）。
+- **新实现**：`app.py:/api/ai-format` 把原文按空行切段并编号喂给 LLM，**LLM 只返回决策 JSON**（`{"title","sections","lists","bold"}`），正文由新增的 `core/preprocessor.apply_structure()` 按段号原样套用标记——**一个字都不改写**；越界段号 / 区间重叠 / 词不在原文中一律忽略该项（LLM 输出属系统边界）。JSON 解析失败 → 500 真报错，不静默降级。
+- **稳定性加固**：`core/ai_client.py` 新增 `_post_with_retry()`——网关 429/5xx/连接超时退避 1 秒重试一次（观察到的中转站偶发 500 与 20s+ 慢响应），超时 30s → 45s；`json_mode=True` 时带 `response_format`，遇不支持该参数的中转自动去掉重试一次。
+- **实测证据**：你的真实端点探测 `response_format` → HTTP 200（支持）；同一篇文章 3 连跑 → 小节数 **2/2/2**、节边界一致、**正文缺失段 = 0**（仅新增小节标题），7-8s/次；改前为 1/4/1。HTTP 直连线上进程 3 连跑 → 200/200/200；有头浏览器点击「AI 智能排版」→ 绿色 h1 + 2 个 h2 小节 + 加粗，0 控制台报错（截图 `output/ai_format_check/9_before_plan.png`、`10_after_plan.png`）。`test_e2e` 新增 5 项智能排版测试 + 2 项客户端重试测试 → **48/48**；全矩阵 **48/48 · 35/35 · 29/29 · 32/32 · 7/7 · 12/12 = 163/163**。
+
+### 变更 10：本地兜底也能自动排 + AI 失败改降级本地（2026-09-23）🆕
+- **背景**：用户指出上一轮只做了 LLM 路径，要求「没有 LLM、降级本地也要能自动排」，并再次强调先调研同行。另发现用户的上游网关 `api.tokenpool.co` **当时正在返 500**，导致「智能排版」必然报错——即旧契约「已配置但失败 → 真报错 500」在网关不稳时会让按钮完全不可用。
+- **调研结论（核到源码）**：主流项目**没有**用本地规则给无标记散文分节的先例——`doocs/md` 的「一键排版」实为 Prettier 格式化（`headings.ts` 只从已有 `#` 抽大纲）；`wenyan-mcp` 只吃 Markdown；135编辑器/壹伴都要求用户先把标题正文标清楚；唯一同类 [Word-Formatter-Pro](https://github.com/cwyalpha/Word-Formatter-Pro) 只认编号正则（`wfp_core.py`）且**明确不提升散文段**。非 LLM 的散文分节只有 TextTiling/embedding 路线，与「不用 AI 就不开 AI」冲突。
+- **实测证伪**：「我原本是可以的」不成立于本地规则链——把 6 个历史版本（`f2bbb16` → `99581f2`）逐版回放，对这篇散文体文章**都识别不出任何 `##`**，本地路径从来只能加 `#` 大标题。
+- **本地增强（确定性识别）**：`core/preprocessor.py` 新增并列清单规则——箭头行 `掏手机 → 找 App → …` 拆成多条 `- ` 项（≥3 项、每项 ≤14 字、项内无逗号才算），项目符号行 `·•●○` 转列表；`_to_list_items()` 同时被 `apply_structure` 复用，**因此 AI 路径也恒定生效**（此前 AI 计划没标 lists 时那句箭头行会丢列表，截图已证）。散文主题句提升**刻意不做**（用户拍板）。
+- **AI 失败改降级**：用户拍板「失败也降级本地」。`app.py:/api/ai-format` 三态合并为两态——LLM 成功 `engine=llm`；未配置 / 调用失败 / 结构不可解析 → 一律 `preprocess` 兜底 `engine=local` + `fallback` 原因；`core/ai_client.call_llm` 新增可选 `error_out` 参数回传底层原因（`_llm_fail_reason()` 压成「网关 HTTP 500」或「网络异常或超时」）。
+- **实测证据**：真实网关 500 期间线上 `POST /api/ai-format` → `engine=local`、`fallback='AI 网关 HTTP 500，已用本地规则排版'`，本地产出含 4~5 条列表项、正文零改写；有头浏览器点击 → toast 与预览同步，**0 控制台报错**（截图 `output/ai_format_check/13_local_fallback_toast.png`，改前基线 `11_local_before.png`、改后 `12_local_after.png`）。92/92 主题对列表与 `---` 渲染验证通过；仓库 91 条含箭头的散文行仅 1 条会被转列表（那条本身即步骤序列）。`test_e2e` **52/52**。
 
 ---
 
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）
+> 2026-09-23 盘点注：本项已过期（用户早已在使用新前端），下一步建议待重新规划。
 - **action**：确认用户能看到最新前端并收集反馈
 - **reason**：用户已连续 2 次抱怨"页面没变"，需要先解决信任问题再继续开发
 - **affected files**：templates/index.html
@@ -426,5 +505,5 @@ pyinstaller launcher.py  # 未验证
 
 - **当前最大风险**：用户对前端状态存在认知差距——"看不到新页面"被理解为"代码没改"，实际是浏览器缓存问题。这影响了用户对进度的信任。
 - **哪个模块最不稳定**：**wechat_publisher.py** — 依赖微信公众号白名单和公网 IP，环境要求高，不适用本地开发测试
-- **哪个改动最危险**：直接修改 **templates/index.html** 的 JS 逻辑可能破坏与其他 API 的交互；修改 **core/format_engine.py** 的样式注入逻辑可能影响 53 个主题
+- **哪个改动最危险**：直接修改 **templates/index.html** 的 JS 逻辑可能破坏与其他 API 的交互；修改 **core/format_engine.py** 的样式注入逻辑可能影响 92 套主题
 - **是否建议先修复再开发**：**是**——先让用户亲眼确认新前端已生效（截图/共享屏幕/Ctrl+F5），再按用户反馈迭代

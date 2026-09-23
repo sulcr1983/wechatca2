@@ -932,7 +932,7 @@ document.getElementById('btn-ai-format').addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'failed');
     if (data.markdown) inputArea.value = data.markdown;
-    toast('AI 排版完成');
+    toast(data.fallback || (data.engine === 'local' ? '未配置 AI，已用本地规则排版' : 'AI 排版完成'));
     doRender();
   } catch(e) {
     toast('AI 排版失败: ' + e.message);

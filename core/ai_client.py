@@ -137,6 +137,12 @@ def _save_config(config: dict):
         json.dump(saved, f, ensure_ascii=False, indent=2)
 
 
+def is_configured() -> bool:
+    """是否已配置可用的 LLM（base_url + api_key 齐备）"""
+    config = _load_config()
+    return bool(config.get("base_url") and config.get("api_key"))
+
+
 def get_current_config():
     """获取当前配置（供前端调用）"""
     config = _load_config()
@@ -224,62 +230,102 @@ def _test_with_chat(platform, base_url, api_key, model):
         return {"success": False, "error": str(e)}
 
 
-def call_llm(system_prompt: str, user_prompt: str) -> str:
-    """调用 LLM"""
+def call_llm(system_prompt: str, user_prompt: str, temperature: float = None,
+             json_mode: bool = False, error_out: list = None) -> str:
+    """调用 LLM；temperature 为 None 时用平台默认（格式化类任务建议传低值以求稳定）
+
+    json_mode=True 时要求模型返回 JSON 对象（OpenAI 兼容接口用 response_format）
+    error_out 传入列表时，失败原因会追加进去（供调用方提示用户，不影响返回值）
+    """
     config = _load_config()
     base_url = config.get("base_url", "")
     api_key = config.get("api_key", "")
     model = config.get("model", "")
     platform = config.get("platform", "custom")
 
-    if not base_url or not api_key:
-        logger.warning("LLM 未配置")
+    def _fail(msg):
+        logger.warning("LLM 调用失败: %s", msg)
+        if error_out is not None:
+            error_out.append(str(msg))
         return ""
+
+    if not base_url or not api_key:
+        return _fail("未配置 base_url / api_key")
 
     try:
         if platform == "gemini":
-            return _call_gemini(base_url, api_key, model, system_prompt, user_prompt)
+            return _call_gemini(base_url, api_key, model, system_prompt, user_prompt, temperature, json_mode)
         else:
-            return _call_openai_compatible(base_url, api_key, model, system_prompt, user_prompt)
+            return _call_openai_compatible(base_url, api_key, model, system_prompt, user_prompt, temperature, json_mode)
     except Exception as e:
-        logger.warning("LLM 调用失败: %s", e)
-        return ""
+        return _fail(e)
 
 
-def _call_openai_compatible(base_url, api_key, model, system_prompt, user_prompt):
+# LLM 网关偶发限流/网关错误：重试一次再判失败（OpenAI SDK 默认也带重试）
+_RETRY_STATUS = (429, 500, 502, 503, 504)
+_LLM_TIMEOUT = 45
+
+
+def _post_with_retry(url, headers, payload, timeout=_LLM_TIMEOUT):
+    """429/5xx/连接超时 → 退避 1 秒重试一次；其余状态码原样返回"""
+    for attempt in (0, 1):
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
+        except requests.exceptions.RequestException:
+            if attempt:
+                raise
+        else:
+            if resp.status_code not in _RETRY_STATUS or attempt:
+                return resp
+        time.sleep(1)
+
+
+def _call_openai_compatible(base_url, api_key, model, system_prompt, user_prompt,
+                            temperature=None, json_mode=False):
     """调用 OpenAI 兼容接口"""
-    resp = requests.post(
-        f"{base_url}/chat/completions",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        },
-        timeout=30,
-    )
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+    if temperature is not None:
+        payload["temperature"] = temperature
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+    url = f"{base_url}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    resp = _post_with_retry(url, headers, payload)
+    # 部分中转/自建网关不支持 response_format，去掉该参数重试一次
+    if json_mode and resp.status_code == 400 and "response_format" in resp.text:
+        payload.pop("response_format", None)
+        resp = _post_with_retry(url, headers, payload)
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"].strip()
 
 
-def _call_gemini(base_url, api_key, model, system_prompt, user_prompt):
+def _call_gemini(base_url, api_key, model, system_prompt, user_prompt,
+                 temperature=None, json_mode=False):
     """调用 Gemini API"""
     url = f"{base_url}/models/{model}:generateContent?key={api_key}"
-    resp = requests.post(
-        url,
-        json={
-            "contents": [
-                {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_prompt}]}
-            ]
-        },
-        timeout=30,
-    )
+    payload = {
+        "contents": [
+            {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_prompt}]}
+        ]
+    }
+    if temperature is not None or json_mode:
+        gen_config = {}
+        if temperature is not None:
+            gen_config["temperature"] = temperature
+        if json_mode:
+            gen_config["responseMimeType"] = "application/json"
+        payload["generationConfig"] = gen_config
+    resp = _post_with_retry(url, {}, payload)
     resp.raise_for_status()
     data = resp.json()
     return data["candidates"][0]["content"]["parts"][0]["text"].strip()

@@ -3,6 +3,7 @@
 覆盖所有 API 端点、SSE 流、边界条件、错误处理。
 """
 
+import atexit
 import json
 import sys
 import time
@@ -10,8 +11,32 @@ import threading
 import io
 from unittest.mock import patch, MagicMock
 
+# Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
+try:
+    if (sys.stdout.encoding or "").lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 sys.path.insert(0, ".")
 from app import app, _opt_store, _opt_lock, DATA_DIR
+
+# 测试前快照 data/*.json，结束时恢复（避免破坏用户真实配置）
+# 用 atexit 而非仅尾部收尾：测试中途抛异常时也能还原
+_DATA_SNAPSHOT = {p.name: p.read_text(encoding="utf-8") for p in DATA_DIR.glob("*.json")}
+
+
+def _restore_data():
+    # 已有文件还原内容；测试新增文件删除
+    for f in DATA_DIR.glob("*.json"):
+        if f.name in _DATA_SNAPSHOT:
+            f.write_text(_DATA_SNAPSHOT[f.name], encoding="utf-8")
+        else:
+            f.unlink(missing_ok=True)
+
+
+atexit.register(_restore_data)
 
 # ============================================================
 # Mock 外部依赖
@@ -680,6 +705,175 @@ def test_preprocess_quote():
         assert "> " in md
 
 
+@test("预处理: 箭头并列行 → 列表（本体零改写）")
+def test_preprocess_arrow_list():
+    raw = "每天回家都要走一套流程：\n\n掏手机 → 找 App → 点开门\n\n就这样。"
+    with app.test_client() as c:
+        r = c.post("/api/render", json={"raw_text": raw, "theme_id": "monocle"})
+        assert r.status_code == 200
+        md = r.get_json()["markdown"]
+    assert "- 掏手机\n- 找 App\n- 点开门" in md, md
+    for word in ("掏手机", "找 App", "点开门"):
+        assert word in md, md
+
+
+@test("预处理: 长句含箭头 → 不误判成列表")
+def test_preprocess_arrow_not_list():
+    raw = "从用户输入 → 经过一轮本地正则预处理 → 最后交给主题引擎渲染成内联 HTML 输出"
+    with app.test_client() as c:
+        r = c.post("/api/render", json={"raw_text": raw, "theme_id": "monocle"})
+        assert r.status_code == 200
+        md = r.get_json()["markdown"]
+    assert "- " not in md, md
+    assert "内联 HTML" in md, md
+
+
+@test("预处理: 项目符号行 → Markdown 列表")
+def test_preprocess_bullet_lines():
+    raw = "准备清单\n\n• 手机\n● 电脑\n· 充电器"
+    with app.test_client() as c:
+        r = c.post("/api/render", json={"raw_text": raw, "theme_id": "monocle"})
+        assert r.status_code == 200
+        md = r.get_json()["markdown"]
+    assert "- 手机\n- 电脑\n- 充电器" in md, md
+    assert "•" not in md and "●" not in md, md
+
+
+# ── AI 智能排版：LLM 只出结构决策(JSON)，正文由本地原样套用 ──
+
+@test("AI智能排版: LLM 返回结构JSON → 本地套用，正文一字不改 (engine=llm)")
+def test_ai_format_llm_path():
+    plan = ('{"title": 0, "sections": [{"heading": "先看结论", "start": 1, "end": 2}], '
+            '"lists": [{"start": 2, "end": 2}], "bold": [{"p": 1, "words": ["Flutter"]}]}')
+    text = "苏哥标题\n\nFlutter 方案跑通了。\n\n• 第一项\n• 第二项"
+    with patch("app.call_llm", return_value=plan) as m, \
+         patch("app.is_configured", return_value=True):
+        with app.test_client() as c:
+            r = c.post("/api/ai-format", json={"text": text})
+            assert r.status_code == 200, r.status_code
+            j = r.get_json()
+            assert j["success"] is True, j
+            assert j["engine"] == "llm", j
+            md = j["markdown"]
+    assert md.startswith("# 苏哥标题"), md
+    assert "## 先看结论" in md, md
+    assert "**Flutter** 方案跑通了。" in md, md
+    assert "- 第一项\n- 第二项" in md, md
+    assert m.call_args.kwargs.get("json_mode") is True, m.call_args
+
+
+@test("AI智能排版: 段号越界的结构 → 忽略非法项，不报错且正文不丢")
+def test_ai_format_bad_plan_is_clamped():
+    plan = ('{"title": 99, "sections": [{"heading": "越界节", "start": 5, "end": 9}, '
+            '{"heading": "正常节", "start": 1, "end": 1}, '
+            '{"heading": "重叠节", "start": 1, "end": 2}], '
+            '"lists": [{"start": -3, "end": 1}], "bold": [{"p": 0, "words": ["不存在的词"]}]}')
+    with patch("app.call_llm", return_value=plan), \
+         patch("app.is_configured", return_value=True):
+        with app.test_client() as c:
+            r = c.post("/api/ai-format", json={"text": "标题段\n\n正文一\n\n正文二"})
+            assert r.status_code == 200, r.status_code
+            md = r.get_json()["markdown"]
+    assert md.startswith("# 标题段"), md
+    assert "越界节" not in md and "重叠节" not in md, md
+    assert "## 正常节" in md, md
+    assert "正文一" in md and "正文二" in md, md
+
+
+@test("AI智能排版: 未配置 LLM → 本地规则兜底 (200, engine=local)")
+def test_ai_format_local_fallback():
+    with patch("app.call_llm", return_value=""), \
+         patch("app.is_configured", return_value=False):
+        with app.test_client() as c:
+            r = c.post("/api/ai-format", json={"text": "苏哥标题\n第一段正文。"})
+            assert r.status_code == 200, r.status_code
+            j = r.get_json()
+            assert j["success"] is True, j
+            assert j["engine"] == "local", j
+            assert j["markdown"].startswith("# 苏哥标题"), j["markdown"]
+
+
+@test("AI智能排版: 已配置但调用失败 → 本地兜底 + 说明原因 (200, engine=local)")
+def test_ai_format_failure_falls_back_local():
+    with patch("app.call_llm", return_value=""), \
+         patch("app.is_configured", return_value=True):
+        with app.test_client() as c:
+            r = c.post("/api/ai-format", json={"text": "标题\n正文段落。"})
+            assert r.status_code == 200, r.status_code
+            j = r.get_json()
+    assert j["success"] is True, j
+    assert j["engine"] == "local", j
+    assert j["markdown"].startswith("# 标题"), j["markdown"]
+    assert "已用本地规则排版" in j["fallback"], j
+
+
+@test("AI智能排版: 失败原因带上游状态码，便于排查（不是静默降级）")
+def test_ai_format_failure_reason_carries_status():
+    def fake_call(system, user, **kw):
+        kw["error_out"].append("500 Server Error: Internal Server Error for url: ...")
+        return ""
+
+    with patch("app.call_llm", side_effect=fake_call), \
+         patch("app.is_configured", return_value=True):
+        with app.test_client() as c:
+            j = c.post("/api/ai-format", json={"text": "标题\n正文段落。"}).get_json()
+    assert j["engine"] == "local", j
+    assert "HTTP 500" in j["fallback"], j
+
+
+@test("AI智能排版: LLM 返回非 JSON → 本地兜底且说明原因（不静默）")
+def test_ai_format_unparsable_falls_back_local():
+    with patch("app.call_llm", return_value="这是解释文字，不是 JSON"), \
+         patch("app.is_configured", return_value=True):
+        with app.test_client() as c:
+            r = c.post("/api/ai-format", json={"text": "标题\n正文段落。"})
+            assert r.status_code == 200, r.status_code
+            j = r.get_json()
+    assert j["engine"] == "local", j
+    assert "返回结构无法解析" in j["fallback"], j
+    assert j["markdown"].startswith("# 标题"), j["markdown"]
+
+
+class _FakeResp:
+    def __init__(self, code, body=None):
+        self.status_code = code
+        self.text = json.dumps(body or {})
+        self._body = body or {}
+
+    def json(self):
+        return self._body
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError("HTTP %d" % self.status_code)
+
+
+@test("LLM 客户端: 网关 503 → 退避重试一次，成功即返回")
+def test_llm_retry_once_on_transient():
+    from core.ai_client import _call_openai_compatible
+
+    ok = _FakeResp(200, {"choices": [{"message": {"content": " hello "}}]})
+    with patch("core.ai_client.requests.post", side_effect=[_FakeResp(503), ok]) as m, \
+         patch("core.ai_client.time.sleep"):
+        out = _call_openai_compatible("http://x/v1", "k", "m", "sys", "user")
+    assert out == "hello", out
+    assert m.call_count == 2, m.call_count
+
+
+@test("LLM 客户端: 网关 400（非重试码）→ 不重试，直接抛错")
+def test_llm_no_retry_on_client_error():
+    from core.ai_client import _call_openai_compatible
+
+    with patch("core.ai_client.requests.post", return_value=_FakeResp(401)) as m, \
+         patch("core.ai_client.time.sleep"):
+        try:
+            _call_openai_compatible("http://x/v1", "k", "m", "sys", "user")
+            raise AssertionError("应当抛错")
+        except RuntimeError:
+            pass
+    assert m.call_count == 1, m.call_count
+
+
 # ── 线程安全 ──
 
 @test("_opt_store 并发读写安全")
@@ -814,9 +1008,6 @@ else:
     print(" ✅ 全部通过!")
 print("=" * 60)
 
-# 清理测试数据文件
-import glob
-for f in DATA_DIR.glob("*.json"):
-    f.write_text("[]", encoding="utf-8")
+_restore_data()
 
 sys.exit(0 if failed == 0 else 1)

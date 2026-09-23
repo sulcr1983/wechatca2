@@ -15,6 +15,14 @@ import sys
 import time
 from playwright.sync_api import sync_playwright
 
+# Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
+try:
+    if (sys.stdout.encoding or "").lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 BASE = "http://127.0.0.1:5000"
 results = []          # (名称, 是否通过, 详情)
 console_errors = []   # 页面 JS 报错
@@ -50,10 +58,10 @@ def run():
         check("公众号文案已输入", True)
 
         # 等待主题加载，点击第一个主题触发渲染
-        page.wait_for_selector("#tpl-list .tpl-item", timeout=10000)
-        tpl_count = page.locator("#tpl-list .tpl-item").count()
+        page.wait_for_selector("#tpl-strip .tpl-card", timeout=10000)
+        tpl_count = page.locator("#tpl-strip .tpl-card").count()
         check("主题列表已加载", tpl_count > 0, f"{tpl_count} 套主题")
-        page.locator("#tpl-list .tpl-item").first.click()
+        page.locator("#tpl-strip .tpl-card").first.click()
 
         # 等待预览 iframe 出现内容（自动渲染带 400ms 防抖）
         try:

@@ -2,7 +2,7 @@
 
 > **粘贴纯文本，自动排版。不需要 AI 的时候，一步都不用点。**
 
-[![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
@@ -214,16 +214,27 @@ PEXELS_API_KEY=your-pexels-key
 
 ```bash
 # E2E（无需起服务，Flask test_client）
-python tests/test_e2e.py              # 40/41 通过
+python tests/test_e2e.py              # 52/52 通过
 
 # 集成测试（需先启动 python app.py）
 python tests/test_integration.py       # 35/35 通过
+
+# 后端 API 全端点 E2E（脚本自起/自停服务，29 项）
+python tests/test_api_e2e.py           # 29/29 通过
+
+# 前端有头全按钮 E2E（双页 32 项，需 Chromium）
+# 覆盖 AI 摘要 / AI 封面 / AI 润色应用 / 账号 UI 增删；0 控制台报错
+python tests/test_headed_full_e2e.py   # 32/32 通过
 
 # 有头浏览器用户流程验证（需 Chromium）
 python tests/test_headed_userflow.py   # 7/7 通过
 ```
 
-健康度口径：**E2E 40/41 + 集成 35/35 + 有头冒烟 7/7**。
+健康度口径：**E2E 52/52 + 集成 35/35 + API 29/29 + 有头全按钮 32/32**（+ 有头用户流程 7/7、有头复制 12/12）。
+
+> 有头套件刻意不点 3 个有真实副作用的按钮——`确认推送`（真打微信接口）、`保存AI配置`、`测试连接`（会覆盖配置）；其后端路径由 `test_api_e2e.py` 覆盖。
+
+> ⚠️ `test_e2e.py` 会读写 `data/*.json`，但已在测试前后做快照 / 还原；仍建议跑测前备份真实配置。
 
 ---
 
@@ -231,7 +242,7 @@ python tests/test_headed_userflow.py   # 7/7 通过
 
 ```
 wechatca2/
-├── app.py                      # Flask 主应用（~30 条路由）
+├── app.py                      # Flask 主应用（23 条路由）
 ├── core/
 │   ├── format_engine.py        # 排版引擎（92 主题 Markdown → 微信 HTML）
 │   ├── preprocessor.py         # 纯文本 → Markdown（正则规则，零延迟）

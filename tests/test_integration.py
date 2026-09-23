@@ -16,8 +16,17 @@
 """
 
 import re
+import sys
 import requests
 import time
+
+# Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
+try:
+    if (sys.stdout.encoding or "").lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 BASE = "http://127.0.0.1:5000"
 passed, failed = 0, 0
@@ -74,7 +83,7 @@ check("文案输入框 (social-text)", "social-text" in html)
 check("模板网格 (social-tpl-grid)", "social-tpl-grid" in html)
 check("生成按钮 (btn-generate-cover)", "btn-generate-cover" in html)
 check("字数统计 (social-char-count)", "social-char-count" in html)
-check("模板列表 (tpl-list)", "tpl-list" in html)
+check("模板列表 (tpl-strip)", "tpl-strip" in html)
 
 # ── 4. 主题API ─────────────────────────────────────────
 print("\n[4] 主题API")
@@ -118,13 +127,22 @@ check("HTTP 200", r.status_code == 200)
 thumbs = r.json()
 check(f"返回{len(thumbs)}个模板缩略图", len(thumbs) > 0)
 
-# ── 8. 润色API（依赖外部 LLM，限流时 429 属正常） ──
+# ── 8. 润色API（依赖外部 LLM，限流时 429 属正常；上游挂掉时 500 是刻意设计，不静默降级） ──
 print("\n[8] 润色API（外部 LLM，尽力而为）")
 r = requests.post(f"{BASE}/api/polish",
     json={"text": "我今天完成了一个非常厉害的阳光星盘系统", "style": "去AI味"},
     timeout=120)
-check("API 可达 (200 或限流429)", r.status_code in (200, 429),
-      f"status={r.status_code}")
+body = {}
+try:
+    body = r.json()
+except Exception:
+    pass
+# 只有「结构化 JSON 错误」（success=False + error 文案）才算上游故障；
+# 崩溃式 500 会吐 HTML，仍判失败——避免把本系统 bug 蒙混成上游问题
+upstream_down = (r.status_code == 500 and isinstance(body, dict)
+                 and body.get("success") is False and isinstance(body.get("error"), str))
+check("API 可达 (200 / 限流429 / 上游故障结构化500)", r.status_code in (200, 429) or upstream_down,
+      f"status={r.status_code} err={str(body.get('error'))[:40]}" if upstream_down else f"status={r.status_code}")
 
 # ── 9. 错误处理 ─────────────────────────────────────────
 print("\n[9] 错误处理")

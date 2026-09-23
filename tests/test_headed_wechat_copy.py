@@ -25,8 +25,16 @@ import urllib.request
 import os
 from playwright.sync_api import sync_playwright
 
+# Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
+try:
+    if (sys.stdout.encoding or "").lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY = r"C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
+PY = sys.executable
 BASE = "http://127.0.0.1:5000"
 
 results = []          # (名称, 是否通过, 详情)
@@ -50,7 +58,20 @@ def wait_server(timeout=45):
     return False
 
 
+def _port_busy(port=5000):
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
 def run():
+    # 端口被占（多半是你自己的 app.py 在跑）时，本脚本的子进程会 bind 失败退出，
+    # 而 wait_server() 会连上那个旧进程 → 用陈旧代码静默假通过。必须先拦截。
+    if _port_busy():
+        print("[ABORT] 端口 5000 已被占用（可能是你自己的 app.py 正在运行）。")
+        print("        请先停掉它再跑本套件，否则会连到旧进程、拿陈旧代码假通过。")
+        return 2
     proc = subprocess.Popen([PY, "app.py"], cwd=ROOT)
     try:
         if not wait_server():
@@ -114,7 +135,7 @@ def run():
                 window.__clip.writeCalled = true;
                 window.__clip.items = items.length;
                 for (const it of items){
-                  try { window.__clip.types.push(Object.keys(it.types||{})); } catch(e){}
+                  try { window.__clip.types.push(Array.from(it.types||[])); } catch(e){}
                 }
                 return _w(items);
               };

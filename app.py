@@ -29,14 +29,14 @@ TEMP_COVERS_DIR.mkdir(parents=True, exist_ok=True)
 
 from core.format_engine import convert_markdown_to_wechat_html
 from core.ai_client import (
-    call_llm, get_current_config, update_config, test_connection,
+    call_llm, is_configured, get_current_config, update_config, test_connection,
     PLATFORM_TEMPLATES,
 )
 from core.token_manager import token_manager
 from core.wechat_publisher import push_to_draft, upload_permanent_material, filter_html_images
 from core.image_gen import generate_cover
 from core import image_search
-from core.preprocessor import preprocess
+from core.preprocessor import preprocess, split_paragraphs, apply_structure
 from core.crypto_utils import encrypt, decrypt
 from core.blcaptain_bridge import BLCaptainBridge
 
@@ -305,9 +305,65 @@ def api_polish():
 
 
 # ── AI 智能排版 ────────────────────────────────────────────────────────
+def _parse_plan(raw: str):
+    """解析 AI 返回的结构决策 JSON，容忍 ```json 围栏与前后杂字"""
+    if not raw:
+        return None
+    text = raw.strip()
+    if text.startswith("```"):
+        text = re.sub(r'^```[a-zA-Z]*\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+    try:
+        plan = json.loads(text)
+    except Exception:
+        match = re.search(r'\{.*\}', text, re.S)
+        if not match:
+            return None
+        try:
+            plan = json.loads(match.group(0))
+        except Exception:
+            return None
+    return plan if isinstance(plan, dict) else None
+
+
+def _build_format_prompt(paragraphs: list) -> str:
+    """AI 只做结构决策：段号 → 标题/小节/列表/加粗，正文由 apply_structure 原样拼接"""
+    return (
+        "你是公众号排版助手。用户给出一篇按空行分段、每段前带 [段号] 的中文文章。\n"
+        "你只判断结构，不改写、不增删原文，最终只输出一个 JSON 对象。\n\n"
+        "JSON 格式：\n"
+        '{"title": 标题段号, "sections": [{"heading": "小节名", "start": 起始段号, "end": 结束段号}], '
+        '"lists": [{"start": 起始段号, "end": 结束段号}], '
+        '"bold": [{"p": 段号, "words": ["原文中已有的词"]}]}\n\n'
+        "规则：\n"
+        "1. title：文章标题所在的段号，通常是 0\n"
+        "2. sections：按内容逻辑分节，每节至少 2 个自然段且主题明显不同；全文 2-5 节，"
+        "自然段达到 6 个以上时至少分 2 节；"
+        "heading 从该节内容提炼 4-10 字，句式风格统一，不带标点，不用「引言/正文/第一点」这类空话\n"
+        "3. 自然段少于 4 个、原文里已经有 # 或 ## 开头的行、或本来就分不了节时，sections 返回 []\n"
+        "4. lists：只标并列的条目行（工具清单、步骤、要点），普通叙述段落不要标\n"
+        "5. bold：只填该段原文里已有的词，每段最多 2 个，用于关键术语、产品名、结论\n"
+        "6. 段号只能是 0 到 " + str(len(paragraphs) - 1) + " 之间的整数，不得越界\n"
+        "7. 各节区间不得重叠：后一节的 start 必须大于前一节的 end\n"
+        "8. 只输出 JSON，不要任何解释文字"
+    )
+
+
+def _llm_fail_reason(errs: list) -> str:
+    """把底层异常压成一句给人看的原因（优先取 HTTP 状态码）"""
+    if not errs:
+        return "网络异常或超时"
+    m = re.search(r"\b(\d{3})\b", errs[0])
+    return f"网关 HTTP {m.group(1)}" if m else "网络异常或超时"
+
+
 @app.route("/api/ai-format", methods=["POST"])
 def api_ai_format():
-    """AI智能排版：将平铺直叙的文本转换为结构化Markdown"""
+    """AI智能排版：AI 只输出结构决策(JSON)，正文由本地原样套用，不改写一个字
+
+    AI 不可用时（未配置 / 调用失败 / 返回结构无法解析）一律用本地规则排版兜底并说明原因，
+    按钮永远给得出结果。
+    """
     data = request.get_json()
     if not data:
         return jsonify({"success": False, "error": "invalid json"}), 400
@@ -316,26 +372,22 @@ def api_ai_format():
     if not text:
         return jsonify({"success": False, "error": "text is empty"}), 400
 
-    system_prompt = (
-        "你是一名专业的内容排版助手。请将用户提供的文本转换为结构清晰的Markdown格式。\n\n"
-        "规则：\n"
-        "1. 使用 ## 作为二级标题（不要使用 #）\n"
-        "2. 使用 ### 作为三级标题\n"
-        "3. 段落之间用空行分隔\n"
-        "4. 将重要关键词用 **加粗** 标记\n"
-        "5. 如果有列举内容，使用 - 或 1. 等列表格式\n"
-        "6. 如果有引用内容，使用 > 开头\n"
-        "7. 保持原文语义不变，不添加额外内容\n"
-        "8. 输出语言与输入保持一致\n"
-        "9. 不要添加任何解释文字，只输出Markdown格式的文本"
-    )
+    if not is_configured():
+        return jsonify({"success": True, "markdown": preprocess(text), "engine": "local"})
 
-    result = call_llm(system_prompt, text)
+    paragraphs = split_paragraphs(text)
+    user_prompt = "\n".join(f'[{i}] {p}' for i, p in enumerate(paragraphs))
+    errs = []
+    raw = call_llm(_build_format_prompt(paragraphs), user_prompt,
+                   temperature=0.0, json_mode=True, error_out=errs)
 
-    if not result:
-        return jsonify({"success": False, "error": "AI排版失败，请检查AI配置"}), 500
+    plan = _parse_plan(raw) if raw else None
+    if plan is None:
+        reason = _llm_fail_reason(errs) if not raw else "返回结构无法解析"
+        return jsonify({"success": True, "markdown": preprocess(text), "engine": "local",
+                        "fallback": f"AI {reason}，已用本地规则排版"})
 
-    return jsonify({"success": True, "markdown": result})
+    return jsonify({"success": True, "markdown": apply_structure(paragraphs, plan), "engine": "llm"})
 
 
 # ── 公众号管理 ──────────────────────────────────────────────────────────

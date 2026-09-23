@@ -7,24 +7,56 @@
 
 公众号页覆盖：
   设置 / 模板筛选 / 模板收展 / 输入渲染 / 预览HTML⇄手机 / 切主题 / AI面板 /
-  AI智能排版 / AI润色(开始) / 复制(富文本硬验证) / 历史 / 一键推送 / 账号管理
+  AI智能排版 / AI润色(开始+应用到编辑区) / AI摘要 / AI封面 / 复制(富文本硬验证) /
+  历史 / 一键推送 / 账号管理(打开+UI新增+UI删除) / 推送(不真推，见下)
 小红书页覆盖：
   切页 / 平台(xhs⇄wx) / 填文案(字数统计) / 引擎(归藏⇄BC) / 选风格(预览卡) /
   生成封面(结果卡真实图+底图署名) / 点击结果卡开Lightbox(大图真实) / 关闭Lightbox
 
+安全策略（刻意避开的真实副作用）：
+  - `确认推送`(confirmPush) 不点：会真的打微信公众号接口
+  - `保存AI配置`(saveAiConfig) / `测试连接`(testAiConfig) 不点：会覆盖 data/ai_config.json
+  - 这几个按钮的后端路径由 tests/test_api_e2e.py 覆盖
+  - 本套件会通过 UI 建/删账号 → 测试前快照 data/*.json，退出时(含崩溃)还原
+
 运行：python tests/test_headed_full_e2e.py
 （脚本自起/自停服务；需 playwright + chromium）
 """
+import atexit
 import sys
 import time
 import subprocess
 import os
+import pathlib
 import urllib.request
 from playwright.sync_api import sync_playwright
 
+# Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
+try:
+    if (sys.stdout.encoding or "").lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY = r"C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
+PY = sys.executable
 BASE = "http://127.0.0.1:5000"
+DATA_DIR = pathlib.Path(ROOT) / "data"
+
+# 本套件会通过 UI 建/删账号（写 data/accounts.json）——测试前快照，退出时还原（含中途崩溃）
+_DATA_SNAPSHOT = {p.name: p.read_text(encoding="utf-8") for p in DATA_DIR.glob("*.json")}
+
+
+def _restore_data():
+    for f in DATA_DIR.glob("*.json"):
+        if f.name in _DATA_SNAPSHOT:
+            f.write_text(_DATA_SNAPSHOT[f.name], encoding="utf-8")
+        else:
+            f.unlink(missing_ok=True)
+
+
+atexit.register(_restore_data)
 
 results = []
 console_errors = []
@@ -46,7 +78,20 @@ def wait_server(timeout=45):
     return False
 
 
+def _port_busy(port=5000):
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
 def run():
+    # 端口被占（多半是你自己的 app.py 在跑）时，本脚本的子进程会 bind 失败退出，
+    # 而 wait_server() 会连上那个旧进程 → 用陈旧代码静默假通过。必须先拦截。
+    if _port_busy():
+        print("[ABORT] 端口 5000 已被占用（可能是你自己的 app.py 正在运行）。")
+        print("        请先停掉它再跑本套件，否则会连到旧进程、拿陈旧代码假通过。")
+        return 2
     proc = subprocess.Popen([PY, "app.py"], cwd=ROOT)
     try:
         if not wait_server():
@@ -154,20 +199,68 @@ def run():
             ai_open = page.evaluate("document.getElementById('ai-panel').classList.contains('open')")
             check("AI 工具：面板展开", ai_open)
 
-            # 8) AI 智能排版
+            # 8) AI 智能排版：有 LLM 走 LLM；无配置走本地规则兜底。真实产出或真报错
+            # 换成无结构散文——原输入本身已是规范 Markdown，本地规则跑完不变，断言会失去意义
+            page.fill("#input-area",
+                      "苏哥测试标题\n这是一段用于 E2E 的正文，确认渲染与复制都正常。\n\n方案选型\n\n我考虑过几种方案。")
+            before_ai = page.input_value("#input-area")
             page.click("#btn-ai-format", timeout=5000)
-            page.wait_for_timeout(1500)
-            check("AI 智能排版：点击无未捕获异常", True)
+            try:
+                page.wait_for_function(
+                    """() => {
+                        const t = document.getElementById('toast-el').textContent || '';
+                        return t.indexOf('排版完成') >= 0
+                            || t.indexOf('本地规则排版') >= 0
+                            || t.indexOf('排版失败') >= 0;
+                    }""", timeout=45000)
+            except Exception:
+                pass
+            ai_toast = page.evaluate("document.getElementById('toast-el').textContent || ''")
+            after_ai = page.input_value("#input-area")
+            check("AI 智能排版：真实产出或真报错",
+                  ("失败" in ai_toast)
+                  or (after_ai.strip() != before_ai.strip() and after_ai.strip().startswith("#")),
+                  f"toast={ai_toast[:24]!r}；{len(before_ai)} 字 → {len(after_ai)} 字")
 
-            # 9) AI 润色（开模态 → 开始润色 → 等待结果/优雅报错）
+            # 9) AI 润色（开模态 → 开始润色 → 应用结果 / 优雅降级）
             page.click("#btn-polish", timeout=5000)
             try:
                 page.wait_for_selector("#polish-start", timeout=5000)
                 page.click("#polish-start", timeout=5000)
-                page.wait_for_timeout(2500)
+                # 轮询到真正结束：成功 = apply 出现；失败 = start 按钮复位。
+                # 不用固定 sleep——否则「响应慢」会被误判成「优雅降级」而假通过。
+                try:
+                    page.wait_for_function("""() => {
+                        const a = document.getElementById('polish-apply');
+                        const s = document.getElementById('polish-start');
+                        return (a && a.style.display !== 'none') || (s && !s.disabled);
+                    }""", timeout=45000)
+                except Exception:
+                    pass
                 has_result = page.evaluate(
                     "!!document.getElementById('polish-result') && document.getElementById('polish-result').value.length >= 0")
                 check("AI 润色：模态打开并可触发（结果区存在）", has_result)
+
+                # 9b) 应用到编辑区：成功 → 写回编辑区；真报错 → apply 保持隐藏
+                st = page.evaluate("""() => {
+                    const b = document.getElementById('polish-apply');
+                    const s = document.getElementById('polish-start');
+                    const r = document.getElementById('polish-result');
+                    return {visible: !!b && b.style.display !== 'none',
+                            text: (r && r.value) ? r.value : '',
+                            errored: !!s && !s.disabled};
+                }""")
+                if st["visible"] and st["text"].strip():
+                    page.click("#polish-apply", timeout=5000)
+                    page.wait_for_timeout(500)
+                    after = page.input_value("#input-area")
+                    check("AI 润色：应用到编辑区生效", after.strip() == st["text"].strip(),
+                          f"编辑区已替换为润色结果（{len(after)} 字）")
+                else:
+                    check("AI 润色：应用到编辑区生效",
+                          st["errored"],
+                          "LLM 报错未出结果 → apply 保持隐藏（优雅降级，无未捕获异常）"
+                          if st["errored"] else "45s 内未结束且未报错（疑似卡住）")
             except Exception as e:
                 check("AI 润色：模态打开并可触发", False, str(e)[:120])
             close_modals()
@@ -213,17 +306,85 @@ def run():
                 check("历史按钮：打开历史弹窗", False, str(e)[:120])
             close_modals()
 
-            # 12) 一键推送 + 13) 账号管理
+            # 12) 一键推送 + 13) 账号管理 + AI 摘要 / AI 封面
             page.click("#btn-push", timeout=10000)
             try:
-                page.wait_for_selector(".modal", timeout=5000)
+                page.wait_for_selector("#push-title", timeout=5000)
                 check("一键推送：打开推送弹窗", True)
-                # 账号管理
+
+                # 12a) AI 摘要（有结果则写入摘要框；LLM 降级则按钮复位且无未捕获异常）
+                page.click('button:has-text("AI 生成摘要")', timeout=5000)
+                try:
+                    page.wait_for_function("""() => {
+                        const b = [...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='AI 生成摘要');
+                        const s = (document.getElementById('push-summary')||{}).value || '';
+                        return s.trim().length > 0 || (b && !b.disabled);
+                    }""", timeout=45000)
+                except Exception:
+                    pass
+                sm = page.evaluate("""() => {
+                    const b = [...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='AI 生成摘要');
+                    return {sum: (document.getElementById('push-summary')||{}).value || '',
+                            reset: !!b && !b.disabled};
+                }""")
+                if sm["sum"].strip():
+                    check("AI 摘要：点击后生成并写入摘要框", sm["reset"],
+                          f"摘要 {len(sm['sum'])} 字，按钮已复位")
+                else:
+                    check("AI 摘要：点击后生成并写入摘要框", sm["reset"],
+                          "LLM 未返回摘要 → 按钮复位（优雅降级，无未捕获异常）")
+
+                # 12b) AI 封面（有图则渲染进 #cover-preview；失败则仅改状态文案）
+                page.fill("#push-title", "有头测试标题")
+                page.click('button:has-text("AI 生成封面")', timeout=5000)
+                try:
+                    page.wait_for_function("""() => {
+                        const p = document.getElementById('cover-preview');
+                        const b = [...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='AI 生成封面');
+                        return (p && !!p.querySelector('img')) || (b && !b.disabled);
+                    }""", timeout=90000)
+                except Exception:
+                    pass
+                cv = page.evaluate("""() => {
+                    const p = document.getElementById('cover-preview');
+                    const b = [...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='AI 生成封面');
+                    return {hasImg: !!p && !!p.querySelector('img'),
+                            status: (document.getElementById('cover-status')||{}).textContent || '',
+                            reset: !!b && !b.disabled};
+                }""")
+                if cv["hasImg"]:
+                    check("AI 封面：点击后渲染真实封面图", cv["reset"],
+                          f"preview 内含 <img>；状态={cv['status']}")
+                else:
+                    check("AI 封面：点击后渲染真实封面图", cv["reset"],
+                          f"未出图 → 按钮复位（优雅降级）；状态={cv['status']}")
+
+                # 13) 账号管理：UI 建账号 → UI 删账号（自清理，不留残留）
                 page.click("text=管理", timeout=5000)
-                page.wait_for_timeout(500)
-                # 可能叠了第二个 modal
+                page.wait_for_timeout(900)
                 nmod = page.evaluate("document.querySelectorAll('.modal').length")
                 check("推送弹窗内：打开账号管理弹窗", nmod >= 1, f"modal 数={nmod}")
+
+                tag = str(int(time.time()))
+                tmp_nick = f"E2E临时账号{tag}"
+                page.fill("#acct-nickname", tmp_nick)
+                page.fill("#acct-appid", f"wx_e2e_{tag}")
+                page.fill("#acct-appsecret", "e2e_temp_secret_000000000000")
+                page.click('button.primary:has-text("添加")', timeout=5000)
+                page.wait_for_timeout(1500)
+                rows = page.locator("#acct-list > div", has_text=tmp_nick)
+                added = rows.count() == 1
+                check("账号管理：UI 添加账号后出现在列表", added,
+                      f"列表命中 {rows.count()} 行" if added else "添加后列表未见该账号")
+
+                if added:
+                    rows.first.locator("button").first.click(timeout=5000)
+                    page.wait_for_timeout(1500)
+                    left = page.locator("#acct-list > div", has_text=tmp_nick).count()
+                    check("账号管理：UI 删除账号后从列表消失", left == 0,
+                          f"删除后仍剩 {left} 行" if left else "已清除")
+                else:
+                    check("账号管理：UI 删除账号后从列表消失", False, "上一步未添加成功，跳过删除")
             except Exception as e:
                 check("一键推送：打开推送弹窗", False, str(e)[:120])
             close_modals()

@@ -5,6 +5,13 @@
 > 覆盖范围：**公众号文章页 + 小红书封面页**（双页面）
 > 对应任务：先立契约（文档 + HTML 原型），再修代码（见 AGENTS.md §11 铁律）
 
+> ### ⚠️ 时效说明（2026-09-23 全量盘点追加）
+> 本文件是 **2026-07-24/25 的历史审计快照**，正文中的事实描述属当时的实现状态。此后前端已重写、布局已重排，文中以下内容**已过期**：
+> - 「53 套主题」「三栏 grid / col-templates / tpl-list」→ 现为 **92 套主题** + 顶部 `#tpl-bar`（`#tpl-strip` 色卡条）+ 下方 `#input-area`/`#preview-frame` 双区
+> - 「E2E 40/41」「集成 35/35」→ 现为 **52/52 · 35/35 · 29/29 · 32/32 · 7/7 · 12/12 全绿**
+> - 偏差清单的**当前状态**以 §6 与本横幅为准；系统现状以 `HANDOFF.md` / `AGENTS.md` 为准
+> - D-1 / D-2 / D-3 / D-4 / W-1 / W-2 **均已修复**；D-5（前端分组）经有头 E2E 实测为 3 组（归藏/静纸/实证），已对齐；`scripts/render_worker.py` 死代码已删除
+
 ---
 
 ## 0. 执行纪律（按 AGENTS.md §11 铁律）
@@ -292,7 +299,7 @@
 | D-2 | P1 | ✅ 已修复 | `core/guizang_renderer.py` 覆盖层由全画布暗渐变改为局部 tint（xhs `180°→0.30` / square 径向 `0.30` / wide `90°→0.30`），移除图片 `opacity` 压暗，叠加层按图存在条件渲染 | 代码验证 + 集成测试 35/35 通过（含 editorial 真实出图） |
 | D-3 | P1 | ✅ 已修复 | `index.html` `@media(max-width:800px)` 移除 `.social-preview,.social-results{display:none}`，改为单列堆叠 | 真实浏览器验证 `d3_social_visibility` 两者 `display:flex,visible:true` |
 | W-1 | P1 | ✅ 已修复 | `index.html` 移动端 `.col-templates` 由 `display:none` 改为 `max-height:42vh;overflow:auto` 可滚动访问（替代原 select 方案，等价满足"可访问"契约） | 真实浏览器验证 `w1_col_templates:{display:"flex",visible:true}` |
-| D-5 | P2 | ⚠️ 部分残留 | 前端分组用静态 `guizang`/`blcaptain` tab，未直接读 API `group` 字段；但 11 个 id 均已可达、可区分 | 代码验证 + 运行时验证 |
+| D-5 | P2 | ✅ 已修复（2026-09-23 复核） | 前端分组已按 3 组呈现（归藏 / 静纸 / 实证），有头 E2E 实测 `tab 数=3` 且各组风格卡正常加载 | 有头 E2E `test_headed_full_e2e` 32/32 |
 | W-2 | P2 | ✅ 已修复（2026-07-25 洁癖同步） | `AGENTS.md` §6 已更新为实际 DOM 结构（tpl-bar + wechat-body 双区布局）；§7 社交页也已更新为 .social-ctrl/.social-right/.results-grid/.lightbox | 文档对照 + 代码验证 |
 
 ### 6.2 修正说明：D-2 / D-4 源文件引用更正
@@ -304,18 +311,18 @@
 
 > 注：`scripts/render_worker.py` 与 `guizang_renderer.py` 内容相似，疑似历史遗留双份实现。本轮仅修活代码，未删除死代码（不在本次范围，避免误伤）。
 
-### 6.3 回归门禁结果（2026-07-24）
+### 6.3 回归门禁结果（2026-07-24；2026-09-23 复核更新）
 
-- `tests/test_e2e.py`：**40/41 通过**。唯一失败为已知陈旧 UI 元素断言（缺 `theme-select`/`account-select`/`phone-frame`/`push-modal`/`polish-modal` 等历史 id），与本次改动无关——修复前后一致，非回归。
+- `tests/test_e2e.py`：**52/52 通过**（2026-09-23）。当时 40/41 的唯一失败为陈旧 UI 元素断言，已随前端对齐清除；后追加 5 项智能排版测试（结构 JSON 套用 / 越界钳制 / 本地兜底 / 调用失败降级本地 / 非 JSON 降级本地）+ 2 项 LLM 客户端重试测试（503 重试一次 / 400 不重试）+ 3 项本地并列清单测试（箭头行 / 长句不误判 / 项目符号行）。
 - `tests/test_integration.py`：**35/35 通过**（需先起服务；覆盖 editorial / swiss / mist 真实渲染链路）。
 - 真实浏览器验证 `output/e2e_audit/verify_app_fixes.py`：D-1 / D-3 / D-4 / W-1 全部通过，**0 console error**。
 - 有头 E2E `tests/test_headed_userflow.py`：7 步工作流通过（结果卡渲染真实图）。
 
 ### 6.4 残留与后续
 
-- **D-5（P2）**：前端分组为静态 `guizang`/`blcaptain`，与 API `group` 字段（`归藏`/`静纸`/`实证`）命名不完全对齐。功能无碍（11 id 全可达），若需语义精确可改为动态渲染 API `group`。
+- **D-5（P2）**：✅ **已解决**（2026-09-23）——前端分组已呈现为 3 组（归藏 / 静纸 / 实证），有头 E2E 实测通过。
 - **W-2（P2）**：✅ **已解决**（2026-07-25 洁癖操作中同步 AGENTS.md §6/§7 为实际 DOM 结构）。
-- **死代码清理（建议）**：`scripts/render_worker.py` 确认无人导入，可择机删除，避免与 `core/guizang_renderer.py` 双份实现漂移。
+- **死代码清理**：✅ `scripts/render_worker.py` 已删除（2026-07-25），不再存在双份实现。
 - **`public/prototypes/` 重复副本**：与 `docs/prototypes/` 内容重复且未被应用引用，建议清理（当前未被提交）。
 
 > 🆕 **2026-07-25 新增能力**：自动联网搜图作底图（`core/image_search.py`）。封面生成链路新增「搜图→注入底图→渲染→署名」完整闭环。非偏差修复，属功能增强。详见 HANDOFF.md 变更 4。

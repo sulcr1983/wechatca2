@@ -59,10 +59,14 @@ playwright install chromium      # 必需：小红书封面生成依赖 Chromium
 python app.py                    # http://127.0.0.1:5000
 
 # 测试
-python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 40/41 通过
+python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 52/52 通过
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
-python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，21 项）— 29/29 通过
-python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，26 项）— 26/26 通过
+python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
+python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，32 项）— 32/32 通过
+python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
+python tests/test_headed_wechat_copy.py  # 有头复制/推送/封面旧资产（自起服务，12 项）— 12/12 通过
+# ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
+#    若已被你自己的 app.py 占用，直接 ABORT（退出码 2）——否则会连到旧进程用陈旧代码假通过。
 
 # 清理端口
 taskkill //F //IM python.exe
@@ -77,7 +81,7 @@ taskkill //F //IM python.exe
 | POST | `/api/render` | 文本预处理 + Markdown 渲染（核心） |
 | GET | `/api/optimize-stream` | SSE 推送 LLM 优化结果 |
 | POST | `/api/polish` | AI 润色 |
-| POST | `/api/ai-format` | AI 智能排版 |
+| POST | `/api/ai-format` | 智能排版：AI 只输出结构决策 JSON（标题/小节/列表/加粗），正文由 `apply_structure` 原样套用；未配置/调用失败/结构不可解析一律本地 `preprocess` 兜底（响应带 `engine: llm\|local` + `fallback` 原因） |
 | POST | `/api/summary` | AI 生成摘要 |
 | POST | `/api/cover-image` | AI 生成封面图 |
 | GET/POST/DELETE | `/api/accounts` | 公众号配置 CRUD |
@@ -87,14 +91,19 @@ taskkill //F //IM python.exe
 | GET | `/api/ai-platforms` | 预配置平台列表 |
 | GET | `/api/server-ip` | 服务器公网 IP |
 | POST | `/api/social/generate` | 小红书封面生成 |
+| GET | `/api/social/styles` | 小红书风格列表（含 group） |
 | GET | `/api/social/thumbnails` | 模板缩略图列表 |
+| GET | `/api/history` | 推送历史 |
+| GET | `/temp_covers/<filename>` | 临时封面图（AI 标题图） |
+| GET | `/output/<path:filepath>` | 封面渲染产物 |
+| GET | `/assets/<path:filename>` | public/ 静态资源 |
 | POST | `/open-folder` | 打开本地文件夹 |
 
 ## 6. 公众号页面关键元素（顶部模板条 + 双区布局）
 
 ```
+.topbar                  → 共享顶栏（#page-wechat 之外）：.tab-btn 页面切换（公众号排版 | 小红书封面）+ #btn-settings 设置
 #page-wechat
-  .tab-bar              → 页面切换（公众号排版 | 小红书封面）+ 设置按钮
   .tpl-bar              → 顶部紧凑模板条（固定高度 ~135px）
     #tpl-strip           → 横向色卡网格（92 张 .tpl-card，换行滚动）
     #tpl-search          → 内联搜索过滤框
@@ -135,7 +144,7 @@ taskkill //F //IM python.exe
 2. python tests/test_integration.py         ← 前后端联动测试
 3. python tests/test_e2e.py                 ← 全量 E2E
 4. python tests/test_api_e2e.py             ← 后端 API 全端点 E2E（29 项）
-5. python tests/test_headed_full_e2e.py     ← 前端有头全按钮 E2E（双页 26 项）
+5. python tests/test_headed_full_e2e.py     ← 前端有头全按钮 E2E（双页 32 项）
 6. 检查 output/ 目录                        ← 验证封面生成
 ```
 
@@ -145,6 +154,7 @@ taskkill //F //IM python.exe
 - `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`
 - 测试用 `app.test_client()` 避免端口冲突
 - SSE 30 秒超时，优化结果 120 秒缓存；⚠️ 后台 LLM 优化（_start_background_optimization）默认已关闭（前端未接入 SSE 消费），见 F2 修复
+- `tests/test_e2e.py` 现在会**在测试前快照、结束时（含中途崩溃，经 atexit）还原** `data/*.json`；测试新增文件删除。仍建议跑测前备份真实配置（快照只覆盖进程正常启动后的写入）
 - Windows 上 `os.startfile()` 需 try/except 捕获 OSError
 - 字体已放大（响应式 rem 层级，编辑区 #input-area 最大约 1.25rem/20px；非字面 24px）
 - 公众号和小红书两套 CSS 独立命名空间，互不污染
@@ -153,9 +163,14 @@ taskkill //F //IM python.exe
 
 - AI 功能默认折叠，不自动触发
 - 核心流程：输入 → 自动预处理 → 选主题 → 渲染（零 AI 参与）
+- 智能排版降级契约（2026-09-23，取代「失败即 500」旧版）：`/api/ai-format` 已配置 LLM → 走 LLM（`engine=llm`）；**未配置 / 调用失败 / AI 返回结构无法解析 → 一律本地 `preprocess` 兜底**（`engine=local`，响应带 `fallback` 说明原因，如「AI 网关 HTTP 500，已用本地规则排版」）；按钮永远给得出结果，且失败必带原因、不静默
+- 智能排版实现（2026-09-23，参照 GitHub 同类项目）：AI **不改写正文**，只返回结构决策 JSON（`{"title","sections","lists","bold"}`，走 `response_format={"type":"json_object"}`）；本地 `core/preprocessor.apply_structure` 按段号套用标记，越界/重叠/词不在原文的项一律忽略，**正文段落原样保留**。LLM 客户端对 429/5xx/超时退避重试一次（`core/ai_client._post_with_retry`，超时 45s）
+- 本地规则边界（2026-09-23 调研拍板）：本地只做**确定性识别**——编号标题（`一、`/`1.`）、短行标题、并列清单（箭头行 `A → B → C`、项目符号 `·•●○`）、引号引用、首个非层级段作大标题；**不做散文主题句提升、不做规则"发明"小节**（调研结论：doocs/md、wenyan-mcp 都不做，唯一同类 Word-Formatter-Pro 也只认编号；非 LLM 的散文分节只有 TextTiling/embedding 路线，与「不用 AI 就不开 AI」冲突）。并列清单规则对 AI 路径同样恒定生效，不依赖 AI 是否标注
 - 新增功能采用并存模式，不替换现有工作代码
-- 所有修改跑 E2E 验证（test_e2e 40/41）+ 集成测试（test_integration 35/35）
-- 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 26 项，0 控制台报错）
+- 所有修改跑 E2E 验证（test_e2e 52/52）+ 集成测试（test_integration 35/35）
+- 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 32 项，0 控制台报错）
+- ⚠️ 有头套件的「0 控制台报错」**依赖上游 LLM 可达**：`/api/polish`、`/api/summary` 无本地兜底，上游（如 tokenpool 网关）返 5xx 时浏览器必记 1~2 条 500，套件退出码会是 1。此时先修上游，**不得为凑绿而放宽该判据**
+- 有头套件不点的 3 个按钮（真实副作用，刻意避开）：`确认推送` / `保存AI配置` / `测试连接`；其后端路径由 test_api_e2e.py 覆盖。AI 按钮断言「真实产出或真报错」，不用固定 sleep 判"优雅降级"（会把响应慢误判成通过）
 
 ## 11. Agent 工程纪律（通用宪法适配）
 
@@ -178,14 +193,14 @@ taskkill //F //IM python.exe
 ### 错误分级
 - 阻断：破坏核心功能 / owner 边界 / 密钥安全 / 数据真相 / 测试门禁 / 用户关键体验。当轮必须收掉。
 - 设计风险：架构漂移、运行面失控，须说明取舍与验收入口。
-- 可记录债务：不影响本轮，须说明原因与后续入口（如 E2E 陈旧 1 项 → 目标 41/41）。
+- 可记录债务：不影响本轮，须说明原因与后续入口（如 `launcher.py` / `start_flask.py` 旧入口未删，见 HANDOFF §7）。
 - 无关优化：不进入本轮，禁借机扩大改造。
 
 ### 验收规则（须给真实证据）
 - 声称完成前必须提供本轮实际运行的命令 / 测试 / 日志 / 截图 / 出图证据。
-- 改动跑 E2E（`test_e2e` 40/41）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG。
+- 改动跑 E2E（`test_e2e` 52/52）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG。
 - warning / lint / 测试计数漂移 / 文档索引缺失 / 本轮 TODO 按缺陷处理，除非明确记为非本轮债务。
-- UI 改动须检查真实渲染（headed E2E 7/7），不只看代码。
+- UI 改动须检查真实渲染（`test_headed_full_e2e` 32/32），不只看代码。
 
 ### Git 边界
 - 禁止 `git add .`；只 stage 本任务相关文件。

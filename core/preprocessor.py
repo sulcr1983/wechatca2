@@ -15,6 +15,42 @@ def _looks_like_sentence(text: str) -> bool:
     return bool(_SENTENCE_WORDS.search(text))
 
 
+# 箭头并列：A → B → C（正文里孤立的并列流程/清单）
+_ARROW_RE = re.compile(r'\s*(?:→|->|➔|➜|⇒)\s*')
+
+# 行首项目符号
+_BULLET_RE = re.compile(r'^[·•●○\-*]\s*')
+
+
+def _split_parallel_items(line: str):
+    """箭头并列行 → 列表项；至少 3 项、每项都短、项内无逗号，否则不算清单"""
+    parts = [p.strip() for p in _ARROW_RE.split(line) if p.strip()]
+    if len(parts) < 3 or any(len(p) > 14 for p in parts):
+        return None
+    if any(('，' in p or ',' in p) for p in parts):
+        return None
+    return parts
+
+
+def _to_list_items(body: str):
+    """段落 → 列表行；可确定则返回 ['- 项', ...]，否则 None"""
+    lines = []
+    for line in body.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        items = _split_parallel_items(line)
+        if items:
+            lines.extend(f'- {item}' for item in items)
+        elif _BULLET_RE.match(line):
+            lines.append('- ' + _BULLET_RE.sub('', line))
+        elif re.match(r'^[-*]\s', line):
+            lines.append(line)
+        else:
+            return None
+    return lines or None
+
+
 def preprocess(text: str) -> str:
     """将纯文本转为基础 Markdown，覆盖 90% 常见结构，无需 LLM 等待"""
     lines = text.strip().split('\n')
@@ -57,6 +93,12 @@ def preprocess(text: str) -> str:
             stripped,
         ):
             md_lines.append(f'## {stripped}')
+            continue
+
+        # 并列清单：箭头行（掏手机 → 找 App → 等 App 打开 → 点开门）/ 项目符号行
+        items = _to_list_items(stripped)
+        if items:
+            md_lines.extend(items)
             continue
 
         # 短行标题检测
@@ -117,3 +159,97 @@ def preprocess(text: str) -> str:
             break
 
     return '\n'.join(result)
+
+
+def split_paragraphs(text: str) -> list:
+    """按空行切分自然段（段内换行保留）"""
+    return [p.strip() for p in re.split(r'\n\s*\n', text.strip()) if p.strip()]
+
+
+def apply_structure(paragraphs: list, plan: dict) -> str:
+    """把 AI 的结构决策套用到原文段落上：只插入 Markdown 标记，正文一字不改。
+
+    plan = {"title": 段号,
+            "sections": [{"heading": str, "start": 段号, "end": 段号}],
+            "lists":    [{"start": 段号, "end": 段号}],
+            "bold":     [{"p": 段号, "words": [原文中已有的词]}]}
+
+    LLM 输出属系统边界：越界段号 / 区间重叠 / 词不在原文中，一律忽略该项，不报错、不丢正文。
+    """
+    n = len(paragraphs)
+    if n == 0:
+        return ""
+
+    def _idx(value):
+        if isinstance(value, bool) or not isinstance(value, int):
+            return None
+        return value if 0 <= value < n else None
+
+    title_idx = _idx(plan.get("title"))
+    if title_idx is None:
+        title_idx = 0
+
+    headings = {}
+    last_end = -1
+    for item in plan.get("sections") or []:
+        if not isinstance(item, dict):
+            continue
+        heading = str(item.get("heading") or "").strip().strip('#').strip()
+        start, end = _idx(item.get("start")), _idx(item.get("end"))
+        if not heading or start is None or end is None or end < start or start <= last_end:
+            continue
+        headings[start] = heading
+        last_end = end
+
+    list_idx = set()
+    for item in plan.get("lists") or []:
+        if not isinstance(item, dict):
+            continue
+        start, end = _idx(item.get("start")), _idx(item.get("end"))
+        if start is None or end is None or end < start:
+            continue
+        list_idx.update(range(start, end + 1))
+
+    # 箭头行 / 项目符号行属规则可确定的清单，恒定转换，不依赖 AI 是否标注
+    for i, para in enumerate(paragraphs):
+        if i != title_idx and _to_list_items(para):
+            list_idx.add(i)
+
+    bold_map = {}
+    for item in plan.get("bold") or []:
+        if not isinstance(item, dict):
+            continue
+        p = _idx(item.get("p"))
+        if p is None or p == title_idx or not isinstance(item.get("words"), list):
+            continue
+        for word in item["words"]:
+            if isinstance(word, str) and 1 < len(word) <= 20 and word in paragraphs[p]:
+                bold_map.setdefault(p, []).append(word)
+
+    parts = []
+    for i, para in enumerate(paragraphs):
+        body = para
+        for word in bold_map.get(i, []):
+            body = body.replace(word, f'**{word}**', 1)
+        if i in headings:
+            parts.append(f'## {headings[i]}')
+        if i == title_idx:
+            first, _, rest = body.partition('\n')
+            parts.append(f'# {first.strip()}')
+            if rest.strip():
+                parts.append(rest.strip())
+        elif i in list_idx:
+            lines = _to_list_items(para)
+            if lines:
+                for word in bold_map.get(i, []):
+                    for k, line in enumerate(lines):
+                        if word in line:
+                            lines[k] = line.replace(word, f'**{word}**', 1)
+                            break
+                parts.append('\n'.join(lines))
+            else:
+                parts.append(body)
+        else:
+            parts.append(body)
+
+    return '\n\n'.join(parts)
