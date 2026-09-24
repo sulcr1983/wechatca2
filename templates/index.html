@@ -161,6 +161,11 @@ body {
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .tpl-card.active .tname { color:var(--accent); font-weight:600; }
+.tpl-card { position:relative; }
+.tpl-fav { position:absolute; top:1px; right:3px; font-size:.72rem; color:var(--text-muted); cursor:pointer; line-height:1; }
+.tpl-fav.on { color:var(--accent); }
+.tpl-empty-btn { margin-top:8px; margin-right:6px; font-size:.72rem; padding:3px 9px; border-radius:6px; border:1px solid var(--border-hi); background:transparent; color:var(--text-muted); cursor:pointer; }
+.tpl-empty-btn:hover { color:var(--accent); border-color:var(--accent); }
 .tpl-empty { font-size:.74rem; color:var(--text-muted); padding:6px 2px; }
 
 /* 下方双区：输入框 | 预览 */
@@ -602,7 +607,7 @@ body {
     <div class="col col-text">
       <div class="editor-header">
         <span class="editor-dot"></span><span class="editor-dot"></span><span class="editor-dot"></span>
-        <span class="editor-label">纯文本编辑</span>
+        <span class="editor-label">你的文章</span>
         <button class="editor-demo-btn" id="btn-demo" type="button">看示例</button>
       </div>
       <textarea id="input-area" placeholder="在这里粘贴你的文章…（第一行会自动当成标题）"></textarea>
@@ -661,7 +666,7 @@ body {
     <!-- Col 1: Controls -->
     <div class="col social-ctrl">
       <div class="s-section">
-        <div class="s-label"><span class="s-step">1</span> 目标平台</div>
+        <div class="s-label"><span class="s-step">1</span> 发到哪</div>
         <div class="plt-toggles">
           <button class="plt-btn" data-platform="xhs">小红书 3:4</button>
           <button class="plt-btn" data-platform="wx">微信封面</button>
@@ -669,16 +674,16 @@ body {
       </div>
       <div class="s-section">
         <div class="s-label"><span class="s-step">2</span> 文案内容</div>
-        <textarea class="s-textarea" id="social-text" placeholder="输入文案，AI 自动提取标题..."></textarea>
+        <textarea class="s-textarea" id="social-text" placeholder="把要说的写在这里，第一行会自动当成标题"></textarea>
         <div class="s-counter" id="social-char-count">0 / 500</div>
       </div>
       <div class="s-section">
-        <div class="s-label"><span class="s-step">3</span> 风格模板</div>
+        <div class="s-label"><span class="s-step">3</span> 样式</div>
         <div class="style-tabs" id="style-tabs"></div>
         <div class="tpl-grid" id="social-tpl-grid"></div>
       </div>
       <div class="s-section">
-        <div class="s-label"><span class="s-step">4</span> 封面配图</div>
+        <div class="s-label"><span class="s-step">4</span> 底图（可选）</div>
         <div class="img-slots" id="img-slots">
           <label class="img-slot" data-ratio="xhs" data-w="1080" data-h="1440"><span class="tag">3:4</span> 封面主图<input type="file" accept="image/*" hidden></label>
           <label class="img-slot" data-ratio="square" data-w="1080" data-h="1080"><span class="tag">1:1</span> 方形配图<input type="file" accept="image/*" hidden></label>
@@ -780,37 +785,88 @@ async function loadThemes() {
   if (activeTpl && inputArea.value.trim()) doRender();
 }
 
+// ── U-7：最近使用 / 收藏（localStorage）——个人工具按使用频率置顶，比人工分类准 ──
+const LS_RECENT = 'supersu.recentThemes';
+const LS_FAV = 'supersu.favThemes';
+function lsArr(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch(e) { return []; } }
+function lsSetArr(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch(e) {} }
+function pushRecent(id) { const r = lsArr(LS_RECENT).filter(x => x !== id); r.unshift(id); lsSetArr(LS_RECENT, r.slice(0, 6)); }
+function toggleFav(id) { const f = lsArr(LS_FAV); const i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else f.push(id); lsSetArr(LS_FAV, f); }
+let recentOnly = false;
+
 function renderTplList(filter = '') {
   const kw = (filter || '').trim().toLowerCase();
-  const list = kw
+  let list = kw
     ? themes.filter(t =>
         (t.name || '').toLowerCase().includes(kw) ||
         (t.id || '').toLowerCase().includes(kw) ||
         (t.group || '').toLowerCase().includes(kw))
     : themes;
+  const fav = lsArr(LS_FAV), recent = lsArr(LS_RECENT);
+  if (recentOnly && !kw) {
+    const ids = recent.concat(fav);
+    list = themes.filter(t => ids.includes(t.id));
+    if (!list.length) recentOnly = false;
+  }
   tplCount.textContent = themes.length;
   if (!list.length) {
-    tplStrip.innerHTML = `<div class="tpl-empty">无匹配模板</div>`;
+    // U-8：空结果给出口，不再把人晾在一句“无匹配模板”上
+    tplStrip.innerHTML = `<div class="tpl-empty">
+      没有匹配「${kw || '当前条件'}」的模板<br>
+      <button class="tpl-empty-btn" id="tpl-clear-search">清除搜索，看全部</button>
+      ${recent.length ? '<button class="tpl-empty-btn" id="tpl-use-recent">只看最近用过的</button>' : ''}
+    </div>`;
+    const cb = document.getElementById('tpl-clear-search');
+    if (cb) cb.onclick = () => { tplSearch.value = ''; recentOnly = false; renderTplList(''); };
+    const rb = document.getElementById('tpl-use-recent');
+    if (rb) rb.onclick = () => { tplSearch.value = ''; recentOnly = true; renderTplList(''); };
     return;
   }
+  const rank = t => fav.includes(t.id) ? 0 : (recent.includes(t.id) ? 1 : 2);
+  list = list.slice().sort((a, b) => rank(a) - rank(b));
   tplStrip.innerHTML = list.map(t => {
     const c = t.colors || {};
     const sw = [c.primary, c.accent, c.background]
       .map(col => `<i style="background:${col}"></i>`).join('');
+    const on = fav.includes(t.id);
     return `<div class="tpl-card${activeTpl===t.id?' active':''}" data-tpl="${t.id}" title="${t.name}">
       <div class="swatch">${sw}</div>
       <div class="tname">${t.name}</div>
+      <span class="tpl-fav${on?' on':''}" data-fav="${t.id}" title="${on?'取消收藏':'收藏'}">${on?'★':'☆'}</span>
     </div>`;
   }).join('');
 }
 
 tplStrip.addEventListener('click', e => {
+  const favBtn = e.target.closest('.tpl-fav');
+  if (favBtn) {                       // 点星标 = 收藏/取消，不切换当前主题
+    e.stopPropagation();
+    toggleFav(favBtn.dataset.fav);
+    renderTplList(tplSearch.value);
+    return;
+  }
   const item = e.target.closest('.tpl-card');
   if (!item) return;
   const name = item.dataset.tpl;
   activeTpl = name;
   try { localStorage.setItem('supersu.lastTheme', name); } catch(e) {}
+  pushRecent(name);
   renderTplList(tplSearch.value);
+  doRender();
+});
+
+// U-7：悬停即试看（200ms 防抖）；鼠标移出后恢复当前所选主题
+let hoverTimer = null;
+tplStrip.addEventListener('mouseover', e => {
+  const card = e.target.closest('.tpl-card');
+  if (!card) return;
+  const id = card.dataset.tpl;
+  if (!id || id === activeTpl) return;
+  clearTimeout(hoverTimer);
+  hoverTimer = setTimeout(() => doRender(id, true), 200);
+});
+tplStrip.addEventListener('mouseleave', () => {
+  clearTimeout(hoverTimer);
   doRender();
 });
 
@@ -867,22 +923,30 @@ demoBtn.addEventListener('click', () => {
 // =================================
 // RENDER
 // =================================
-async function doRender() {
+// themeId：临时指定主题（悬停试看用）；previewOnly=true 时只更新预览、不写 lastHtml，
+// 保证“复制”始终复制当前所选主题的内容，不会被鼠标划过时的试看污染
+async function doRender(themeId, previewOnly = false) {
   const text = inputArea.value.trim();
-  if (!text || !activeTpl) return;
+  const tpl = themeId || activeTpl;
+  if (!text || !tpl) return;
   lastText = text;
   
   try {
     const res = await fetch('/api/render', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({raw_text: text, theme_id: activeTpl})
+      body: JSON.stringify({raw_text: text, theme_id: tpl})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'render failed');
-    lastHtml = data.html || '';
-    showPreview(lastHtml);
+    if (previewOnly) {
+      showPreview(data.html || '');
+    } else {
+      lastHtml = data.html || '';
+      showPreview(lastHtml);
+    }
   } catch(e) {
+    if (previewOnly) return;   // 试看失败静默，不打扰
     console.error('render error', e);
     toast('渲染失败: ' + e.message);
   }
@@ -1570,7 +1634,7 @@ let genPollTimer = null;
 genBtn.addEventListener('click', async () => {
   const text = document.getElementById('social-text').value.trim();
   if (!text) { toast('请先输入文案'); return; }
-  if (!activeSocialStyle) { toast('请先选择风格模板'); return; }
+  if (!activeSocialStyle) { toast('请先选一个样式'); return; }
   const platformBtn = document.querySelector('.plt-btn.active');
   const platform = platformBtn ? platformBtn.dataset.platform : 'xhs';
   // U-3：按钮置灰防重复点 + 轮询后端真实阶段（不谎报固定秒数）
@@ -1697,7 +1761,29 @@ document.getElementById('btn-history').addEventListener('click', () => {
 // INIT
 // =================================
 // 启动：从后端拉取规范风格（含 group），动态渲染分组 tab 并默认选中第一组（D-4 + D-5）
+// ── U-9：结果区空态放示例成品（复用已有缩略图接口，不新增生成开销）──
+// 让人一进来就知道能做出什么样的封面，而不是对着空白发愣
+async function renderSocialEmptySamples() {
+  const el = document.getElementById('results-empty');
+  if (!el) return;
+  const fallback = '暂无记录<br><span style="opacity:.5">点击「生成封面」开始</span>';
+  try {
+    const res = await fetch('/api/social/thumbnails');
+    const data = await res.json();
+    const list = (Array.isArray(data) ? data : []).slice(0, 3);
+    if (!list.length) { el.innerHTML = fallback; return; }
+    el.innerHTML =
+      '<div style="font-size:.78rem;margin-bottom:8px;opacity:.9">选个样式 → 点生成，就能做出这样的封面</div>' +
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+      list.map(t => `<img src="${t.url}" style="width:30%;max-width:98px;border-radius:8px;border:1px solid var(--border-hi);object-fit:cover" alt="示例封面">`).join('') +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = fallback;
+  }
+}
+
 loadSocialStyles();
+renderSocialEmptySamples();
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
 setupUploadSlots();
 loadThemes();

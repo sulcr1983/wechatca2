@@ -26,6 +26,7 @@ import re
 import json
 import logging
 import hashlib
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -181,11 +182,46 @@ def _local_fallback(query: str) -> dict | None:
 
 # ── 对外主入口 ──────────────────────────────────────────
 
+# ── 查询级缓存：同一关键词不再重复联网查 API ──
+# 原先只缓存了图片下载（_download），但每次仍要打 Wikimedia/Pexels 的查询接口
+# （timeout 15–20s，是「生成封面慢」的大头）。这里把「关键词 → 结果」也缓存起来，
+# 第二次起同一关键词直接秒出。
+_QUERY_CACHE_FILE = CACHE_DIR / "query_cache.json"
+_QUERY_CACHE_TTL = 7 * 24 * 3600  # 7 天
+
+
+def _read_query_cache() -> dict:
+    try:
+        if _QUERY_CACHE_FILE.exists():
+            return json.loads(_QUERY_CACHE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+
+def _cache_query(query: str, rec: dict) -> None:
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache = _read_query_cache()
+        cache[query] = {**rec, "ts": time.time()}
+        _QUERY_CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+
 def search_background(text: str, provider: str | None = None) -> dict | None:
     """根据文案联网搜索一张相关底图，返回本地路径 + 署名信息。
     失败逐级降级：Pexels → Wikimedia → 本地。均失败返回 None。"""
     query = extract_query(text)
+    t0 = time.time()
     logger.info("搜图关键词: %s", query)
+
+    # 查询级缓存命中 → 跳过联网（图片文件仍在才使用）
+    hit = _read_query_cache().get(query)
+    if hit and os.path.exists(hit.get("path", "")) and (time.time() - hit.get("ts", 0) < _QUERY_CACHE_TTL):
+        logger.info("搜图命中查询缓存（%.1f 天前），跳过联网，耗时 %.2fs",
+                    (time.time() - hit.get("ts", time.time())) / 86400, time.time() - t0)
+        return {k: v for k, v in hit.items() if k != "ts"}
 
     # 1) Pexels（有 key 时）
     key = os.getenv("PEXELS_API_KEY")
@@ -194,7 +230,10 @@ def search_background(text: str, provider: str | None = None) -> dict | None:
             res = _pexels_search(query, key, 1)
             if res:
                 p = _download(res[0]["thumb"], query)
-                return {**res[0], "path": str(p), "query": query}
+                rec = {**res[0], "path": str(p), "query": query}
+                _cache_query(query, rec)
+                logger.info("搜图完成（Pexels 联网）耗时 %.1fs", time.time() - t0)
+                return rec
         except Exception as e:
             logger.warning("Pexels 搜图失败，降级 Wikimedia: %s", e)
 
@@ -203,12 +242,16 @@ def search_background(text: str, provider: str | None = None) -> dict | None:
         res = _wikimedia_search(query, 1)
         if res:
             p = _download(res[0]["thumb"], query)
-            return {**res[0], "path": str(p), "query": query}
+            rec = {**res[0], "path": str(p), "query": query}
+            _cache_query(query, rec)
+            logger.info("搜图完成（Wikimedia 联网）耗时 %.1fs", time.time() - t0)
+            return rec
     except Exception as e:
         logger.warning("Wikimedia 搜图失败，降级本地: %s", e)
 
     # 3) 本地兜底
     fb = _local_fallback(query)
     if fb:
-        logger.info("使用本地兜底底图: %s", fb["path"])
+        _cache_query(query, fb)
+        logger.info("使用本地兜底底图: %s（本次搜图总耗时 %.1fs）", fb["path"], time.time() - t0)
     return fb
