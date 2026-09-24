@@ -189,6 +189,8 @@ body {
 .editor-dot:nth-child(2) { background:var(--accent); }
 .editor-dot:nth-child(3) { background:var(--green); }
 .editor-label { margin-left:auto; font-size:.72rem; color:var(--text-muted); font-family:var(--font-mono); }
+.editor-demo-btn { margin-left:8px; font-size:.7rem; padding:2px 8px; border-radius:6px; border:1px solid var(--border-hi); background:transparent; color:var(--text-muted); cursor:pointer; }
+.editor-demo-btn:hover { color:var(--accent); border-color:var(--accent); }
 .col-text textarea {
   flex:1; width:100%; padding:20px;
   resize:none; border:none; outline:none;
@@ -424,7 +426,7 @@ body {
 .spv-tag { font-size:.62rem; color:var(--accent); letter-spacing:.12em; text-transform:uppercase; font-weight:600; }
 .spv-title { font-size:1.25rem; font-weight:700; color:var(--text); letter-spacing:-.01em; }
 .spv-divider { width:36px; height:2px; background:var(--accent); margin:0 auto; border-radius:2px; opacity:.5; }
-.spv-desc { font-size:.73rem; color:var(--text-muted); line-height:1.6; }
+.spv-desc { font-size:.73rem; color:var(--text-muted); line-height:1.6; white-space:pre-line; }
 
 /* Social results — 缩略图画廊（横向网格，充分利用宽度） */
 .social-results {
@@ -601,40 +603,9 @@ body {
       <div class="editor-header">
         <span class="editor-dot"></span><span class="editor-dot"></span><span class="editor-dot"></span>
         <span class="editor-label">纯文本编辑</span>
+        <button class="editor-demo-btn" id="btn-demo" type="button">看示例</button>
       </div>
-      <textarea id="input-area" placeholder="在此粘贴纯文本...
-
-支持 Markdown 基础语法。系统自动检测标题、列表、引用。
-在模板列表中选择模板，预览区实时展示排版效果。
-
-今天分享一个有趣的项目——
-我完成了一个阳光星盘系统。
-
-核心功能：
-它可以精确计算出生时刻的星盘图
-支持 12 宫位和相位解读
-用行星的落点分析个人特质
-
-开发初衷：
-市面上大多工具都是英文的
-我想做一个完全本地化、中文友好的版本
-数据不外传，全部在本地完成
-
-#阳光星盘 #个人项目 #星盘工具
-">今天分享一个有趣的项目——
-我完成了一个阳光星盘系统。
-
-核心功能：
-它可以精确计算出生时刻的星盘图
-支持 12 宫位和相位解读
-用行星的落点分析个人特质
-
-开发初衷：
-市面上大多工具都是英文的
-我想做一个完全本地化、中文友好的版本
-数据不外传，全部在本地完成
-
-#阳光星盘 #个人项目 #星盘工具</textarea>
+      <textarea id="input-area" placeholder="在这里粘贴你的文章…（第一行会自动当成标题）"></textarea>
     </div>
 
     <!-- Col 2: Preview -->
@@ -676,7 +647,7 @@ body {
 
   <!-- Footer -->
   <div class="wechat-footer">
-    <button class="btn" id="btn-copy">复制</button>
+    <button class="btn btn-primary" id="btn-copy">复制</button>
     <button class="btn" id="btn-history">历史</button>
     <span class="spacer"></span>
     <button class="btn btn-primary" id="btn-push">一键推送</button>
@@ -800,7 +771,11 @@ async function loadThemes() {
     themes = [];
   }
   // 默认选中第一套主题，使「输入即渲染」可用（无需先手动点选）
-  if (!activeTpl && themes.length) activeTpl = themes[0].id;
+  if (!activeTpl && themes.length) {
+    // 记住上次用过的主题（个人工具高频复用）；主题仍存在才用，否则回退首套
+    const saved = localStorage.getItem('supersu.lastTheme');
+    activeTpl = (saved && themes.some(t => t.id === saved)) ? saved : themes[0].id;
+  }
   renderTplList();
   if (activeTpl && inputArea.value.trim()) doRender();
 }
@@ -834,6 +809,7 @@ tplStrip.addEventListener('click', e => {
   if (!item) return;
   const name = item.dataset.tpl;
   activeTpl = name;
+  try { localStorage.setItem('supersu.lastTheme', name); } catch(e) {}
   renderTplList(tplSearch.value);
   doRender();
 });
@@ -856,6 +832,36 @@ tplToggle.addEventListener('click', () => {
   const collapsed = bar.classList.toggle('collapsed');
   tplToggle.classList.toggle('open', !collapsed);
   tplToggle.textContent = collapsed ? '展开模板库 ▾' : '收起 ▴';
+});
+
+// =================================
+// 示例文章：按需载入 / 清空（不再一进页面就占满输入框）
+// =================================
+const SAMPLE_ARTICLE = `今天分享一个有趣的项目——
+我完成了一个阳光星盘系统。
+
+核心功能：
+它可以精确计算出生时刻的星盘图
+支持 12 宫位相位解读
+用行星的落点分析个人特质
+
+开发初衷：
+市面上大多工具都是英文的
+我想做一个完全本地化、中文友好的版本
+数据不外传，全部在本地完成
+
+#阳光星盘 #个人项目 #星盘工具`;
+
+const demoBtn = document.getElementById('btn-demo');
+demoBtn.addEventListener('click', () => {
+  if (inputArea.value.trim()) {
+    inputArea.value = '';
+    demoBtn.textContent = '看示例';
+  } else {
+    inputArea.value = SAMPLE_ARTICLE;
+    demoBtn.textContent = '清空';
+  }
+  doRender();
 });
 
 // =================================
@@ -1070,8 +1076,19 @@ function copyByExecCommand(html) {
 // =================================
 // PUSH
 // =================================
-document.getElementById('btn-push').addEventListener('click', () => {
+document.getElementById('btn-push').addEventListener('click', async () => {
   if (!lastHtml) { toast('请先排版生成内容'); return; }
+  // 未绑定公众号时先给引导，别让用户卡在「请选择公众号」的空下拉框里
+  try {
+    const res = await fetch('/api/accounts');
+    const data = await res.json();
+    const accounts = Array.isArray(data) ? data : (data.accounts || []);
+    if (!accounts.length) {
+      toast('还没绑定公众号，先到「设置」里绑定（约 1 分钟）');
+      openSettingsModal();
+      return;
+    }
+  } catch(e) { /* 拉取失败不阻断：仍进弹窗由用户自行查看 */ }
   openPushModal();
 });
 
@@ -1487,7 +1504,9 @@ function extractSocialTitle(text) {
 function extractSocialDesc(text) {
   if (!text) return '';
   const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'));
-  return lines.slice(0,2).map(l => l.slice(0,20)).join('<br>');
+  // 用真实换行而非 <br>：本值经 textContent 赋值（不解析 HTML），
+  // 配合 .spv-desc 的 white-space:pre-line 正常换行 —— 否则 <br> 会被当成字面文字显示
+  return lines.slice(0,2).map(l => l.slice(0,20)).join('\n');
 }
 
 // =================================
@@ -1544,18 +1563,39 @@ function setupUploadSlots() {
   });
 }
 
-document.getElementById('btn-generate-cover').addEventListener('click', async () => {
+const genBtn = document.getElementById('btn-generate-cover');
+const GEN_STAGE_TEXT = { searching: '正在联网找底图…', rendering: '正在排版渲染…', done: '即将完成…', unknown: '正在准备…' };
+let genPollTimer = null;
+
+genBtn.addEventListener('click', async () => {
   const text = document.getElementById('social-text').value.trim();
   if (!text) { toast('请先输入文案'); return; }
   if (!activeSocialStyle) { toast('请先选择风格模板'); return; }
   const platformBtn = document.querySelector('.plt-btn.active');
   const platform = platformBtn ? platformBtn.dataset.platform : 'xhs';
-  toast('正在生成封面...');
+  // U-3：按钮置灰防重复点 + 轮询后端真实阶段（不谎报固定秒数）
+  const task_id = Math.random().toString(16).slice(2) + Date.now().toString(16);
+  const stageEl = document.getElementById('results-empty');
+  const origText = genBtn.textContent;
+  genBtn.disabled = true;
+  genBtn.textContent = '生成中…';
+  const stopPoll = () => { if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; } };
+  const poll = () => {
+    fetch('/api/social/progress/' + task_id)
+      .then(r => r.json())
+      .then(d => {
+        const t = GEN_STAGE_TEXT[d.stage] || GEN_STAGE_TEXT.unknown;
+        if (stageEl) { stageEl.style.display = 'block'; stageEl.textContent = '正在生成封面 · ' + t; }
+      })
+      .catch(() => {});
+  };
+  poll();
+  genPollTimer = setInterval(poll, 800);
   try {
     const res = await fetch('/api/social/generate', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text, style: activeSocialStyle, platform, images: socialUploads})
+      body:JSON.stringify({text, style: activeSocialStyle, platform, images: socialUploads, task_id})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'generate failed');
@@ -1585,9 +1625,17 @@ document.getElementById('btn-generate-cover').addEventListener('click', async ()
     const credit = document.getElementById('bg-credit');
     if (data.background && data.background.source) {
       const b = data.background;
-      const who = b.author ? ` · ${b.author}` : '';
-      const lic = b.license ? `（${b.license}）` : '';
-      credit.innerHTML = `底图来源：<b>${b.source}</b>${who} ${lic}<br>关键词「${b.query || ''}」自动联网搜索`;
+      // 关键词 / 作者可能来自外部接口，进 innerHTML 前先转义
+      const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
+        c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const who = b.author ? ` · ${esc(b.author)}` : '';
+      const lic = b.license ? `（${esc(b.license)}）` : '';
+      if (b.source === 'local') {
+        // 降级如实告知（不静默）：实际用的是本地库存图，不能再写"自动联网搜索"
+        credit.innerHTML = `联网没找到合适的底图，已用本地底图<br><span style="opacity:.7">关键词「${esc(b.query)}」</span>`;
+      } else {
+        credit.innerHTML = `底图来源：<b>${esc(b.source)}</b>${who} ${lic}<br><span style="opacity:.7">关键词「${esc(b.query)}」联网找到</span>`;
+      }
       credit.style.display = 'block';
     } else {
       credit.style.display = 'none';
@@ -1595,6 +1643,10 @@ document.getElementById('btn-generate-cover').addEventListener('click', async ()
     toast('封面已生成');
   } catch(e) {
     toast('生成失败: ' + e.message);
+  } finally {
+    stopPoll();
+    genBtn.disabled = false;
+    genBtn.textContent = origText;
   }
 });
 

@@ -34,6 +34,32 @@ STYLE_MAP = {
 }
 
 
+def _normalize_cover_text(text: str, title_limit: int = 16) -> str:
+    """让 BLCaptain 的标题提取只吃"首行"，不吃到副标题/正文。
+
+    背景（实测）：引擎 plan 会把输入的**前两行拼成一个标题**——"3个让家里立刻变整洁
+    的小动作" + "不用大扫除，每天10分钟就够" 被拼成 27 字的标题；而封面模板字号写死
+    （.sp-display 76px，CLI 无脚本注入口，无法像归藏那样用 fitty 自适应），拼出的长标题
+    必然溢出/截断。
+
+    做法：① 标题超长则钳到 title_limit；② 标题与下一行之间若无空行，补一个空行，
+    以打断引擎的"前两行拼接"。实测：补空行后标题保持 14 字（两行内放得下），
+    副标题落入正文卡，不再溢出。
+    """
+    if not text:
+        return text
+    lines = text.split("\n")
+    idx = next((i for i, l in enumerate(lines) if l.strip()), None)
+    if idx is None:
+        return text
+    first = lines[idx].strip()
+    if len(first) > title_limit:
+        lines[idx] = first[:title_limit].rstrip() + "…"
+    if idx + 1 < len(lines) and lines[idx + 1].strip():
+        lines.insert(idx + 1, "")
+    return "\n".join(lines)
+
+
 class BLCaptainBridge:
     def __init__(self, blcaptain_dir: str | None = None, node_bin: str = "node"):
         if blcaptain_dir is None:
@@ -71,6 +97,9 @@ class BLCaptainBridge:
     def generate(self, text: str, style: str = "sp-mist", output_dir: str | None = None,
                  bg_image: str | None = None) -> dict:
         style_id = STYLE_MAP.get(style, style)
+
+        # U-2 兜底：打断引擎的"前两行标题拼接"（详见 _normalize_cover_text 注释）
+        text = _normalize_cover_text(text, 16)
 
         if output_dir is None:
             output_dir = tempfile.mkdtemp(prefix="blcaptain_")

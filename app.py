@@ -599,6 +599,10 @@ def api_push():
 
 # ── 小红书封面生成 ───────────────────────────────────────────────────────
 
+# 生成阶段进度（内存态，仅供前端轮询展示真实阶段：searching / rendering / done）
+# 无持久化必要，重启即失；目的是消除"点了没反应"的假死感，且不谎报固定秒数
+_GEN_PROGRESS: dict[str, str] = {}
+
 @app.route("/api/social/generate", methods=["POST"])
 def api_social_generate():
     data = request.get_json() or {}
@@ -623,8 +627,12 @@ def api_social_generate():
             except Exception as e:
                 app.logger.warning("配图解码失败 %s: %s", key, e)
 
+    # 阶段 1：联网搜底图（网络耗时主要在这一段）
+    _GEN_PROGRESS[task_id] = "searching"
     # 自动联网搜底图（双轨：PEXELS_API_KEY 优先 → Wikimedia 免 key → 本地兜底）
     bg = image_search.search_background(text)
+    # 阶段 2：排版渲染
+    _GEN_PROGRESS[task_id] = "rendering"
     auto_images = {}
     if bg and bg.get("path"):
         for ratio in ("xhs", "square", "wide"):
@@ -680,6 +688,8 @@ def api_social_generate():
         except Exception as e2:
             return jsonify({"success": False, "error": f"渲染失败: {str(e2)[:500]}"}), 500
 
+    _GEN_PROGRESS[task_id] = "done"
+
     return jsonify({
         "task_id": task_id,
         "images": image_list,
@@ -687,6 +697,12 @@ def api_social_generate():
         "engine": "blcaptain" if is_blcaptain else "guizang",
         "background": bg,
     })
+
+
+@app.route("/api/social/progress/<task_id>", methods=["GET"])
+def api_social_progress(task_id):
+    """封面生成阶段（真实状态，供前端轮询显示；未知任务返回 unknown）"""
+    return jsonify({"task_id": task_id, "stage": _GEN_PROGRESS.get(task_id, "unknown")})
 
 
 @app.route("/api/social/styles", methods=["GET"])

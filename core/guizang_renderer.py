@@ -428,6 +428,23 @@ def render_social_cards(
         # 等待字体加载
         page.evaluate("document.fonts.ready")
         
+        # U-2：标题字号自适应（fitty v2.4.2, MIT）
+        # 长标题自动缩到刚好放得下，短标题仍保持最大号 —— 治"顶出边框/被截断/文字重叠"
+        try:
+            _f = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "public", "vendor", "fitty.min.js")
+            if os.path.exists(_f):
+                with open(_f, "r", encoding="utf-8") as _fh:
+                    page.add_script_tag(content=_fh.read())
+                page.evaluate(
+                    "() => { if (window.fitty) { "
+                    "window.fitty('.h-display', { minSize: 32, maxSize: 96, multiLine: true }); } }"
+                )
+                page.wait_for_timeout(400)
+        except Exception as e:
+            logger.warning("fitty 注入失败（不阻断渲染）: %s", e)
+        
         # 渲染XHS
         xhs_el = page.query_selector("#xhs-cover")
         if xhs_el:

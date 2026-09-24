@@ -306,11 +306,38 @@ def run():
                 check("历史按钮：打开历史弹窗", False, str(e)[:120])
             close_modals()
 
-            # 12) 一键推送 + 13) 账号管理 + AI 摘要 / AI 封面
+            # 12) 一键推送：U-6 新契约 —— 未绑定公众号时先给引导，不直接开推送弹窗
+            page.click("#btn-push", timeout=10000)
+            page.wait_for_timeout(1300)
+            guided = page.evaluate("""() => {
+                const t = document.getElementById('toast-el');
+                const byToast = !!t && t.innerText.includes('绑定');
+                return byToast || document.querySelectorAll('.modal').length > 0;
+            }""")
+            check("一键推送：未配置公众号时给出绑定引导（U-6 新契约）", guided)
+            close_modals()
+
+            # 12-1) 先用 UI 建一个临时账号（后文 UI 删除，自清理），使推送弹窗可达
+            tag = str(int(time.time()))
+            tmp_nick = f"E2E临时账号{tag}"
+            page.evaluate("() => openAccountModal()")
+            page.wait_for_timeout(1200)
+            page.fill("#acct-nickname", tmp_nick)
+            page.fill("#acct-appid", f"wx_e2e_{tag}")
+            page.fill("#acct-appsecret", "e2e_temp_secret_000000000000")
+            page.click('button.primary:has-text("添加")', timeout=5000)
+            page.wait_for_timeout(1500)
+            rows = page.locator("#acct-list > div", has_text=tmp_nick)
+            added = rows.count() == 1
+            check("账号管理：UI 添加账号后出现在列表", added,
+                  f"列表命中 {rows.count()} 行" if added else "添加后列表未见该账号")
+            close_modals()
+
+            # 12-2) 已有账号 → 点推送应正常打开推送弹窗
             page.click("#btn-push", timeout=10000)
             try:
-                page.wait_for_selector("#push-title", timeout=5000)
-                check("一键推送：打开推送弹窗", True)
+                page.wait_for_selector("#push-title", timeout=6000)
+                check("一键推送：已配置后打开推送弹窗", True)
 
                 # 12a) AI 摘要（有结果则写入摘要框；LLM 降级则按钮复位且无未捕获异常）
                 page.click('button:has-text("AI 生成摘要")', timeout=5000)
@@ -359,34 +386,23 @@ def run():
                     check("AI 封面：点击后渲染真实封面图", cv["reset"],
                           f"未出图 → 按钮复位（优雅降级）；状态={cv['status']}")
 
-                # 13) 账号管理：UI 建账号 → UI 删账号（自清理，不留残留）
+                # 13) 账号管理：删除 12-1) 建的临时账号（自清理，不留残留）
                 page.click("text=管理", timeout=5000)
                 page.wait_for_timeout(900)
                 nmod = page.evaluate("document.querySelectorAll('.modal').length")
                 check("推送弹窗内：打开账号管理弹窗", nmod >= 1, f"modal 数={nmod}")
 
-                tag = str(int(time.time()))
-                tmp_nick = f"E2E临时账号{tag}"
-                page.fill("#acct-nickname", tmp_nick)
-                page.fill("#acct-appid", f"wx_e2e_{tag}")
-                page.fill("#acct-appsecret", "e2e_temp_secret_000000000000")
-                page.click('button.primary:has-text("添加")', timeout=5000)
-                page.wait_for_timeout(1500)
                 rows = page.locator("#acct-list > div", has_text=tmp_nick)
-                added = rows.count() == 1
-                check("账号管理：UI 添加账号后出现在列表", added,
-                      f"列表命中 {rows.count()} 行" if added else "添加后列表未见该账号")
-
-                if added:
+                if rows.count() >= 1:
                     rows.first.locator("button").first.click(timeout=5000)
                     page.wait_for_timeout(1500)
                     left = page.locator("#acct-list > div", has_text=tmp_nick).count()
                     check("账号管理：UI 删除账号后从列表消失", left == 0,
                           f"删除后仍剩 {left} 行" if left else "已清除")
                 else:
-                    check("账号管理：UI 删除账号后从列表消失", False, "上一步未添加成功，跳过删除")
+                    check("账号管理：UI 删除账号后从列表消失", False, "列表中未见临时账号")
             except Exception as e:
-                check("一键推送：打开推送弹窗", False, str(e)[:120])
+                check("一键推送：已配置后打开推送弹窗", False, str(e)[:120])
             close_modals()
 
             # ============ 小红书页 ============
@@ -465,10 +481,13 @@ def run():
                     const c=document.getElementById('bg-credit');
                     return (c && c.style.display!=='none') ? c.innerText.trim() : '';
                 }""")
-                ok = "底图来源" in credit and ("Wikimedia" in credit or "Pexels" in credit or "本地" in credit)
-                check("底图署名：显示自动搜图来源", ok, f"署名={credit[:60]}")
+                # U-4 新契约：联网命中→"底图来源：X"；降级本地→"联网没找到…已用本地底图"；
+                # 两种情况都必须如实，且不得再出现旧的写死文案"自动联网搜索"
+                ok = (("底图来源" in credit) or ("没找到" in credit and "本地底图" in credit)) \
+                    and ("自动联网搜索" not in credit)
+                check("底图署名：如实说明来源（U-4 新契约）", ok, f"署名={credit[:60]}")
             except Exception as e:
-                check("底图署名：显示自动搜图来源", False, str(e)[:120])
+                check("底图署名：如实说明来源（U-4 新契约）", False, str(e)[:120])
 
             # 20) 点击结果卡开 Lightbox + 21) 关闭
             page.locator("#results-list .result-card").first.click(timeout=8000)
