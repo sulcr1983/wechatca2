@@ -1,38 +1,86 @@
-# SuperSu 🎨 公众号排版 + 小红书封面工具
+# 🚀 SuperSu — 公众号排版 + 小红书封面，一条龙
 
-> **粘贴纯文本，自动排版。不需要 AI 的时候，一步都不用点。**
+> **别再为排版跟编辑器搏斗半小时。**
+> 粘贴纯文本 → 好看的公众号排版；一句话 → 3 张小红书封面。
+> 全程本地运行 · 默认零 AI · 开箱即用。
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![Pexels](https://img.shields.io/badge/配图-Pexels%20优先-05A081?style=flat-square&logo=pexels&logoColor=white)](https://www.pexels.com/api/)
+[![Tests](https://img.shields.io/badge/测试-168%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](#-license)
+
+<p align="center">
+  <img src="docs/screenshots/wechat.png" alt="公众号排版界面" width="48%">
+  &nbsp;
+  <img src="docs/screenshots/social.png" alt="小红书封面生成界面" width="48%">
+</p>
+<p align="center"><i>左：公众号排版（92 套主题 · 实时预览）｜ 右：小红书封面（双引擎 · 一键 3 张）</i></p>
 
 ---
 
-## ✨ 功能亮点
+## 💥 为什么是 SuperSu
+
+| 😫 你可能正在经历 | ✅ SuperSu 给你的 |
+|:------------------|:------------------|
+| 公众号后台调格式半小时，粘过去还是乱 | **粘贴即排版**：92 套主题、实时预览、复制即得 |
+| 小红书封面不会设计、请设计又太贵 | **一句话生成 3 张**：3:4 / 1:1 / 21:9，双引擎任选 |
+| 在线工具要注册账号、文案上传到别人服务器 | **全本地运行**：数据不出门，API Key 加密存储 |
+| AI 工具每篇文章都烧 token、还越改越怪 | **默认零 AI**：本地规则引擎，需要 AI 时折叠在弹窗里随叫随到 |
+| 网上搜配图十分钟，配出来还不搭 | **自动联网配图**：Pexels 中文优先，搜不到会明说、绝不硬塞 |
+
+> 🧭 **核心理念：不做不需要的事。** 默认就是「输入 → 排版」，AI 全部折叠，点了才展开。
+
+---
+
+## ⚡ 30 秒上手
+
+```
+        📝 公众号排版                      🖼️ 小红书封面
+   ┌─────────────────────┐          ┌─────────────────────┐
+   │ ① 📋 粘贴你的文章     │          │ ① 🎯 选「发到哪」+样式 │
+   │    （第一行自动当标题）│          │ ② ✍️  写文案          │
+   │ ② 🎨 划过色卡即试看    │          │ ③ 🚀 点生成 → 一次 3 张│
+   │ ③ 📋 点「复制」直接发  │          └─────────────────────┘
+   └─────────────────────┘
+```
+
+> 💡 **第一次用？** 打开页面就会看到内置教程（右下角可随时重开），两个页面各 30 秒看完。
+
+---
+
+## 📊 一图看懂 SuperSu 有多少家底
+
+| | | | | |
+|:---:|:---:|:---:|:---:|:---:|
+| **92**<br>🎨 排版主题 | **11**<br>🖼️ 封面风格 | **3**<br>📐 输出比例 | **168**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
+
+- 🎨 **92 套排版主题** = 45 套原创 + 47 套开源适配（粗野主义 / 瑞士网格 / 蒸汽波 / 学术论文 / 苹果渐变……）
+- 🖼️ **11 种封面风格** = 归藏设计系统（杂志 / 瑞士）+ BLCaptain（雾野 / 暖书房 / 海岸 / 夜纹 / 炉台 / 电蓝 / 石墨薄荷 / 安全珊瑚 / 酸性青柠）
+- 🧪 **168 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮，0 控制台报错
+
+---
+
+## ✨ 核心功能
 
 | 🎯 功能 | 💡 说明 |
 |:--------|:---------|
 | **📝 自动排版** | 粘贴纯文本 → 自动识别标题 / 列表 / 引用 → Markdown → **92 套主题**任选（纯本地规则，零延迟零费用） |
-| **🖼️ 小红书封面** | 输入文案 → 选风格 → 一键生成 3:4 / 1:1 / 21:9 封面图（**双引擎**：归藏设计系统 + BLCaptain） |
-| **🌐 自动联网搜底图** | 封面自动从 Wikimedia Commons 搜索真实照片作背景（免 API Key），带来源署名；可选升级 Pexels |
-| **🤖 AI 润色** | 折叠在弹窗里，需要时展开。去 AI 味 / 正式 / 轻松三种风格 |
-| **📋 AI 摘要** | 自动提取 80–100 字摘要 |
-| **🚀 公众号推送** | 选择账号 → 生成封面 → 一键推送到微信草稿箱 |
-| **🔒 数据本地** | 全部运行在本地，API Key 加密存储，不上传任何内容到第三方 |
-
-核心理念：**不做不需要的事。** 默认就是输入→排版，AI 功能全部折叠，点了才展开。
+| **🖱️ 主题即划即看** | 鼠标划过色卡，预览立刻换装；**最近使用 + 收藏**自动置顶，常用的永远在手边 |
+| **🖼️ 小红书封面** | 输入文案 → 选风格 → 一键生成 **3:4 / 1:1 / 21:9**（双引擎：归藏设计系统 + BLCaptain，标题字号自适应，永不溢出） |
+| **🌐 自动联网配图** | **Pexels 中文优先**（原生 zh-CN，图贴题）→ Wikimedia 兜底 → 都没有就明确告诉你，**绝不硬塞无关图片**；全自动署名 |
+| **⏳ 生成有反馈** | 生成中显示真实阶段（找底图 → 排版 → 完成），按钮置灰防重复点，不让你对着一动不动的界面干等 |
+| **🤖 AI 润色 / 摘要 / 排版** | 折叠在弹窗里按需展开；AI 失败自动本地兜底并说明原因，**永不静默** |
+| **🚀 一键推送** | 选账号 → 生成封面 → 推送到微信草稿箱，含推送历史 |
+| **🔒 数据本地** | 全部本地运行，API Key 加密存储，不上传任何内容到第三方 |
+| **📖 内置教程** | 两个页面各 30 秒看完，首次自动出现，随时点「教程」重开 |
 
 ---
 
 ## 📝 公众号自动排版
 
-顶部紧凑模板条展示全部 **92 套主题**的配色色卡，点击即切换。下方左侧输入区支持实时预览，右侧手机框实时渲染。
-
-<p align="center">
-  <img src="docs/screenshots/wechat.png" alt="公众号排版界面" width="720">
-</p>
-<p align="center"><i>92 套主题色卡条 + 实时 Markdown 预览 + 手机框渲染</i></p>
+顶部紧凑模板条展示全部 **92 套主题**的配色色卡（支持搜索、悬停试看、收藏置顶）。下方左侧输入区支持实时预览，右侧手机框实时渲染，复制按钮写入**富文本**——粘贴到公众号后台，样式原样保留。
 
 ### 排版能力一览
 
@@ -42,42 +90,21 @@
 - ✅ Callout（tip / note / warning）
 - ✅ 脚注、图片占位符
 - ✅ 全部由**纯本地正则规则**完成预处理，零 AI 参与
+- ✅ **智能排版**（可选 AI）：AI 只出结构决策、不改写正文，失败自动本地兜底并说明原因
 
 ---
 
 ## 🖼️ 小红书一键生成封面
 
-**这是本工具最酷的功能之一：** 输入一段文案，选一个风格，点「生成封面」——系统会自动：
+输入一段文案，选一个风格，点「生成封面」——系统自动完成：
 
-1. 🔍 从文案中提取关键词（零 AI，规则映射）
-2. 🌐 联网搜索 Wikimedia Commons 真实照片（或 Pexels，如有 Key）
-3. 🎨 用双引擎之一将文字 + 底图合成精美封面
-4. 📸 输出 3 种比例 + 自动署名来源
+1. 🔍 从文案中提取关键词（本地词典；配置 AI 后升级为 LLM 精准提取）
+2. 🌐 联网搜索真实照片作底图（Pexels 中文优先 → Wikimedia 兜底）
+3. 🎨 双引擎将文字 + 底图合成封面（**标题字号自适应**，长文案不溢出）
+4. 📸 输出 3 种比例 + 自动署名来源 + 生成过程实时可见
 
-<p align="center">
-  <img src="docs/screenshots/social.png" alt="小红书封面生成界面" width="720">
-</p>
-<p align="center"><i>左：控制面板（目标平台 / 文案 / 风格选择 / 封面配置）<br>右：模板预览 + 已生成的真实封面图（日本旅行海报底图来自 Wikimedia Commons）</i></p>
-
-### 生成的封面长什么样？
-
-结果画廊以网格展示所有比例的封面，点击可放大查看 Lightbox 大图。
-
-<p align="center">
-  <img src="docs/screenshots/social-results.png" alt="封面结果画廊" width="480">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/social-lightbox.png" alt="Lightbox 大图预览" width="480">
-</p>
-<p align="center"><i>左：结果画廊网格 &nbsp;|&nbsp; 右：Lightbox 全屏大图（含底图署名）</i></p>
-
-### 双引擎阵容
-
-| 引擎 | 风格数 | 风格名 | 特点 |
-|:-----|:------:|:-------|:-----|
-| **归藏 Guizang** | 2 | Editorial 杂志风 / Swiss 瑞士风 | HTML 模板 + Playwright 截图，自包含 |
-| **BLCaptain** | 9 | 雾野 / 暖书房 / 海岸 / 夜纹 / 炉台 / 电蓝 / 石墨薄荷 / 安全珊瑚 / 酸性青柠 | Node.js CLI + Playwright，设计感强 |
-
-### 🌐 自动搜图机制
+<details>
+<summary><b>🔍 底图搜索机制（点开看流程）</b></summary>
 
 ```
 用户文案 "周末去海边旅行放空"
@@ -96,8 +123,28 @@
     搜不到时：明确提示「联网没找到」，绝不硬塞无关图片
 ```
 
-> 💡 **第一次用？点右上角「教程」**——两个页面各三步，含封面配图的获取方式。
-> 想让配图更贴题：到 [pexels.com/api](https://www.pexels.com/api/) 免费申请 key，在右上角「设置」→「Pexels 图库 API」里粘贴，**保存后立即生效**（或写进 `.env`）。
+</details>
+
+> 💡 **想让配图更贴题？** 到 [pexels.com/api](https://www.pexels.com/api/) 免费申请 key，右上角「设置」→「Pexels 图库 API」里粘贴，**保存后立即生效**（或写进 `.env`）。
+
+### 双引擎阵容
+
+| 引擎 | 风格数 | 风格名 | 特点 |
+|:-----|:------:|:-------|:-----|
+| **归藏 Guizang** | 2 | Editorial 杂志风 / Swiss 瑞士风 | HTML 模板 + Playwright 截图，杂志级排版 |
+| **BLCaptain** | 9 | 雾野 / 暖书房 / 海岸 / 夜纹 / 炉台 / 电蓝 / 石墨薄荷 / 安全珊瑚 / 酸性青柠 | Node.js CLI + Playwright，设计感强，标题字号自适应 |
+
+<details>
+<summary><b>🖼️ 更多界面截图</b></summary>
+
+<p align="center">
+  <img src="docs/screenshots/social-results.png" alt="封面结果画廊" width="46%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/social-lightbox.png" alt="Lightbox 大图预览" width="46%">
+</p>
+<p align="center"><i>左：结果画廊网格 ｜ 右：Lightbox 全屏大图（含底图署名）</i></p>
+
+</details>
 
 ---
 
@@ -131,7 +178,7 @@ graph TB
         A[index.html<br/>单页应用]
         A --> B[公众号页 #page-wechat]
         A --> C[小红书页 #page-social]
-        B --> B1[模板色卡条 .tpl-strip<br/>92 套主题]
+        B --> B1[模板色卡条 .tpl-strip<br/>92 套主题 · 悬停试看 · 收藏置顶]
         B --> B2[输入区 + 手机预览]
         C --> C1[控制面板]
         C --> C2[结果画廊 + Lightbox]
@@ -156,7 +203,7 @@ graph TB
     subgraph External["🌍 外部服务（按需）"]
         G1[LLM API<br/>阿里云/OpenAI 等]
         G2[Wikimedia Commons<br/>免费图片搜索]
-        G3[Pexels API<br/>可选升级]
+        G3[Pexels API<br/>推荐 · 原生中文]
         H1[微信公众平台 API]
     end
 
@@ -180,7 +227,7 @@ graph TB
 3. 启动后**自动打开浏览器**到 `http://127.0.0.1:5000`
 4. 关闭那个黑窗口即停止服务（或按 `Ctrl+C`）
 
-> ⚠️ **必须从「文件资源管理器（文件夹）」里双击**，不要在 VS Code / 编辑器 的文件树里双击——那样只会把 `.bat` 当文本打开，不会运行。
+> ⚠️ **必须从「文件资源管理器（文件夹）」里双击**，不要在 VS Code / 编辑器的文件树里双击——那样只会把 `.bat` 当文本打开，不会运行。
 > ❌ **不要双击 `app.py`**：它不能直接运行（系统 Python 缺依赖会秒退），`app.py` 只由 `start-app.bat` 调用。
 
 ### 🔧 手动启动（开发者）
@@ -198,7 +245,7 @@ python app.py
 # 浏览器打开 http://127.0.0.1:5000
 ```
 
-### 可选配置 `.env`
+### 🎛️ 可选配置 `.env`
 
 ```bash
 # AI 功能（不配也能用核心排版 + 封面生成）
@@ -214,31 +261,39 @@ PEXELS_API_KEY=your-pexels-key
 
 ---
 
-## 🧪 测试
+## 🧪 测试矩阵
+
+| 套件 | 项数 | 覆盖 |
+|:-----|:----:|:-----|
+| `tests/test_e2e.py` | **52** ✅ | 端到端（无需起服务，Flask test_client） |
+| `tests/test_integration.py` | **35** ✅ | 前后端联动（需先起服务） |
+| `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务） |
+| `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
+| `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
+| `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
+| **合计** | **168** | **全绿** |
 
 ```bash
-# E2E（无需起服务，Flask test_client）
-python tests/test_e2e.py              # 52/52 通过
+# 快速自检（无需起服务）
+python tests/test_e2e.py
 
-# 集成测试（需先启动 python app.py）
-python tests/test_integration.py       # 35/35 通过
-
-# 后端 API 全端点 E2E（脚本自起/自停服务，29 项）
-python tests/test_api_e2e.py           # 29/29 通过
-
-# 前端有头全按钮 E2E（双页 32 项，需 Chromium）
-# 覆盖 AI 摘要 / AI 封面 / AI 润色应用 / 账号 UI 增删；0 控制台报错
-python tests/test_headed_full_e2e.py   # 32/32 通过
-
-# 有头浏览器用户流程验证（需 Chromium）
-python tests/test_headed_userflow.py   # 7/7 通过
+# 有头全按钮（需 Chromium，脚本自起/自停服务）
+python tests/test_headed_full_e2e.py
 ```
 
-健康度口径：**E2E 52/52 + 集成 35/35 + API 29/29 + 有头全按钮 32/32**（+ 有头用户流程 7/7、有头复制 12/12）。
-
 > 有头套件刻意不点 3 个有真实副作用的按钮——`确认推送`（真打微信接口）、`保存AI配置`、`测试连接`（会覆盖配置）；其后端路径由 `test_api_e2e.py` 覆盖。
-
 > ⚠️ `test_e2e.py` 会读写 `data/*.json`，但已在测试前后做快照 / 还原；仍建议跑测前备份真实配置。
+
+---
+
+## 🗺️ 路线图
+
+| 状态 | 计划 | 说明 |
+|:----:|:-----|:-----|
+| ✅ 已完成 | 92 主题排版 · 双引擎封面 · Pexels 中文配图 · 按页教程 · 生成进度反馈 | 当前版本 |
+| 🔜 计划中 | **纯文字大字版式**（无底图、秒出、永不图文不符） | 小红书主流爆款形态 |
+| 🔜 计划中 | **多源候选 + 相关性打分选优**（CLIP / LLM 评分） | 进一步提升图文匹配度 |
+| 💡 探索中 | AI 生成专属底图 · 深色模式预览 · 模板可视化设计器 | 参考 WeMD / XHS_Cover 等开源实现 |
 
 ---
 
@@ -246,12 +301,12 @@ python tests/test_headed_userflow.py   # 7/7 通过
 
 ```
 wechatca2/
-├── app.py                      # Flask 主应用（23 条路由）
+├── app.py                      # Flask 主应用（25 条路由）
 ├── core/
 │   ├── format_engine.py        # 排版引擎（92 主题 Markdown → 微信 HTML）
 │   ├── preprocessor.py         # 纯文本 → Markdown（正则规则，零延迟）
-│   ├── image_search.py         # 🆕 联网搜图（Wikimedia / Pexels 双轨）
-│   ├── guizang_renderer.py     # 归藏封面渲染器（Playwright HTML→PNG）
+│   ├── image_search.py         # 联网搜图（Pexels 中文优先 / Wikimedia 兜底 + 查询缓存）
+│   ├── guizang_renderer.py     # 归藏封面渲染器（Playwright HTML→PNG，标题自适应）
 │   ├── blcaptain_bridge.py     # BLCaptain 封面引擎适配层（Node.js）
 │   ├── ai_client.py            # 多平台 LLM 客户端
 │   ├── image_gen.py            # AI 封面图生成（Pillow fallback）
@@ -259,16 +314,18 @@ wechatca2/
 │   ├── token_manager.py        # 微信 Access Token 管理
 │   └── crypto_utils.py         # API Key 加密存储
 ├── templates/
-│   └── index.html              # 单页前端 SPA（公众号 + 小红书双页面）
+│   └── index.html              # 单页前端 SPA（公众号 + 小红书双页面 + 内置教程）
 ├── public/
 │   ├── themes/*.json           # 92 套排版主题 JSON 配置
 │   ├── cover-templates/        # 归藏封面 HTML 模板
+│   ├── vendor/                 # 内联依赖（fitty 等）
 │   ├── images/                 # 本地库存图（最终兜底）
 │   └── social-thumb/           # 封面缩略图
-├── scripts/                    # 工具脚本（主题生成/去重/适配等）
-├── tests/                      # E2E + 集成 + 有头测试
+├── scripts/                    # 工具脚本（主题生成/去重/UX 验收等）
+├── tests/                      # E2E + 集成 + 有头测试（168 项）
 ├── docs/
 │   ├── screenshots/            # 📷 README 配图
+│   ├── ux-audit/               # UX 诊断报告与验收截图
 │   └── prototypes/             # 早期原型（已废弃）
 ├── AGENTS.md                   # 项目规则与工程纪律（Agent 必读）
 ├── HANDOFF.md                  # 系统状态交接文档
@@ -284,9 +341,15 @@ wechatca2/
 | 文档 | 内容 |
 |:-----|:-----|
 | [AGENTS.md](AGENTS.md) | 项目定位、架构速查、路由表、工程纪律、验收规则 |
-| [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、环境配置 |
+| [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、环境配置、变更记录 |
 | [CLOSURE.md](CLOSURE.md) | 任务收尾记录（完成项 / 验证 / 回滚点 / 剩余项） |
 | [claude.md](claude.md) | 给 AI Agent 读的项目规则（路由表、架构、注意事项） |
+
+---
+
+## 🤝 贡献
+
+欢迎 Issue 与 PR。开发前请先读 [AGENTS.md](AGENTS.md) 的工程纪律（一次一问题、不顺手重构、改动须过测试矩阵）。
 
 ---
 
