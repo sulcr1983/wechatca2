@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开源方案选型：每个问题先找现成的轮子</title>
+<style>
+  :root{
+    --paper:#f4f5f2; --card:#fffefa; --line:#e0e2d8; --ink:#272a24; --ink2:#565b50;
+    --muted:#83887c; --brand:#3a7d5c; --amber:#a9761f; --blue:#33628f;
+    --serif:"Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif;
+    --sans:"Noto Sans SC","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(820px 460px at 90% -8%, #e9f2ea 0%, transparent 58%),
+      radial-gradient(660px 400px at -6% 18%, #f2ede1 0%, transparent 55%),
+      var(--paper);
+    color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:16px}
+  .wrap{max-width:940px;margin:0 auto;padding:40px 22px 90px}
+  h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:0 0 6px}
+  h2{font-family:var(--serif);font-size:23px;margin:44px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2 .num{color:var(--brand);font-size:17px;margin-right:8px}
+  h3{font-size:17.5px;margin:22px 0 8px}
+  p{margin:9px 0}
+  .lead{color:var(--ink2);font-size:15px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:16px 0;
+        box-shadow:0 2px 14px rgba(90,100,80,.06)}
+  .hero{background:linear-gradient(135deg,#eef6ef,#f4f1e6);border:1px solid #d3e2cf}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#e9ecdf;font-weight:700}
+  td{background:var(--card)}
+  .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap}
+  .t-use{background:#e3f1e6;color:#2e7d4f;border:1px solid #c2dfc9}
+  .t-copy{background:#fdf3dd;color:#96690f;border:1px solid #eeddb0}
+  .t-ref{background:#e8eef4;color:#33628f;border:1px solid #cddbe8}
+  .t-none{background:#f0e8e4;color:#96543a;border:1px solid #e0c8bb}
+  .evi{font-size:13.5px;background:#f5f2e8;border-left:3px solid var(--amber);padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0;color:var(--ink2)}
+  .why{font-size:14px;color:var(--ink2);background:#eef4ef;border-left:3px solid var(--brand);padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+  .why b{color:var(--brand)}
+  code{background:#edeadf;padding:2px 6px;border-radius:5px;font-size:13px}
+  a{color:var(--blue);word-break:break-all}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  .foot{margin-top:46px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>开源方案选型：每个问题先找现成的轮子</h1>
+  <p class="lead">纪律：能用成熟开源就直接用，不手写半成品。下面把审计后确认的问题逐个对到<b>具体的开源项目/库</b>，标明「直接引入 / 抄算法 / 抄交互 / 仅参考」，附出处。</p>
+
+  <div class="card hero">
+    <p style="margin-top:0"><b>选型总结（一句话版）：</b></p>
+    <ul style="margin-bottom:0">
+      <li>封面标题溢出 → <b>直接引入 <code>fitty</code></b>（零依赖、两套引擎模板通用，本周就能上）</li>
+      <li>选模板难 → <b>抄 <code>md-wechat</code> 的「悬停即试看」交互</b> + 自研「最近使用置顶」（很小的工程）</li>
+      <li>排版主流程体验 → <b>对齐 <code>doocs/md</code>（12.5k★）的成熟范式</b>，不替换自研引擎</li>
+      <li>封面渲染去浏览器化（中期） → <b>试点 <code>satori</code>（Vercel 官方）</b>，甩掉 Chromium/Node 依赖</li>
+      <li>进度反馈 / 搜图缓存 / 记住上次主题 → <b>无现成轮子，自研</b>（都是小工程，不值得为此引依赖）</li>
+    </ul>
+  </div>
+
+  <h2><span class="num">01</span>总对照表：问题 → 开源方案 → 用法</h2>
+  <table>
+    <thead><tr><th>问题（审计后确认）</th><th>开源方案</th><th>用法</th><th>出处</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>封面标题溢出/截断（模板写死 76px）</td>
+        <td><b>fitty</b> — 单行文字自适应缩放，MIT，零依赖，支持 min/max 字号与内容变化监听</td>
+        <td><span class="tag t-use">直接引入</span></td>
+        <td><a href="https://github.com/rikschennink/fitty">github.com/rikschennink/fitty</a></td>
+      </tr>
+      <tr>
+        <td>92 套模板挑花眼</td>
+        <td><b>md-wechat</b> — 「悬停色卡即实时试看」的成熟交互</td>
+        <td><span class="tag t-copy">抄交互</span></td>
+        <td><a href="https://github.com/laogou717/md-wechat">github.com/laogou717/md-wechat</a></td>
+      </tr>
+      <tr>
+        <td>排版主流程（复制/预览/主题切换）体验标杆</td>
+        <td><b>doocs/md</b> — 12.5k★ 微信 Markdown 编辑器；主题即点即换、一键复制富文本、草稿本地管理</td>
+        <td><span class="tag t-ref">对齐范式</span></td>
+        <td><a href="https://github.com/doocs/md">github.com/doocs/md</a></td>
+      </tr>
+      <tr>
+        <td>封面正文过长溢出（分页/截断策略）</td>
+        <td><b>rednote-pro</b> — 「影子节点」实时测量文字高度、自动分页</td>
+        <td><span class="tag t-copy">抄算法</span></td>
+        <td><a href="https://github.com/GOD-OF-PPT/rednote-pro">github.com/GOD-OF-PPT/rednote-pro</a></td>
+      </tr>
+      <tr>
+        <td>封面渲染依赖 Chromium + Node（慢、重、难分发）</td>
+        <td><b>satori</b> — Vercel 官方，JSX/对象 + Flexbox 布局 → SVG → PNG，<b>无需浏览器</b></td>
+        <td><span class="tag t-use">中期试点</span></td>
+        <td><a href="https://github.com/vercel/satori">github.com/vercel/satori</a></td>
+      </tr>
+      <tr>
+        <td>封面字号按字数自适应（备选思路）</td>
+        <td><b>xiaohongshu-wenzifengmian</b> — 按尺寸与字数自动算字号</td>
+        <td><span class="tag t-copy">抄算法</span></td>
+        <td><a href="https://github.com/fgheng/xiaohongshu-wenzifengmian">github.com/fgheng/xiaohongshu-wenzifengmian</a></td>
+      </tr>
+      <tr>
+        <td>封面可视化微调（贴纸/拖拽，P2 远期）</td>
+        <td><b>XHS_Cover</b> — 100+ 贴纸拖拽缩放、实时保存</td>
+        <td><span class="tag t-ref">仅参考</span></td>
+        <td><a href="https://github.com/Smartloe/XHS_Cover">github.com/Smartloe/XHS_Cover</a></td>
+      </tr>
+      <tr>
+        <td>深色模式预览 / 主题设计器（P2 远期）</td>
+        <td><b>WeMD</b> — 深色模式预览还原 98%+；<b>wechat-markdown-editor</b> — 38 主题分类</td>
+        <td><span class="tag t-ref">仅参考</span></td>
+        <td><a href="https://github.com/ximeiorg/WeMD">github.com/ximeiorg/WeMD</a> · <a href="https://github.com/jwangkun/wechat-markdown-editor">github.com/jwangkun/wechat-markdown-editor</a></td>
+      </tr>
+      <tr>
+        <td>进度反馈 / 搜图缓存 / 记住上次主题 / 最近使用置顶</td>
+        <td>无对口开源轮子（都是业务小逻辑）</td>
+        <td><span class="tag t-none">自研</span></td>
+        <td>各 ≤1 天工程量，不值得为此引依赖</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">02</span>重点展开三个「直接能用」的</h2>
+
+  <h3>① fitty：一个文件，同时治两套封面引擎的标题溢出</h3>
+  <p>审计已实锤：溢出根因是两套引擎的封面模板<b>写死字号</b>（BLCaptain <code>.sp-display{font-size:76px}</code>，归藏同理）。
+  <b>fitty</b> 干的就是这一件事：把单行文字缩放到正好塞满父容器，零依赖、支持最大/最小字号、内容变化自动重算。</p>
+  <div class="evi"><b>落地方式（两套引擎通用）：</b>封面模板是 HTML，只需引入 <code>&lt;script src="fitty.min.js"&gt;&lt;/script&gt;</code> 并在标题元素上调用
+  <code>fitty('.sp-display', { minSize: 40, maxSize: 76 })</code>——标题长就自动缩、短就保持大字号。归藏引擎同理对它的标题类调用一次。
+  ⚠️ 纪律提醒：BLCaptain 是 vendored 子项目，改模板源后要<b>重新生成 + 跑它自带的 .mjs 测试</b>。</div>
+  <div class="why"><b>为什么选它而不是自己写缩放：</b>fitty 处理了 web 字体加载时机、DOM 读写合并性能、窗口变化监听这些自己写必踩的坑；MIT 协议、一个 min.js 文件，拷进模板即可，没有供应链负担。</div>
+
+  <h3>② md-wechat 的「悬停即试看」：治「92 个模板挑花眼」的最便宜解</h3>
+  <p>我们审计时推翻了「给 92 套主题人工打标签」——成本高、标签还容易打歪。md-wechat 给出了更聪明的答案：<b>鼠标悬停在主题卡上，右侧预览立刻换装</b>。选错的成本变成零，根本不需要分类。</p>
+  <div class="evi"><b>落地方式：</b>我们已有 <code>/api/render</code>（输入主题 id 秒出 HTML），把「点击才渲染」改成「悬停 200ms 防抖后渲染预览」即可，后端零改动。配合「最近使用 3 套置顶 + 收藏」（localStorage 记录），常用的永远在前排。</div>
+  <div class="why"><b>为什么更省事：</b>不逼用户「想一个分类词」，扫一眼效果就定了；人工打 92 个标签的一天工作量，换成悬停试看半天就能上线。</div>
+
+  <h3>③ satori（Vercel 官方）：封面渲染「去浏览器化」的中期路线</h3>
+  <p>现在生成一张封面 = Playwright/Node 冷启动 + 浏览器渲染截图（慢，也是之前「封装 exe 要 500MB」的元凶之一）。
+  <b>satori</b> 用纯 JS 的 Flexbox 引擎（React Native 同款 Yoga）把「样式描述」直接算成 SVG，再转 PNG——<b>全程没有浏览器</b>，Vercel 用它给数百万站点动态生成 OG 图。</p>
+  <div class="evi"><b>能力边界（选型前必须知道的）：</b>支持 Flexbox、渐变、圆角、边框、阴影、图片（base64）、文字溢出省略；<b>不支持</b> CSS Grid、伪元素、动画、<code>calc()</code>；中文字体需显式加载字体文件。复杂视觉模板迁移前要先对着这个清单过一遍。</div>
+  <p><b>定位建议：</b>不作为本轮 UX 修复的前置项。正确节奏是——先上 fitty 止血（本周），交互对齐 doocs/md；<b>若后续确认要减依赖/提速/瘦身分发</b>，先拿 1 套 BLCaptain 模板做 satori 试点，跑通「同模板双实现」对比视觉一致性，再决定是否全面迁移。</p>
+  <div class="why"><b>为什么现在不急着上：</b>迁移 9 套模板有真实工作量，且视觉细节有降级风险；而 fitty + 缓存已能解决「溢出」和「慢」这两个当下最痛的点。先用小轮子止血，大轮子等验证。</div>
+
+  <h2><span class="num">03</span>诚实的边界：哪些没有现成轮子，自研是对的</h2>
+  <p>以下几项搜了一圈没有对口开源组件（它们是业务逻辑而非通用能力），<b>自研几行代码反而比引依赖更省</b>：</p>
+  <ul>
+    <li><b>阶段化进度反馈</b>（找底图 → 排版 → 完成）：前端几个状态切换；</li>
+    <li><b>搜图缓存</b>：按关键词落盘缓存（项目已有 <code>data/bg_cache</code> 目录雏形），补 TTL 即可；</li>
+    <li><b>记住上次主题 / 最近使用置顶</b>：localStorage 读写；</li>
+    <li><b>署名如实显示</b>（local 时写「联网没找到，已用本地底图」）：改一行模板字符串。</li>
+  </ul>
+  <div class="why"><b>判断标准：</b>通用能力（文字缩放、DOM 转图、布局引擎）→ 找成熟库；业务小逻辑（缓存、记忆、文案）→ 自己写。反过来就是灾难：为「记住上次主题」引一个状态管理库，才是真正的过度工程。</div>
+
+  <h2><span class="num">04</span>落地顺序（结合审计的优先级）</h2>
+  <table>
+    <thead><tr><th style="width:80px">节奏</th><th>动作</th><th>依托</th></tr></thead>
+    <tbody>
+      <tr><td><b>本周</b></td><td>① 预览卡 <code>&lt;br&gt;</code> 一行修；② 引入 fitty 修两引擎标题溢出（改源→重生成→跑引擎测试）；③ 阶段化进度 + 署名如实</td><td>fitty + 自研小逻辑</td></tr>
+      <tr><td><b>下一步</b></td><td>④ 悬停即试看 + 最近使用置顶；⑤ 搜图缓存 + 分段计时；⑥ 记住上次主题 / 推送未配置引导</td><td>抄 md-wechat 交互 + 自研</td></tr>
+      <tr><td><b>中期试点</b></td><td>⑦ 单套模板 satori 双实现对比（视觉一致性 + 耗时），达标再谈迁移与「去 Chromium」</td><td>satori</td></tr>
+      <tr><td><b>远期参考</b></td><td>⑧ 贴纸微调 / 深色预览 / 主题设计器</td><td>XHS_Cover / WeMD 范式</td></tr>
+    </tbody>
+  </table>
+
+  <div class="foot">
+    选型方法：每个问题先搜「有没有现成开源」，能直接引入标「直接引入」，不能则标「抄算法/抄交互」，确认无轮子的才自研并列明理由。
+    上游文档：<code>docs/ux-audit/index.html</code>（走查诊断）→ <code>adversarial-review.html</code>（对抗性审计，冲突时以其为准）→ 本篇（开源落地方案）。
+  </div>
+
+</div>
+</body>
+</html>
