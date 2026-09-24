@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>封面"图文对不上"问题：根因与升级方案</title>
+<style>
+  :root{
+    --paper:#f5f4f0; --card:#fffdfa; --line:#e3ded2; --ink:#282521; --ink2:#585349;
+    --muted:#8a8378; --brand:#b3542f; --green:#3f8f5f; --blue:#33628f;
+    --serif:"Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif;
+    --sans:"Noto Sans SC","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(820px 460px at 90% -8%, #f7ebe4 0%, transparent 58%),
+      radial-gradient(660px 400px at -6% 16%, #eef2ea 0%, transparent 55%),
+      var(--paper);
+    color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:16px}
+  .wrap{max-width:940px;margin:0 auto;padding:40px 22px 90px}
+  h1{font-family:var(--serif);font-size:31px;line-height:1.3;margin:0 0 6px}
+  h2{font-family:var(--serif);font-size:22px;margin:44px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2 .num{color:var(--brand);font-size:17px;margin-right:8px}
+  h3{font-size:17px;margin:22px 0 8px}
+  p{margin:9px 0}
+  .lead{color:var(--ink2);font-size:15px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:16px 0;
+        box-shadow:0 2px 14px rgba(110,90,60,.06)}
+  .hero{background:linear-gradient(135deg,#fdf0e9,#f5efe5);border:1px solid #ecd6c4}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#efe8db;font-weight:700}
+  td{background:var(--card)}
+  .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap}
+  .t-a{background:#e3f1e6;color:#2e7d4f;border:1px solid #c2dfc9}
+  .t-b{background:#fdf3dd;color:#96690f;border:1px solid #eeddb0}
+  .t-c{background:#e8eef4;color:#33628f;border:1px solid #cddbe8}
+  .evi{font-size:13.5px;background:#f6f1e7;border-left:3px solid #a9761f;padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0;color:var(--ink2)}
+  .why{font-size:14px;color:var(--ink2);background:#eef4ef;border-left:3px solid var(--green);padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+  code{background:#f0e9dc;padding:2px 6px;border-radius:5px;font-size:13px}
+  a{color:var(--blue);word-break:break-all}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  figure{margin:14px 0;text-align:center}
+  figure img{max-width:62%;border:1px solid var(--line);border-radius:10px}
+  figcaption{font-size:13px;color:var(--muted);margin-top:7px}
+  .foot{margin-top:46px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>封面"图文对不上"：根因与升级方案</h1>
+  <p class="lead">你的观察是对的——不是错觉，而且我有实测证据。这份报告把"为什么对不上"拆开，再把网络上的同类做法、可用的开源方案、以及我建议的落地顺序列清楚。</p>
+
+  <div class="card hero">
+    <p style="margin-top:0"><b>一句话结论：</b>问题不在"配色/排版"，而在<b>配图从哪来</b>。当前默认走的是 <b>Wikimedia Commons（百科图库）</b>，
+    它偏地理/历史/艺术品，<b>天生不适合做生活方式类封面</b>；搜不到时还会兜底到"本地随机库存图"，于是出现"讲收纳、配一张铁路照"这种对不上的结果。</p>
+    <p style="margin-bottom:0"><b>而你项目自己的设计文档早就写明了正确做法</b>（<code>references/SKILL.md</code>：中文场景优先用 Pexels，它原生支持中文搜索）——<b>实现和设计文档脱节了</b>。</p>
+  </div>
+
+  <h2><span class="num">01</span>实测证据：图文不符是真实发生的</h2>
+  <figure>
+    <img src="shots/after/fit-sp-mist.png" alt="实测封面：文案讲收纳，底图却是铁路老照片">
+    <figcaption>实测：文案是「3个让家里立刻变整洁的小动作」，底图却是<strong>铁路/老照片拼贴</strong>——与"整洁、家居"毫无关系。</figcaption>
+  </figure>
+  <div class="evi"><b>同时实测到的数据：</b>该次生成返回 <code>bg_source = local</code>（联网搜图没命中，回退了本地库存图），署名如实写明"联网没找到合适的底图，已用本地底图"。</div>
+
+  <h2><span class="num">02</span>根因：三条，都有代码/实测依据</h2>
+  <table>
+    <thead><tr><th style="width:150px">根因</th><th>具体表现</th><th>证据</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>① 图源选错了</b></td>
+        <td>默认走 Wikimedia Commons（免 key）。它是百科/地理/艺术品图库，<b>不是生活方式图库</b>，搜"收纳/治愈/通勤"这类词基本对不上。</td>
+        <td>第三方实测对比：Wikimedia「良莠不齐、中文搜索质量不如英文、逐张授权不同」；Pexels「生活化场景化、<b>原生支持中文 locale=zh-CN</b>」。项目 <code>references/SKILL.md</code> 也写了「中文或国内场景优先用 Pexels」。</td>
+      </tr>
+      <tr>
+        <td><b>② 关键词太弱</b></td>
+        <td>关键词提取是<b>本地 50 词词典</b>（<code>core/image_search.py::TOPIC_MAP</code>）。命中就查英文词，<b>不命中就把中文整句丢给英文图库</b>——必然搜不到。</td>
+        <td>代码：<code>extract_query()</code> 兜底分支是"清洗标题前 24 字"直接当 query。</td>
+      </tr>
+      <tr>
+        <td><b>③ 兜底"瞎配"</b></td>
+        <td>搜不到时不空着，而是取<b>本地库存图的第一张</b>——于是配图与文案无关，比"没有图"更尴尬。</td>
+        <td>代码：<code>_local_fallback()</code> 返回 <code>public/images/</code> 下第一张图。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">03</span>网络上的同类做法（含出处）</h2>
+
+  <h3>① 图库对比：谁更适合"中文生活方式"配图</h3>
+  <table>
+    <thead><tr><th>图库</th><th>免费额度</th><th>中文搜索</th><th>调性</th><th>适合本项目？</th></tr></thead>
+    <tbody>
+      <tr><td><b>Pexels</b></td><td>200 次/小时</td><td><b>原生支持（locale=zh-CN）</b></td><td>生活化、场景化、人物/家居丰富</td><td><span class="tag t-a">最合适</span></td></tr>
+      <tr><td>Unsplash</td><td>50 次/小时（生产 5000）</td><td>一般，推荐英文</td><td>艺术、极简、风景、设计感</td><td><span class="tag t-b">次选（英文关键词）</span></td></tr>
+      <tr><td>Wikimedia Commons</td><td>无限（免 key）</td><td>支持但质量差</td><td>百科：地理/历史/艺术品</td><td><span class="tag t-c">只该做最后兜底</span></td></tr>
+      <tr><td>Pixabay</td><td>5000 次/天</td><td>一般</td><td>综合</td><td><span class="tag t-b">可作补充</span></td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13.5px;color:var(--muted)">出处：<a href="https://www.17you.com/freeresources/free-image-api-guide">免费图库API全攻略（含 Wikimedia 中文质量实测）</a>、<a href="https://siliconbased.dev/free-image-apis">Best Free Image APIs 2026</a>、项目内 <code>references/SKILL.md</code>。</p>
+
+  <h3>② "图对不上"这件事，业界用什么办法判定？</h3>
+  <p>成熟做法是给"图 + 文"算一个<b>匹配分</b>（CLIP 余弦相似度 / CLIPScore），从中挑分最高的图。分档参考：<b>0.15 以下=基本不相关，0.15–0.30=中等，0.30–0.45=强相关</b>。</p>
+  <p style="font-size:13.5px;color:var(--muted)">出处：<a href="https://github.com/RithikaBaskaran/Generative-Image-Evaluation">CLIP 图文对齐打分实践</a>、EvalScope 的 CLIPScore/VQAScore 指标说明。中文场景可用开源的 Chinese-CLIP（阿里 OFA-Sys）。</p>
+  <div class="why"><b>对我们的用法：</b>不要"搜 1 张就用 1 张"，而是<b>搜 10 张 → 打分 → 用最高的那张</b>。这是从根上解决"对不上"的办法。</div>
+
+  <h3>③ 一个更省事的方向：干脆不要照片</h3>
+  <p>多家小红书封面攻略都指向同一结论：<b>"大字封面/纯文字封面"是最容易出爆款、最容易复制的形态</b>——不需要摄影、不需要修图，靠排版张力传递信息；知识类、干货类笔记十有八九都是这个路子。配色克制（≤2 色）、字号三层对比（主标题 60–80pt）即可。</p>
+  <p style="font-size:13.5px;color:var(--muted)">出处：<a href="https://www.chuangkit.com/blog/pingmiansheji1028.html">小红书大字封面 4 个公式</a>、<a href="https://www.tuokeba.com/jingyan/365.html">封面设计要点（"纯文字封面"）</a>、<a href="https://www.oppozhijia.com/wz/1029276.html">纯文字封面极简制作法</a>。</p>
+
+  <h2><span class="num">04</span>关于"归藏的 GitHub 有没有更新"</h2>
+  <div class="card">
+    <p style="margin-top:0"><b>先澄清一件事：</b>"归藏"在本项目里是<b>你自己的设计体系命名</b>（<code>core/guizang_renderer.py</code> + <code>public/cover-templates/</code> 那 10 套 editorial/swiss 模板，配套文档在 <code>references/</code>），<b>不是一个外部开源项目</b>——所以不存在"上游有没有更新"。</p>
+    <p style="margin-bottom:0">但这次翻文档有个<b>有价值的发现</b>：<code>references/SKILL.md</code> 里其实已经写清了正确的图片来源策略（Unsplash / Pexels / Flickr CC / Wallhaven 四个源，且明确"中文场景优先 Pexels"），<code>PRODUCT.md</code> 还专门立了"决策 3：文案太长要告知用户而不是硬塞""决策 4：图片先取后说、让用户决定"。
+    <b>也就是说：设计意图是对的，但代码只实现了 Wikimedia + Pexels(需 key)，把最关键的"中文优先 Pexels"落空了。</b></p>
+  </div>
+
+  <h2><span class="num">05</span>我的建议（按性价比排序）</h2>
+
+  <h3>A 组 · 先做这三件（成本极低，当天见效）</h3>
+  <table>
+    <thead><tr><th style="width:52px">优先</th><th>做什么</th><th>为什么有效</th><th>量</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag t-a">A1</span></td><td><b>把默认图源换成 Pexels</b>（中文用 <code>locale=zh-CN</code>），Wikimedia 降为最后兜底</td><td>直接命中"中文生活方式配图"这个场景，是当前错配的最大来源</td><td>小（需一个免费 key）</td></tr>
+      <tr><td><span class="tag t-a">A2</span></td><td><b>关键词改用 LLM 提取</b>（你已有 AI 配置，失败自动降级本地词典）</td><td>把"整句中文丢给英文库"换成 2–3 个精准英文检索词</td><td>小</td></tr>
+      <tr><td><span class="tag t-a">A3</span></td><td><b>搜不到就别硬配</b>：改提示"没找到合适的图"，并给「换一张 / 改用无底图版式 / 上传自己的图」三个出口</td><td>杜绝"讲收纳配铁路照"的尴尬（也符合你项目"不静默、不硬塞"的铁律）</td><td>小</td></tr>
+    </tbody>
+  </table>
+
+  <h3>B 组 · 效果更硬（1–3 天）</h3>
+  <ul>
+    <li><b>B1 多源候选 + 相关性打分选优</b>：一次取 5–10 张候选，用 CLIP（英文 query 用开源 CLIP，中文用 Chinese-CLIP）打分取 top1；若不想引模型，也可用 LLM 对候选图的标题/描述做相关性排序（零依赖、更省）。</li>
+    <li><b>B2 候选图人工确认</b>：给 3–5 张缩略图让你点选，而不是程序定死——最省事、最可控。</li>
+  </ul>
+
+  <h3>C 组 · 根治（也最贴合你的产品定位）</h3>
+  <ul>
+    <li><b>C1 把"无照片的大字/纯色版式"做成一等选项</b>：小红书主流爆款形态，<b>秒出图（不用等 25 秒搜图）、永远不会图文不符、风格统一</b>。你的产品是"纯文本进、排版出"，这条路和定位最契合。</li>
+    <li><b>C2 AI 生成专属底图</b>（项目已有 <code>image_gen</code>）：相关性最高，代价是成本与"AI 味"。</li>
+  </ul>
+
+  <div class="card">
+    <p style="margin-top:0"><b>我的推荐顺序：</b>A1 + A2 + A3（先止血，当天可上线）→ 看效果 → 若还不够就做 B1（打分选优）或直接推 C1。</p>
+    <p style="margin-bottom:0">个人判断：<b>C1 对你这个工具最划算</b>——你不需要照片也能出好看的封面，而"不依赖照片"等于把"图文不符"这个问题从根上删掉，还顺带解决"生成要等 25 秒"。</p>
+  </div>
+
+  <div class="foot">
+    依据：项目源码（<code>core/image_search.py</code>、<code>references/SKILL.md</code>、<code>references/PRODUCT.md</code>）+ 实测截图（<code>docs/ux-audit/shots/after/fit-sp-mist.png</code>）+ 上述公开资料。
+    本轮只做调研与建议，未改动代码。
+  </div>
+
+</div>
+</body>
+</html>
