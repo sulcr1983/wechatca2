@@ -407,6 +407,9 @@ def run():
 
             # ============ 小红书页 ============
             page.click('.tab-btn[data-page="social"]', timeout=10000)
+            # 首次进入小红书页会弹一次「使用教程」（产品行为，属预期），
+            # 测试需先关掉弹窗，否则后续点击会被遮罩挡住而假失败
+            close_modals()
             try:
                 page.wait_for_selector("#page-social.active", timeout=10000)
                 check("切换到小红书页 #page-social", True)

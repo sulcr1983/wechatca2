@@ -117,16 +117,32 @@ def _download(url: str, query: str) -> Path:
 # ── 各图源 ──────────────────────────────────────────────
 
 def _pexels_search(query: str, api_key: str, n: int = 1) -> list[dict]:
+    """Pexels 搜索（封面自动配图优先图源）。
+
+    两处针对性处理：
+    1) locale：中文查询走 zh-CN（Pexels 原生支持中文检索），英文走 en-US；
+    2) 竖版优先（贴合小红书 3:4），竖版没结果时放宽 orientation 再查一次，
+       尽量少降级到「本地库存图」——那正是"图文对不上"的来源之一。
+    另：一次多取候选（≥5），为后续做"相关性打分选优"留好接口。
+    """
     api = "https://api.pexels.com/v1/search"
     headers = {"Authorization": api_key}
-    r = requests.get(
-        api, headers=headers,
-        params={"query": query, "per_page": n, "orientation": "portrait"},
-        timeout=15,
-    )
-    r.raise_for_status()
+    locale = "zh-CN" if re.search(r"[\u4e00-\u9fff]", query or "") else "en-US"
+
+    def _do(orientation=None):
+        params = {"query": query, "per_page": max(n, 5), "locale": locale}
+        if orientation:
+            params["orientation"] = orientation
+        r = requests.get(api, headers=headers, params=params, timeout=15)
+        r.raise_for_status()
+        return r.json().get("photos", [])
+
+    photos = _do("portrait")
+    if not photos:
+        photos = _do()
+
     out = []
-    for ph in r.json().get("photos", [])[:n]:
+    for ph in photos[:n]:
         src = ph.get("src", {}).get("large") or ph.get("src", {}).get("original")
         if not src:
             continue
@@ -252,6 +268,8 @@ def search_background(text: str, provider: str | None = None) -> dict | None:
     # 3) 本地兜底
     fb = _local_fallback(query)
     if fb:
-        _cache_query(query, fb)
+        # 注意：降级结果不写缓存 —— 否则一次没搜到，就会被固化 7 天，
+        # 之后同一关键词永远配这张本地占位图（正是"图文对不上"的放大器）。
+        pass
         logger.info("使用本地兜底底图: %s（本次搜图总耗时 %.1fs）", fb["path"], time.time() - t0)
     return fb

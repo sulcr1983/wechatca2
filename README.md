@@ -81,19 +81,23 @@
 
 ```
 用户文案 "周末去海边旅行放空"
-    ↓ 规则提取关键词（零 AI）
+    ↓ 提取关键词（本地词典；配置 AI 后可升级为 LLM 精准提取）
 关键词 = "travel"
-    ↓ 双轨搜索
-┌─ Pexels API（需 PEXELS_API_KEY 环境变量）← 更精准，200 次/时
-│   └── 返回高清摄影作品 + 作者 + 许可证
+    ↓ 双轨搜索（中文查询自动走 zh-CN）
+┌─ Pexels API（推荐配置，原生支持中文）← 图最贴题，200 次/时
+│   └── 竖版优先 · 返回高清摄影作品 + 作者 + 许可证
 │
-└─ Wikimedia Commons（默认，无需任何 Key）✅ 开箱即用
-    └── 返回 CC / Public Domain 作品 + 作者 + 许可证
-         ↓ 缓存到 data/bg_cache/
+└─ Wikimedia Commons（无需任何 Key）✅ 开箱即用
+    └── 返回 CC / Public Domain 作品（偏百科/地理，中文场景可能不贴题）
+         ↓ 联网成功的结果缓存到 data/bg_cache/（降级结果不缓存，不会固化错图）
     注入封面引擎（归藏 data URI 内嵌 / BLCaptain 文件路径）
          ↓
     用户看到：真实照片底图 + 中文标题叠加 + 底图署名条
+    搜不到时：明确提示「联网没找到」，绝不硬塞无关图片
 ```
+
+> 💡 **第一次用？点右上角「教程」**——两个页面各三步，含封面配图的获取方式。
+> 想让配图更贴题：到 [pexels.com/api](https://www.pexels.com/api/) 免费申请 key，在右上角「设置」→「Pexels 图库 API」里粘贴，**保存后立即生效**（或写进 `.env`）。
 
 ---
 
@@ -202,7 +206,7 @@ LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 LLM_API_KEY=sk-your-key
 LLM_MODEL=qwen-plus
 
-# 图片搜索升级（不配则默认用 Wikimedia Commons 免费版）
+# 封面自动配图（推荐：中文搜索更贴题；也可在「设置」弹窗里填，保存后立即生效）
 PEXELS_API_KEY=your-pexels-key
 ```
 
