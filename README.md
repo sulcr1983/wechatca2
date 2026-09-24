@@ -20,6 +20,26 @@
 
 ---
 
+## 🖼️ 真实产出
+
+<p align="center">
+  <img src="docs/screenshots/covers/01-editorial.jpg" width="31%">
+  &nbsp;
+  <img src="docs/screenshots/covers/02-swiss.jpg" width="31%">
+  &nbsp;
+  <img src="docs/screenshots/covers/03-sp-mist.jpg" width="31%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/covers/04-sl-blue.jpg" width="31%">
+  &nbsp;
+  <img src="docs/screenshots/covers/05-sp-warm.jpg" width="31%">
+  &nbsp;
+  <img src="docs/screenshots/covers/06-sp-coastal.jpg" width="31%">
+</p>
+<p align="center"><i>旅行 · 咖啡探店 · 情感治愈 · 效率工具 · 美食 · 家居收纳 —— 六种主题 × 六种风格，底图来自 Pexels 中文检索，全部一键生成</i></p>
+
+---
+
 ## 💥 为什么是 SuperSu
 
 | 😫 你可能正在经历 | ✅ SuperSu 给你的 |
