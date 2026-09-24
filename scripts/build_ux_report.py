@@ -5,12 +5,13 @@
 
 import os
 import re
+import sys
 import base64
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UX = os.path.join(ROOT, "docs", "ux-audit")
-TPL = os.path.join(UX, "report.tpl.html")
-OUT = os.path.join(UX, "index.html")
+TPL = os.path.join(UX, sys.argv[1] if len(sys.argv) > 1 else "report.tpl.html")
+OUT = os.path.join(UX, sys.argv[2] if len(sys.argv) > 2 else "index.html")
 
 
 def main():
