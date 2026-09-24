@@ -34,7 +34,7 @@ STYLE_MAP = {
 }
 
 
-def _normalize_cover_text(text: str, title_limit: int = 16) -> str:
+def _normalize_cover_text(text: str, title_limit: int = 40) -> str:
     """让 BLCaptain 的标题提取只吃"首行"，不吃到副标题/正文。
 
     背景（实测）：引擎 plan 会把输入的**前两行拼成一个标题**——"3个让家里立刻变整洁
@@ -42,9 +42,10 @@ def _normalize_cover_text(text: str, title_limit: int = 16) -> str:
     （.sp-display 76px，CLI 无脚本注入口，无法像归藏那样用 fitty 自适应），拼出的长标题
     必然溢出/截断。
 
-    做法：① 标题超长则钳到 title_limit；② 标题与下一行之间若无空行，补一个空行，
-    以打断引擎的"前两行拼接"。实测：补空行后标题保持 14 字（两行内放得下），
-    副标题落入正文卡，不再溢出。
+    做法：① 标题超长则钳到 title_limit（40，仅防极端长度）；② 标题与下一行之间若无空行，
+    补一个空行，以打断引擎的"前两行拼接"。
+    补充：封面模板现已内联 fitty 做字号自适应（见 blcaptain-style-skill/assets/*.html），
+    长标题会自动缩字号，不再需要靠截断来防溢出。
     """
     if not text:
         return text
@@ -98,8 +99,9 @@ class BLCaptainBridge:
                  bg_image: str | None = None) -> dict:
         style_id = STYLE_MAP.get(style, style)
 
-        # U-2 兜底：打断引擎的"前两行标题拼接"（详见 _normalize_cover_text 注释）
-        text = _normalize_cover_text(text, 16)
+        # U-2：打断引擎的"前两行标题拼接"（详见 _normalize_cover_text 注释）。
+        # 模板已内联 fitty 做字号自适应，故这里只防极端长度（40 字），不再截断正常长标题。
+        text = _normalize_cover_text(text, 40)
 
         if output_dir is None:
             output_dir = tempfile.mkdtemp(prefix="blcaptain_")
