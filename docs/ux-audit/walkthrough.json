@@ -1,0 +1,77 @@
+{
+  "steps": [
+    "01 公众号页首屏（还没输入任何内容）",
+    "02 把一篇纯文本粘进去，看它自动排版成什么样",
+    "03 在模板条搜索框输入「科技」筛选主题",
+    "04 点第 4 个主题色卡，换一套风格",
+    "05 点「复制」，看有没有明确的成功提示",
+    "06 切换「手机 / HTML」预览模式",
+    "07 点开「AI 工具」面板，看里面几张卡分别叫什么",
+    "08 点「一键推送」看要填多少东西（只看不提交）",
+    "09 切到小红书封面页，看首屏",
+    "10 填好文案、选好风格，准备生成",
+    "11 点「生成封面」后的等待过程，有没有加载提示",
+    "12 封面生成出来的结果长什么样",
+    "13/14 手机尺寸（390px）下公众号页长什么样",
+    "15 手机尺寸下小红书页长什么样"
+  ],
+  "warnings": [],
+  "errors": [],
+  "topbar_tabs": [
+    "公众号排版",
+    "小红书封面"
+  ],
+  "input_placeholder": "在此粘贴纯文本...\n\n支持 Markdown 基础语法。系统自动检测标题、列表、引用。\n在模板列表中选择模板，预览区实时展示排版效果。\n\n今天分享一个有趣的项目——\n我完成了一个阳光星盘系统。\n\n核心功能：\n它可以精确计算出生时刻的星盘图\n支持 12 宫位和相位解读\n用行星的落点分析个人特质\n\n开发初衷：\n市面上大多工具都是英文的\n我想做一个完全本地化、中文友好的版本\n数据不外传，全部在本地完成\n\n#阳光星盘 #个人项目 #星盘工具\n",
+  "buttons_wechat": [
+    "收起 ▴",
+    "HTML",
+    "手机",
+    "复制",
+    "历史",
+    "一键推送"
+  ],
+  "tpl_count": 92,
+  "preview_empty_html_len": 0,
+  "tpl_count_after_search": 0,
+  "toast_text": [
+    {
+      "text": "已复制，可直接粘贴到公众号 ✅",
+      "visible": true,
+      "cls": "toast"
+    }
+  ],
+  "ai_panel_cards": [
+    "T | AI 智能排版 | 自动优化 Markdown 排版格式",
+    "* | AI 润色文字 | 去AI味 / 正式 / 轻松三种风格"
+  ],
+  "push_modal_fields": [],
+  "social_placeholder": "输入文案，AI 自动提取标题...",
+  "buttons_social": [
+    "小红书 3:4",
+    "微信封面",
+    "静纸 · Still Paper",
+    "实证 · Signal Proof",
+    "归藏",
+    "生成封面"
+  ],
+  "style_tabs": [
+    "静纸 · Still Paper",
+    "实证 · Signal Proof",
+    "归藏"
+  ],
+  "tpl_mini_count": 5,
+  "char_count": "29 / 500",
+  "gen_btn_text_while_loading": "生成封面",
+  "result_count": 3,
+  "bg_credit": [
+    "底图来源：local\n关键词「3个让家里立刻变整洁的小动作」自动联网搜索"
+  ],
+  "mobile_overflow_wechat": {
+    "scrollW": 390,
+    "clientW": 390
+  },
+  "mobile_overflow_social": {
+    "scrollW": 390,
+    "clientW": 390
+  }
+}

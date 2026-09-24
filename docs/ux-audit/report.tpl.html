@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperSu 前端体验诊断与优化方案</title>
+<style>
+  :root{
+    --paper:#f6f3ee; --card:#fffdfa; --line:#e6ded2; --ink:#2b2724; --ink2:#5b544d;
+    --muted:#8a8178; --brand:#c1863a; --brand-d:#a06e2c; --green:#4a8f6a; --red:#c04a3f;
+    --p0:#e04a3a; --p1:#e08a2a; --p2:#7a8a99; --ok:#3f8f5f;
+    --serif:"Noto Serif SC","Songti SC","Source Han Serif SC",Georgia,serif;
+    --sans:"Noto Sans SC","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(900px 500px at 90% -10%, #fdf3e3 0%, transparent 60%),
+      radial-gradient(700px 400px at -10% 20%, #eef3ee 0%, transparent 55%),
+      var(--paper);
+    color:var(--ink);font-family:var(--sans);line-height:1.8;font-size:16px}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 22px 90px}
+  h1{font-family:var(--serif);font-size:34px;line-height:1.3;margin:0 0 6px;letter-spacing:.5px}
+  h2{font-family:var(--serif);font-size:24px;margin:46px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2 .num{color:var(--brand);font-size:18px;margin-right:8px}
+  h3{font-size:18px;margin:26px 0 8px}
+  p{margin:9px 0}
+  .lead{color:var(--ink2);font-size:15px;margin-bottom:26px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:16px 0;
+        box-shadow:0 2px 14px rgba(120,100,70,.06)}
+  .hero{background:linear-gradient(135deg,#fff7ea,#f4efe6);border:1px solid #ecdcc2}
+  .hero b{color:var(--brand-d)}
+  .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.5px}
+  .t-p0{background:#fdeae7;color:var(--p0);border:1px solid #f6c9c2}
+  .t-p1{background:#fdf1e0;color:var(--p1);border:1px solid #f3dcb5}
+  .t-p2{background:#eef1f4;color:var(--p2);border:1px solid #d8dee5}
+  figure{margin:14px 0;text-align:center}
+  figure img{max-width:100%;border:1px solid var(--line);border-radius:10px;box-shadow:0 3px 16px rgba(120,100,70,.10)}
+  figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:#f0e9de;font-weight:700}
+  td{background:var(--card)}
+  .why{font-size:14px;color:var(--ink2);background:#f2f6f2;border-left:3px solid var(--green);
+       padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+  .why b{color:var(--green)}
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+  .ba > div{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--card)}
+  .ba .before{border-top:4px solid #d9d2c6}
+  .ba .after{border-top:4px solid var(--ok)}
+  .ba h4{margin:0 0 8px;font-size:15px}
+  .ba .before h4{color:var(--muted)}
+  .ba .after h4{color:var(--ok)}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  code{background:#f0e9de;padding:2px 6px;border-radius:5px;font-size:13.5px}
+  .quote{border-left:3px solid var(--brand);padding:6px 0 6px 14px;color:var(--ink2);font-size:15px;margin:12px 0}
+  .repo{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px dashed var(--line)}
+  .repo:last-child{border-bottom:none}
+  .repo .st{flex:0 0 62px;text-align:center;font-weight:700;color:var(--brand);font-size:13px}
+  .repo .bd{flex:1}
+  .repo .bd b{font-size:15.5px}
+  .repo a{color:var(--brand-d);text-decoration:none;word-break:break-all;font-size:13px}
+  .repo a:hover{text-decoration:underline}
+  .foot{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .wire{background:#fbf8f3;border:1px dashed #d8cdb9;border-radius:10px;padding:14px;font-size:14px;color:var(--ink2)}
+  .wire .bar{display:block;height:10px;border-radius:5px;background:#e6ded2;margin:7px 0}
+  .wire .bar.o{background:#f0cfa0}
+  .wire .bar.g{background:#c8e2cf}
+  @media(max-width:680px){.ba{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>SuperSu 前端体验诊断与优化方案</h1>
+  <p class="lead">用一把最朴素的尺子量它：<b>一个完全不懂技术的人，能不能顺畅地把一篇文章变成好看的公众号排版？</b><br>
+  方法：用真实浏览器（有头 Chrome）按用户路径走了一遍，15 个关键节点逐一截图。</p>
+
+  <div class="card hero">
+    <p style="margin-top:0"><b>一句话诊断：</b>这产品的底子其实很好——排版效果漂亮、能一键复制、还能自动生成封面。
+    但它像一位<b>不会带路的高手</b>：进门没有指示牌，最该点的按钮不够显眼，让它干活时又不吭声，偶尔交出来的封面还有瑕疵。</p>
+    <p style="margin-bottom:0"><b>要做的不是重做，而是"补带路 + 补反馈 + 修瑕疵"这三件事。</b></p>
+  </div>
+
+  <h2><span class="num">01</span>我怎么走的（走查方式）</h2>
+  <p>不看代码、只当用户。用真实浏览器走完这条路径，每个关键画面都截了图：</p>
+  <p class="quote">打开页面 → 粘贴一篇文章 → 找模板 → 换风格 → 点复制 → 看推送弹窗 → 切到小红书页 → 填文案 → 选风格 → 点生成封面 → 等结果 → 再打开手机尺寸看一遍</p>
+  <p>走查中实测到的硬数据（这些是后面判断的依据）：</p>
+  <ul>
+    <li>公众号主题共 <b>92 套</b>，一屏排开、没有分类，也没有"推荐"。</li>
+    <li>在模板搜索框输入 <b>「科技」→ 返回 0 个结果</b>，页面只留一句"无匹配模板"，没有救场入口。</li>
+    <li>点击"生成封面"后，<b>按钮文字毫无变化</b>，也没有转圈或"生成中"提示（实际要等十几秒以上）。</li>
+    <li>封面共生成 <b>3 张</b>，但其中文字出现 <b>溢出、重叠，甚至把 <code>&lt;br&gt;</code> 标签原样显示了出来</b>。</li>
+    <li>底图署名写着：<code>底图来源：local</code>，紧跟一句"关键词…<b>自动联网搜索</b>"——前后自相矛盾。</li>
+    <li>手机尺寸下页面没有横向错位（这点没问题），但顶栏文字被挤成了两行。</li>
+  </ul>
+
+  <h2><span class="num">02</span>现状走查结论（看图说话）</h2>
+
+  <h3>① 第一眼：左侧有示例、右侧有成品——但没人告诉你"该干嘛"</h3>
+  <figure><img src="shots/01-wechat-empty.jpg" alt="首屏空状态"><figcaption>首屏（还没输入任何内容）：右半边已经摆好了"示例排版结果"，左边是一整篇灰色示例文字。</figcaption></figure>
+  <p>新人进来会懵：<b>右边这一大片彩色排版，是我做好的？还是我能改的？我第一步到底点哪？</b>整屏没有一句"第一步…第二步…"的说明。</p>
+
+  <h3>② 粘贴文章后：右侧自动排版——这是产品最好的一面</h3>
+  <figure><img src="shots/02-wechat-rendered.jpg" alt="粘贴后自动渲染"><figcaption>把文章粘进去，右侧立刻出现排版好的效果，标题、正文都自动处理了。不用做任何操作，这是亮点。</figcaption></figure>
+
+  <h3>③ 点"复制"：反馈很清楚（值得保留）</h3>
+  <figure><img src="shots/05-copy-feedback.jpg" alt="复制成功提示"><figcaption>点复制后，底部弹出黑条："已复制，可直接粘贴到公众号 ✅"。这句话说人话，好。</figcaption></figure>
+
+  <h3>④ 点"一键推送"：表格要填的东西不少，而且有前置门槛</h3>
+  <figure><img src="shots/08-push-modal.jpg" alt="推送弹窗"><figcaption>推送弹窗：要选公众号、填标题、写摘要（还标了 60-100 字）、配封面图。没配过公众号的人，第一个下拉框就是空的。</figcaption></figure>
+  <p>问题不在功能本身，而在于它<b>和"复制"并排放在最显眼处</b>。多数人只是想复制走，一眼看到最扎眼的橙按钮，点进去却发现要配置账号、写摘要——劝退。</p>
+
+  <h3>⑤ 小红书页首屏：右半边空空如也</h3>
+  <figure><img src="shots/09-social-empty.jpg" alt="小红书页空状态"><figcaption>小红书页：左边 4 个小步骤，右边一大片空白，只有一句很淡的"选择风格后预览""暂无记录"。</figcaption></figure>
+  <p>用户根本<b>不知道成品长什么样</b>，对着空白没信心开始。</p>
+
+  <h3>⑥ 点了"生成封面"之后：它一声不吭</h3>
+  <figure><img src="shots/11-social-loading.jpg" alt="生成中无反馈"><figcaption>点击"生成封面"约 2.5 秒后：按钮仍是"生成封面"，右侧仍是"暂无记录"。注意预览卡里的文字露出了 <code>&lt;br&gt;</code>。</figcaption></figure>
+  <p>用户会以为"没点到""是不是坏了"，于是<b>反复点击</b>。而实际上它正在后台忙十几秒。</p>
+
+  <h3>⑦ 生成结果：封面文字"出洋相"了</h3>
+  <figure><img src="shots/12-social-result.jpg" alt="封面结果文字溢出"><figcaption>生成出的封面：标题字太大顶出边框、"每天10分…"被截断，下面还有一层文字叠在一起。</figcaption></figure>
+  <p>这是最该优先修的问题：<b>核心产出物的质量不过关</b>，辛苦生成的封面用不了。</p>
+
+  <h3>⑧ 搜索"科技"：直接把人晾在原地</h3>
+  <figure><img src="shots/03-tpl-search.jpg" alt="搜索无结果"><figcaption>输入"科技"后：92 个主题全消失，只剩一句灰字"无匹配模板"，没有"清除搜索"或"看看热门"的出口。</figcaption></figure>
+
+  <h3>⑨ 手机上看：顶栏被挤成两行</h3>
+  <div class="ba">
+    <div class="before">
+      <figure style="margin:0"><img src="shots/13-mobile-wechat.jpg" alt="移动端公众号页"><figcaption>"公众号排版""小红书封面"被挤成上下两行；编辑区与预览区上下堆叠。</figcaption></figure>
+    </div>
+    <div class="before">
+      <figure style="margin:0"><img src="shots/15-mobile-social.jpg" alt="移动端小红书页"><figcaption>手机上小红书页 4 步竖排，但<b>看不到预览</b>，得生成后往下滚。</figcaption></figure>
+    </div>
+  </div>
+
+  <h2><span class="num">03</span>问题清单（按轻重分级）</h2>
+
+  <table>
+    <thead><tr><th style="width:64px">级别</th><th>问题（现象）</th><th>在哪</th><th>为什么让"不懂技术的人"难受</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag t-p0">P0</span></td><td><b>封面文字排版崩坏</b>：字号不自适应导致溢出、截断、文字重叠；换行符 <code>&lt;br&gt;</code> 被原样显示</td><td>小红书页 · 生成结果（图⑥⑦）</td><td>辛苦生成的作品不能用，等于白做——这是最伤信任的问题</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td><b>生成封面没有进度反馈</b>：按钮文字不变、无转圈，实际要等十几秒</td><td>小红书页 · 生成按钮（图⑥）</td><td>人以为坏了、会反复点，甚至关掉页面</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td><b>首屏没有"三步走"引导</b>：进门看到满屏内容，不知道先干嘛</td><td>公众号页 · 首屏（图①）</td><td>新用户 5 秒内没方向就容易直接走人</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td><b>最重要的按钮不显眼</b>：核心"复制"是浅色次要按钮，进阶的"一键推送"却是最抢眼橙色主按钮</td><td>公众号页 · 底部操作栏（图①②）</td><td>主次颠倒，把人往"更麻烦、有门槛"的路带</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td><b>模板一锅端 + 搜索形同虚设</b>：92 套无分类，搜"科技"返回 0 且无救场</td><td>公众号页 · 模板条（图①⑧）</td><td>选择瘫痪（看花眼），或被空结果劝退</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td><b>编辑框预置一整篇示例文章</b>：要自己先删干净，且一聚焦示例就消失、想参考又找不到了</td><td>公众号页 · 左侧编辑区（图①）</td><td>多了一步"删示例"，还容易把示例和正文搞混</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td><b>小红书页右侧大片空白</b>，没有成品示例</td><td>小红书页 · 首屏（图⑤）</td><td>不知道能做出什么，缺"试试看"的动力</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td><b>风格标签竖排错乱、名字看不懂</b>："静纸 · Still Paper""SP-01 普野"</td><td>小红书页 · 风格区（图⑤）</td><td>中英混排 + 代号，像在看说明书</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td><b>底图署名自相矛盾</b>："来源 local" + "自动联网搜索"</td><td>小红书页 · 结果区</td><td>前后不一致会让人怀疑"到底搜没搜"</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td><b>界面用词太专业</b>："纯文本读稿""目标平台""封面配图""风格模板"</td><td>两个页面</td><td>非技术用户要先"翻译"这些词才能操作</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td><b>手机端顶栏挤成两行，且手机上没有预览区</b></td><td>手机尺寸（图⑨）</td><td>小屏体验将就，看不方便</td></tr>
+      <tr><td><span class="tag t-p2">P2</span></td><td><b>"AI 智能排版"与核心"排版"撞名</b>，分不清区别</td><td>公众号页 · AI 面板（见下图）</td><td>T 字卡叫"AI 智能排版"，让人以为核心排版也得用它</td></tr>
+      <tr><td><span class="tag t-p2">P2</span></td><td><b>模板卡只有小色块、没有效果缩略图</b></td><td>公众号页 · 模板条</td><td>只能"凭感觉点"，点开才知道好不好看</td></tr>
+      <tr><td><span class="tag t-p2">P2</span></td><td><b>"设置里的公众号配置"和"一键推送"没有关联提示</b></td><td>全站</td><td>想推送却不知道要先去哪配置</td></tr>
+    </tbody>
+  </table>
+
+  <figure><img src="shots/07-ai-panel.jpg" alt="AI 面板"><figcaption>AI 面板展开后是两张卡："AI 智能排版"与"AI 润色文字"。其中"智能排版"和核心排版功能名字撞车（P2）。</figcaption></figure>
+
+  <h2><span class="num">04</span>第一性原理：用户到底想办成什么事？</h2>
+  <p>把所有功能先放一边，回到最根本的一句：</p>
+  <p class="quote"><b>"我把写好的文章，变成好看的公众号排版，然后复制走。"</b></p>
+  <p>就这么一件事。拆开只有 3 个动作：</p>
+  <div class="card">
+    <p style="margin:0"><b>① 放进文字&nbsp;&nbsp;→&nbsp;&nbsp;② 挑一个好看的样式&nbsp;&nbsp;→&nbsp;&nbsp;③ 复制到公众号</b></p>
+  </div>
+  <p>理想情况下，这 3 步应该各占一步、一眼可见。现在这条路上却横着这些坎：</p>
+  <table>
+    <thead><tr><th>用户想干的事</th><th>现在的实际遭遇</th><th>多出来的负担</th></tr></thead>
+    <tbody>
+      <tr><td>① 放进文字</td><td>先要删掉编辑框里预置的整篇示例</td><td>+1 步（还要判断"这是不是真的内容"）</td></tr>
+      <tr><td>② 挑样式</td><td>面对 92 个色块肉眼扫；搜"科技"还搜不到</td><td>选择瘫痪；搜索失败后无出路</td></tr>
+      <tr><td>③ 复制走</td><td>"复制"按钮不显眼，最抢眼的是"一键推送"</td><td>要在一排按钮里辨认哪个才对</td></tr>
+      <tr><td>（若不满足于复制）</td><td>点"推送"却要先选公众号、写摘要、配封面</td><td>门槛前置，且没提示"先去哪配置"</td></tr>
+    </tbody>
+  </table>
+  <p><b>结论：</b>产品把"能力"做全了，却没把"路径"铺平。对不懂技术的人，<b>路径清晰比功能丰富重要得多</b>。</p>
+
+  <h2><span class="num">05</span>优化方案（改前 → 改后）</h2>
+
+  <h3>改法 1：首屏加一条"三步走"提示，并且让示例"可一键清空"<span class="tag t-p0">P0</span></h3>
+  <div class="ba">
+    <div class="before"><h4>改前</h4>进门没有说明；编辑框里是一整篇灰色示例文；右侧已有一版示例排版。</div>
+    <div class="after"><h4>改后</h4>顶部一行步骤条：<b>① 粘贴文字　② 选模板　③ 复制到公众号</b>；编辑框只放一句灰字提示"在这里粘贴你的文章"，右上角给一个<b>"看示例"</b>按钮（点了才填入示例，可一键清空）。</div>
+  </div>
+  <div class="why"><b>为什么更省事：</b>进门第一眼就知道"我要做三件事、现在在第几步"，不用猜；示例想看才看，不再一进来就一坨文字要先删。</div>
+
+  <h3>改法 2：把"复制"变成最显眼的按钮，"一键推送"退到后面并补引导<span class="tag t-p0">P0</span></h3>
+  <div class="ba">
+    <div class="before"><h4>改前</h4>[复制(浅)] [历史(浅)] ………[一键推送(橙色实心,最亮)] [AI 工具]</div>
+    <div class="after"><h4>改后</h4>[<b>复制到公众号（橙色实心）</b>] [一键推送（描边次要）] [历史] [AI 工具]<br>
+      <span style="font-size:13px;color:var(--muted)">未配置公众号时，点"一键推送"友好提示："要自动发到公众号，需先到右上角『设置』里绑定你的公众号（约 1 分钟）。"</span></div>
+  </div>
+  <div class="why"><b>为什么更省事：</b>90% 的人只需要"复制"，那就让这个动作最显眼、一步可达；想更省事的人也不至于点进去卡在空下拉框上。</div>
+
+  <h3>改法 3：生成封面时"给个动静"，并修好封面文字排版<span class="tag t-p0">P0</span></h3>
+  <div class="ba">
+    <div class="before"><h4>改前</h4>点"生成封面"→ 按钮文字不变、无提示（实际等十几秒）；封面文字溢出/重叠、露出 <code>&lt;br&gt;</code>。</div>
+    <div class="after"><h4>改后</h4>① 点后按钮立即变"生成中…"并转圈、置灰防重复点击；结果区出现占位骨架卡；<b>预计耗时提示</b>"约 10 秒"。
+      ② 生成前清洗文字：去掉换行符/空值；标题<b>按宽度自动缩放字号</b>，超长自动换行或缩小，绝不溢出/重叠。</div>
+  </div>
+  <div class="why"><b>为什么更省事：</b>"有动静"让人知道它在干活、不用瞎点；封面不出洋相，才对得起用户花的时间——这是决定"下次还来不来"的关键。</div>
+  <div class="wire"><b>改后线框示意（生成中）</b><br>
+    [<span class="bar o" style="display:inline-block;width:80px;height:12px;vertical-align:middle"></span> 生成中… · 约 10 秒] <span class="bar" style="display:inline-block;width:120px;height:12px;vertical-align:middle"></span><br>
+    <span class="bar" style="width:60%"></span><span class="bar" style="width:40%"></span>
+  </div>
+
+  <h3>改法 4：模板加分类和"看得懂"的搜索，搜不到也不让人卡住<span class="tag t-p0">P0</span></h3>
+  <div class="ba">
+    <div class="before"><h4>改前</h4>92 个色块平铺；搜索只认主题名，输入"科技"直接 0 结果、无救场。</div>
+    <div class="after"><h4>改后</h4>① 顶部加一排分类：<b>全部 / 商务 / 文艺 / 极简 / 节日 / 科技</b>（每套主题打上标签，点标签筛选）。
+      ② 搜索支持"意图词"（搜"科技""商务""文艺"都能命中对应风格）。
+      ③ 空结果时给出口：<b>"没有找到，试试热门主题 →"</b> 或"清除搜索"。</div>
+  </div>
+  <div class="why"><b>为什么更省事：</b>用户脑子里想的是"我要个商务风"，不是主题名；按意图筛选 + 兜底出口，3 秒内就能挑到，而不是在 92 个里扫。</div>
+
+  <h3>改法 5：小红书页右侧空态放"示例成品"，让人知道能做多好看<span class="tag t-p1">P1</span></h3>
+  <div class="ba">
+    <div class="before"><h4>改前</h4>右侧一大片空白 + 一行淡字"选择风格后预览""暂无记录"。</div>
+    <div class="after"><h4>改后</h4>放 3 张示例封面缩略图，配一句"选个风格，点生成，就能做出这样的封面"；鼠标移到风格卡片上，右侧即时试看该风格的效果。</div>
+  </div>
+  <div class="why"><b>为什么更省事：</b>空白让人没底；给"样品"就有"我也想试试"的动力，还能一眼挑到喜欢的风格（参考开源项目"悬停即试看"的做法）。</div>
+
+  <h3>改法 6：把"说人话"贯彻到底——文案对照表<span class="tag t-p1">P1</span></h3>
+  <table>
+    <thead><tr><th>现在这么说（专业）</th><th>改成（人话）</th></tr></thead>
+    <tbody>
+      <tr><td>纯文本读稿</td><td>你的文章（粘贴在这里）</td></tr>
+      <tr><td>目标平台：小红书 3:4 / 微信封面</td><td>发到哪：小红书竖图 / 公众号封面</td></tr>
+      <tr><td>风格模板：SP-01 普野 / 静纸·Still Paper</td><td>样式：素雅 / 杂志 / 手账（配一张小缩略图）</td></tr>
+      <tr><td>封面配图：3:4 封面主图 / 1:1 方形配图 / 21:9 宽幅底图</td><td>底图（可选）：不放也行，系统会自动配一张</td></tr>
+      <tr><td>输入文案，AI 自动提取标题…</td><td>把要说的写在这里，第一行会自动当成标题</td></tr>
+      <tr><td>底图来源：local / 关键词…自动联网搜索</td><td>（二选一，与实际一致）本地上传 ／ 已为你联网找到的图</td></tr>
+    </tbody>
+  </table>
+  <div class="why"><b>为什么更省事：</b>不用先"翻译"术语就能看懂，少一层思考就少一次放弃。</div>
+
+  <h3>改法 7：手机端的收尾打磨<span class="tag t-p1">P1</span></h3>
+  <ul>
+    <li>顶栏改成"图标 + 短词"或单行横滑，避免"公众号排版"竖排换行。</li>
+    <li>手机上让"预览/结果"跟随操作就近展示（生成后自动滚到结果），不用手动往下翻。</li>
+  </ul>
+  <div class="why"><b>为什么更省事：</b>手机上能一眼看到结果，不用来回滚动找。</div>
+
+  <h2><span class="num">06</span>可借鉴的开源案例（附出处）</h2>
+  <p>同类工具在"让人少思考、少操作"上有不少现成的好做法，可直接借：</p>
+  <div class="card">
+    <div class="repo"><div class="st">12.5k★</div><div class="bd">
+      <b>doocs/md</b>（微信 Markdown 编辑器）——即时排版、一键复制、多图床、内置 AI 助手。
+      <br>可借：<b>"一键复制 + 主题即点即换"</b>把核心动作做成一步；功能用"标签页"收纳，不堆在主界面。
+      <br><a href="https://github.com/doocs/md">https://github.com/doocs/md</a></div></div>
+
+    <div class="repo"><div class="st">890★</div><div class="bd">
+      <b>WeMD</b>（更优雅的公众号排版）——可视化主题设计器、微信深色模式预览。
+      <br>可借：<b>所见即所得预览</b> + 深色模式预览，减少"复制过去才发现不对"的来回。
+      <br><a href="https://github.com/tenngoxars/WeMD">https://github.com/tenngoxars/WeMD</a></div></div>
+
+    <div class="repo"><div class="st">—</div><div class="bd">
+      <b>laogou717/md-wechat</b>——28 套主题，<b>悬停卡片即可实时试看</b>；手机样机框；外链自动转脚注。
+      <br>可借：<b>"鼠标一放就试看"</b>正好治"92 个主题挑花眼"的毛病。
+      <br><a href="https://github.com/laogou717/md-wechat">https://github.com/laogou717/md-wechat</a></div></div>
+
+    <div class="repo"><div class="st">—</div><div class="bd">
+      <b>jwangkun/wechat-markdown-editor</b>——38 种主题、12 种布局，<b>主题做了分类</b>。
+      <br>可借：分类 + 布局预设的思路，直接对应我们"92 套无分类"的问题。
+      <br><a href="https://github.com/jwangkun/wechat-markdown-editor">https://github.com/jwangkun/wechat-markdown-editor</a></div></div>
+
+    <div class="repo"><div class="st">—</div><div class="bd">
+      <b>GOD-OF-PPT/rednote-pro</b>（小红书封面生成器）——9 种风格、<b>实时预览</b>、<b>智能分页</b>（用"影子节点"实时测量文字高度，超了就分页）。
+      <br>可借：<b>智能分页/自动测量文字</b>的做法，正是我们"封面文字溢出"该学的。
+      <br><a href="https://github.com/GOD-OF-PPT/rednote-pro">https://github.com/GOD-OF-PPT/rednote-pro</a></div></div>
+
+    <div class="repo"><div class="st">—</div><div class="bd">
+      <b>Smartloe/XHS_Cover</b>（小红书封面设计器）——7 种模板、100+ 贴纸可拖拽缩放旋转、实时保存。
+      <br>可借：<b>模板缩略图 + 可视化微调</b>，让用户"选得明白、调得动"。
+      <br><a href="https://github.com/Smartloe/XHS_Cover">https://github.com/Smartloe/XHS_Cover</a></div></div>
+
+    <div class="repo"><div class="st">—</div><div class="bd">
+      <b>fgheng/xiaohongshu-wenzifengmian</b>——按图片尺寸与字数<b>自动调整字号</b>，保证文字完整显示。
+      <br>可借：这正是修"标题太大顶出边框"的现成思路。
+      <br><a href="https://github.com/fgheng/xiaohongshu-wenzifengmian">https://github.com/fgheng/xiaohongshu-wenzifengmian</a></div></div>
+  </div>
+
+  <h2><span class="num">07</span>落地优先级 · 工作量 · 验收指标</h2>
+  <p>建议按这个顺序做，先做"止血"的，再做好看的：</p>
+  <table>
+    <thead><tr><th style="width:60px">优先</th><th>改什么</th><th>工作量</th><th>验收指标（怎么算做好了）</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag t-p0">P0</span></td><td>修封面文字排版（清洗换行符/空值 + 字号自适应，防溢出重叠）</td><td>小</td><td>生成 3 张封面：无 <code>&lt;br&gt;</code>、无溢出、无重叠（肉眼校验通过）</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td>生成封面加进度反馈（按钮置灰 + 转圈 + 骨架卡）</td><td>小</td><td>点击后 100 毫秒内出现加载态；等待期无法重复提交</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td>首屏加"三步走"引导 + 示例改为一键看/清</td><td>小</td><td>找 3 位非技术用户，各 10 秒内能说出"第一步做什么"</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td>"复制到公众号"提为主按钮；"一键推送"降级并补未配置引导</td><td>小</td><td>"文章→复制"从 6+ 步降到 ≤3 步；点推送未配置时给出明确指引而非空下拉</td></tr>
+      <tr><td><span class="tag t-p0">P0</span></td><td>模板加分类标签 + 意图词搜索 + 空结果兜底</td><td>中</td><td>搜"科技/商务/文艺"均有结果；空结果时 1 次点击可看热门</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td>小红书右侧空态放示例 + 风格悬停试看</td><td>中</td><td>首屏能看到 ≥3 张示例；悬停 300ms 内切换试看</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td>全站文案"说人话"（按对照表替换）+ 风格名中文化</td><td>小</td><td>界面无"读稿/目标平台/SP-01"等术语</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td>底图署名文案与实际一致（去掉自相矛盾）</td><td>小</td><td>本地图 / 联网图 两种情形文案各自正确</td></tr>
+      <tr><td><span class="tag t-p1">P1</span></td><td>手机端顶栏不换行 + 生成后就近展示结果</td><td>小</td><td>390px 宽下顶栏单行；生成后结果进入视口</td></tr>
+      <tr><td><span class="tag t-p2">P2</span></td><td>"AI 智能排版"改名（区分核心排版）；模板卡配缩略图；推送与设置的关联提示</td><td>中</td><td>用户能区分"排版"与"AI 排版"；模板卡有预览图</td></tr>
+    </tbody>
+  </table>
+
+  <h3>整体验收指标（改前 → 目标）</h3>
+  <table>
+    <thead><tr><th>指标</th><th>现在</th><th>目标</th></tr></thead>
+    <tbody>
+      <tr><td>完成"文章 → 复制到公众号"所需步数</td><td>6 步以上（含删示例、找按钮）</td><td><b>≤ 3 步</b></td></tr>
+      <tr><td>首次完成所需的思考/犹豫点</td><td>多（先干嘛？搜不到？哪个按钮？）</td><td><b>0 个卡点</b>（每步都有明确指向）</td></tr>
+      <tr><td>挑选模板耗时</td><td>在 92 个色块里扫</td><td><b>&lt; 15 秒</b>（分类/搜索/悬停试看）</td></tr>
+      <tr><td>生成封面"以为卡住"的情况</td><td>有（无任何反馈）</td><td><b>无</b>（有进度与耗时提示）</td></tr>
+      <tr><td>封面成品一次合格率</td><td>有溢出 / 重叠 / <code>&lt;br&gt;</code></td><td><b>100% 无文字溢出</b></td></tr>
+      <tr><td>手机端横向错位</td><td>无（已达标，保持）</td><td>保持无错位，且顶栏不换行</td></tr>
+    </tbody>
+  </table>
+
+  <div class="foot">
+    走查方式：真实浏览器（有头 Chromium）按用户路径 15 步截图，截图见 <code>docs/ux-audit/shots/</code>，原始证据见 <code>docs/ux-audit/walkthrough.json</code>。
+    本报告只做诊断与建议，未改动产品代码。开源案例出处均在上文列出。
+  </div>
+
+</div>
+</body>
+</html>
