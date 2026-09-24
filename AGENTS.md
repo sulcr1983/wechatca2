@@ -216,3 +216,18 @@ taskkill //F //IM python.exe
 ### 对外贡献 / 多 Agent
 - 个人工具，对外 PR 前先读贡献规则、一次一问题、不混入无关改动。
 - 多 agent 仅用于互不干扰的独立域；子 agent 结论须主 agent 对照代码 / 测试验收。
+
+## 12. 前端改造方案 v3（2026-09-24 定稿）
+
+- **唯一权威**：`docs/ux-audit/final-plan.html`（链路：走查 `index.html` → 审计 `adversarial-review.html` → 选型 `open-source-picks.html` → 定稿）。**冲突一律以 final-plan 为准**，其余三份为过程记录。
+- **设计前提（三条铁律）**：
+  1. **个人工具**，唯一高频用户＝本人 → 不加常驻"新手引导"，只让每天都在用的人更快、更少出错；
+  2. 通用能力用成熟开源（**fitty** 文字自适应 / **satori** 去浏览器渲染），业务小逻辑自研（缓存、记忆、文案）；
+  3. **每个等待有反馈、每个降级说明原因**（不静默，与 §10 智能排版降级契约同源）。
+- **审计实锤（勿再误判）**：
+  - 预览卡 `<br>` ＝ **前端 bug**：`templates/index.html:1490` `join('<br>')` + `:1458/:1472` 用 `textContent` 赋值。**成品 PNG 里没有 `<br>`**，别再当成封面渲染问题。
+  - 封面溢出根因 ＝ **模板写死字号**（BLCaptain `template-still-paper-card.html:37` `.sp-display{font-size:76px}`），修复落在**引擎层**；且 `blcaptain-style-skill/` 是 vendored 子项目，须"改源 → 重生成 → 跑自带 .mjs 测试"。
+  - 生成耗时大头 ＝ 联网搜图（`core/image_search.py` timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
+  - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
+- **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 92 套主题人工打标签分类 / 非技术用户可用性类验收。
+- **实施纪律**：一次一项 → 改完即测（`test_e2e` 52/52 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` 32/32；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`，改后对照着验。
