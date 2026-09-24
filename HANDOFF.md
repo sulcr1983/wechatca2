@@ -500,6 +500,22 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 12：P0 第一批止血 U-1…U-6（2026-09-25）🆕
+
+- **背景**：用户批准 `docs/ux-audit/final-plan.html` 的"第一批（止血）"6 项，并选定"引入 fitty""6 项一次做完"。
+- **改动**：
+  - U-1 `templates/index.html`：预览卡 `extractSocialDesc` 由 `join('<br>')` 改 `join('\n')`，`.spv-desc` 加 `white-space:pre-line`（该值走 `textContent`，不再把 `<br>` 当字面文字显示）。
+  - U-2 封面溢出：归藏 `core/guizang_renderer.py` 渲染前注入 **fitty v2.4.2（MIT，vendored 于 `public/vendor/fitty.min.js`）**，对 `.h-display` 做 32–96px 自适应；BLCaptain 侧（CLI 无脚本注入口）改 `core/blcaptain_bridge.py::_normalize_cover_text()` —— 实测引擎会把**输入前两行拼成一个标题**（14 字标题 + 副标题 → 27 字必溢出），故在标题后补空行打断拼接 + 标题超长钳到 16 字。
+  - U-3 生成进度：`app.py` 新增 `_GEN_PROGRESS` 内存态 + `GET /api/social/progress/<task_id>`（searching/rendering/done）；前端生成时置灰按钮、800ms 轮询显示真实阶段，结束（含失败）恢复。
+  - U-4 署名如实：`#bg-credit` 按来源分支；`local` 时写"联网没找到合适的底图，已用本地底图"，去掉写死的"自动联网搜索"；顺带对作者/关键词做 HTML 转义。
+  - U-5 示例按需：输入框不再预置整篇示例（原为 textarea 初始内容），改空 + 灰字提示；新增"看示例 / 清空"按钮；`localStorage.supersu.lastTheme` 记住上次主题。
+  - U-6 复制与推送同级主按钮；未绑定公众号时点推送给 toast 引导并打开设置。
+- **验证（真实执行）**：`test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` **33/33**（0 控制台报错）· 新增 `scripts/ux_verify_p0.py` **15/15**；封面三引擎（editorial/swiss/sp-mist）实跑出图，人工核验 sp-mist 标题不再溢出/重叠。
+- **测试契约更新**：`test_headed_full_e2e.py` 两处断言随产品行为更新（署名如实 / 未配置引导），并把"建临时账号"前置（否则未配置分支会跳过推送弹窗内后续覆盖）；账号仍走 UI 建 → UI 删自清理。
+- **影响**：前端交互 + 封面产出质量 + 新增 1 个只读端点；无破坏性变更。
+
+---
+
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）
