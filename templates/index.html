@@ -166,6 +166,14 @@ body {
 .tpl-fav.on { color:var(--accent); }
 .tpl-empty-btn { margin-top:8px; margin-right:6px; font-size:.72rem; padding:3px 9px; border-radius:6px; border:1px solid var(--border-hi); background:transparent; color:var(--text-muted); cursor:pointer; }
 .tpl-empty-btn:hover { color:var(--accent); border-color:var(--accent); }
+.s-hint { font-size:.7rem; color:var(--text-muted); margin:4px 0 6px; }
+.s-hint a { color:var(--accent); }
+.tut-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:10px 0; }
+.tut-title { font-size:.85rem; font-weight:600; margin-bottom:4px; }
+.tut-grid ol { margin:0; padding-left:18px; font-size:.8rem; line-height:1.7; }
+.tut-note { background:var(--bg-surface, #faf7f0); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:.78rem; line-height:1.75; }
+.tut-note ul { margin:6px 0; padding-left:18px; }
+.tut-samples { margin-top:10px; font-size:.78rem; color:var(--text-muted); }
 .tpl-empty { font-size:.74rem; color:var(--text-muted); padding:6px 2px; }
 
 /* 下方双区：输入框 | 预览 */
@@ -585,6 +593,7 @@ body {
   <button class="tab-btn active" data-page="wechat">公众号排版</button>
   <button class="tab-btn" data-page="social">小红书封面</button>
   <span class="spacer"></span>
+  <button class="top-btn" id="btn-tutorial">教程</button>
   <button class="top-btn" id="btn-settings">设置</button>
 </nav>
 
@@ -684,6 +693,7 @@ body {
       </div>
       <div class="s-section">
         <div class="s-label"><span class="s-step">4</span> 底图（可选）</div>
+        <div class="s-hint">不放也行，系统会自动配图 · <a href="#" id="lnk-bg-help">图和文案对不上？点这</a></div>
         <div class="img-slots" id="img-slots">
           <label class="img-slot" data-ratio="xhs" data-w="1080" data-h="1440"><span class="tag">3:4</span> 封面主图<input type="file" accept="image/*" hidden></label>
           <label class="img-slot" data-ratio="square" data-w="1080" data-h="1080"><span class="tag">1:1</span> 方形配图<input type="file" accept="image/*" hidden></label>
@@ -760,6 +770,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    // 小红书页选项较多（平台/样式/文案/底图），首次进入给一次指引；公众号页保持安静
+    if (btn.dataset.page === 'social') maybeShowTutorial('social');
   });
 });
 
@@ -1395,6 +1407,14 @@ function openSettingsModal() {
         <button class="secondary" onclick="testAiConfig(this)" style="font-size:.75rem;">测试连接</button>
       </div>
       <div id="ai-test-result" style="font-size:.75rem;margin-top:6px;color:var(--green);"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+      <label>Pexels 图库 API（封面自动配图，推荐配置）</label>
+      <input id="pexels-key" type="password" placeholder="粘贴 Pexels API key（pexels.com/api 免费申请）">
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <button class="secondary" onclick="savePexelsConfig(this)" style="font-size:.75rem;">保存 Pexels key</button>
+        <a href="https://www.pexels.com/api/" target="_blank" rel="noopener" style="font-size:.72rem;">没有 key？去免费申请</a>
+      </div>
+      <div id="pexels-status" style="font-size:.72rem;margin-top:5px;color:var(--text-muted);"></div>
       <div class="modal-actions">
         <button class="secondary" onclick="this.closest('.modal').remove()">关闭</button>
         <button class="primary" onclick="saveAiConfig(this)">保存配置</button>
@@ -1403,6 +1423,7 @@ function openSettingsModal() {
   document.body.appendChild(modal);
   loadAiConfig();
   loadPlatforms();
+  loadPexelsStatus();
 }
 
 async function loadPlatforms() {
@@ -1425,6 +1446,41 @@ async function loadAiConfig() {
       if (data.config.platform) document.getElementById('ai-platform').value = data.config.platform;
     }
   } catch(e) { console.error(e); }
+}
+
+async function loadPexelsStatus() {
+  try {
+    const res = await fetch("/api/pexels-config");
+    const data = await res.json();
+    const el = document.getElementById("pexels-status");
+    if (data.configured) {
+      el.textContent = "✅ 已配置：联网搜图优先用 Pexels（中文更贴题）";
+      el.style.color = "var(--green)";
+    } else {
+      el.textContent = "未配置：将用 Wikimedia 免费图库（中文场景可能不贴题）；本地占位图会明确提示";
+      el.style.color = "var(--text-muted)";
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function savePexelsConfig(btn) {
+  const key = document.getElementById("pexels-key").value.trim();
+  const el = document.getElementById("pexels-status");
+  if (!key) { el.textContent = "请先粘贴 key"; return; }
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/pexels-config", {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "failed");
+    document.getElementById("pexels-key").value = "";
+    toast('Pexels key 已保存，立即生效');
+    loadPexelsStatus();
+  } catch(e) { toast("保存失败: " + e.message); }
+  finally { btn.textContent = "保存 Pexels key"; btn.disabled = false; }
 }
 
 async function saveAiConfig(btn) {
@@ -1782,11 +1838,103 @@ async function renderSocialEmptySamples() {
   }
 }
 
+// ── 使用教程（开源给他人用时必备：首次自动弹一次，之后可随时点「教程」重开）──
+// 两个页面各自一份教程、各自记录看过没：公众号页操作本来就三步，默认安静不打断；
+const TUT_KEY = { wechat: 'supersu.tutorial.wechat', social: 'supersu.tutorial.social' };
+
+function currentPage() {
+  const social = document.getElementById('page-social');
+  return (social && social.classList.contains('active')) ? 'social' : 'wechat';
+}
+
+const TUT_GRID = {
+  wechat: `<div>
+          <div class="tut-title">公众号排版（三步）</div>
+          <ol>
+            <li>把文章<b>粘贴</b>进左边输入框（第一行自动当标题）</li>
+            <li>在顶部挑一个<b>主题</b>（鼠标划过就能试看效果）</li>
+            <li>点「<b>复制</b>」，直接粘到公众号后台即可</li>
+          </ol>
+        </div>`,
+  social: `<div>
+          <div class="tut-title">小红书封面（三步）</div>
+          <ol>
+            <li>选「发到哪」和一个<b>样式</b></li>
+            <li>把<b>文案</b>写进去</li>
+            <li>点「<b>生成封面</b>」，一次出 3 张</li>
+          </ol>
+        </div>`,
+};
+
+function maybeShowTutorial(kind) {
+  try { if (localStorage.getItem(TUT_KEY[kind])) return; } catch(e) {}
+  openTutorial(kind);
+}
+
+function openTutorial(kind) {
+  kind = kind || currentPage();
+  document.querySelectorAll('.modal.tutorial-modal').forEach(m => m.remove());
+  const modal = document.createElement('div');
+  modal.className = 'modal tutorial-modal';
+  modal.innerHTML = `
+    <div class="modal-content" style="width:660px;max-height:86vh;overflow:auto;">
+      <h3>怎么用（30 秒看完）</h3>
+      <p class="modal-desc">两个页面，各三步。</p>
+      ${TUT_GRID[kind]}
+      <div class="tut-note">
+        <b>封面底图从哪来？</b>
+        <ul>
+          <li>配了 <b>Pexels token</b>（推荐）：中文搜索更准，图和文案更贴</li>
+          <li>没配：走 Wikimedia 免费图库（偏百科/地理，偶尔不贴题）</li>
+          <li>都搜不到：用本地占位图，界面会<b>明确提示</b>，不会硬塞</li>
+        </ul>
+        想让配图更贴题？到 <b>pexels.com/api</b> 免费注册一个 key（页面打不开就直接搜索“Pexels API”），
+        点右上角「<b>设置</b>」，填进「Pexels 图库 API」一栏，<b>保存后立即生效</b>（也可以写进项目根目录 <code>.env</code>）。
+      </div>
+      <div class="tut-samples" id="tut-samples">正在载入效果示例…</div>
+      <div class="modal-actions">
+        <button class="secondary" onclick="this.closest('.modal').remove()">知道了</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // 效果示例用本机已有缩略图：不依赖外网，永远不会失效
+  const box = modal.querySelector('#tut-samples');
+  fetch('/api/social/thumbnails')
+    .then(r => r.json())
+    .then(list => {
+      const arr = (Array.isArray(list) ? list : []).slice(0, 4);
+      if (!arr.length) { box.textContent = '（暂无示例缩略图）'; return; }
+      box.innerHTML = '<div class="tut-title" style="margin-bottom:6px">做出来的样子（本机示例）</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        arr.map(t => `<img src="${t.url}" style="width:22%;max-width:110px;border-radius:8px;border:1px solid var(--border-hi)" alt="示例封面">`).join('') +
+        '</div>';
+    })
+    .catch(() => { box.textContent = '（示例载入失败，可先在小红书页点「生成封面」看真实效果）'; });
+  // 只展示当前页面对应的那一半
+  const halves = modal.querySelectorAll('.tut-grid > div');
+  if (halves.length === 2) {
+    if (kind === 'wechat') halves[1].style.display = 'none';
+    else halves[0].style.display = 'none';
+  }
+  // 配图来源说明只在小红书教程里出现
+  const note = modal.querySelector('.tut-note');
+  if (note && kind !== 'social') note.style.display = 'none';
+  const h3 = modal.querySelector('h3');
+  if (h3) h3.textContent = kind === 'social' ? '小红书封面怎么用（30 秒看完）' : '公众号排版怎么用（30 秒看完）';
+  try { localStorage.setItem(TUT_KEY[kind], '1'); } catch(e) {}
+}
+
+// 注意：必须包一层箭头函数，否则点击事件对象会被当成 kind 参数传进去
+document.getElementById('btn-tutorial').addEventListener('click', () => openTutorial());
+const bgHelp = document.getElementById('lnk-bg-help');
+if (bgHelp) bgHelp.addEventListener('click', e => { e.preventDefault(); openTutorial(); });
+
 loadSocialStyles();
 renderSocialEmptySamples();
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
 setupUploadSlots();
 loadThemes();
+// 公众号页默认不弹教程（需要时可点顶栏「教程」）
 
 // Lightbox: 点击背景/关闭按钮 → 关闭
 document.getElementById('lb-close').addEventListener('click', () => {

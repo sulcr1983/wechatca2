@@ -516,6 +516,18 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 13：Pexels 配图升级 + 开源教程 + 设置里填 token（2026-09-25）🆕
+
+- **前提变更（用户拍板）**：项目开源给他人使用 → 需要教程与配图说明；教程按页触发（小红书首次进入弹一次，公众号保持安静）。
+- **A1 图源升级**：`core/image_search.py::_pexels_search` —— 中文 query 走 `locale=zh-CN`（Pexels 原生中文）；竖版优先，无结果放宽 orientation 再查；一次取 ≥5 候选（为打分选优留口）。
+- **⚠️ 修复"降级固化"**：`_local_fallback` 不再写查询缓存（否则一次没搜到会被固化 7 天，永远配错图）；已清空旧 `data/bg_cache/query_cache.json`。
+- **教程（两页各自一份）**：`templates/index.html` `openTutorial(kind)` 按当前页生成内容；小红书页首次进入自动弹（`maybeShowTutorial('social')`）；顶栏「教程」随时重开；底图区「图和文案对不上？点这」入口；效果示例用本机缩略图（不依赖外网）。
+- **设置里填 token**：设置弹窗新增「Pexels 图库 API」一栏。`GET/POST /api/pexels-config`——key 经 `crypto_utils.encrypt` 存 `data/pexels.json`（不入库），保存后注入 `os.environ` **立即生效**；GET 只返回 `configured`，绝不回传 key。`.env` 方式依然可用。
+- **验证（真实执行）**：`scripts/ux_verify_tutorial.py` 13/13；curl 全流程（GET → POST → GET → 生成 source=Pexels）；回归 `52/52 · 29/29 · 33/33`（0 控制台报错）。截图 `shots/after/tutorial-*.jpg`、`settings-pexels.jpg`。
+- **本批踩坑记录**：①事件对象被当参数传给 `openTutorial(kind)` → 内容 undefined（addEventListener 必须包箭头函数）；②heredoc 补丁中字面 `/n` 混入 app.py → SyntaxError（heredoc 转义链不可靠，改用 Edit 工具修复）。
+
+---
+
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）

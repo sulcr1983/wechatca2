@@ -599,6 +599,23 @@ def api_push():
 
 # ── 小红书封面生成 ───────────────────────────────────────────────────────
 
+# ── Pexels key 配置（设置弹窗里填，加密存储在 data/pexels.json；保存后立即生效）──
+_PEXELS_INJECTED = False
+
+def _ensure_pexels_key():
+    global _PEXELS_INJECTED
+    if _PEXELS_INJECTED:
+        return
+    try:
+        cfg = _read_json("pexels.json")
+        enc = (cfg or {}).get("key_enc") if isinstance(cfg, dict) else None
+        if enc:
+            from core.crypto_utils import decrypt
+            os.environ["PEXELS_API_KEY"] = decrypt(enc)
+    except Exception as e:
+        app.logger.warning("Pexels key 读取/解密失败: %s", e)
+    _PEXELS_INJECTED = True
+
 # 生成阶段进度（内存态，仅供前端轮询展示真实阶段：searching / rendering / done）
 # 无持久化必要，重启即失；目的是消除"点了没反应"的假死感，且不谎报固定秒数
 _GEN_PROGRESS: dict[str, str] = {}
@@ -626,6 +643,9 @@ def api_social_generate():
                 uploaded_images[key] = _save_b64_image(b64, output_dir, prefix=key)
             except Exception as e:
                 app.logger.warning("配图解码失败 %s: %s", key, e)
+
+    # 使用用户在设置里保存的 Pexels key（若有）
+    _ensure_pexels_key()
 
     # 阶段 1：联网搜底图（网络耗时主要在这一段）
     _GEN_PROGRESS[task_id] = "searching"
@@ -703,6 +723,31 @@ def api_social_generate():
 def api_social_progress(task_id):
     """封面生成阶段（真实状态，供前端轮询显示；未知任务返回 unknown）"""
     return jsonify({"task_id": task_id, "stage": _GEN_PROGRESS.get(task_id, "unknown")})
+
+
+@app.route("/api/pexels-config", methods=["GET"])
+def api_pexels_config_get():
+    """Pexels key 配置状态。只返回是否已配置，绝不回传 key 本身。"""
+    cfg = _read_json("pexels.json")
+    configured = bool(isinstance(cfg, dict) and cfg.get("key_enc")) or bool(os.getenv("PEXELS_API_KEY"))
+    return jsonify({"configured": configured})
+
+
+@app.route("/api/pexels-config", methods=["POST"])
+def api_pexels_config_set():
+    """保存设置弹窗里填的 Pexels key：加密存储 + 注入环境变量，立即生效。"""
+    data = request.get_json() or {}
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"success": False, "error": "key 不能为空"}), 400
+    try:
+        from core.crypto_utils import encrypt
+        _write_json("pexels.json", {"key_enc": encrypt(key)})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"保存失败: {str(e)[:200]}"}), 500
+    os.environ["PEXELS_API_KEY"] = key
+    _PEXELS_INJECTED = True
+    return jsonify({"success": True})
 
 
 @app.route("/api/social/styles", methods=["GET"])

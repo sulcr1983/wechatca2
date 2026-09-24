@@ -220,6 +220,9 @@ taskkill //F //IM python.exe
 ## 12. 前端改造方案 v3（2026-09-24 定稿）
 
 - **唯一权威**：`docs/ux-audit/final-plan.html`（链路：走查 `index.html` → 审计 `adversarial-review.html` → 选型 `open-source-picks.html` → 定稿）。**冲突一律以 final-plan 为准**，其余三份为过程记录。
+- **⚠️ 前提变更（2026-09-25 拍板）：本项目将开源到 GitHub 给他人使用。**
+  因此"个人工具、不加新手引导"的旧结论调整如下：**小红书页**首次进入弹一次使用教程（顶栏「教程」随时重开，两页各自记录看过没）；
+  **公众号页**保持安静（操作本就三步）。配图来源说明（Pexels 注册指引）对开源用户必要——他们没有 token 时图可能不贴题。
 - **设计前提（三条铁律）**：
   1. **个人工具**，唯一高频用户＝本人 → 不加常驻"新手引导"，只让每天都在用的人更快、更少出错；
   2. 通用能力用成熟开源（**fitty** 文字自适应 / **satori** 去浏览器渲染），业务小逻辑自研（缓存、记忆、文案）；
@@ -231,5 +234,7 @@ taskkill //F //IM python.exe
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
 - **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 92 套主题人工打标签分类 / 非技术用户可用性类验收。
 - **实施纪律**：一次一项 → 改完即测（`test_e2e` 52/52 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`，改后对照着验。
-- **实施状态（2026-09-25）**：第一批 U-1…U-6 **已完成并回归绿**（提交 `a4c869e`）—— `test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` 33/33（0 控制台报错）· `scripts/ux_verify_p0.py` 15/15；封面三引擎实跑出图（改后对照 `docs/ux-audit/shots/after/`）。
+- **实施状态（2026-09-25）**：第一批 U-1…U-6、第二批 U-7…U-11、U-2 真自适应、Pexels 配图与开源教程均已完成（`a4c869e`/`ef5b241`/`48eacf1` 及后续提交）；
+  回归全绿（52/52 · 35/35 · 29/29 · 33/33 · 验收脚本 15+13+13）。
+  历史记录：第一批 U-1…U-6 **已完成并回归绿**（提交 `a4c869e`）—— `test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` 33/33（0 控制台报错）· `scripts/ux_verify_p0.py` 15/15；封面三引擎实跑出图（改后对照 `docs/ux-audit/shots/after/`）。
   - 落点提示：`fitty` 注入在 `core/guizang_renderer.py`（渲染前 add_script_tag）；BLCaptain 侧因 CLI 无脚本注入口，改为在 `core/blcaptain_bridge.py::_normalize_cover_text` **打断引擎的“前两行拼标题”**（实测有效）。
