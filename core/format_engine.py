@@ -481,9 +481,14 @@ def process_fenced_containers(text: str) -> str:
     - :::steps[标题] — 步骤流程
     - :::compare[A vs B] — 对比卡片
     - :::quote[人名] — 人物引言
+    - :::eyebrow[小标签] — 小标签（强调色小字，拉开字距）
+    - :::summary[标题] — 要点总结卡
+    - :::cta[标题] — 行动引导卡
+    - :::cards[标题] — 卡片组（内部用 ### 小标题分卡）
     """
     container_re = re.compile(
-        r"^:::(dialogue|gallery|longimage|stat|timeline|steps|compare|quote)"
+        r"^:::(dialogue|gallery|longimage|stat|timeline|steps|compare|quote"
+        r"|eyebrow|summary|cta|cards)"
         r"(?:\[([^\]]*)\])?\s*$"
     )
 
@@ -495,6 +500,7 @@ def process_fenced_containers(text: str) -> str:
         if container_match:
             container_type = container_match.group(1)
             container_title = (container_match.group(2) or "").strip()
+            start = i
             content_lines = []
             i += 1
             # 收集容器内容直到遇到匹配的 :::（支持嵌套计数）
@@ -510,6 +516,12 @@ def process_fenced_containers(text: str) -> str:
                 else:
                     content_lines.append(lines[i])
                 i += 1
+
+            if depth > 0:
+                # 少了收尾 ::: —— 容器不成立，整段当普通文本原样输出。
+                # 绝不把后面的正文当成容器内容吞掉（会静默丢正文）。
+                result.extend(lines[start:i])
+                continue
 
             # 递归处理内部容器
             inner_text = "\n".join(content_lines)
@@ -547,6 +559,14 @@ def process_fenced_containers(text: str) -> str:
                 result.append(_build_compare_html(container_title, inner_lines))
             elif container_type == "quote":
                 result.append(_build_quote_html(container_title, inner_lines))
+            elif container_type == "eyebrow":
+                result.append(_build_eyebrow_html(container_title or inner_text.strip()))
+            elif container_type == "summary":
+                result.append(_build_note_card_html("summary", container_title, inner_lines))
+            elif container_type == "cta":
+                result.append(_build_note_card_html("cta", container_title, inner_lines))
+            elif container_type == "cards":
+                result.append(_build_cards_html(container_title, inner_lines))
         else:
             result.append(lines[i])
             i += 1
@@ -710,6 +730,54 @@ def _build_dialogue_html(title: str, lines: list[str]) -> str:
     )
 
 
+def _build_eyebrow_html(text: str) -> str:
+    """小标签（eyebrow）：强调色小字，用于给下方区块起一个短标签"""
+    return (
+        f'<section data-container="eyebrow">'
+        f'<p data-container="eyebrow-text">{text}</p>'
+        f'</section>'
+    )
+
+
+def _build_note_card_html(kind: str, title: str, lines: list[str]) -> str:
+    """要点卡（summary）/ 行动引导卡（cta）：标题 + 一段正文"""
+    body = "<br>".join(l.strip() for l in lines if l.strip())
+    html = f'<section data-container="{kind}">'
+    if title:
+        html += f'<p data-container="{kind}-title">{title}</p>'
+    html += f'<p data-container="{kind}-body">{body}</p></section>'
+    return html
+
+
+def _build_cards_html(title: str, lines: list[str]) -> str:
+    """卡片组：内部用 ### 小标题分卡，小标题到下一个 ### 之间为卡片正文"""
+    cards = []
+    cur_title, body = None, []
+    for line in lines:
+        m = re.match(r"^\s*#{3,6}\s+(.*)$", line)
+        if m:
+            if cur_title is not None:
+                cards.append((cur_title, " ".join(x.strip() for x in body if x.strip())))
+            cur_title, body = m.group(1).strip(), []
+        else:
+            body.append(line)
+    if cur_title is not None:
+        cards.append((cur_title, " ".join(x.strip() for x in body if x.strip())))
+
+    html = '<section data-container="cards">'
+    if title:
+        html += f'<p data-container="cards-title">{title}</p>'
+    for card_title, card_body in cards:
+        html += (
+            f'<section data-container="cards-item">'
+            f'<p data-container="cards-item-title">{card_title}</p>'
+            f'<p data-container="cards-item-body">{card_body}</p>'
+            f'</section>'
+        )
+    html += '</section>'
+    return html
+
+
 def md_to_html(content: str) -> str:
     """Markdown 转 HTML"""
     html = markdown.markdown(
@@ -797,47 +865,105 @@ def inject_dark_mode_attrs(html: str, dark_mode: dict, style_map: dict) -> str:
     return html
 
 
-def _basic_syntax_highlight(code_html: str) -> str:
-    """增强语法高亮：注释、字符串、关键字、数字、装饰器、类型"""
+# ── 语法高亮调色板（深底 / 亮底各一套）──────────────────────────────────
+# 同一套颜色在另一种底色上会低对比（实测亮底 #569CD6 关键字对比度仅约 2.2:1，发灰读不清），
+# 故按主题 pre 的背景明暗切换。亮底取自 VS Code Light+ 系。
+_SYNTAX_DARK = {
+    "decorator": "#c586c0", "comment": "#6a9955", "string": "#ce9178",
+    "number": "#b5cea8", "keyword": "#569cd6", "builtin": "#4ec9b0",
+}
+_SYNTAX_LIGHT = {
+    "decorator": "#8250df", "comment": "#008000", "string": "#a31515",
+    "number": "#098658", "keyword": "#0550ae", "builtin": "#267f99",
+}
+
+
+def _is_light_bg(bg: str) -> bool:
+    """判断 CSS 背景色是否为亮色，用于挑语法高亮调色板。
+
+    支持 #RGB / #RRGGBB / rgb() / rgba()；解析不了按深色处理（沿用历史行为，不改变未知主题外观）。
+    """
+    if not bg:
+        return False
+    bg = bg.strip()
+    try:
+        if bg.startswith("#"):
+            h = bg[1:]
+            if len(h) == 3:
+                h = "".join(ch * 2 for ch in h)
+            r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        else:
+            m = re.match(r"rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)", bg)
+            if not m:
+                return False
+            r, g, b = float(m.group(1)), float(m.group(2)), float(m.group(3))
+    except (ValueError, IndexError):
+        return False
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6
+
+
+def _basic_syntax_highlight(code_html: str, light: bool = False) -> str:
+    """增强语法高亮：注释、字符串、关键字、数字、装饰器、类型
+
+    ⚠️ 各步是**串行正则**，后一步会看到前一步插入的 `<span style="color:#xxx">`。
+    若不隔离，字符串规则会命中**前一步自己的 style 属性值**（如 f-string 先高亮出
+    `style="color:#ce9178"`，字符串规则再把这个属性值当字符串包一层），把标签拆成
+    肉眼可见的碎片，如 `<span style="color:#ce9178">"color:#ce9178"</span>`。
+    故每步产出的片段都存在占位符后面，最后统一还原。
+
+    light=True 时改用亮底调色板（主题 pre 背景为亮色时）。
+    """
+    palette = _SYNTAX_LIGHT if light else _SYNTAX_DARK
+    pending = []
+
+    def _keep(fragment: str) -> str:
+        pending.append(fragment)
+        return f"\x00H{len(pending) - 1}\x00"
+
+    def _hl(m, color, tail_group=None):
+        """把匹配内容包成高亮 span 并藏进占位符；tail_group 用于注释行尾的 <br>"""
+        tail = m.group(tail_group) if tail_group else ""
+        return _keep(f'<span style="color:{color}">{m.group(1)}</span>') + tail
+
     # 装饰器 @xxx
     code_html = re.sub(
         r'(@\w+)',
-        r'<span style="color:#c586c0">\1</span>',
+        lambda m: _hl(m, palette["decorator"]),
         code_html
     )
     # 单行注释 // ... 和 # ...（排除 URL 中的 ://）
     code_html = re.sub(
         r'(?<!:)(//.*?)(<br>|$)',
-        r'<span style="color:#6a9955">\1</span>\2',
+        lambda m: _hl(m, palette["comment"], tail_group=2),
         code_html
     )
     code_html = re.sub(
         r'(#[^{].*?)(<br>|$)',
-        r'<span style="color:#6a9955">\1</span>\2',
+        lambda m: _hl(m, palette["comment"], tail_group=2),
         code_html
     )
     # f-string: f"..." / f'...'（Python）
     code_html = re.sub(
         r'(f&quot;.*?&quot;|f&#x27;.*?&#x27;|f"[^"<]*?"|f\'[^\'<]*?\')',
-        r'<span style="color:#ce9178">\1</span>',
+        lambda m: _hl(m, palette["string"]),
         code_html
     )
     # 模板字符串 `...`（JS）
     code_html = re.sub(
         r'(`[^`<]*?`)',
-        r'<span style="color:#ce9178">\1</span>',
+        lambda m: _hl(m, palette["string"]),
         code_html
     )
     # 字符串（双引号和单引号，HTML 转义形式）
     code_html = re.sub(
         r'(&quot;.*?&quot;|&#x27;.*?&#x27;|"[^"<]*?"|\'[^\'<]*?\')',
-        r'<span style="color:#ce9178">\1</span>',
+        lambda m: _hl(m, palette["string"]),
         code_html
     )
     # 数字（整数和浮点数）
     code_html = re.sub(
         r'(?<![a-zA-Z0-9_])(\d+\.?\d*)',
-        r'<span style="color:#b5cea8">\1</span>',
+        lambda m: _hl(m, palette["number"]),
         code_html
     )
     # 常见关键字
@@ -855,7 +981,7 @@ def _basic_syntax_highlight(code_html: str) -> str:
     for kw in keywords:
         code_html = re.sub(
             rf'(?<![a-zA-Z0-9_])({kw})(?![a-zA-Z0-9_])',
-            rf'<span style="color:#569cd6">\1</span>',
+            lambda m: _hl(m, palette["keyword"]),
             code_html
         )
     # 内置类型/函数
@@ -868,9 +994,12 @@ def _basic_syntax_highlight(code_html: str) -> str:
     for bt in builtins:
         code_html = re.sub(
             rf'(?<![a-zA-Z0-9_])({bt})(?![a-zA-Z0-9_])',
-            rf'<span style="color:#4ec9b0">\1</span>',
+            lambda m: _hl(m, palette["builtin"]),
             code_html
         )
+
+    for i, fragment in enumerate(pending):
+        code_html = code_html.replace(f"\x00H{i}\x00", fragment)
     return code_html
 
 
@@ -880,22 +1009,49 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
+def _mix_hex(a: str, b: str, t: float) -> str:
+    """线性混色：t=0 取 a，t=1 取 b。用于按主题强调色派生色带底色"""
+    ar, ag, ab = _hex_to_rgb(a)
+    br, bg, bb = _hex_to_rgb(b)
+    return "#%02X%02X%02X" % (
+        round(ar + (br - ar) * t),
+        round(ag + (bg - ag) * t),
+        round(ab + (bb - ab) * t),
+    )
+
+
+def _color_distance(a: str, b: str) -> int:
+    """两色通道差绝对值之和，用于判断色带是否能被看出来（越小越看不出）"""
+    try:
+        return sum(abs(x - y) for x, y in zip(_hex_to_rgb(a), _hex_to_rgb(b)))
+    except (ValueError, IndexError):
+        return 999
+
+
 def _inject_container_styles(html: str, theme: dict) -> str:
     """为围栏容器注入内联样式
 
-    所有样式硬编码，不依赖主题 JSON（除了需要主题 accent 色的地方）。
+    取色：一律从 theme.colors 派生（accent / blockquote_bg / primary / background），
+    使 92 套主题下容器跟随各自色系，而不是全部长成同一套灰白。
+    布局尺寸仍为内置常量，主题只影响颜色。
     """
-    # 获取主题 accent 色，用于对话右气泡背景
-    accent_hex = theme.get("colors", {}).get("accent", "#07C160")
+    colors = theme.get("colors", {})
+    accent_hex = colors.get("accent", "#07C160")
     r, g, b = _hex_to_rgb(accent_hex)
     right_bubble_bg = f"rgba({r},{g},{b},0.08)"
+    # 容器表面色 / 文字色 / 弱化文字色 / 描边色 / 页面底色
+    surface_tint = f"rgba({r},{g},{b},0.04)"
+    text_color = colors.get("primary", "#333333")
+    muted_color = colors.get("hr_color") or accent_hex
+    border_color = f"rgba({r},{g},{b},0.16)"
+    page_bg = colors.get("background", "#ffffff")
 
     # ── dialogue 容器 ──
-    dialogue_container = "margin:20px 0;padding:16px;background:#f8f9fa;border-radius:12px"
-    dialogue_title = "text-align:center;font-size:14px;color:#999;margin-bottom:12px"
-    dialogue_speaker = "font-size:12px;color:#999;margin-bottom:4px"
-    dialogue_text = "font-size:15px;color:#333;line-height:1.6;margin:0"
-    left_bubble = f"max-width:80%;background:#fff;border-radius:0 12px 12px 12px;padding:10px 14px;margin:8px 20% 8px 0;box-shadow:0 1px 2px rgba(0,0,0,0.05)"
+    dialogue_container = f"margin:20px 0;padding:16px;background:{surface_tint};border-radius:12px"
+    dialogue_title = f"text-align:center;font-size:14px;color:{muted_color};margin-bottom:12px"
+    dialogue_speaker = f"font-size:12px;color:{muted_color};margin-bottom:4px"
+    dialogue_text = f"font-size:15px;color:{text_color};line-height:1.6;margin:0"
+    left_bubble = f"max-width:80%;background:{page_bg};border-radius:0 12px 12px 12px;padding:10px 14px;margin:8px 20% 8px 0;box-shadow:0 1px 2px rgba(0,0,0,0.05)"
     right_bubble = f"max-width:80%;background:{right_bubble_bg};border-radius:12px 0 12px 12px;padding:10px 14px;margin:8px 0 8px 20%;box-shadow:0 1px 2px rgba(0,0,0,0.05)"
 
     html = html.replace(
@@ -927,7 +1083,7 @@ def _inject_container_styles(html: str, theme: dict) -> str:
 
     # ── gallery 容器 ──
     gallery_container = "margin:20px 0"
-    gallery_title = "text-align:center;font-size:14px;color:#999;margin-bottom:12px"
+    gallery_title = f"text-align:center;font-size:14px;color:{muted_color};margin-bottom:12px"
     gallery_scroll = "display:flex;overflow-x:auto;gap:8px;padding:4px 0;-webkit-overflow-scrolling:touch"
     gallery_img = "height:200px;width:auto;border-radius:8px;flex-shrink:0"
 
@@ -957,8 +1113,8 @@ def _inject_container_styles(html: str, theme: dict) -> str:
 
     # ── longimage 容器 ──
     longimage_container = "margin:20px 0"
-    longimage_title = "text-align:center;font-size:14px;color:#999;margin-bottom:12px"
-    longimage_scroll = "max-height:400px;overflow-y:auto;border-radius:8px;border:1px solid #eee"
+    longimage_title = f"text-align:center;font-size:14px;color:{muted_color};margin-bottom:12px"
+    longimage_scroll = f"max-height:400px;overflow-y:auto;border-radius:8px;border:1px solid {border_color}"
     longimage_img = "width:100%;display:block"
 
     html = html.replace(
@@ -989,7 +1145,7 @@ def _inject_container_styles(html: str, theme: dict) -> str:
     accent_04 = f"rgba({r},{g},{b},0.04)"
     stat_container = f"text-align:center;padding:24px 16px;margin:20px 0;background:{accent_04};border-radius:12px"
     stat_number = f"font-size:48px;font-weight:800;color:{accent_hex};line-height:1.2;margin:0 0 4px 0"
-    stat_label = "font-size:14px;color:#666;margin:0"
+    stat_label = f"font-size:14px;color:{muted_color};margin:0"
 
     html = html.replace(
         '<section data-container="stat">',
@@ -1007,11 +1163,11 @@ def _inject_container_styles(html: str, theme: dict) -> str:
     # ── timeline 容器（时间线）──
     accent_20 = f"rgba({r},{g},{b},0.2)"
     timeline_container = "margin:20px 0;padding:16px"
-    timeline_title = "text-align:center;font-size:14px;color:#999;margin-bottom:16px"
+    timeline_title = f"text-align:center;font-size:14px;color:{muted_color};margin-bottom:16px"
     timeline_item = "display:flex;margin-bottom:12px"
     timeline_time = f"min-width:80px;font-size:14px;font-weight:700;color:{accent_hex};text-align:right;padding-right:16px"
     timeline_dot = f"color:{accent_hex};font-size:12px;flex-shrink:0;margin-top:2px;line-height:1"
-    timeline_content = f"font-size:15px;color:#333;line-height:1.6;padding-bottom:16px;border-left:2px solid {accent_20};padding-left:12px;margin-left:5px"
+    timeline_content = f"font-size:15px;color:{text_color};line-height:1.6;padding-bottom:16px;border-left:2px solid {accent_20};padding-left:12px;margin-left:5px"
 
     html = html.replace(
         '<section data-container="timeline">',
@@ -1040,10 +1196,10 @@ def _inject_container_styles(html: str, theme: dict) -> str:
 
     # ── steps 容器（步骤流程）──
     steps_container = "margin:20px 0;padding:16px"
-    steps_title = "text-align:center;font-size:14px;color:#999;margin-bottom:16px"
+    steps_title = f"text-align:center;font-size:14px;color:{muted_color};margin-bottom:16px"
     steps_item = "display:flex;align-items:flex-start;margin-bottom:12px"
     steps_number = f"display:inline-flex;width:28px;height:28px;border-radius:50%;background:{accent_hex};color:#fff;font-size:14px;font-weight:700;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1"
-    steps_content = "font-size:15px;color:#333;line-height:1.6;padding-top:3px"
+    steps_content = f"font-size:15px;color:{text_color};line-height:1.6;padding-top:3px"
 
     html = html.replace(
         '<section data-container="steps">',
@@ -1070,9 +1226,9 @@ def _inject_container_styles(html: str, theme: dict) -> str:
     compare_container = "margin:20px 0;padding:16px"
     compare_header = "display:flex;margin-bottom:8px"
     compare_header_cell = f"flex:1;text-align:center;font-weight:700;color:{accent_hex};padding:8px"
-    compare_row = "display:flex;border-top:1px solid #eee;padding:8px 0"
-    compare_left = "flex:1;text-align:center;font-size:14px;color:#666;padding:8px"
-    compare_right = "flex:1;text-align:center;font-size:14px;color:#333;padding:8px;font-weight:600"
+    compare_row = f"display:flex;border-top:1px solid {border_color};padding:8px 0"
+    compare_left = f"flex:1;text-align:center;font-size:14px;color:{muted_color};padding:8px"
+    compare_right = f"flex:1;text-align:center;font-size:14px;color:{text_color};padding:8px;font-weight:600"
 
     html = html.replace(
         '<section data-container="compare">',
@@ -1108,8 +1264,8 @@ def _inject_container_styles(html: str, theme: dict) -> str:
     accent_15 = f"rgba({r},{g},{b},0.15)"
     quote_container = f"margin:24px 0;padding:20px 24px;background:{accent_03};border-radius:12px;border-left:3px solid {accent_hex}"
     quote_mark = f"font-size:36px;color:{accent_15};margin:0;line-height:1"
-    quote_text = "font-size:17px;color:#333;line-height:1.8;margin:8px 0 12px;font-style:italic"
-    quote_author = "font-size:13px;color:#999;text-align:right;margin:0"
+    quote_text = f"font-size:17px;color:{text_color};line-height:1.8;margin:8px 0 12px;font-style:italic"
+    quote_author = f"font-size:13px;color:{muted_color};text-align:right;margin:0"
 
     html = html.replace(
         '<section data-container="quote-card">',
@@ -1127,6 +1283,77 @@ def _inject_container_styles(html: str, theme: dict) -> str:
         '<p data-container="quote-author">',
         f'<p data-container="quote-author" style="{quote_author}">'
     )
+
+    # ── eyebrow 小标签 ──
+    eyebrow_container = "margin:18px 0 6px"
+    eyebrow_text = f"font-size:12px;font-weight:700;letter-spacing:2px;color:{accent_hex};margin:0"
+
+    html = html.replace(
+        '<section data-container="eyebrow">',
+        f'<section data-container="eyebrow" style="{eyebrow_container}">'
+    )
+    html = html.replace(
+        '<p data-container="eyebrow-text">',
+        f'<p data-container="eyebrow-text" style="{eyebrow_text}">'
+    )
+
+    # ── summary 要点卡 / cta 行动引导卡 ──
+    accent_06 = f"rgba({r},{g},{b},0.06)"
+    note_cards = {
+        "summary": (
+            f"margin:24px 0;padding:20px;background:{accent_06};"
+            f"border-left:3px solid {accent_hex};border-radius:0 10px 10px 0",
+            f"font-size:15px;font-weight:700;color:{accent_hex};margin:0 0 10px",
+            f"font-size:16px;color:{text_color};line-height:1.9;margin:0",
+        ),
+        "cta": (
+            f"margin:28px 0;padding:26px 22px;background:{accent_hex};"
+            f"border-radius:12px;text-align:center",
+            "font-size:16px;font-weight:700;color:#ffffff;margin:0 0 10px",
+            "font-size:15px;color:rgba(255,255,255,0.9);line-height:1.8;margin:0",
+        ),
+    }
+    for kind, (box_s, title_s, body_s) in note_cards.items():
+        html = html.replace(
+            f'<section data-container="{kind}">',
+            f'<section data-container="{kind}" style="{box_s}">'
+        )
+        html = html.replace(
+            f'<p data-container="{kind}-title">',
+            f'<p data-container="{kind}-title" style="{title_s}">'
+        )
+        html = html.replace(
+            f'<p data-container="{kind}-body">',
+            f'<p data-container="{kind}-body" style="{body_s}">'
+        )
+
+    # ── cards 卡片组（窄屏自动折行）──
+    cards_container = "display:flex;flex-wrap:wrap;gap:10px;margin:20px 0"
+    cards_title = (
+        f"width:100%;font-size:12px;font-weight:700;letter-spacing:2px;"
+        f"color:{accent_hex};margin:0"
+    )
+    cards_item = (
+        f"flex:1 1 30%;min-width:0;padding:14px;background:{surface_tint};"
+        f"border:1px solid {border_color};border-radius:10px"
+    )
+    cards_item_title = f"font-size:15px;font-weight:700;color:{accent_hex};margin:0 0 6px"
+    cards_item_body = f"font-size:13px;color:{text_color};line-height:1.7;margin:0"
+
+    for key, s in (
+        ("cards", cards_container),
+        ("cards-title", cards_title),
+        ("cards-item", cards_item),
+        ("cards-item-title", cards_item_title),
+        ("cards-item-body", cards_item_body),
+    ):
+        html = html.replace(
+            f'<section data-container="{key}">',
+            f'<section data-container="{key}" style="{s}">'
+        ).replace(
+            f'<p data-container="{key}">',
+            f'<p data-container="{key}" style="{s}">'
+        )
 
     return html
 
@@ -1156,6 +1383,267 @@ def _wrap_card_sections(html: str, card_cfg: dict) -> str:
         cards.append(f'<section style="{card_style}">{part}</section>')
 
     return ''.join(cards)
+
+
+# ── hero 布局（深色首屏 / 大序号 / 交替色带 / 引文穿插 / 卡片组）────────────
+# 10 套 su-dusk-* 的描述统一为「深色首屏+大序号+交替色带+引文穿插」但未写布尔开关，
+# 4 套特化主题（su-ribbon / su-countdown / su-deepwater / su-countdown 系）写了显式开关。
+# 故：缺省值取「描述所声明的」，显式开关优先。
+HERO_DEFAULTS = {
+    "dark_header": True,
+    "dark_footer": False,
+    "numbered": True,
+    "pull_quotes": True,
+    "alt_bg_enabled": True,
+    "cards": False,
+}
+
+# 深色区块内的文字色（dark_bg 上的通用可读色）
+_DARK_TEXT = "#ffffff"
+_DARK_TEXT_SOFT = "rgba(255,255,255,0.82)"
+
+
+def _hero_flag(hero: dict, key: str) -> bool:
+    """读取 hero 开关：显式值优先，未声明时用描述所对应的缺省值"""
+    val = hero.get(key)
+    return HERO_DEFAULTS[key] if val is None else bool(val)
+
+
+def _recolor_block(block: str, color: str) -> str:
+    """把块内标题/正文的文字色统一改成 color（用于深色首屏、深色尾屏）"""
+    def repl(m):
+        tag, attrs = m.group(1), m.group(2)
+        if "style=" not in attrs:
+            return m.group(0)
+        if re.search(r'color:[^;"]+', attrs):
+            attrs = re.sub(r'color:[^;"]+', f"color:{color}", attrs)
+        else:
+            attrs = re.sub(r'(style=")([^"]*)(")', rf'\1\2;color:{color}\3', attrs, count=1)
+        return f"<{tag}{attrs}>"
+    return re.sub(r"<(h[1-6]|p|strong|em|span)([^>]*)>", repl, block)
+
+
+def _heading_style_parts(attrs: str) -> tuple[str, str, str]:
+    """从 h2 的 style 属性里取出字号/字重/颜色，供重排后沿用"""
+    def pick(key, default):
+        m = re.search(rf'{key}:([^;"]+)', attrs)
+        return m.group(1) if m else default
+    return pick("font-size", "20px"), pick("font-weight", "700"), pick("color", "#1a1a1a")
+
+
+def _rewrite_h2_as_row(block: str, badge: str, badge_style: str) -> str:
+    """把区块开头的 <h2> 改写成「徽标 + 标题」的 flex 行（大序号 / 时间线节点共用）"""
+    m = re.match(r'\s*<h2([^>]*)>(.*?)</h2>', block, re.DOTALL)
+    if not m:
+        return block
+    font_size, font_weight, color = _heading_style_parts(m.group(1))
+    row = (
+        f'<section style="display:flex;align-items:baseline;margin-bottom:16px">'
+        f'<span style="{badge_style}">{badge}</span>'
+        f'<span style="font-size:{font_size};font-weight:{font_weight};'
+        f'color:{color};line-height:1.3">{m.group(2)}</span>'
+        f'</section>'
+    )
+    return row + block[m.end():]
+
+
+def _apply_h2_border(block: str, border: str) -> str:
+    """给区块开头的 h2 追加左边框强调条（hero.h2_border）"""
+    m = re.match(r'\s*(<h2)([^>]*)>', block)
+    if not m:
+        return block
+    attrs = m.group(2)
+    if "style=" in attrs:
+        attrs = re.sub(
+            r'(style=")([^"]*)(")',
+            rf'\1\2;border-left:{border};padding-left:10px\3',
+            attrs, count=1,
+        )
+    return m.group(1) + attrs + ">" + block[m.end():]
+
+
+def _restyle_pull_quotes(block: str, accent: str) -> str:
+    """引文穿插：把区块内的 blockquote 提为更醒目的拉引（大字号 + 强调色左边条）
+
+    整块重建，替掉主题给的引用底色/边框，避免两层叠色。引文内的行内标记（strong/em）保留。
+    """
+    def repl(m):
+        inner = m.group(1)
+        text = " ".join(
+            p.strip() for p in re.findall(r"<p[^>]*>(.*?)</p>", inner, re.DOTALL)
+        ).strip() or inner.strip()
+        return (
+            f'<blockquote style="border-left:4px solid {accent};background:transparent;'
+            f'padding:6px 0 6px 20px;margin-top:24px;margin-bottom:24px;font-size:17px;'
+            f'color:{accent};line-height:1.8;font-style:normal">'
+            f'<p style="margin:0;font-size:17px;color:{accent};line-height:1.8;'
+            f'font-style:normal;background:transparent">{text}</p></blockquote>'
+        )
+
+    return re.sub(r"<blockquote[^>]*>(.*?)</blockquote>", repl, block, flags=re.DOTALL)
+
+
+def _split_hero_head(html: str) -> tuple[str, str]:
+    """拆出首屏内容与剩余正文。
+
+    优先取开头的 <h1> 及其后紧随的段落；预处理会把 ≤12 字的短标题标成 ##，
+    此时退回取首个 <h2> 标题行 + 其后紧随段落作首屏，让「暗色首屏」在真实输入下也能生效。
+    其余内容原样回正文，不吞掉正文。
+    """
+    m = re.match(r'\s*<h1[^>]*>.*?</h1>', html, re.DOTALL)
+    if m:
+        end, promote = m.end(), False
+    else:
+        m = re.match(r'\s*<h2[^>]*>.*?</h2>', html, re.DOTALL)
+        if not m:
+            return "", html
+        end, promote = m.end(), True
+
+    # 标题后紧随的段落并入首屏（到第一个非 <p> 标签为止）
+    tail = re.match(r'(?:\s*<p[^>]*>.*?</p>)+', html[end:], re.DOTALL)
+    if tail:
+        end += tail.end()
+
+    head = html[:end]
+    if promote:
+        # 首屏里它承担的是文章主标题，字号提到 h1 级别
+        head = re.sub(r'font-size:[^;"]+', "font-size:26px", head, count=1)
+        head = re.sub(r'font-weight:[^;"]+', "font-weight:800", head, count=1)
+    return head, html[end:]
+
+
+# 交替色带的可见门槛：与页面底色的通道差绝对值之和。
+# 低于此值肉眼分不出「这条带子」，等于色带特性没生效。
+_BAND_MIN_DISTANCE = 45
+
+
+def _resolve_band_bg(hero: dict, theme: dict) -> str:
+    """定交替色带的底色：主题自带值若与页面底色对比不足，改用强调色派生的可见色带。
+
+    ⚠️ 曾有 13 套 hero 主题的 alt_bg 是 #fafafa / #f7f7f8 这类与白底只差几阶的灰，
+    肉眼看不出「交替色带」，等于该特性没生效。这里按 _BAND_MIN_DISTANCE 判定，
+    不够就逐步加深 accent 占比；低饱和强调色（藕紫/卡其等）加深后仍不够时，
+    再压一点墨色补足明度差。产出的色带带主题色系，比纯灰好看。
+    """
+    colors = theme.get("colors", {})
+    page_bg = colors.get("background", "#ffffff")
+    accent = hero.get("accent", "#333333")
+    ink = colors.get("primary", "#333333")
+
+    declared = hero.get("alt_bg")
+    if declared and _color_distance(declared, page_bg) >= _BAND_MIN_DISTANCE:
+        return declared
+
+    for t in (0.12, 0.16, 0.20, 0.24):
+        cand = _mix_hex(page_bg, accent, t)
+        if _color_distance(cand, page_bg) >= _BAND_MIN_DISTANCE:
+            return cand
+    return _mix_hex(_mix_hex(page_bg, accent, 0.20), ink, 0.06)
+
+
+def _wrap_hero_sections(html: str, hero: dict, theme: dict) -> str:
+    """hero 布局：按 h2 切分区块，套用 hero 字段里的各开关。
+
+    开关全部来自主题 JSON，不在本函数里发明配色；未声明的开关用 HERO_DEFAULTS。
+    """
+    accent = hero.get("accent", "#333333")
+    dark_bg = hero.get("dark_bg", "#1E293B")
+    alt_bg = _resolve_band_bg(hero, theme)
+    number_color = hero.get("number_color", "rgba(0,0,0,0.08)")
+    h2_border = hero.get("h2_border")
+
+    dark_header = _hero_flag(hero, "dark_header")
+    dark_footer = _hero_flag(hero, "dark_footer")
+    numbered = _hero_flag(hero, "numbered")
+    pull_quotes = _hero_flag(hero, "pull_quotes")
+    alt_bg_enabled = _hero_flag(hero, "alt_bg_enabled")
+    cards = _hero_flag(hero, "cards")
+
+    # cards 模式的卡面与阴影也从主题派生（见下方 elif cards 分支的说明）
+    _colors = theme.get("colors", {})
+    _page_bg = _colors.get("background", "#ffffff")
+    _ink = _colors.get("primary", "#333333")
+    try:
+        card_bg = _mix_hex(_page_bg, _ink, 0.07)
+        tint_shadow = f"rgba({','.join(str(c) for c in _hex_to_rgb(_ink))},0.10)"
+    except (ValueError, IndexError):
+        card_bg, tint_shadow = "#FFFFFF", "rgba(0,0,0,0.10)"
+
+    head, body_html = _split_hero_head(html)
+    parts = [p for p in re.split(r"(?=<h2\s)", body_html) if p.strip()]
+
+    blocks = []
+    if head:
+        if dark_header:
+            head = _recolor_block(head, _DARK_TEXT)
+            blocks.append(
+                f'<section style="padding:40px 24px;background-color:{dark_bg};'
+                f'color:{_DARK_TEXT}">{head}</section>'
+            )
+        else:
+            blocks.append(f'<section style="padding:8px 0">{head}</section>')
+
+    rest = parts
+
+    total = len(rest)
+    for idx, block in enumerate(rest):
+        is_last = idx == total - 1
+        is_dark = dark_footer and is_last
+
+        if pull_quotes:
+            block = _restyle_pull_quotes(block, accent)
+        if h2_border and not numbered:
+            block = _apply_h2_border(block, h2_border)
+        if is_dark:
+            block = _recolor_block(block, _DARK_TEXT)
+        if numbered:
+            badge_style = (
+                f"font-size:40px;font-weight:800;line-height:1;margin-right:12px;"
+                f"color:{_DARK_TEXT_SOFT if is_dark else number_color}"
+            )
+            block = _rewrite_h2_as_row(block, f"{idx + 1:02d}", badge_style)
+
+        if is_dark:
+            style = f"padding:32px 24px;background-color:{dark_bg};color:{_DARK_TEXT}"
+        elif cards:
+            # ⚠️ 卡面不能写死白色：暗底主题（如 su-deepwater）的正文色是浅色，
+            # 白卡上会变成「浅字白底」几乎不可读。改为按页面底色向墨色靠 7% 派生——
+            # 暗底得到亮一档的卡、亮底得到暗一档的卡，一个公式两个方向都成立。
+            style = (
+                f"margin-bottom:16px;padding:20px 18px;background-color:{card_bg};"
+                f"border-radius:10px;box-shadow:0 4px 14px {tint_shadow}"
+            )
+        elif alt_bg_enabled and idx % 2 == 0:
+            style = f"padding:24px 20px;background-color:{alt_bg}"
+        else:
+            style = "padding:24px 20px"
+        blocks.append(f'<section style="{style}">{block}</section>')
+
+    return "".join(blocks)
+
+
+def _wrap_timeline_sections(html: str, cfg: dict, style_map: dict) -> str:
+    """时间线布局：每个 h2 区块左侧加竖线 + 节点圆点"""
+    accent = cfg.get("accent", "#333333")
+    line_color = cfg.get("line_color", accent)
+
+    head, body_html = _split_hero_head(html)
+    parts = [p for p in re.split(r"(?=<h2\s)", body_html) if p.strip()]
+
+    blocks = []
+    if head:
+        blocks.append(f'<section style="padding:8px 0 20px">{head}</section>')
+    rest = parts
+
+    for block in rest:
+        badge_style = f"font-size:14px;line-height:1;margin-right:10px;color:{accent}"
+        block = _rewrite_h2_as_row(block, "\u25cf", badge_style)
+        blocks.append(
+            f'<section style="padding:4px 0 4px 18px;border-left:2px solid {line_color};'
+            f'margin-bottom:22px">{block}</section>'
+        )
+
+    return "".join(blocks)
 
 
 def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> str:
@@ -1206,16 +1694,24 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
         pre_content = protect_spaces(pre_content)
         # 公众号编辑器会吃掉 pre 里的 \n，必须转成 <br> 才能保留换行
         pre_content = pre_content.replace("\n", "<br>")
-        # 语法高亮：仅对有语言标记的代码块启用（避免破坏 URL 等纯文本内容）
-        has_language = bool(re.search(r'class="language-', pre_content))
+        # 先把 <code ...> 开标签摘出来，别让它进高亮器。
+        # ⚠️ 高亮是基于正则的：若把标签一起喂进去，`class` 会命中关键字、
+        # `"language-python"` 会命中字符串，标签被拆碎；随后 <code[^>]*> 替换
+        # 又会吞掉一个 <span，最终代码块开头会多出一行肉眼可见的
+        # `class="language-python">`。
+        code_open = re.search(r"<code[^>]*>", pre_content)
+        has_language = bool(code_open and 'class="language-' in code_open.group(0))
+        if code_open:
+            pre_content = pre_content[:code_open.start()] + pre_content[code_open.end():]
+        # 语法高亮：仅对有语言标记的代码块启用（避免破坏 URL 等纯文本内容）。
+        # 调色板按主题 pre 的背景明暗挑——亮底主题用深色调色板会发灰读不清。
         if has_language:
-            pre_content = _basic_syntax_highlight(pre_content)
-        # 替换内部 code 标签
-        pre_content = re.sub(
-            r"<code[^>]*>",
-            f'<code style="{pre_code_style}">',
-            pre_content,
-        )
+            _bg = re.search(r"background(?:-color)?:\s*([^;\"]+)", pre_style)
+            pre_content = _basic_syntax_highlight(
+                pre_content, light=_is_light_bg(_bg.group(1) if _bg else "")
+            )
+        # 补回内联样式版的 code 开标签
+        pre_content = f'<code style="{pre_code_style}">' + pre_content
         # Mac 风格工具栏（红黄绿三圆点）
         dot_base = "display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px"
         mac_header = (
@@ -1253,8 +1749,14 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
             # 只处理不在 pre 内的 code（pre 内的已经处理过了）
             html = re.sub(r'<code(?!\s+style)>', f'<code style="{s}">', html)
         else:
-            html = re.sub(rf"<{tag}(?!\s+style)>", f'<{tag} style="{s}">', html)
-            html = re.sub(rf"<{tag}(\s+(?!style)[^>]*)>", f'<{tag} style="{s}"\\1>', html)
+            # 已经是容器内层元素（data-container=）的交给 _inject_container_styles 处理，
+            # 这里不能抢先生成 style，否则容器专属样式的精确匹配会失配、永远注入不上。
+            def _add_style(m, _tag=tag, _s=s):
+                attrs = m.group(1) or ""
+                if "style=" in attrs or "data-container=" in attrs:
+                    return m.group(0)
+                return f'<{_tag} style="{_s}"{attrs}>'
+            html = re.sub(rf"<{tag}((?:\s[^>]*)?)>", _add_style, html)
 
     # === 5.1 删除线样式 ===
     html = re.sub(r'<del>', '<del style="text-decoration:line-through;color:#999">', html)
@@ -1307,9 +1809,14 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
             html,
         )
 
-    # === 8. 卡片布局（card 系列主题：按 h2 分割成卡片）===
-    if theme.get("layout") == "card" and "card" in theme:
+    # === 8. 布局分发（按 theme.layout 决定区块怎么切/包）===
+    _layout = theme.get("layout")
+    if _layout == "card" and "card" in theme:
         html = _wrap_card_sections(html, theme["card"])
+    elif _layout == "hero" and "hero" in theme:
+        html = _wrap_hero_sections(html, theme["hero"], theme)
+    elif _layout == "timeline" and "timeline" in theme:
+        html = _wrap_timeline_sections(html, theme["timeline"], style_map)
 
     # === 8.1 处理 wrapper（整体背景色，用于 dark/retro 等主题）===
     if "wrapper" in style_map and not skip_wrapper:

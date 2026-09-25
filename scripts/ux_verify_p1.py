@@ -60,6 +60,10 @@ def main():
               "你的文章" in page.eval_on_selector(".editor-label", "el=>el.textContent"))
         page.click('.tab-btn[data-page="social"]')
         page.wait_for_timeout(1300)
+        # 首次进入小红书页会弹一次「使用教程」（产品行为，属预期）；
+        # 测试须先关掉弹窗，否则遮罩会挡住后续点击造成假失败。
+        page.evaluate("document.querySelectorAll('.modal').forEach(m=>m.remove())")
+        page.wait_for_timeout(150)
         body = page.eval_on_selector("#page-social", "el=>el.innerText")
         check("小红书页：目标平台 → 发到哪", "发到哪" in body)
         check("小红书页：风格模板 → 样式", "样式" in body)

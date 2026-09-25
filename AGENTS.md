@@ -6,7 +6,7 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 核心理念：**纯文本进，排版出。不用 AI 就不开 AI。**
 
 - 自动 Markdown 预处理（本地规则，零延迟零费用）
-- **92 套**主题自动排版（45 原创 + 47 开源适配；Markdown → 微信内联 HTML）
+- **92 套**主题自动排版（45 套早期原创 + 47 套 su-* 原创；Markdown → 微信内联 HTML）
 - 小红书封面生成（双引擎：归藏 Guizang + BLCaptain 9 风格；**自动联网搜真图作底图**）
 - AI 功能（润色/摘要/封面图）默认隐藏，按需展开
 
@@ -33,12 +33,14 @@ core/
   blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js，9 风格）
   guizang_renderer.py   归藏封面渲染器（Playwright HTML→PNG，data URI 内嵌底图）
 scripts/
-  adapt_external_themes.py  开源主题适配脚本
-  remove_dup_themes.py      去重脚本
+  build_themes.py           原创主题生成器（设计标尺 → 47 套 su-* 主题 JSON）
+  theme_specs.py            47 套原创主题的设计意图规格（新主题在这里加一条）
 templates/
   index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）
 public/                 静态资源（原 assets/，由 /assets/* 路由提供）
-  themes/               92 套排版主题 JSON（45 原创 + 47 xh-* 开源适配）
+  themes/               92 套排版主题 JSON（45 套早期原创 + 47 套 su-* 原创）
+                        ⚠️ su-* 47 套为**生成物**：改 scripts/theme_specs.py 后重跑
+                           scripts/build_themes.py 重生成，勿手改 JSON
   cover-templates/      归藏封面模板
   images/               封面库存图（最终兜底）
   social-thumb/         模板缩略图
@@ -62,14 +64,20 @@ python app.py                    # http://127.0.0.1:5000
 python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 52/52 通过
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
 python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
-python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，32 项）— 32/32 通过
+python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
 python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
 python tests/test_headed_wechat_copy.py  # 有头复制/推送/封面旧资产（自起服务，12 项）— 12/12 通过
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
 #    若已被你自己的 app.py 占用，直接 ABORT（退出码 2）——否则会连到旧进程用陈旧代码假通过。
+# ⚠️ 反过来更危险：如果你自己的 app.py 是**改动前**起的，它会一直占着 5000，套件也会连到旧代码。
+#    改完代码务必先确认真进程已换（见下），再跑套件。
 
 # 清理端口
-taskkill //F //IM python.exe
+Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
+# ⚠️ 别用 `taskkill //F //IM python.exe`：本机 PowerShell 会报 `Invalid argument/option - '//F'`
+#    直接失败；若把 stderr 重定向到 $null，失败会被吞掉，旧进程继续服务旧代码，
+#    表现为「改完代码界面却没变」的假象（2026-09-25 实测踩过）。
+#    清完务必核验： (Get-NetTCPConnection -LocalPort 5000 -State Listen).Count 应为 0
 ```
 
 ## 5. 路由速查
@@ -110,6 +118,8 @@ taskkill //F //IM python.exe
     .tpl-toggle          → 收起/展开按钮
   .wechat-body           → 下方双区 grid（0.85fr | 1.15fr）
     .col-text            → 左：#input-area（textarea，响应式 rem）
+      .editor-header     → #btn-demo（看示例/清空）+ #module-picker（插入模块下拉，
+                           11 个模块模板，选中即在光标处插入 ::: 围栏并触发渲染）
     .col-preview         → 右：手机预览框（390×760）+ 底部操作栏
       #preview-frame     → iframe 实时预览（srcdoc blob URL）
     .btn-copy / btn-history / btn-push / AI 按钮
@@ -167,8 +177,29 @@ taskkill //F //IM python.exe
 - 智能排版实现（2026-09-23，参照 GitHub 同类项目）：AI **不改写正文**，只返回结构决策 JSON（`{"title","sections","lists","bold"}`，走 `response_format={"type":"json_object"}`）；本地 `core/preprocessor.apply_structure` 按段号套用标记，越界/重叠/词不在原文的项一律忽略，**正文段落原样保留**。LLM 客户端对 429/5xx/超时退避重试一次（`core/ai_client._post_with_retry`，超时 45s）
 - 本地规则边界（2026-09-23 调研拍板）：本地只做**确定性识别**——编号标题（`一、`/`1.`）、短行标题、并列清单（箭头行 `A → B → C`、项目符号 `·•●○`）、引号引用、首个非层级段作大标题；**不做散文主题句提升、不做规则"发明"小节**（调研结论：doocs/md、wenyan-mcp 都不做，唯一同类 Word-Formatter-Pro 也只认编号；非 LLM 的散文分节只有 TextTiling/embedding 路线，与「不用 AI 就不开 AI」冲突）。并列清单规则对 AI 路径同样恒定生效，不依赖 AI 是否标注
 - 新增功能采用并存模式，不替换现有工作代码
+- **排版模块与页面布局（2026-09-25）**：两套能力，都无需 AI
+  - **模块容器**：`process_fenced_containers` 支持 12 种 `:::type[标题]` 围栏（新增 `eyebrow` 小标签 / `cards` 卡片组 / `summary` 要点总结 / `cta` 行动引导；`cards` 内部用 `### 小标题` 分卡）。**必须成对写收尾 `:::`**：缺收尾时整段按普通文本原样输出，绝不吞正文（原实现在未闭合时会把后面整篇当成容器内容）
+  - **页面布局**：`inject_inline_styles` 第 8 步按 `theme.layout` 分发 —— `card`→`_wrap_card_sections`、`hero`→`_wrap_hero_sections`、`timeline`→`_wrap_timeline_sections`。此前只实现了 `card`，13 套 `layout:hero`（10 套 su-dusk-* + su-ribbon / su-countdown / su-deepwater）与 1 套 `layout:timeline`（su-milestone）的配置**从未被读取**，属死配置
+  - `hero` 开关（`dark_header` 深色首屏 / `numbered` 大序号 / `alt_bg_enabled` 交替色带 / `pull_quotes` 引文穿插 / `cards` 卡片组 / `dark_footer` 暗色尾屏 / `h2_border`）显式声明优先，未声明用 `HERO_DEFAULTS`（对应 10 套 su-dusk-* 描述里的「暗色首屏+大序号+交替色带+引文穿插」）。`cards` 优先于 `alt_bg_enabled`，避免叠两层视觉
+  - ⚠️ **首屏取谁**：预处理会把 ≤12 字的短标题标成 `##`（既有行为，测试已钉死），故 `_split_hero_head` 在无 `<h1>` 时退回取首个 `<h2>` + 紧随段落作首屏，否则「暗色首屏」在真实输入下不触发
+  - **色带可见性（2026-09-25 修订，取代旧「引擎不擅自改配色」）**：`_resolve_band_bg` 判定主题自带 `alt_bg` 与页面底色的通道差是否 ≥ `_BAND_MIN_DISTANCE`(45)。不足则按 accent 逐步混 12%→24% 派生**带主题色系**的色带（比纯灰好看）；低饱和强调色加深后仍不够时再压 6% 墨色兜底。实测 13 套 hero 主题的色带通道差从 15–50 提到 46–57，有头浏览器目视确认「明显可见」。`su-countdown` 显式 `alt_bg_enabled:false` 故无色带（设计如此）。生成器 `scripts/build_themes.py` 直接复用该函数，保证写进 JSON 的值与引擎兜底永远一致
+- **容器样式跟随主题（2026-09-25）**：`_inject_container_styles` 现从 `theme.colors` 派生 surface/text/muted/border/页面底色（此前除 accent 外**全部硬编码**，92 套主题的模块长得一模一样）。修复了两处既有缺陷：
+  - 容器内层 `<p>` 的专属样式**从未生效**——通用标签注入（第 5 步）先给这些元素加了 `style`，令容器样式注入的精确匹配失配。已在 `simple_tags` 注入中跳过带 `data-container=` 的元素（HEAD 版本已实测复现）
+  - `_recolor_block` / `_apply_h2_border` 里的 `(style="[^"]*)"` 正则尾部多了一个引号，永远匹配不上→静默不生效，已改为 `(style=")([^"]*)(")`
+- **预处理器容器感知（2026-09-25）**：`preprocess` 按 `container_depth` 跟踪 `:::` 嵌套，容器内所有行原样穿透（此前容器内的短行会被「短行标题」规则改成 `##`，`:::stat` 的数字、`:::steps` 的步骤全废）
+- **代码块三处修复（2026-09-25）**：
+  1. **标签泄漏**：`style_pre` 原先把 `<code class="language-xxx">` 开标签一起喂给 `_basic_syntax_highlight`，正则高亮把 `class` 当关键字、`"language-xxx"` 当字符串包成 `<span>`，标签被拆碎；随后 `<code[^>]*>` 替换又吞掉一个 `<span`，导致**每个带语言标记的代码块开头都多显示一行肉眼可见的 `class="language-xxx">`**。现改为先摘出 code 开标签、高亮完再补回。
+  2. **f-string 碎片**：`_basic_syntax_highlight` 各步是**串行正则**，后一步会命中前一步插入的 `style="color:#xxx"` 属性值（字符串规则把属性值当字符串再包一层），产出 `<span style=<span style="color:#ce9178">"color:#ce9178"</span>>f…`，**任何含 f-string 的代码都会多出 `"color:#ce9178"` 碎片**。现每步产出的片段存入 `\x00H{i}\x00` 占位符，末尾统一还原。
+  3. **围栏被截断**：`preprocess` 的「4 空格缩进 → 自动开代码块」规则不区分是否已在用户手写的 ```` ``` ```` 围栏内，导致 **Python 代码的缩进行被当新代码块、原围栏提前闭合、代码断成两半**（`def` 与 `return` 被拆开）。现新增 `in_fence` 状态跟踪用户围栏，围栏内一律原样保留（**含缩进**）；无围栏的纯缩进行仍照旧自动转代码块。
+  - 验证：92 套主题全量渲染 0 标签不平衡；含缩进/f-string/注释/decorator 的 Python 代码块肉眼可见内容无碎片
+- **亮底代码块调色板（2026-09-25）**：语法高亮原为固定深底配色，37 套亮底主题（`pre` 背景为浅色）的关键字对比度仅约 2.2:1、发灰读不清。新增 `_SYNTAX_LIGHT` 调色板 + `_is_light_bg()`，按主题 `pre` 背景明暗自动切换（亮底走 VS Code Light+ 系；解析不了的背景按深色处理，不改变未知主题外观）
+- **hero 卡片卡面（2026-09-25）**：`_wrap_hero_sections` 的 cards 分支原先**写死 `background-color:#ffffff`**，而暗底主题（`su-deepwater`）的正文是浅色 → 浅字白底不可读。改为按页面底色向墨色靠 7% 派生卡面（`_mix_hex(bg, ink, 0.07)`）：暗底得到亮一档的卡、亮底得到暗一档的卡，一个公式两个方向都成立。实测 su-deepwater 卡面 `#0E1726` → `#1C2534`
+- **主题体系（2026-09-25 重构）**：`public/themes/` 原有一批（47 套）设计主题是早期从外部仓库机械适配的，命名 / 描述 / 样式数值沿用外部原值，而该仓库**无 LICENSE = 保留所有权利**，本项目开源即分发存在授权风险。现已整体废弃重写为 `su-*` 原创：`public/themes/` 现为 **92 套 = 45 套早期原创 + 47 套 su-\* 原创**，无 `source` 字段、无旧前缀。
+  - **生成链路**：`scripts/theme_specs.py`（47 条设计意图：底色/墨色/强调色/字体气质 + 9 种排版原型 + 布局）→ `scripts/build_themes.py`（字号标尺 / 间距 / 圆角 / 描边 / 列表 / 代码块 / 暗色适配全部由本项目设计系统推导）→ `public/themes/su-*.json`。
+  - ⚠️ **改主题方式**：改 `theme_specs.py` 后重跑 `python scripts/build_themes.py`（会覆盖同 id 生成物），**勿手改 su-\*.json**。色带底色直接复用引擎 `_resolve_band_bg`，保证与兜底逻辑一致。
+  - ⚠️ **写样式值的坑**：主题 JSON 的值**只放值、不带键名**——`build_style_string` 会自动把 `border_left` 拼成 `border-left:`，值里再带一次前缀会拼出 `border-left:border-left:4px solid …`，浏览器判非法整条丢弃（静默失效）。生成器已按此约束写成 `border_left` + `padding_left` 两个键。
 - 所有修改跑 E2E 验证（test_e2e 52/52）+ 集成测试（test_integration 35/35）
-- 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 32 项，0 控制台报错）
+- 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 33 项，0 控制台报错）
 - ⚠️ 有头套件的「0 控制台报错」**依赖上游 LLM 可达**：`/api/polish`、`/api/summary` 无本地兜底，上游（如 tokenpool 网关）返 5xx 时浏览器必记 1~2 条 500，套件退出码会是 1。此时先修上游，**不得为凑绿而放宽该判据**
 - 有头套件不点的 3 个按钮（真实副作用，刻意避开）：`确认推送` / `保存AI配置` / `测试连接`；其后端路径由 test_api_e2e.py 覆盖。AI 按钮断言「真实产出或真报错」，不用固定 sleep 判"优雅降级"（会把响应慢误判成通过）
 
@@ -233,8 +264,12 @@ taskkill //F //IM python.exe
   - 生成耗时大头 ＝ 联网搜图（`core/image_search.py` timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
 - **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 92 套主题人工打标签分类 / 非技术用户可用性类验收。
-- **实施纪律**：一次一项 → 改完即测（`test_e2e` 52/52 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`，改后对照着验。
+- **实施纪律**：一次一项 → 改完即测（`test_e2e` 52/52 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`（⚠️ 验收脚本每次运行都会重写其中 10 张，跑测后工作区会变脏）。
+- **验收脚本计数（2026-09-25 订正）**：`ux_verify_p0` **15/15** · `ux_verify_p1` **15/15** · `ux_verify_tutorial` **13/13**。⚠️ 此前记为「15+13+13」已失效——教程弹窗（后加的产品行为）会遮罩挡住 p0/p1 的点击，两脚本已同步加弹窗关闭处理。
 - **实施状态（2026-09-25）**：第一批 U-1…U-6、第二批 U-7…U-11、U-2 真自适应、Pexels 配图与开源教程均已完成（`a4c869e`/`ef5b241`/`48eacf1` 及后续提交）；
-  回归全绿（52/52 · 35/35 · 29/29 · 33/33 · 验收脚本 15+13+13）。
+  回归全绿（52/52 · 35/35 · 29/29 · 33/33 · 验收脚本 15+15+13）。
+- **高级排版落地（2026-09-25，本批）**：激活 13 套 `layout:hero` + 1 套 `layout:timeline` 死配置；新增 4 个模块容器；模块样式改为跟随主题；前端加「插入模块」下拉；**色带可见性修复**（13 套 hero 主题的色带从肉眼看不出提到明显可见，见 §10）。回归 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错），另有有头浏览器目视验收（深色首屏 / 大序号 / 插入模块 / 交替色带 均已确认）。
+  - 参考来源与版权：参照 `iniwap/AIWriteX`（**Apache-2.0 + NOTICE 附加限制：未经书面授权禁止分发本项目或其衍生作品**）的成品效果做**纯灵感派生**，未复制其 HTML/CSS/SVG 素材或文案；其 `knowledge/templates/*.html` 是 LLM 成品稿，与本项目「Markdown→结构化 HTML + 主题 JSON 控样式」的架构不同，不可直接搬。
+  - **版权已了结（2026-09-25）**：原先 47 套主题的上游仓库**无 LICENSE（= 保留所有权利）**，本项目开源即分发、存在真实风险。现已全部重写为 `su-*` 原创：命名/描述自拟、配色与排版数值由 `scripts/build_themes.py` 的设计系统推导、`source` 字段全清、旧前缀归零，旧主题文件与旧适配脚本一并删除。
   历史记录：第一批 U-1…U-6 **已完成并回归绿**（提交 `a4c869e`）—— `test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` 33/33（0 控制台报错）· `scripts/ux_verify_p0.py` 15/15；封面三引擎实跑出图（改后对照 `docs/ux-audit/shots/after/`）。
   - 落点提示：`fitty` 注入在 `core/guizang_renderer.py`（渲染前 add_script_tag）；BLCaptain 侧因 CLI 无脚本注入口，改为在 `core/blcaptain_bridge.py::_normalize_cover_text` **打断引擎的“前两行拼标题”**（实测有效）。

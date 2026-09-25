@@ -204,6 +204,8 @@ body {
 .editor-label { margin-left:auto; font-size:.72rem; color:var(--text-muted); font-family:var(--font-mono); }
 .editor-demo-btn { margin-left:8px; font-size:.7rem; padding:2px 8px; border-radius:6px; border:1px solid var(--border-hi); background:transparent; color:var(--text-muted); cursor:pointer; }
 .editor-demo-btn:hover { color:var(--accent); border-color:var(--accent); }
+.editor-mod-picker { appearance:none; -webkit-appearance:none; padding-right:8px; }
+.editor-mod-picker option { background:var(--bg); color:var(--text); }
 .col-text textarea {
   flex:1; width:100%; padding:20px;
   resize:none; border:none; outline:none;
@@ -618,6 +620,19 @@ body {
         <span class="editor-dot"></span><span class="editor-dot"></span><span class="editor-dot"></span>
         <span class="editor-label">你的文章</span>
         <button class="editor-demo-btn" id="btn-demo" type="button">看示例</button>
+        <select class="editor-demo-btn editor-mod-picker" id="module-picker" title="在光标处插入一个排版模块">
+          <option value="">插入模块</option>
+          <option value="eyebrow">小标签</option>
+          <option value="cards">卡片组</option>
+          <option value="summary">要点总结</option>
+          <option value="cta">行动引导</option>
+          <option value="stat">关键数字</option>
+          <option value="steps">步骤流程</option>
+          <option value="timeline">时间线</option>
+          <option value="compare">对比卡片</option>
+          <option value="quote">引文卡</option>
+          <option value="dialogue">对话气泡</option>
+        </select>
       </div>
       <textarea id="input-area" placeholder="在这里粘贴你的文章…（第一行会自动当成标题）"></textarea>
     </div>
@@ -929,6 +944,37 @@ demoBtn.addEventListener('click', () => {
     inputArea.value = SAMPLE_ARTICLE;
     demoBtn.textContent = '清空';
   }
+  doRender();
+});
+
+// ── 插入模块：把围栏容器模板写到光标处（语法与 core/format_engine.py 一致）──
+const MODULE_TEMPLATES = {
+  eyebrow: ':::eyebrow[小标签]\n\n:::\n',
+  cards: ':::cards[模块速览]\n\n### 第一项\n\n一句话说明\n\n### 第二项\n\n一句话说明\n\n### 第三项\n\n一句话说明\n\n:::\n',
+  summary: ':::summary[一句话总结]\n\n把结论写在这里。\n\n:::\n',
+  cta: ':::cta[行动引导]\n\n给下一步一个自然入口。\n\n:::\n',
+  stat: ':::stat\n\n42%\n\n转化率提升\n\n:::\n',
+  steps: ':::steps[发布流程]\n\n第一步\n\n第二步\n\n第三步\n\n:::\n',
+  timeline: ':::timeline[时间线]\n\n2026-01：项目启动\n\n2026-06：正式上线\n\n:::\n',
+  compare: ':::compare[方案 A vs 方案 B]\n\n成本低 | 效果强\n\n上手快 | 可扩展\n\n:::\n',
+  quote: ':::quote[某人]\n\n留下一句能记住的话。\n\n:::\n',
+  dialogue: ':::dialogue[对话]\n\n小苏: 第一句\n\n小特: 第二句\n\n:::\n',
+};
+
+const modulePicker = document.getElementById('module-picker');
+modulePicker.addEventListener('change', () => {
+  const tpl = MODULE_TEMPLATES[modulePicker.value];
+  modulePicker.value = '';
+  if (!tpl) return;
+  const start = inputArea.selectionStart ?? inputArea.value.length;
+  const before = inputArea.value.slice(0, start);
+  const after = inputArea.value.slice(inputArea.selectionEnd ?? start);
+  // 前后留空行，避免模块标记与正文黏在一行
+  const pad = !before ? '' : (before.endsWith('\n\n') ? '' : (before.endsWith('\n') ? '\n' : '\n\n'));
+  inputArea.value = before + pad + tpl + after;
+  const caret = (before + pad + tpl).length;
+  inputArea.focus();
+  inputArea.setSelectionRange(caret, caret);
   doRender();
 });
 

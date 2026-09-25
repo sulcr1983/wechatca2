@@ -41,11 +41,12 @@
 ### S1 — 小红书页布局重排（前置，✅ 已完成）
 - 2 列布局（.social-ctrl | .social-right）；结果画廊自适应网格；Lightbox 大图预览。
 
-### T2/T3/T4 — 主题去重与开源适配（✅ 已完成）
-- 85 套开源适配（xh-*）→ 去 38 重复 → 47 套保留。
+### T2/T3/T4 — 主题去重与外部主题适配（✅ 已完成，⚠️ 后续已被推翻）
+- 85 套外部适配主题 → 去 38 重复 → 47 套保留。
 - 84 套颜色克隆 → 全部删除。
 - 8 套原创撞色 → 删除，每组留代表。
-- **最终：92 套 = 45 原创 + 47 开源适配**。name-collision=0、color-twin组=0、92/92 全部渲染通过。
+- **当时结果：92 套 = 45 原创 + 47 外部适配**。name-collision=0、color-twin组=0、92/92 全部渲染通过。
+- ⚠️ **2026-09-25 推翻**：外部仓库无 LICENSE（= 保留所有权利），本项目开源即分发存在授权风险。这 47 套已全部废弃、重写为本项目自研 `su-*` 原创（见 `HANDOFF.md` 变更 14）。本文档以下涉及该批主题的行只作历史记录。
 
 ### DOC — README 重写（✅ 已完成）
 - 图文并茂：4 张真实截图（公众号排版 / 小红书封面 / 结果画廊 / Lightbox 大图）。
@@ -71,9 +72,9 @@
 | `core/guizang_renderer.py` | _resolve_img() file:// → base64 data: URI 修复 |
 | `templates/index.html` | #bg-credit 署名条 + 结果卡真实图绑定 + 社交页 2 列布局 |
 | `core/format_engine.py` | GALLERY_THEMES 去重后列表更新 |
-| `public/themes/*.json` | -8 原创（撞色删除）+ 47 xh-* 开源适配（新增） |
-| `scripts/adapt_external_themes.py` | 🆕 开源主题适配脚本 |
-| `scripts/remove_dup_themes.py` | 🆕 xh 去重脚本 |
+| `public/themes/*.json` | -8 原创（撞色删除）+ 47 套外部适配（新增，⚠️ 2026-09-25 已重写为本项目自研） |
+| `scripts/adapt_external_themes.py` | 🆕 外部主题适配脚本（⚠️ 2026-09-25 已删除） |
+| `scripts/remove_dup_themes.py` | 🆕 去重脚本（⚠️ 2026-09-25 已删除） |
 | `scripts/remove_dup_originals.py` | 🆕 原创去重脚本 |
 | `tests/agent_browser_full_flow.ps1` | 主题名引用更新（elegant-navy→bold-navy） |
 | `README.md` | 🔄 重写：图文并茂 + 表情丰富 + mermaid + 4 张截图 |
@@ -93,7 +94,7 @@
 - **本次提交**：`31ab4ce`（已推送 origin main，2026-07-25）
   - 回滚：`git revert 31ab4ce` 或 `git checkout 31ab4ce~1 -- <file>`
 - 如需单独回滚搜图功能：移除 `app.py` 中 image_search 导入和 search_background 调用；恢复 blcaptain_bridge/guizang_renderer 的旧签名。
-- 如需单独回滚主题变更：恢复被删的 8 个原创 JSON + 删除 47 个 xh-* JSON。
+- 如需单独回滚主题变更：恢复被删的 8 个原创 JSON（⚠️ 2026-09-25 起 `public/themes/` 已重构为本项目自研 92 套，此条仅作历史记录，实际回滚请用 `git revert` 到目标提交）。
 
 ---
 

@@ -88,6 +88,10 @@ def main():
         print("— U-1 预览卡不再露出 <br> —")
         page.click('.tab-btn[data-page="social"]')
         page.wait_for_timeout(1300)
+        # 首次进入小红书页会弹一次「使用教程」（产品行为，属预期）；
+        # 测试须先关掉弹窗，否则遮罩会挡住后续点击造成假失败。
+        page.evaluate("document.querySelectorAll('.modal').forEach(m=>m.remove())")
+        page.wait_for_timeout(150)
         page.fill("#social-text", "3个让家里立刻变整洁的小动作\n不用大扫除，每天10分钟就够")
         page.wait_for_timeout(700)
         minis = page.query_selector_all(".tpl-mini")

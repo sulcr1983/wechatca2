@@ -29,7 +29,7 @@
 ### 模块：templates/index.html (前端)
 - **状态**：Confirmed
 - **是否可运行**：是，浏览器正常渲染，浅色暖调主题
-- **依赖模块**：app.py (提供 API)，public/themes/* (92 个 JSON 主题：45 原创 + 47 开源适配)
+- **依赖模块**：app.py (提供 API)，public/themes/* (92 个 JSON 主题：45 套早期原创 + 47 套 su-* 自研原创)
 - **失败点**：用户反馈"页面还是旧的"——可能因浏览器缓存，按 Ctrl+F5 后显示新页面
 - **影响范围**：全部前端交互
 
@@ -137,7 +137,7 @@
 | `core/blcaptain_bridge.py` | BLCaptain 风格封面 (Node.js) | stable | medium | Node.js, blcaptain-style-skill/ |
 | `start_flask.py` | 冗余启动脚本（无浏览器打开逻辑、无任何引用；真实入口为 app.py / start-app.bat） | obsolete | low | app.py |
 | `launcher.py` | 打包入口占位（唯一引用方 build.yml 已于 2026-09-23 删除 → 现零引用；exe 路线已被否决） | obsolete | low | app.py |
-| `public/themes/*.json` | 92 个排版主题配置（45 原创 + 47 xh-* 开源适配） | stable | low | format_engine |
+| `public/themes/*.json` | 92 个排版主题配置（45 套早期原创 + 47 套 su-* 自研原创） | stable | low | format_engine |
 | `public/cover-templates/*` | 归藏风格的 HTML 封面模板 | stable | low | guizang_renderer |
 | `public/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
 | `.env.example` | 环境变量模板 | stable | low | 无 |
@@ -420,11 +420,12 @@ python tests/test_headed_wechat_copy.py
 - **风险**：低。
 - **是否验证**：是（E2E 40/41；集成 35/35；封面实跑出图）。
 
-### 变更 4：自动联网搜底图 + 主题去重 + 开源适配（2026-07-25）🆕
+### 变更 4：自动联网搜底图 + 主题去重 + 外部主题适配（2026-07-25）🆕
 - **新增 `core/image_search.py`**：双轨联网搜图模块。默认 Wikimedia Commons（免 key，自定义 UA 防 403）；检测到 `PEXELS_API_KEY` 自动升级 Pexels。规则提取中文→英文关键词（零 AI）。缓存到 `data/bg_cache/`，返回 `{path, source, author, license, query}`。
 - **接线**：`app.py::api_social_generate()` 渲染前调用 `search_background()`；BLCaptain 接收 `bg_image` 参数；归藏接收 `images=merged`（用户上传覆盖自动底图）；前端结果区下方显示 `#bg-credit` 署名条。
 - **关键修复**：`guizang_renderer._resolve_img()` 从 `file://` URI 改为 base64 `data:` URI 内嵌——Playwright `set_content()` 下浏览器安全策略拦截 file://，导致底图静默丢失。
-- **主题去重 + 开源适配**：从 xiaohu-wechat-format 适配 47 套开源主题（xh-* 前缀），删除 84 套颜色克隆 + 8 套原创撞色重复。最终 **92 套 = 45 原创 + 47 开源**。
+- **主题去重 + 外部主题适配**：从外部仓库适配 47 套主题（加 `xh-` 前缀），删除 84 套颜色克隆 + 8 套原创撞色重复。最终 **92 套 = 45 原创 + 47 适配**。
+  - ⚠️ **已于 2026-09-25 推翻**：该外部仓库无 LICENSE（= 保留所有权利），本项目开源即分发存在风险；这 47 套已全部废弃并重写为本项目自研原创（见变更 14）。
 - **验证**：live API 三引擎（editorial/swiss/sp-mist）均返回真实 PNG + 真实网图底图；有头 E2E 0 console 错误；署名条文案正确。
 - **影响**：封面生成核心价值链「搜图→渲染→展示→署名」完整闭环。
 - **风险**：低。Wikimedia 无 key 但有请求频率限制（实际使用远低于上限）。
@@ -525,6 +526,47 @@ python tests/test_headed_wechat_copy.py
 - **设置里填 token**：设置弹窗新增「Pexels 图库 API」一栏。`GET/POST /api/pexels-config`——key 经 `crypto_utils.encrypt` 存 `data/pexels.json`（不入库），保存后注入 `os.environ` **立即生效**；GET 只返回 `configured`，绝不回传 key。`.env` 方式依然可用。
 - **验证（真实执行）**：`scripts/ux_verify_tutorial.py` 13/13；curl 全流程（GET → POST → GET → 生成 source=Pexels）；回归 `52/52 · 29/29 · 33/33`（0 控制台报错）。截图 `shots/after/tutorial-*.jpg`、`settings-pexels.jpg`。
 - **本批踩坑记录**：①事件对象被当参数传给 `openTutorial(kind)` → 内容 undefined（addEventListener 必须包箭头函数）；②heredoc 补丁中字面 `/n` 混入 app.py → SyntaxError（heredoc 转义链不可靠，改用 Edit 工具修复）。
+
+---
+
+### 变更 14：高级排版落地 + 主题体系重构为纯原创（2026-09-25）🆕
+
+**A. 激活死配置（高级排版）**
+- **背景**：用户觉得「自动排版功能比较弱」，给了参考图问「需要 LLM 吗」+ 提供了 `iniwap/AIWriteX` 想看能否借鉴。
+- **调研结论**：92 套主题里 `layout` 字段分布为 `hero` 13 / `card` 4 / `timeline` 1 / 无 74，但引擎**只实现了 `card`**——13 套 hero + 1 套 timeline 的配置从未被读取，属死配置。其中 10 套 `su-dusk-*` 的描述明确写着「暗色首屏+大序号+交替色带+引文穿插」，4 套特化主题还写了显式布尔开关。**无需 LLM**：这些是「带语义角色的容器」，本地正则可 100% 稳定转出。
+- **实现**：`core/format_engine.py` 第 8 步布局分发补 `hero`→`_wrap_hero_sections`、`timeline`→`_wrap_timeline_sections`；新增 `HERO_DEFAULTS` 处理「未声明开关」（10 套只写了描述没写布尔值），显式开关优先。
+- **新增 4 个模块容器**（容器 8→12 种）：`:::eyebrow` 小标签 / `:::cards` 卡片组（内部 `### 分卡`）/ `:::summary` 要点总结 / `:::cta` 行动引导。
+- **模块样式跟随主题**：`_inject_container_styles` 原先除 accent 外**全部硬编码**（92 套主题模块长得一模一样），现从 `theme.colors` 派生 surface / text / muted / border / 页面底色。
+- **前端**：输入框工具条加 `#module-picker`（11 个模块模板，光标处插入 `:::` 围栏并自动渲染）。
+
+**B. 修掉 9 个既有缺陷（本轮实测复现后收掉）**
+1. **容器内层 `<p>` 专属样式从未生效**：通用标签注入（第 5 步）先给元素加了 `style`，令容器样式注入的精确匹配失配 → `:::stat` 的 48px 大数字、引文卡样式全部没生效（**这是「高级排版弱」的直接原因**）。已用 git stash 在 HEAD 版本实测复现（`stat-number 是否注入样式: False`）。
+2. **预处理器把容器内部短行标成 `##`**：`:::stat` 的数字变 `## 42%`、`:::steps` 步骤全废。已在 `preprocess` 加 `container_depth` 跟踪，容器内一律原样穿透。
+3. **容器缺收尾 `:::` 会吞掉后面整篇正文**（静默丢数据，违反「不静默」契约）：改为整段原样输出。
+4. **代码块开头多显示一行 `class="language-xxx">`**：`style_pre` 把 `<code class="language-xxx">` 开标签一起喂给正则高亮器，`class` 命中关键字、`"language-xxx"` 命中字符串，标签被拆碎；随后 `<code[^>]*>` 替换又吞掉一个 `<span`。
+5. **含 f-string 的代码多出 `"color:#ce9178"` 碎片**：高亮器是串行正则，字符串规则命中前一步自己插入的 `style="color:#ce9178"` 属性值并再包一层，产出 `<span style=<span style="color:#ce9178">"color:#ce9178"</span>>f…`。改为各步片段存入占位符、末尾统一还原。
+6. **手写 ```` ``` ```` 围栏被截断**：`preprocess` 的「4 空格缩进 → 自动开代码块」规则不区分是否已在用户围栏内，Python 的缩进行被当新代码块 → 原围栏提前闭合、`def` 与 `return` 被拆开、多出空代码块。新增 `in_fence` 状态跟踪，围栏内原样保留（含缩进）。
+7. **18 套主题的 h2 左边框强调条静默失效**（有头 E2E 发现）：生成器把 `border-left:…` 整串当成 `border_left` 的值，`build_style_string` 再拼一次前缀 → `border-left:border-left:4px solid …`，浏览器判非法整条丢弃。改为 `border_left` + `padding_left` 两个键。
+8. **su-deepwater 的 hero 卡片浅字白底不可读**（有头 E2E 发现）：cards 分支写死 `background-color:#ffffff`，而暗底主题正文是浅色 `#DDE6F2`，对比度约 1.2:1。改为按页面底色向墨色靠 7% 派生卡面，实测卡面 `#0E1726` → `#1C2534`。
+9. **37 套亮底主题代码块高亮对比度过低**（有头 E2E 发现）：高亮器只有一套深底配色，亮底上关键字对比度约 2.2:1、发灰。新增 `_SYNTAX_LIGHT` 调色板 + `_is_light_bg()`，按 `pre` 背景明暗切换。
+修复后 92 套全量渲染 0 标签不平衡，含缩进 / f-string / 注释 / decorator 的代码块肉眼可见内容无碎片。
+
+**C. 色带可见性（用户明确要求「为了好看最重要」）**
+- `su-dusk-*` 等 13 套的 `alt_bg` 是 `#fafafa` / `#f7f7f8`，与白底只差 15/23 → **肉眼看不出「交替色带」**，等于特性没生效。
+- 新增 `_resolve_band_bg` + `_BAND_MIN_DISTANCE`(45)：不足则按 accent 逐步混 12%→24% 派生**带主题色系**的色带，低饱和强调色再压 6% 墨色兜底。实测色带通道差 **15–50 → 46–57**，有头浏览器目视确认「很明显」。
+
+**D. 主题体系重构：47 套外部适配主题 → 本项目自研 `su-*` 原创（版权了结）**
+- **背景**：用户要求彻底解决这 47 套的版权问题，且要求「不能完全看得出」与外部来源的关系；选定「自己重写一遍」。
+- **原风险**：47 套的 `source` 字段全部指向外部仓库（**该仓库无 LICENSE = 保留所有权利**）；文件前缀、展示名、描述文案、样式数值（29–39 键）均为外部原值。本项目已定开源 = 分发 → 真实风险。
+- **做法**：`scripts/theme_specs.py` 写 47 条**设计意图**（底色/墨色/强调色/字体气质 + 9 种排版原型 + 布局），`scripts/build_themes.py` 用**本项目自己的设计标尺**推导全部数值（字号标尺 / 间距 / 圆角 / 描边 / 列表 / 代码块 / 暗色适配）；色带直接复用引擎 `_resolve_band_bg`，保证与兜底逻辑单真源。命名与描述自拟。
+- **结果**：92 套 = 45 套早期原创 + 47 套 `su-*`；旧前缀归零、`source` 字段全清、无重名；删除失效脚本 `scripts/adapt_external_themes.py` 与 `scripts/remove_dup_themes.py`，并清理各文档中残留的外部来源表述。
+- **⚠️ 改主题方式**：改 `theme_specs.py` 后重跑 `python scripts/build_themes.py`（会覆盖同 id 生成物），**勿手改 `su-*.json`**。
+
+**E. 顺带修掉的文档缺陷**
+- AGENTS.md 的清理命令 `taskkill //F //IM python.exe` **在本机 PowerShell 直接报错**（`Invalid argument/option - '//F'`），且失败被 `$null` 吞掉 → 旧 Flask 进程一直占着 5000 端口，新代码起不来，表现为「改完代码界面却没变」的假象（本轮实际踩到，靠比对「运行中服务返回值 vs 源码直调返回值」才定位）。已换成 `Get-Process python | Stop-Process -Force` 并加端口核验步骤。
+
+- **验证（真实执行）**：`test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` 33/33（0 控制台报错）；92 套主题全量渲染 0 标签不平衡；live `/api/themes` 确认 92 套（su- 47 / xh- 0）；有头浏览器目视验收深色首屏 / 大序号递增 / 插入模块 / 交替色带。
+- **影响**：主题体系（47 套替换）、排版引擎（布局分发 + 12 种容器 + 主题化取色）、前端（插入模块入口）。
 
 ---
 

@@ -21,6 +21,12 @@ _ARROW_RE = re.compile(r'\s*(?:→|->|➔|➜|⇒)\s*')
 # 行首项目符号
 _BULLET_RE = re.compile(r'^[·•●○\-*]\s*')
 
+# 围栏容器开标记：:::{type}[标题] / 收尾标记：:::
+# 这两类行必须原样穿透，否则短标记（如 :::cta[标题] 仅 10 字）会被「短行标题」规则
+# 改成 ## :::cta；同理容器**内部**的短行（stat 的数字、steps 的步骤）也会被误加 ##。
+_CONTAINER_OPEN_RE = re.compile(r'^:::\w+(?:\[[^\]]*\])?\s*$')
+_CONTAINER_CLOSE_RE = re.compile(r'^:::\s*$')
+
 
 def _split_parallel_items(line: str):
     """箭头并列行 → 列表项；至少 3 项、每项都短、项内无逗号，否则不算清单"""
@@ -55,7 +61,9 @@ def preprocess(text: str) -> str:
     """将纯文本转为基础 Markdown，覆盖 90% 常见结构，无需 LLM 等待"""
     lines = text.strip().split('\n')
     md_lines = []
-    in_code_block = False
+    in_code_block = False   # 我们为「4 空格缩进」自动开的围栏
+    in_fence = False        # 用户手写的 ``` 围栏
+    container_depth = 0
 
     for i, line in enumerate(lines):
         stripped = line.strip()
@@ -67,8 +75,23 @@ def preprocess(text: str) -> str:
             md_lines.append('')
             continue
 
+        # 用户手写的 ``` 围栏：翻转入内/出外。内部一律原样保留（含缩进），
+        # 否则 Python 的缩进行会命中下面的「4 空格缩进」规则、被当成新代码块，
+        # 导致围栏提前闭合、代码被截成两半（实测：def 与 return 被拆开）。
+        if stripped.startswith('```'):
+            if in_code_block:
+                md_lines.append('```')
+                in_code_block = False
+            in_fence = not in_fence
+            md_lines.append(stripped)
+            continue
+
+        if in_fence:
+            md_lines.append(line)
+            continue
+
         # 已含 Markdown 标记的行原样保留（但 \d+\.\s 可能是序号标题，后面单独判断）
-        if re.match(r'^(#{1,6}\s|>\s|-\s|\*\s|```|~~)', stripped):
+        if re.match(r'^(#{1,6}\s|>\s|-\s|\*\s|~~)', stripped):
             if in_code_block:
                 md_lines.append('```')
                 in_code_block = False
@@ -86,6 +109,18 @@ def preprocess(text: str) -> str:
         if in_code_block:
             md_lines.append('```')
             in_code_block = False
+
+        # 围栏容器：开标记进入、内部一律原样保留、收尾标记退出（按深度支持嵌套）
+        if _CONTAINER_OPEN_RE.match(stripped):
+            container_depth += 1
+            md_lines.append(stripped)
+            continue
+
+        if container_depth > 0:
+            md_lines.append(stripped)
+            if _CONTAINER_CLOSE_RE.match(stripped):
+                container_depth -= 1
+            continue
 
         # 有序号标题：一、/ 1. / (1) / ① 等
         if re.match(
