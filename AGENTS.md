@@ -55,16 +55,24 @@ docs/
 ## 4. 启动与停止
 
 ```bash
-# 启动
-pip install -r requirements.txt
-playwright install chromium      # 必需：小红书封面生成依赖 Chromium，缺则 /api/social/generate 报 500
-python app.py                    # http://127.0.0.1:5000
+# 启动（二选一）
+start-app.bat                    # 双击即用：自动建 venv/装依赖/补 Chromium → 起服务 → 开浏览器
+python app.py                    # http://127.0.0.1:5000（等效，需自己先激活环境）
+# ⚠️ start-app.bat 的两条硬约束（改动前必读，2026-09-26 因这两条踩过「双击没反应」）：
+#   1) 全程用 %~dp0 拼绝对路径调用 .venv\Scripts\python.exe，**不要用 activate.bat**——
+#      其内部写死创建时的绝对路径，项目一换目录就失效 → python 落到系统解释器
+#      → 报 No module named 'flask'。.venv 换目录后可用
+#      `<基础解释器> -m venv .venv` 原地重建激活脚本（不加 --clear，已装包会保留）。
+#   2) *.bat / *.cmd **必须 CRLF 换行**（已由 .gitattributes 的 eol=crlf 锁定）。
+#      裸 LF 会让 cmd 解析错乱、把行切成半截命令，表现为窗口一闪或一堆
+#      `'xxx' is not recognized`。
 
 # 测试
 python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 52/52 通过
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
 python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
+                                      # 快捷入口：scripts/run_headed_test.bat（自起服务，需 5000 空闲）
 python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
 python tests/test_headed_wechat_copy.py  # 有头复制/推送/封面旧资产（自起服务，12 项）— 12/12 通过
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
@@ -161,6 +169,9 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 ## 9. 已知注意事项
 
 - 封面渲染统一走 `core/guizang_renderer.py`（需 `playwright install chromium`）；旧 `scripts/render_worker.py` 双份实现已删除
+- ⚠️ **`.bat` 必须 CRLF**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。手写或工具生成的 `.bat` 若为 LF，cmd 会解析错乱（2026-09-26 导致 `start-app.bat` 双击完全不可用）
+- ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
+- `scripts/start_flask.py` / `launcher.py` 为已废弃旧入口（零引用，见 HANDOFF §7 可记录债务），真实入口是 `app.py` / `start-app.bat`
 - `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`
 - 测试用 `app.test_client()` 避免端口冲突
 - SSE 30 秒超时，优化结果 120 秒缓存；⚠️ 后台 LLM 优化（_start_background_optimization）默认已关闭（前端未接入 SSE 消费），见 F2 修复

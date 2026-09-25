@@ -59,6 +59,7 @@
 | ADV-FIX13 | 清死代码：生成器 `fmt()`（未调用）、`surface`（未使用）、原型 `border`/`bullet`/`shadow`（声明未读） | 2026-09-25 | 全部删除；重生成后 44 套输出字节级一致（行为中性） |
 | ADV-FIX14 | 修 3 套主题**描述过度承诺**（`su-frostedglass` 白卡、`su-hardedge` 粗黑边+硬阴影、`su-confetti` 多色块均未实现） | 2026-09-25 | 描述改为与实际渲染一致（不实现未声明样式，避免扩大范围） |
 | ADV-FIX15 | 修验收脚本：教程弹窗遮罩挡住 `ux_verify_p0/p1` 点击导致**失败**（教程为后加产品行为，两脚本未同步） | 2026-09-25 | 两脚本进小红书页后关闭弹窗；修后 **15/15 + 15/15**；AGENTS §12 计数由失效的「15+13+13」订正为 **15+15+13** |
+| BAT-FIX | 修「`start-app.bat` 双击没反应」：① `.bat` 是裸 LF 换行，cmd 解析错乱把行切成半截 ② venv 的 `activate.bat` 写死旧盘符 `d:\test\wechatca2`（项目已在 `e:\`），激活静默失效 → `python` 落到系统解释器 → `No module named 'flask'` | 2026-09-26 | 原地重建 venv 激活脚本（不加 `--clear`，25 个包全保留）；bat 全程改 `%~dp0` 绝对路径调 venv python、不再依赖 activate；新增 `.gitattributes` 锁 `*.bat`/`*.cmd` 为 CRLF；顺带修同病的 `scripts/run_headed_test.bat`（写死旧盘符 + 指向已删文件）。实测：一键启动起服务+开浏览器成功；headed bat 33/33（0 报错）；门禁 52/52 |
 
 ## 进行中 / 待办
 

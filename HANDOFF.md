@@ -570,6 +570,26 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 15：修「start-app.bat 双击没反应」（2026-09-26）🆕
+
+- **现象**：用户双击 `start-app.bat` 没反应（服务起不来、浏览器不弹）。
+- **根因（两条叠加，均实测复现）**：
+  1. **`.bat` 是裸 LF 换行**（CRLF=0 / 裸LF=50）。cmd 解析 LF 批处理会错乱——实测输出里出现 `'—'`、`'os.path.exists'`、`'SER'` 等**半截命令碎片**，`call activate.bat` 那条因此没生效。
+  2. **venv 的 `activate.bat` 写死了旧盘符**：`set VIRTUAL_ENV=d:\test\wechatca2\.venv`，而项目实际在 `e:\test\wechatca2`（`d:\test\wechatca2` 已不存在）。旧版脚本靠 `call activate.bat` 激活环境 → 激活指向不存在的路径 → `python` 落到 `C:\Python314\python.exe`（系统解释器）→ `import flask` 失败 → `app.py` 报 `No module named 'flask'` → 表现为「点了没反应」。`pip.exe` 里同样有 2 处 `d:\` 硬编码。
+- **修复**：
+  - 修 venv：用基础解释器 `Python312\python.exe -m venv .venv` **原地重建激活脚本**（不加 `--clear`，**25 个已装包全部保留**，实测重建后 `flask/markdown/playwright` 均可导入）。现 `VIRTUAL_ENV=E:\test\wechatca2\.venv`。
+  - 改 `start-app.bat`：全程改用 `%~dp0.venv\Scripts\python.exe` **绝对路径调用**，彻底不再依赖 `activate.bat`（这样以后项目再换目录也不会坏）；顺手把开浏览器那行的嵌套引号 `start "" cmd /c "... start "" http://..."` 简化为 `start http://...`，去掉脆弱写法。
+  - 新增 `.gitattributes` 锁 `*.bat` / `*.cmd` 为 `eol=crlf`，防换行问题复发。
+  - 顺带修 `scripts/run_headed_test.bat`（同病：`cd /d d:\test\wechatca2` 写死旧盘符、指向**已删除**的 `test_headed_full.py`、`echo` 少空格）。改为 `%~dp0` 定位 + 调用真实套件 `tests/test_headed_full_e2e.py`（该套件自起服务，无需脚本再起一个，故删掉原先的 `start_flask.py` 启动步骤）。
+- **验证（真实执行）**：
+  - `start-app.bat`：实测输出无碎片、无依赖误报 → `Running on http://127.0.0.1:5000` → `GET /api/themes 200`（92 套）→ 日志出现来自浏览器的 `GET /` 与缩略图请求（**证明浏览器也已自动打开**）；端口 5000 监听 = 1，服务进程为 `e:\test\wechatca2\.venv\Scripts\python.exe`。
+  - `run_headed_test.bat`：退出码 0 → **33/33 通过**、**0 控制台报错**。
+  - 回归门禁 `test_e2e` **52/52**（本次未改应用代码，仅启动脚本与换行配置）。
+- **影响**：仅启动/开发脚本与仓库换行配置；无应用代码变更。
+- **风险**：低。唯一副作用是仓库首次应用 `.gitattributes` 时两个 `.bat` 会按 CRLF 重新入库（内容等价）。
+
+---
+
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）

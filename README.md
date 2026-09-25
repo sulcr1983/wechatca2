@@ -273,17 +273,19 @@ graph TB
 ### 🔧 手动启动（开发者）
 
 ```bash
-# 1️⃣ 进入虚拟环境
-.venv\Scripts\activate
+# 1️⃣ 安装依赖（首次）
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m playwright install chromium
 
-# 2️⃣ 安装依赖（首次）
-pip install -r requirements.txt
-playwright install chromium
-
-# 3️⃣ 启动
-python app.py
+# 2️⃣ 启动
+.venv\Scripts\python.exe app.py
 # 浏览器打开 http://127.0.0.1:5000
 ```
+
+> 💡 这里直接调用 `.venv\Scripts\python.exe`，而不是 `.venv\Scripts\activate`：
+> `activate` 脚本里写死了创建虚拟环境时的绝对路径，**项目一旦换目录就会静默失效**
+> （激活后 `python` 会落到系统解释器上、报 `No module named 'flask'`）。
+> 直接调 venv 里的解释器则与项目位置无关。
 
 ### 🎛️ 可选配置 `.env`
 

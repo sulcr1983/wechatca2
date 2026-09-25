@@ -1,0 +1,6 @@
+# Windows 批处理必须用 CRLF 换行：
+# 裸 LF 会让 cmd.exe 解析错乱，把行切成半截命令（表现为 .bat 双击后一闪而过、
+# 或报一堆「'xxx' is not recognized」），且 activate.bat 之类调用会静默失效。
+# 2026-09-26 实测踩过：start-app.bat 因 LF 换行导致一键启动完全不可用。
+*.bat text eol=crlf
+*.cmd text eol=crlf
