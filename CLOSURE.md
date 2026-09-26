@@ -140,7 +140,7 @@
 - 截图：`output/verify_click_tpl.png`（临时验证产物，验证后清理）。
 
 ### 回滚点
-- 本次提交：`<见 git log（提交信息以 fix: 开头，含「移除模板悬停试看」）>`
+- 本次提交：`c88c4c27c1e914360e282615921acfd22684dcbf`
 - 回滚：`git revert <hash>`，或恢复 `templates/index.html` 中原 `mouseover`/`mouseleave` 监听（原逻辑：`mouseover` 200ms 防抖调 `doRender(id, true)`，`mouseleave` 调 `doRender()`）。
 
 ### 影响 / 风险
