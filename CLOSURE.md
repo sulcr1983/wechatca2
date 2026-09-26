@@ -1,4 +1,4 @@
-# 任务收尾记录 — SuperSu P0 修复 + E2E 诊断闭环
+# 任务收尾记录 — SuperSu
 
 > 本文档为**单任务结束程序（Task Closure）**交付物：记录本次做了什么、如何验证、回滚点、剩余项与后续建议。
 > 关联前置文档：`reports/系统诊断报告_2026-07-11.md`、`reports/superpowers-code-review-2026-07-11.md`。
@@ -105,3 +105,43 @@
 - **启动**：`pip install -r requirements.txt && playwright install chromium && python app.py` → http://127.0.0.1:5000
 - **测试**：E2E 无需起服务；集成测试需先起服务。
 - **遗留进程清理**：若 5000 端口被旧服务占用，用 `powershell Stop-Process -Id <PID> -Force`（本环境 `taskkill //F` 语法不生效）。
+
+---
+
+## 8. 任务 2：移除模板「悬停即试看」，改为仅点击切换（2026-09-26）
+
+> 独立小任务，追加记录（与上方 P0 修复任务无耦合）。
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户："模版风格上面，鼠标放上去就自动切换模板……去掉这个功能，让用户点击模板再切换" |
+| 范围 | 前端公众号模板条 `#tpl-strip` 的悬停试看（原 U-7） |
+| 完成判据 | 悬停不再自动切换；点击仍正常切换；有头浏览器实测通过；文档同步；受控提交 |
+| 不在范围 | `doRender` 函数体、小红书页、后端/API（均未触碰） |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `templates/index.html` | 删除 `#tpl-strip` 的 `mouseover`/`mouseleave` 监听 + `hoverTimer`（原「悬停即试看 U-7」）；留注释说明；修正 `doRender` 上方过时注释；内置教程第 2 步文案由"鼠标划过就能试看"改为"点击卡片即可切换预览" |
+| `README.md` | 3 处"悬停试看/划过色卡即试看"→"点击切换/点色卡选主题" |
+| `AGENTS.md` | U-7 实施状态加注：悬停试看已于 2026-09-26 按需求移除 |
+| `files/TODO.md` | U-7 相关 3 处加注（P1-BATCH 行、U-7 条目、打标签讨论项） |
+| `HANDOFF.md` | 新增「变更 16」记录 |
+| `CLOSURE.md` | 本节 |
+
+### 验证（有头浏览器，真实执行）
+- 工具：Playwright `headless=False` + 真实 Chromium（`--no-proxy-server`），起真实 Flask 服务。
+- 结果：**PASS**
+  - 首次渲染：iframe.src 生成；
+  - hover 第 2、3 张色卡 → iframe.src **不变**（服务日志 hover 期间 **0 次 `POST /api/render`**）；
+  - 点击第 2 张色卡 → iframe.src **变化**；
+  - 控制台 **0 error**。
+- 截图：`output/verify_click_tpl.png`（临时验证产物，验证后清理）。
+
+### 回滚点
+- 本次提交：`<见 git log（提交信息以 fix: 开头，含「移除模板悬停试看」）>`
+- 回滚：`git revert <hash>`，或恢复 `templates/index.html` 中原 `mouseover`/`mouseleave` 监听（原逻辑：`mouseover` 200ms 防抖调 `doRender(id, true)`，`mouseleave` 调 `doRender()`）。
+
+### 影响 / 风险
+低。仅前端交互变更，无后端/API 改动；点击切换路径未被触碰且经有头浏览器实测。

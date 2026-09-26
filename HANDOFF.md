@@ -590,6 +590,22 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 16：移除模板「悬停即试看」，改为仅点击切换（2026-09-26）🆕
+
+- **需求**：用户反馈模板色卡"鼠标放上去就自动切换模板"，概念上好看但实际难用——鼠标扫过即触发预览/切换，误触频繁。要求**去掉自动切换，改回仅点击切换**。
+- **根因**：`templates/index.html` 公众号模板条 `#tpl-strip` 注册了 `mouseover` 监听（U-7「悬停即试看」，200ms 防抖）→ 触发 `doRender(id, true)` 试看预览、`mouseleave` 还原。这是前端**唯一**一处"悬停即切换"（小红书页 `.tpl-mini` 本就只有点击逻辑）。
+- **修复**：删除该 `mouseover`/`mouseleave` 监听与 `hoverTimer`，模板切换**仅由既有点击监听**（`tplStrip` click → 设 `activeTpl` → `doRender()`）负责；留一行注释说明历史。**未改动** `doRender` 函数体（其 `previewOnly`/`themeId` 形参保留，仅把描述性注释由"悬停试看"改为现状说明）。
+- **验证（有头浏览器 Playwright `headless=False`，真实执行）**：
+  - 输入文案 → 首次渲染（iframe.src 生成）；
+  - **hover 第 2、3 张色卡** → iframe.src **不变**（服务日志显示 hover 期间 **0 次 `POST /api/render`**）；
+  - **点击第 2 张色卡** → iframe.src **变化**（渲染成功）；
+  - 控制台 **0 error**；脚本判定 `RESULT: PASS`。
+- **文档同步**：`README.md`（3 处"悬停试看"→"点击切换"）、`index.html` 内置教程第 2 步文案、`AGENTS.md`（U-7 状态加注）、`files/TODO.md`（U-7 条目加注）。
+- **影响**：仅前端交互；无后端/API 变更。
+- **风险**：低。移除的是纯前端事件监听；点击切换路径未被触碰，且经有头浏览器实测。
+
+---
+
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）
