@@ -968,30 +968,23 @@ modulePicker.addEventListener('change', () => {
 // =================================
 // RENDER
 // =================================
-// themeId：可选，临时指定主题；previewOnly=true 时只更新预览、不写 lastHtml。
-// （注：原「悬停试看」调用已于 2026-09-26 按需求移除，模板切换改为仅点击触发，当前调用均为正式渲染。）
-async function doRender(themeId, previewOnly = false) {
+// 渲染「当前输入 + 当前所选主题(activeTpl)」；模板切换仅点击触发。
+async function doRender() {
   const text = inputArea.value.trim();
-  const tpl = themeId || activeTpl;
-  if (!text || !tpl) return;
+  if (!text || !activeTpl) return;
   lastText = text;
   
   try {
     const res = await fetch('/api/render', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({raw_text: text, theme_id: tpl})
+      body: JSON.stringify({raw_text: text, theme_id: activeTpl})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'render failed');
-    if (previewOnly) {
-      showPreview(data.html || '');
-    } else {
-      lastHtml = data.html || '';
-      showPreview(lastHtml);
-    }
+    lastHtml = data.html || '';
+    showPreview(lastHtml);
   } catch(e) {
-    if (previewOnly) return;   // 试看失败静默，不打扰
     console.error('render error', e);
     toast('渲染失败: ' + e.message);
   }
