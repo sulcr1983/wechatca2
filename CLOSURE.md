@@ -118,12 +118,12 @@
 | 触发 | 用户："模版风格上面，鼠标放上去就自动切换模板……去掉这个功能，让用户点击模板再切换" |
 | 范围 | 前端公众号模板条 `#tpl-strip` 的悬停试看（原 U-7） |
 | 完成判据 | 悬停不再自动切换；点击仍正常切换；有头浏览器实测通过；文档同步；受控提交 |
-| 不在范围 | `doRender` 函数体、小红书页、后端/API（均未触碰） |
+| 不在范围 | 小红书页、后端/API（均未触碰） |
 
 ### 改动文件
 | 文件 | 改动 |
 |------|------|
-| `templates/index.html` | 删除 `#tpl-strip` 的 `mouseover`/`mouseleave` 监听 + `hoverTimer`（原「悬停即试看 U-7」）；留注释说明；修正 `doRender` 上方过时注释；内置教程第 2 步文案由"鼠标划过就能试看"改为"点击卡片即可切换预览" |
+| `templates/index.html` | 删除 `#tpl-strip` 的 `mouseover`/`mouseleave` 监听 + `hoverTimer`（原「悬停即试看 U-7」）；内置教程第 2 步文案由"鼠标划过就能试看"改为"点击卡片即可切换预览"；收尾时清理 `doRender` 死参数（见下） |
 | `README.md` | 3 处"悬停试看/划过色卡即试看"→"点击切换/点色卡选主题" |
 | `AGENTS.md` | U-7 实施状态加注：悬停试看已于 2026-09-26 按需求移除 |
 | `files/TODO.md` | U-7 相关 3 处加注（P1-BATCH 行、U-7 条目、打标签讨论项） |
@@ -139,8 +139,14 @@
   - 控制台 **0 error**。
 - 截图：`output/verify_click_tpl.png`（临时验证产物，验证后清理）。
 
+### 补充（同任务收尾）：清理 `doRender` 死参数
+- **背景**：上一版为最小改动，保留了 `doRender(themeId, previewOnly)` 形参；但删除悬停试看后二者**已无任何调用者**（全部为无参 `doRender()` 调用），成死代码。
+- **清理**：简化为**无参** `doRender()`，内部统一用 `activeTpl`；删除 `previewOnly` 分支（原 `else` 分支即现行为）与 `catch` 中的静默 `return`；函数上方过时注释一并重写为现状说明。**功能等价**。
+- **回归（有头浏览器，真实执行）**：首渲染 ✓ · hover 不切换 ✓ · 点击切换 ✓ · 改输入自动重渲染 ✓ · 0 控制台报错 → **PASS**；服务返回的前端 `previewOnly`/`themeId` 计数 **= 0**。
+- **验证脚本**：`output/verify_render_tmp.py`（临时产物，验证后清理）。
+
 ### 回滚点
-- 本次提交：`c88c4c27c1e914360e282615921acfd22684dcbf`
+- 主提交：`c88c4c27c1e914360e282615921acfd22684dcbf`（移除悬停试看）；收尾提交：`9dbc6f787953e75f72bb89c9d88081cdf253a2d9`（清理 doRender 死参数）
 - 回滚：`git revert <hash>`，或恢复 `templates/index.html` 中原 `mouseover`/`mouseleave` 监听（原逻辑：`mouseover` 200ms 防抖调 `doRender(id, true)`，`mouseleave` 调 `doRender()`）。
 
 ### 影响 / 风险
