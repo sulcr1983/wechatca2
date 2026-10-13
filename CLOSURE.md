@@ -190,7 +190,7 @@
 - 套件：`test_e2e` **52/52** · `test_integration` **35/35** · `test_api_e2e` **29/29** · `test_headed_full_e2e` **33/33**（0 控制台报错）。
 
 ### 回滚点
-- 本轮改动**尚未提交**（按用户惯例，提交需发令）；提交后回滚 `git revert <本轮提交哈希>`，哈希届时补记于此。
+- 主提交：`278391e3962c949f26a5581c26a76feebdfdc782`（feat(themes)：六族·十二色 72 套＋斑马纹修复）；回滚：`git revert 278391e`。
 - 生成物级回滚：从 `scripts/theme_specs.py` 删第二批块 + 删 `public/themes/su-{stamp,minimal,biz,letter,night,feast}-*.json` 后重跑生成器。
 
 ### 影响 / 风险

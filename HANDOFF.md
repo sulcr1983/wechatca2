@@ -625,7 +625,7 @@ python tests/test_headed_wechat_copy.py
   - 套件：`test_e2e` **52/52** · `test_integration` **35/35** · `test_api_e2e` **29/29** · `test_headed_full_e2e` **33/33**（0 控制台报错，164 张色卡全量加载无异常）；
   - 评审台（供用户审图）：`output/theme-review/six-families.html`（与产品同源渲染的 72 卡单页，output/ 已 gitignore）。
 - **影响**：`public/themes/` +72 JSON（92→164）；`scripts/build_themes.py` + `scripts/theme_specs.py`；`core/format_engine.py` 斑马纹一处；文档计数（AGENTS/README/HANDOFF/CLOSURE）。
-- **风险**：低。技法补丁仅对 `spec.family` 新族生效，初代主题装配路径未改（字节级回归证明）；斑马纹修复对亮底零影响、暗底为可读性提升。**本轮改动尚未提交（按用户惯例，提交需发令）**。
+- **风险**：低。技法补丁仅对 `spec.family` 新族生效，初代主题装配路径未改（字节级回归证明）；斑马纹修复对亮底零影响、暗底为可读性提升。提交：`278391e`（2026-10-13，用户发令后提交并推送 origin/main）。
 
 ---
 
