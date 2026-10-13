@@ -29,7 +29,7 @@
 ### 模块：templates/index.html (前端)
 - **状态**：Confirmed
 - **是否可运行**：是，浏览器正常渲染，浅色暖调主题
-- **依赖模块**：app.py (提供 API)，public/themes/* (92 个 JSON 主题：45 套早期原创 + 47 套 su-* 自研原创)
+- **依赖模块**：app.py (提供 API)，public/themes/* (164 个 JSON 主题：45 套早期原创 + 119 套 su-* 自研原创)
 - **失败点**：用户反馈"页面还是旧的"——可能因浏览器缓存，按 Ctrl+F5 后显示新页面
 - **影响范围**：全部前端交互
 
@@ -137,7 +137,7 @@
 | `core/blcaptain_bridge.py` | BLCaptain 风格封面 (Node.js) | stable | medium | Node.js, blcaptain-style-skill/ |
 | `start_flask.py` | 冗余启动脚本（无浏览器打开逻辑、无任何引用；真实入口为 app.py / start-app.bat） | obsolete | low | app.py |
 | `launcher.py` | 打包入口占位（唯一引用方 build.yml 已于 2026-09-23 删除 → 现零引用；exe 路线已被否决） | obsolete | low | app.py |
-| `public/themes/*.json` | 92 个排版主题配置（45 套早期原创 + 47 套 su-* 自研原创） | stable | low | format_engine |
+| `public/themes/*.json` | 164 个排版主题配置（45 套早期原创 + 119 套 su-* 自研原创） | stable | low | format_engine |
 | `public/cover-templates/*` | 归藏风格的 HTML 封面模板 | stable | low | guizang_renderer |
 | `public/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
 | `.env.example` | 环境变量模板 | stable | low | 无 |
@@ -604,6 +604,28 @@ python tests/test_headed_wechat_copy.py
 - **文档同步**：`README.md`（3 处"悬停试看"→"点击切换"）、`index.html` 内置教程第 2 步文案、`AGENTS.md`（U-7 状态加注）、`files/TODO.md`（U-7 条目加注）。
 - **影响**：仅前端交互；无后端/API 变更。
 - **风险**：低。移除的是纯前端事件监听；点击切换路径未被触碰，且经有头浏览器实测。
+
+---
+
+### 变更 18：六族 · 十二色主题（72 套）+ 暗底斑马纹修复（2026-10-13）🆕
+
+- **用户诉求**：参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen）的主题风格给 SuperSu 增加模板，且明确"**要遵守它的版权规定**"。
+- **许可证核查（GitHub API + README 原文，先于一切编码）**：该仓库 **AGPL-3.0**（标准全文）+ README 附加条款（未经书面授权禁止一切商用；修改/分发须保留署名+仓库链接+说明修改+附 AGPL 链接）。其"72 套模板"= 6 类风格系统（新粗野/极简/商务/文艺/科技/节庆）× 12 色，实现在 `app/template-engine.ts`（44KB 手调 CSS 字符串，与自家渲染引擎深度耦合）。
+- **路线拍板（AskUserQuestion 二选一，用户选推荐项）**：**纯灵感派生 · 原创重写**——不移植其代码：AGPL 对本项目"开源分发"意味着整体 AGPL 化 + 非商用 + 署名；仅参照品类观感，命名 / 色值 / 样式表达全部本项目自研。范围：全量 6 族 × 12 色 = **72 套**。（另一选项"直接移植+AGPL 化"与"先联系作者"已向用户说明代价。）
+- **实现**：
+  - `scripts/build_themes.py`：新增 6 个族级原型（stamp/minimal/biz/letter/night/feast）+ `FAMILY_TONES`（12 色调 = 色相 + 饱和/明度微调）+ `FAMILIES`（bg/ink/字体/暗底标记 + accent2 规则 + 族级技法 patch）；`build_theme` 按 `spec.family` 走推导分支，技法补丁在统一装配（含暗色适配）后做**元素级覆盖**。既有 9 原型与 47 套初代输出路径**零触碰**。
+  - `scripts/theme_specs.py`：末尾追加「族 × 色调」72 条规格（命名/描述自拟：钢印·朱砂 …… 庙会·栗棕）。
+  - `core/format_engine.py`：**暗底主题表格斑马纹修复**——原硬编码浅灰 `#f9f9f9` 在暗底主题上浅字行读不出来（既有暗底主题同样受影响，夜航族验收暴露）；现按页面底色明暗派生（亮底沿用原值，暗底向白微混 6%）。
+  - `README.md`：计数同步 92→164；顺手修正 HEAD 遗留的「鼠标划过色卡」过期文案（U-7 已于 c88c4c2 移除悬停，前端 hover 监听现状 = 0）。
+- **验证（全部真实执行）**：
+  - 生成器重跑后既有 47 套 su-* JSON `git diff` **字节零改动**；新增 72 套落盘（`public/themes/su-{stamp,minimal,biz,letter,night,feast}-{crimson…chestnut}.json`）；
+  - **164 套全量富样本渲染审计全过**（标签平衡 / 无 None / 无空 style / 无 `;;`·`:;` 拼接残渣；脚本 `output/theme-review/gen_review.py`，含 `<tr style="">` 引擎既有行为的归因说明）；
+  - 斑马纹修复对照：4 套亮底主题（bold-blue / su-academic / su-frost-card / su-dusk-mint）渲染哈希**改前改后一致**；2 套暗底（su-nightsky / su-deepwater）按预期变更；
+  - 有头目视（系统 Edge）：六族逐族截图 + 钢印/夜航全卡片复核；当场修复 2 处问题并复验——钢印 h3 与 h2 色块挤行（display:table 修复）、审查台示例图 data URI 被 Markdown 括号截断（base64 修复）；截图 `output/theme-review/shot-*.png` / `card-*.png`；
+  - 套件：`test_e2e` **52/52** · `test_integration` **35/35** · `test_api_e2e` **29/29** · `test_headed_full_e2e` **33/33**（0 控制台报错，164 张色卡全量加载无异常）；
+  - 评审台（供用户审图）：`output/theme-review/six-families.html`（与产品同源渲染的 72 卡单页，output/ 已 gitignore）。
+- **影响**：`public/themes/` +72 JSON（92→164）；`scripts/build_themes.py` + `scripts/theme_specs.py`；`core/format_engine.py` 斑马纹一处；文档计数（AGENTS/README/HANDOFF/CLOSURE）。
+- **风险**：低。技法补丁仅对 `spec.family` 新族生效，初代主题装配路径未改（字节级回归证明）；斑马纹修复对亮底零影响、暗底为可读性提升。**本轮改动尚未提交（按用户惯例，提交需发令）**。
 
 ---
 

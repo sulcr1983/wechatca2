@@ -12,8 +12,16 @@
 用法：
     python scripts/build_themes.py            # 生成到 public/themes/
     python scripts/build_themes.py --dry-run  # 只打印将写出的文件，不落盘
+
+第二批（2026-10-13）「六族 · 十二色」：新增 6 套族级风格系统
+（钢印 / 素页 / 卷宗 / 信笺 / 夜航 / 庙会）× 12 个色调 = 72 套。
+族级视觉技法走 FAMILIES[*]["patch"]（对统一装配结果做元素级覆盖），
+色调只声明色相，具体值按族各自的饱和/明度基线的推导，不沿用任何外部数值。
+风格品类的灵感参照见 AGENTS.md §10（TypeZen，AGPL：仅品类观感参照，
+未复制其代码 / CSS 数值 / 命名 / 文案）。
 """
 import argparse
+import colorsys
 import json
 import pathlib
 import sys
@@ -115,20 +123,324 @@ ARCHETYPES = {
     ),
 }
 
+# ── 第二批（2026-10-13）：六族原型骨架 ─────────────────────────────────
+# 只放「骨架旋钮」（圆角 / 字重 / 字距 / 代码块气质），
+# 族级视觉技法（粗边 / 硬投影 / 虚线 / 面板等）由下方 FAMILIES[*]["patch"] 追加。
+# 既有 9 种原型与其 47 套初代主题的输出保持字节不变。
+ARCHETYPES.update({
+    # 钢印（新粗野）：直角 + 超粗标题 + 硬投影
+    "stamp": dict(radius=0, h_weight=900, h_border=False, letter=0.15, code_radius=0, code_header=True),
+    # 素页（极简）：小圆角 + 轻字重 + 大留白
+    "minimal": dict(radius=3, h_weight=600, h_border=False, letter=0.30, code_radius=3, code_header=False),
+    # 卷宗（商务）：小圆角 + 深色标题块
+    "biz": dict(radius=3, h_weight=800, h_border=False, letter=0.15, code_radius=3, code_header=True),
+    # 信笺（文艺）：大圆角 + 纸感底色 + 舒展行距
+    "letter": dict(radius=10, h_weight=700, h_border=False, letter=0.25, code_radius=8, code_header=False),
+    # 夜航（科技）：暗底 + 冷光面板
+    "night": dict(radius=6, h_weight=700, h_border=False, letter=0.15, code_radius=6, code_header=True),
+    # 庙会（节庆）：大圆角 + 虚线 + 胶囊标题
+    "feast": dict(radius=12, h_weight=800, h_border=False, letter=0.25, code_radius=10, code_header=False),
+})
+
+
+# ── 第二批的十二色调：只声明色相与饱和 / 明度微调 ─────────────────────
+# 颜色 = f(色调色相, 族级饱和基线, 族级明度基线)，全部由本项目的标尺推导。
+FAMILY_TONES = {
+    "crimson":   dict(hue=8),                        # 朱砂
+    "persimmon": dict(hue=26),                       # 柿橙
+    "gold":      dict(hue=43, sat_mul=0.95),         # 麦金
+    "bamboo":    dict(hue=152, sat_mul=0.85),        # 竹青
+    "teal":      dict(hue=174, sat_mul=0.90),        # 茶青
+    "azure":     dict(hue=203),                      # 湖蓝
+    "navy":      dict(hue=220, sat_mul=0.95),        # 藏蓝
+    "violet":    dict(hue=266, sat_mul=0.95),        # 青莲
+    "wisteria":  dict(hue=288, sat_mul=0.90),        # 紫藤
+    "blush":     dict(hue=332, sat_mul=0.90),        # 粉黛
+    "iron":      dict(hue=215, sat_mul=0.16, light_mul=0.95),  # 铁灰（低饱和中性）
+    "chestnut":  dict(hue=24, sat_mul=0.72, light_mul=0.82),   # 栗棕（压暗的暖褐）
+}
+
+
+def _hue_color(hue_deg, sat, light, sat_mul=1.0, light_mul=1.0):
+    """按色相 + 族级饱和 / 明度基线推导一个 hex 颜色（HSL → RGB）"""
+    s = min(1.0, sat * sat_mul)
+    l = min(1.0, light * light_mul)
+    r, g, b = colorsys.hls_to_rgb((hue_deg % 360) / 360.0, l, s)
+    return "#%02X%02X%02X" % (round(r * 255), round(g * 255), round(b * 255))
+
+
+def _hue_shift(hex_color: str, delta_deg: float) -> str:
+    """色相旋转（保持饱和 / 明度），用于推导「同族更暖一点」的辅助色"""
+    r, g, b = [x / 255 for x in _rgb(hex_color)]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    r, g, b = colorsys.hls_to_rgb((h + delta_deg / 360.0) % 1.0, l, s)
+    return "#%02X%02X%02X" % (round(r * 255), round(g * 255), round(b * 255))
+
+
+def _patch_stamp(c):
+    """钢印（新粗野）：墨黑粗边 + 右下硬投影 + 实心色块，全部直角"""
+    ink, bg, accent = c["ink"], c["bg"], c["accent"]
+    return {
+        "h1": {"text_align": "left", "background": ink, "color": bg,
+               "padding": "12px 16px", "letter_spacing": "0.12em",
+               "box_shadow": f"6px 6px 0 {accent}"},
+        "h2": {"display": "inline-block", "background": accent, "color": ink,
+               "border": f"2px solid {ink}", "padding": "6px 14px",
+               "box_shadow": f"4px 4px 0 {ink}", "letter_spacing": "0.15em"},
+        "h3": {"color": ink, "border_bottom": f"3px solid {accent}",
+               "padding_bottom": "6px", "display": "table",
+               "letter_spacing": "0.1em"},
+        "blockquote": {"border": f"2px solid {ink}", "border_radius": "0",
+                       "box_shadow": f"4px 4px 0 {ink}", "background": tint(accent, 0.10)},
+        "strong": {"font_weight": "800", "background": accent, "color": ink,
+                   "padding": "0 4px", "border_bottom": f"2px solid {ink}"},
+        "em": {"font_style": "italic", "color": ink,
+               "text_decoration": f"underline 2px {accent}"},
+        "a": {"color": ink, "background": tint(accent, 0.30), "padding": "0 2px",
+              "font_weight": "700", "border_bottom": f"2px solid {ink}"},
+        "img": {"border": f"2px solid {ink}", "border_radius": "0",
+                "box_shadow": f"5px 5px 0 {accent}"},
+        "hr": {"height": "4px", "background": ink},
+        "list_item_bullet": {"color": ink, "font_weight": "900"},
+        "ol_item_bullet": {"background": accent, "color": ink, "border_radius": "0",
+                           "border": f"2px solid {ink}",
+                           "box_shadow": f"2px 2px 0 {ink}"},
+        "code": {"background": tint(accent, 0.16), "color": ink,
+                 "border_radius": "0", "border": f"1px solid {ink}"},
+        "code_block": {"border": f"2px solid {ink}", "border_radius": "0",
+                       "box_shadow": f"5px 5px 0 {ink}"},
+        "code_header": {"background": accent, "border_bottom": f"2px solid {ink}"},
+        "table": {"border": f"2px solid {ink}", "border_radius": "0"},
+        "th": {"background": accent, "color": ink, "border_bottom": f"2px solid {ink}"},
+        "td": {"border_bottom": f"1px solid {tint(ink, 0.18)}"},
+    }
+
+
+def _patch_minimal(c):
+    """素页（极简）：发丝分隔线 + 唯一强调色 + 透明引用"""
+    ink, accent = c["ink"], c["accent"]
+    return {
+        "h1": {"font_size": "24px", "font_weight": "600", "color": ink,
+               "letter_spacing": "0.30em", "margin_bottom": "26px"},
+        "h2": {"font_weight": "600", "color": ink, "letter_spacing": "0.18em",
+               "border_bottom": f"1px solid {mix(c['bg'], ink, 0.14)}",
+               "padding_bottom": "10px"},
+        "h3": {"color": ink, "font_weight": "600", "letter_spacing": "0.08em"},
+        "p": {"color": ink, "line_height": "2.0", "margin_bottom": "22px"},
+        "strong": {"font_weight": "700", "color": ink,
+                   "border_bottom": f"1px solid {tint(accent, 0.55)}"},
+        "a": {"color": accent, "border_bottom": f"1px solid {accent}"},
+        "blockquote": {"border_left": f"2px solid {accent}", "background": "transparent",
+                       "border_radius": "0", "padding": "2px 0 2px 16px"},
+        "img": {"border_radius": "3px"},
+        "hr": {"background": mix(c["bg"], ink, 0.12),
+               "margin_top": "40px", "margin_bottom": "40px"},
+        "list_item_bullet": {"color": accent, "font_size": "14px"},
+        "ol_item_bullet": {"background": "none", "color": accent,
+                           "border_radius": "0", "font_weight": "600"},
+        "code": {"background": tint(ink, 0.05), "color": ink, "border_radius": "3px"},
+        "code_block": {"background": tint(ink, 0.035), "border_radius": "3px",
+                       "border": f"1px solid {tint(ink, 0.08)}"},
+        "table": {"border": f"1px solid {mix(c['bg'], ink, 0.12)}", "border_radius": "3px"},
+        "th": {"background": tint(ink, 0.03), "color": ink,
+               "border_bottom": f"1px solid {mix(c['bg'], ink, 0.2)}"},
+        "td": {"border_bottom": f"1px solid {tint(ink, 0.08)}"},
+    }
+
+
+def _patch_biz(c):
+    """卷宗（商务）：实心标题块 + 虚线分节 + 深色表头"""
+    ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
+    return {
+        "h1": {"text_align": "left", "color": ink, "letter_spacing": "0.06em",
+               "border_bottom": f"2px solid {ink}", "padding_bottom": "12px",
+               "margin_bottom": "26px"},
+        "h2": {"display": "inline-block", "background": accent, "color": "#FFFFFF",
+               "padding": "6px 16px", "border_radius": "3px",
+               "letter_spacing": "0.1em"},
+        "h3": {"color": ink, "border_bottom": f"1px dashed {tint(accent, 0.45)}",
+               "padding_bottom": "6px", "letter_spacing": "0.05em"},
+        "strong": {"color": accent2, "font_weight": "700"},
+        "a": {"color": accent, "border_bottom": f"1px solid {accent}"},
+        "blockquote": {"border_left": f"4px solid {accent}",
+                       "background": mix(c["bg"], accent, 0.05),
+                       "border_radius": "0 3px 3px 0",
+                       "color": mix(ink, c["bg"], 0.25)},
+        "img": {"border_radius": "3px", "border": f"1px solid {mix(c['bg'], ink, 0.12)}"},
+        "hr": {"height": "2px", "background": mix(c["bg"], ink, 0.22)},
+        "list_item_bullet": {"color": accent, "font_weight": "700"},
+        "ol_item_bullet": {"background": tint(accent, 0.12), "color": accent2,
+                           "border_radius": "2px", "font_weight": "700"},
+        "code": {"background": tint(ink, 0.06), "color": accent2, "border_radius": "3px"},
+        "code_block": {"border_radius": "3px", "border": f"1px solid {tint(ink, 0.10)}"},
+        "table": {"border_radius": "3px", "border": f"1px solid {mix(c['bg'], ink, 0.14)}"},
+        "th": {"background": ink, "color": "#FFFFFF", "border_bottom": "none"},
+        "td": {"border_bottom": f"1px solid {tint(ink, 0.08)}"},
+    }
+
+
+def _patch_letter(c):
+    """信笺（文艺）：米色纸底 + 短横线收束 + 柔和的唯一强调色"""
+    ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
+    return {
+        "h1": {"font_size": "24px", "font_weight": "600", "letter_spacing": "0.30em",
+               "margin_bottom": "24px"},
+        "h2": {"color": ink, "font_weight": "700", "letter_spacing": "0.12em",
+               "border_left": f"3px solid {tint(accent, 0.65)}", "padding_left": "12px"},
+        "h3": {"color": mix(accent, ink, 0.25), "font_weight": "700"},
+        "p": {"line_height": "2.0", "letter_spacing": "0.5px", "margin_bottom": "22px"},
+        "strong": {"color": mix(accent, ink, 0.15), "font_weight": "700"},
+        "a": {"color": accent, "border_bottom": f"1px dotted {tint(accent, 0.7)}"},
+        "blockquote": {"border": f"1px solid {tint(accent, 0.18)}",
+                       "background": tint(accent, 0.055), "border_radius": "10px"},
+        "img": {"border_radius": "10px",
+                "box_shadow": f"0 6px 18px {tint(ink, 0.10)}"},
+        "hr": {"height": "3px", "width": "36px", "background": tint(accent, 0.5),
+               "margin_left": "auto", "margin_right": "auto",
+               "margin_top": "36px", "margin_bottom": "36px"},
+        "list_item_bullet": {"color": tint(accent, 0.85)},
+        "code": {"background": tint(accent, 0.10), "color": accent2},
+        "code_block": {"border_radius": "10px",
+                       "border": f"1px solid {tint(accent, 0.12)}"},
+        "table": {"border_radius": "10px",
+                  "border": f"1px solid {mix(c['bg'], ink, 0.10)}"},
+        "th": {"background": tint(accent, 0.10), "color": accent2},
+        "td": {"border_bottom": f"1px solid {tint(accent, 0.12)}"},
+    }
+
+
+def _patch_night(c):
+    """夜航（科技）：深空底 + 冷光面板 + 微光分隔线"""
+    ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
+    panel = "#070D18"  # 比页面底色更深一档的代码面
+    return {
+        "h1": {"text_align": "left", "color": accent, "letter_spacing": "0.14em",
+               "border_bottom": f"1px solid {tint(accent, 0.4)}",
+               "padding_bottom": "12px"},
+        "h2": {"color": "#FFFFFF", "background": tint(accent, 0.10),
+               "border_left": f"4px solid {accent}", "border_radius": "0 6px 6px 0",
+               "padding": "8px 14px", "letter_spacing": "0.06em"},
+        "h3": {"color": accent2, "font_weight": "700"},
+        "p": {"color": "#B9C6D6", "line_height": "1.9"},
+        "strong": {"color": "#FFFFFF", "background": tint(accent, 0.16),
+                   "padding": "0 3px", "border_radius": "3px"},
+        "em": {"font_style": "normal", "color": accent2,
+               "border_bottom": f"1px dashed {tint(accent, 0.5)}"},
+        "a": {"color": accent2, "border_bottom": f"1px solid {tint(accent, 0.6)}"},
+        "blockquote": {"border": f"1px solid {tint(accent, 0.35)}",
+                       "background": tint(accent, 0.06), "border_radius": "6px",
+                       "color": "#9FB0C4"},
+        "img": {"border": f"1px solid {tint(accent, 0.35)}", "border_radius": "6px"},
+        "hr": {"background": tint(accent, 0.35),
+               "box_shadow": f"0 0 10px {tint(accent, 0.45)}"},
+        "list_item_bullet": {"color": accent2, "font_family": FONTS["mono"]},
+        "ol_item_bullet": {"background": tint(accent, 0.14), "color": accent2,
+                           "border_radius": "2px", "font_family": FONTS["mono"]},
+        "code": {"background": tint(accent, 0.14), "color": accent2},
+        "code_block": {"background": panel,
+                       "border": f"1px solid {tint(accent, 0.25)}"},
+        "code_header": {"background": "#0E1626",
+                        "border_bottom": f"1px solid {tint(accent, 0.2)}"},
+        "pre": {"background": panel, "color": "#C7D5E6"},
+        "pre_code": {"color": "#C7D5E6"},
+        "table": {"border": f"1px solid {tint(ink, 0.14)}"},
+        "th": {"background": tint(accent, 0.12), "color": accent2},
+        "td": {"border_bottom": f"1px solid {tint(ink, 0.10)}"},
+    }
+
+
+def _patch_feast(c):
+    """庙会（节庆）：暖米底 + 胶囊标题 + 虚线圆角 + 实心首标题"""
+    ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
+    return {
+        "h1": {"background": accent, "color": "#FFFFFF", "text_align": "center",
+               "padding": "12px", "border_radius": "12px",
+               "letter_spacing": "0.2em",
+               "box_shadow": f"0 4px 0 0 {mix(accent, ink, 0.35)}"},
+        "h2": {"display": "inline-block", "background": tint(accent, 0.12),
+               "color": mix(accent, ink, 0.35), "border": f"2px dashed {accent}",
+               "border_radius": "100px", "padding": "5px 18px",
+               "letter_spacing": "0.12em"},
+        "h3": {"text_align": "center", "color": mix(accent, ink, 0.2)},
+        "strong": {"background": tint(accent, 0.20), "color": ink,
+                   "padding": "0 4px", "border_radius": "4px"},
+        "em": {"color": accent2, "font_style": "italic"},
+        "a": {"color": accent2, "border_bottom": f"2px solid {tint(accent, 0.5)}"},
+        "blockquote": {"border": f"2px dashed {tint(accent, 0.55)}",
+                       "background": tint(accent, 0.06), "border_radius": "10px",
+                       "color": mix(ink, c["bg"], 0.2)},
+        "img": {"border": f"3px solid {tint(accent, 0.35)}", "border_radius": "12px"},
+        "hr": {"height": "0", "background": "none",
+               "border_top": f"2px dashed {tint(accent, 0.45)}"},
+        "list_item_bullet": {"color": accent2, "font_size": "16px"},
+        "ol_item_bullet": {"background": tint(accent, 0.16), "color": accent2},
+        "code": {"background": tint(accent, 0.12), "color": accent2},
+        "code_block": {"background": "#FFFDF8", "border_radius": "10px",
+                       "border": f"2px dashed {tint(accent, 0.35)}"},
+        "table": {"border": f"1px solid {tint(accent, 0.3)}", "border_radius": "10px"},
+        "th": {"background": tint(accent, 0.16), "color": mix(accent, ink, 0.4)},
+        "td": {"border_bottom": f"1px solid {tint(accent, 0.15)}"},
+    }
+
+
+# ── 第二批的六族系统定义 ───────────────────────────────────────────────
+# accent 值 = _hue_color(色调色相, 本族饱和基线, 本族明度基线)；accent2 为族内辅助色规则。
+FAMILIES = {
+    "stamp": dict(arch="stamp", dark=False, bg="#FFFFFF", ink="#111111", font="sans",
+                  sat=0.85, light=0.55,
+                  accent2=lambda accent, bg, ink: accent,
+                  patch=_patch_stamp),
+    "minimal": dict(arch="minimal", dark=False, bg="#FFFFFF", ink="#3C434D", font="sans",
+                    sat=0.42, light=0.46,
+                    accent2=lambda accent, bg, ink: accent,
+                    patch=_patch_minimal),
+    "biz": dict(arch="biz", dark=False, bg="#FFFFFF", ink="#1E2A38", font="sans",
+                sat=0.62, light=0.38,
+                accent2=lambda accent, bg, ink: mix(accent, "#000000", 0.18),
+                patch=_patch_biz),
+    "letter": dict(arch="letter", dark=False, bg="#FBF8F2", ink="#3A342C", font="serif",
+                   sat=0.38, light=0.44,
+                   accent2=lambda accent, bg, ink: mix(accent, ink, 0.35),
+                   patch=_patch_letter),
+    "night": dict(arch="night", dark=True, bg="#0B1220", ink="#D9E2EF", font="sans",
+                  sat=0.80, light=0.60,
+                  accent2=lambda accent, bg, ink: mix(accent, "#FFFFFF", 0.32),
+                  patch=_patch_night),
+    "feast": dict(arch="feast", dark=False, bg="#FFF7EC", ink="#3B2B1D", font="sans",
+                  sat=0.72, light=0.52,
+                  accent2=lambda accent, bg, ink: _hue_shift(accent, 14),
+                  patch=_patch_feast),
+}
+
+
+def _apply_family(patch_fn, styles: dict, ctx: dict):
+    """把族级技法补丁合并进统一装配出的 styles（元素级覆盖，未列出的键保持原样）"""
+    for el, kv in patch_fn(ctx).items():
+        styles.setdefault(el, {}).update(kv)
+
 
 def build_theme(spec: dict) -> dict:
     """把一条设计意图展开成完整主题 JSON"""
-    bg = spec["bg"]
-    ink = spec["ink"]
-    accent = spec["accent"]
-    accent2 = spec.get("accent2", accent)
+    fam = FAMILIES.get(spec["family"]) if spec.get("family") else None
+    if fam:
+        # 第二批：颜色全部由「色调色相 × 族级基线」推导，spec 里不带具体色值
+        tone = FAMILY_TONES[spec["tone"]]
+        bg, ink = fam["bg"], fam["ink"]
+        accent = _hue_color(tone["hue"], fam["sat"], fam["light"],
+                            tone.get("sat_mul", 1.0), tone.get("light_mul", 1.0))
+        accent2 = fam["accent2"](accent, bg, ink)
+    else:
+        bg = spec["bg"]
+        ink = spec["ink"]
+        accent = spec["accent"]
+        accent2 = spec.get("accent2", accent)
     border = mix(bg, ink, 0.14)
     muted = mix(ink, bg, 0.35)
     code_bg = spec.get("code_bg") or mix(bg, ink, 0.92)
-    is_dark = spec.get("dark", False)
+    is_dark = fam["dark"] if fam else spec.get("dark", False)
 
-    font = FONTS[spec.get("font", "sans")]
-    a = ARCHETYPES[spec.get("arch", "plain")]
+    font = FONTS[spec.get("font") or (fam["font"] if fam else "sans")]
+    a = ARCHETYPES[fam["arch"] if fam else spec.get("arch", "plain")]
 
     r = a["radius"]
     # ⚠️ 只给「值」，不带「键名」——build_style_string 会自动拼 `border-left:`，
@@ -263,6 +575,13 @@ def build_theme(spec: dict) -> dict:
     else:
         theme_colors_code_bg = code_bg
 
+    # 第二批：族级技法补丁在统一装配（含暗色适配）之后做元素级覆盖
+    if fam:
+        _apply_family(fam["patch"], styles, {
+            "bg": bg, "ink": ink, "accent": accent, "accent2": accent2,
+            "muted": muted, "border": border,
+        })
+
     theme = {
         "name": spec["name"],
         "description": spec["desc"],
@@ -329,7 +648,7 @@ def main():
     try:
         from theme_specs import SPECS  # 规格与生成逻辑分离，便于复核
     except ImportError:
-        print("缺少 scripts/theme_specs.py（47 套原创主题规格），暂不可生成。")
+        print("缺少 scripts/theme_specs.py（原创主题规格），暂不可生成。")
         sys.exit(2)
 
     ids = [s["id"] for s in SPECS]

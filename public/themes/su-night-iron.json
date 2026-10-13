@@ -1,0 +1,300 @@
+{
+  "name": "夜航·铁灰",
+  "description": "深空底上的冷光模块会亮起，铁灰像仪表盘读数。适合技术拆解与前沿话题。",
+  "colors": {
+    "primary": "#D9E2EF",
+    "accent": "#838F9F",
+    "background": "#0B1220",
+    "blockquote_bg": "rgba(131,143,159,0.04)",
+    "code_bg": "#060A12",
+    "hr_color": "#9199A7",
+    "footnote_bg": "rgba(131,143,159,0.03)"
+  },
+  "styles": {
+    "wrapper": {
+      "background_color": "#0B1220",
+      "padding": "16px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif"
+    },
+    "h1": {
+      "font_size": "25px",
+      "font_weight": "700",
+      "color": "#838F9F",
+      "text_align": "left",
+      "line_height": "1.35",
+      "letter_spacing": "0.14em",
+      "margin_top": "8px",
+      "margin_bottom": "20px",
+      "padding": "0",
+      "border_bottom": "1px solid rgba(131,143,159,0.4)",
+      "padding_bottom": "12px"
+    },
+    "h2": {
+      "font_size": "20px",
+      "font_weight": "700",
+      "color": "#FFFFFF",
+      "line_height": "1.35",
+      "letter_spacing": "0.06em",
+      "margin_top": "32px",
+      "margin_bottom": "14px",
+      "padding": "8px 14px",
+      "background": "rgba(131,143,159,0.1)",
+      "border_left": "4px solid #838F9F",
+      "border_radius": "0 6px 6px 0"
+    },
+    "h3": {
+      "font_size": "17px",
+      "font_weight": "700",
+      "color": "#ABB3BE",
+      "line_height": "1.4",
+      "margin_top": "26px",
+      "margin_bottom": "10px",
+      "padding": "0"
+    },
+    "h4": {
+      "font_size": "16px",
+      "font_weight": "700",
+      "color": "#D9E2EF",
+      "line_height": "1.4",
+      "margin_top": "22px",
+      "margin_bottom": "8px"
+    },
+    "h5": {
+      "font_size": "15px",
+      "font_weight": "600",
+      "color": "#9199A7",
+      "line_height": "1.4",
+      "margin_top": "20px",
+      "margin_bottom": "6px"
+    },
+    "h6": {
+      "font_size": "14px",
+      "font_weight": "600",
+      "color": "#9199A7",
+      "line_height": "1.4",
+      "margin_top": "18px",
+      "margin_bottom": "6px"
+    },
+    "p": {
+      "font_size": "16px",
+      "color": "#B9C6D6",
+      "line_height": "1.9",
+      "letter_spacing": "0.4px",
+      "text_align": "justify",
+      "margin_top": "0",
+      "margin_bottom": "20px"
+    },
+    "strong": {
+      "font_weight": "700",
+      "color": "#FFFFFF",
+      "background": "rgba(131,143,159,0.16)",
+      "padding": "0 3px",
+      "border_radius": "3px"
+    },
+    "em": {
+      "font_style": "normal",
+      "color": "#ABB3BE",
+      "border_bottom": "1px dashed rgba(131,143,159,0.5)"
+    },
+    "a": {
+      "color": "#ABB3BE",
+      "text_decoration": "none",
+      "border_bottom": "1px solid rgba(131,143,159,0.6)"
+    },
+    "blockquote": {
+      "border_left": "3px solid #838F9F",
+      "background": "rgba(131,143,159,0.06)",
+      "color": "#9FB0C4",
+      "font_size": "15px",
+      "line_height": "1.8",
+      "padding": "14px 18px",
+      "margin_top": "22px",
+      "margin_bottom": "22px",
+      "border_radius": "6px",
+      "border": "1px solid rgba(131,143,159,0.35)"
+    },
+    "blockquote_p": {
+      "font_size": "15px",
+      "color": "#9199A7",
+      "line_height": "1.8",
+      "margin_bottom": "0",
+      "background": "transparent",
+      "font_style": "normal"
+    },
+    "img": {
+      "max_width": "100%",
+      "display": "block",
+      "border_radius": "6px",
+      "margin_top": "10px",
+      "margin_bottom": "10px",
+      "border": "1px solid rgba(131,143,159,0.35)"
+    },
+    "img_wrapper": {
+      "background": "rgba(217,226,239,0.03)",
+      "border_radius": "6px",
+      "padding": "4px",
+      "margin_top": "12px",
+      "margin_bottom": "12px"
+    },
+    "hr": {
+      "border": "none",
+      "height": "1px",
+      "background": "rgba(131,143,159,0.35)",
+      "margin_top": "30px",
+      "margin_bottom": "30px",
+      "box_shadow": "0 0 10px rgba(131,143,159,0.45)"
+    },
+    "code": {
+      "background": "rgba(131,143,159,0.14)",
+      "color": "#ABB3BE",
+      "padding": "3px 7px",
+      "border_radius": "5px",
+      "font_size": "90%",
+      "font_family": "'SF Mono', Menlo, Consolas, 'Courier New', monospace"
+    },
+    "code_block": {
+      "background": "#070D18",
+      "border_radius": "6px",
+      "margin_top": "22px",
+      "margin_bottom": "22px",
+      "overflow": "hidden",
+      "border": "1px solid rgba(131,143,159,0.25)"
+    },
+    "code_header": {
+      "display": "flex",
+      "align_items": "center",
+      "height": "36px",
+      "padding": "0 12px",
+      "background": "#0E1626",
+      "border_bottom": "1px solid rgba(131,143,159,0.2)"
+    },
+    "pre": {
+      "background": "#070D18",
+      "color": "#C7D5E6",
+      "padding": "18px",
+      "border_radius": "0",
+      "overflow_x": "auto",
+      "margin_top": "0",
+      "margin_bottom": "0",
+      "font_size": "13.5px",
+      "line_height": "1.6",
+      "white_space": "pre-wrap",
+      "word_wrap": "break-word",
+      "word_break": "break-all"
+    },
+    "pre_code": {
+      "background": "none",
+      "padding": "0",
+      "color": "#C7D5E6",
+      "font_size": "13.5px",
+      "font_family": "'SF Mono', Menlo, Consolas, 'Courier New', monospace"
+    },
+    "table": {
+      "width": "100%",
+      "border_collapse": "separate",
+      "border_spacing": "0",
+      "border": "1px solid rgba(217,226,239,0.14)",
+      "border_radius": "6px",
+      "overflow": "hidden",
+      "font_size": "14px",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "th": {
+      "background": "rgba(131,143,159,0.12)",
+      "color": "#ABB3BE",
+      "padding": "10px 14px",
+      "text_align": "left",
+      "font_weight": "700",
+      "border_bottom": "1px solid #282F3D"
+    },
+    "td": {
+      "color": "#D9E2EF",
+      "padding": "10px 14px",
+      "font_size": "14px",
+      "border_bottom": "1px solid rgba(217,226,239,0.1)"
+    },
+    "list_wrapper": {
+      "margin_top": "16px",
+      "margin_bottom": "16px"
+    },
+    "list_item_row": {
+      "display": "flex",
+      "align_items": "flex-start",
+      "margin_bottom": "9px"
+    },
+    "list_item_bullet": {
+      "color": "#ABB3BE",
+      "margin_right": "9px",
+      "font_weight": "bold",
+      "font_size": "15px",
+      "font_family": "'SF Mono', Menlo, Consolas, 'Courier New', monospace"
+    },
+    "ol_item_bullet": {
+      "display": "inline-flex",
+      "align_items": "center",
+      "justify_content": "center",
+      "width": "22px",
+      "height": "22px",
+      "min_width": "22px",
+      "background": "rgba(131,143,159,0.14)",
+      "color": "#ABB3BE",
+      "border_radius": "2px",
+      "font_size": "12px",
+      "font_weight": "700",
+      "margin_right": "10px",
+      "margin_top": "4px",
+      "font_family": "'SF Mono', Menlo, Consolas, 'Courier New', monospace"
+    },
+    "list_item_text": {
+      "font_size": "16px",
+      "color": "#D9E2EF",
+      "line_height": "1.9",
+      "letter_spacing": "0.4px"
+    },
+    "footnote_section": {
+      "margin_top": "30px",
+      "padding_top": "16px",
+      "border_top": "1px solid #282F3D"
+    },
+    "footnote_title": {
+      "font_size": "13px",
+      "font_weight": "700",
+      "color": "#9199A7",
+      "letter_spacing": "0.1em",
+      "margin_bottom": "12px"
+    },
+    "footnote_item": {
+      "font_size": "12px",
+      "color": "#9199A7",
+      "line_height": "1.7",
+      "margin_bottom": "6px",
+      "word_break": "break-all"
+    },
+    "footnote_sup": {
+      "font_size": "11px",
+      "color": "#838F9F",
+      "vertical_align": "super",
+      "margin_left": "2px"
+    },
+    "callout": {
+      "background": "rgba(131,143,159,0.05)",
+      "border_left": "3px solid #838F9F",
+      "border_radius": "0 6px 6px 0",
+      "padding": "14px 18px",
+      "margin_top": "20px",
+      "margin_bottom": "20px"
+    },
+    "callout_title": {
+      "font_size": "15px",
+      "font_weight": "700",
+      "color": "#ABB3BE",
+      "margin_bottom": "8px"
+    },
+    "callout_content": {
+      "font_size": "15px",
+      "color": "#D9E2EF",
+      "line_height": "1.8"
+    }
+  }
+}

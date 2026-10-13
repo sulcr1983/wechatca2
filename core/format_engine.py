@@ -1779,6 +1779,13 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
         html = re.sub(rf'<{htag}\s[^>]*>.*?</{htag}>', fix_heading_strong, html, flags=re.DOTALL)
 
     # === 5.3 表格斑马纹 ===
+    # 斑马纹底色按主题底色明暗派生：亮底主题沿用浅灰（外观与既有完全一致）；
+    # 暗底主题从页面底色向白微混 6%，避免浅灰条纹压在暗底上、浅字行读不出来
+    # （2026-10-13 夜航族验收暴露：既有暗底主题同样受影响，一并对齐）。
+    _page_bg = (theme.get("colors") or {}).get("background", "#ffffff")
+    _zebra_bg = ("background:#f9f9f9;" if _is_light_bg(_page_bg)
+                 else f"background:{_mix_hex(_page_bg, '#FFFFFF', 0.06)};")
+
     def add_zebra_stripes(match):
         table_html = match.group(0)
         rows = re.findall(r'<tr>(.*?)</tr>', table_html, re.DOTALL)
@@ -1787,7 +1794,7 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
             old = f'<tr>{row_content}</tr>'
             if i == 0:
                 continue  # 表头行跳过（th 已有样式）
-            bg = 'background:#f9f9f9;' if i % 2 == 0 else ''
+            bg = _zebra_bg if i % 2 == 0 else ''
             new = f'<tr style="{bg}">{row_content}</tr>'
             result = result.replace(old, new, 1)
         return result

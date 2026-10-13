@@ -6,7 +6,7 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 核心理念：**纯文本进，排版出。不用 AI 就不开 AI。**
 
 - 自动 Markdown 预处理（本地规则，零延迟零费用）
-- **92 套**主题自动排版（45 套早期原创 + 47 套 su-* 原创；Markdown → 微信内联 HTML）
+- **164 套**主题自动排版（45 套早期原创 + 119 套 su-* 原创 = 47 初代 + 72 六族；Markdown → 微信内联 HTML）
 - 小红书封面生成（双引擎：归藏 Guizang + BLCaptain 9 风格；**自动联网搜真图作底图**）
 - AI 功能（润色/摘要/封面图）默认隐藏，按需展开
 
@@ -22,7 +22,7 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 ```
 app.py                  Flask 主应用（路由 + SSE + API）
 core/
-  format_engine.py      排版引擎（92 主题，Markdown → 微信 HTML）
+  format_engine.py      排版引擎（164 主题，Markdown → 微信 HTML）
   preprocessor.py       纯文本 → Markdown（正则规则，零延迟）
   image_search.py       联网搜图（Wikimedia/Pexels 双轨；免 key 默认可用）
   ai_client.py          多平台 LLM 客户端（润色/摘要/排版）
@@ -33,13 +33,13 @@ core/
   blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js，9 风格）
   guizang_renderer.py   归藏封面渲染器（Playwright HTML→PNG，data URI 内嵌底图）
 scripts/
-  build_themes.py           原创主题生成器（设计标尺 → 47 套 su-* 主题 JSON）
-  theme_specs.py            47 套原创主题的设计意图规格（新主题在这里加一条）
+  build_themes.py           原创主题生成器（设计标尺 → 119 套 su-* 主题 JSON）
+  theme_specs.py            原创主题的设计意图规格（47 初代 + 72 六族；新主题在这里加一条）
 templates/
   index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）
 public/                 静态资源（原 assets/，由 /assets/* 路由提供）
-  themes/               92 套排版主题 JSON（45 套早期原创 + 47 套 su-* 原创）
-                        ⚠️ su-* 47 套为**生成物**：改 scripts/theme_specs.py 后重跑
+  themes/               164 套排版主题 JSON（45 套早期原创 + 119 套 su-* 原创）
+                        ⚠️ su-* 119 套为**生成物**：改 scripts/theme_specs.py 后重跑
                            scripts/build_themes.py 重生成，勿手改 JSON
   cover-templates/      归藏封面模板
   images/               封面库存图（最终兜底）
@@ -121,7 +121,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 .topbar                  → 共享顶栏（#page-wechat 之外）：.tab-btn 页面切换（公众号排版 | 小红书封面）+ #btn-settings 设置
 #page-wechat
   .tpl-bar              → 顶部紧凑模板条（固定高度 ~135px）
-    #tpl-strip           → 横向色卡网格（92 张 .tpl-card，换行滚动）
+    #tpl-strip           → 横向色卡网格（164 张 .tpl-card，换行滚动）
     #tpl-search          → 内联搜索过滤框
     .tpl-toggle          → 收起/展开按钮
   .wechat-body           → 下方双区 grid（0.85fr | 1.15fr）
@@ -205,10 +205,15 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - 验证：92 套主题全量渲染 0 标签不平衡；含缩进/f-string/注释/decorator 的 Python 代码块肉眼可见内容无碎片
 - **亮底代码块调色板（2026-09-25）**：语法高亮原为固定深底配色，37 套亮底主题（`pre` 背景为浅色）的关键字对比度仅约 2.2:1、发灰读不清。新增 `_SYNTAX_LIGHT` 调色板 + `_is_light_bg()`，按主题 `pre` 背景明暗自动切换（亮底走 VS Code Light+ 系；解析不了的背景按深色处理，不改变未知主题外观）
 - **hero 卡片卡面（2026-09-25）**：`_wrap_hero_sections` 的 cards 分支原先**写死 `background-color:#ffffff`**，而暗底主题（`su-deepwater`）的正文是浅色 → 浅字白底不可读。改为按页面底色向墨色靠 7% 派生卡面（`_mix_hex(bg, ink, 0.07)`）：暗底得到亮一档的卡、亮底得到暗一档的卡，一个公式两个方向都成立。实测 su-deepwater 卡面 `#0E1726` → `#1C2534`
-- **主题体系（2026-09-25 重构）**：`public/themes/` 原有一批（47 套）设计主题是早期从外部仓库机械适配的，命名 / 描述 / 样式数值沿用外部原值，而该仓库**无 LICENSE = 保留所有权利**，本项目开源即分发存在授权风险。现已整体废弃重写为 `su-*` 原创：`public/themes/` 现为 **92 套 = 45 套早期原创 + 47 套 su-\* 原创**，无 `source` 字段、无旧前缀。
-  - **生成链路**：`scripts/theme_specs.py`（47 条设计意图：底色/墨色/强调色/字体气质 + 9 种排版原型 + 布局）→ `scripts/build_themes.py`（字号标尺 / 间距 / 圆角 / 描边 / 列表 / 代码块 / 暗色适配全部由本项目设计系统推导）→ `public/themes/su-*.json`。
+- **主题体系（2026-09-25 重构）**：`public/themes/` 原有一批（47 套）设计主题是早期从外部仓库机械适配的，命名 / 描述 / 样式数值沿用外部原值，而该仓库**无 LICENSE = 保留所有权利**，本项目开源即分发存在授权风险。现已整体废弃重写为 `su-*` 原创：`public/themes/` 现为 **164 套 = 45 套早期原创 + 119 套 su-\* 原创**（47 初代 + 72 六族，见下条），无 `source` 字段、无旧前缀。
+  - **生成链路**：`scripts/theme_specs.py`（设计意图：底色/墨色/强调色/字体气质 + 排版原型 + 布局；六族 72 套只声明「族 × 色调」组合）→ `scripts/build_themes.py`（字号标尺 / 间距 / 圆角 / 描边 / 列表 / 代码块 / 暗色适配 / 族级技法补丁全部由本项目设计系统推导）→ `public/themes/su-*.json`。
   - ⚠️ **改主题方式**：改 `theme_specs.py` 后重跑 `python scripts/build_themes.py`（会覆盖同 id 生成物），**勿手改 su-\*.json**。色带底色直接复用引擎 `_resolve_band_bg`，保证与兜底逻辑一致。
   - ⚠️ **写样式值的坑**：主题 JSON 的值**只放值、不带键名**——`build_style_string` 会自动把 `border_left` 拼成 `border-left:`，值里再带一次前缀会拼出 `border-left:border-left:4px solid …`，浏览器判非法整条丢弃（静默失效）。生成器已按此约束写成 `border_left` + `padding_left` 两个键。
+- **六族 · 十二色新增（2026-10-13）**：主题 92 → **164 套**，新增 6 套族级风格系统 × 12 色调 = 72 套（钢印·新粗野 / 素页·极简 / 卷宗·商务 / 信笺·文艺 / 夜航·科技 / 庙会·节庆）。
+  - **链路**：族级技法补丁与颜色推导都在 `build_themes.py` 的 `FAMILIES` / `FAMILY_TONES`（accent = 色调色相 × 族级饱和·明度基线，HSL 推导；暗底族同表 `dark=True`）；`theme_specs.py` 末尾只声明「族 × 色调」组合与命名/描述。
+  - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
+  - **回归锚点**：重跑生成器后既有 47 套 su-* JSON **字节零改动**；164 套全量富样本渲染审计（标签平衡 / 无 None·空 style·拼接残渣）全过；四套件 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错）。
+- **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
 - 所有修改跑 E2E 验证（test_e2e 52/52）+ 集成测试（test_integration 35/35）
 - 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 33 项，0 控制台报错）
 - ⚠️ 有头套件的「0 控制台报错」**依赖上游 LLM 可达**：`/api/polish`、`/api/summary` 无本地兜底，上游（如 tokenpool 网关）返 5xx 时浏览器必记 1~2 条 500，套件退出码会是 1。此时先修上游，**不得为凑绿而放宽该判据**
@@ -274,7 +279,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - 封面溢出根因 ＝ **模板写死字号**（BLCaptain `template-still-paper-card.html:37` `.sp-display{font-size:76px}`），修复落在**引擎层**；且 `blcaptain-style-skill/` 是 vendored 子项目，须"改源 → 重生成 → 跑自带 .mjs 测试"。
   - 生成耗时大头 ＝ 联网搜图（`core/image_search.py` timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
-- **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 92 套主题人工打标签分类 / 非技术用户可用性类验收。
+- **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 164 套主题人工打标签分类 / 非技术用户可用性类验收。
 - **实施纪律**：一次一项 → 改完即测（`test_e2e` 52/52 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`（⚠️ 验收脚本每次运行都会重写其中 10 张，跑测后工作区会变脏）。
 - **验收脚本计数（2026-09-25 订正）**：`ux_verify_p0` **15/15** · `ux_verify_p1` **15/15** · `ux_verify_tutorial` **13/13**。⚠️ 此前记为「15+13+13」已失效——教程弹窗（后加的产品行为）会遮罩挡住 p0/p1 的点击，两脚本已同步加弹窗关闭处理。
 - **实施状态（2026-09-25）**：第一批 U-1…U-6、第二批 U-7…U-11、U-2 真自适应、Pexels 配图与开源教程均已完成（`a4c869e`/`ef5b241`/`48eacf1` 及后续提交）；⚠️ 其中 U-7 的「悬停即试看」已于 **2026-09-26 按用户要求移除**——模板切换改为**仅点击触发**（悬停误触即切换体验不佳）；
