@@ -6,14 +6,19 @@
   2. 小红书页：切换 → 输入文案 → 选风格模板 → 生成封面 → 结果卡片出现
 
 使用 Playwright 真实 Chromium（headless=False，可见窗口），非 API、非 test_client。
-运行前需：pip 装好 playwright 且 `playwright install chromium`，以及后台服务在 5000 端口。
+运行前需：pip 装好 playwright（浏览器用系统 Edge/Chrome，无需额外安装）以及后台服务在 5000 端口。
 
 运行：
   python tests/test_headed_userflow.py
 """
+import os
 import sys
 import time
 from playwright.sync_api import sync_playwright
+
+# 浏览器启动走公共回退链：系统 Edge/Chrome 优先（零下载），见 core/browser_utils.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.browser_utils import launch_browser
 
 # Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
 try:
@@ -37,7 +42,7 @@ def check(name, ok, detail=""):
 def run():
     with sync_playwright() as p:
         # 有头浏览器：headless=False + slow_mo 让动作可见
-        browser = p.chromium.launch(headless=False, slow_mo=250,
+        browser = launch_browser(p, headless=False, slow_mo=250,
                                     args=["--disable-dev-shm-usage"])
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         page.on("console", lambda m: console_errors.append(m.text)
@@ -86,6 +91,10 @@ def run():
 
         # ---------- 阶段 2：小红书封面生成 ----------
         page.click('.tab-btn[data-page="social"]', timeout=10000)
+        # 首次进入小红书页会弹一次「使用教程」（产品行为，属预期），
+        # 不关掉会遮罩后续点击（2026-10-13 实锤：tutorial-modal intercepts）
+        page.evaluate("document.querySelectorAll('.modal').forEach(m=>m.remove())")
+        page.wait_for_timeout(150)
         page.wait_for_selector("#page-social.active", timeout=10000)
         check("切换到小红书页 #page-social", True)
 

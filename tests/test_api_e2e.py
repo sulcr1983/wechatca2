@@ -301,10 +301,16 @@ def run():
 
     finally:
         try:
-            proc.terminate()
+            # venv 的 python.exe 是 launcher：terminate 只杀它，底层真实解释器
+            # 会变孤儿继续占住 5000 端口（2026-10-13 实测残留）→ 改用树杀
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           capture_output=True)
             proc.wait(timeout=5)
         except Exception:
-            proc.kill()
+            try:
+                proc.kill()
+            except Exception:
+                pass
 
     print("\n" + "=" * 56)
     passed = sum(1 for _, ok, _ in results if ok)

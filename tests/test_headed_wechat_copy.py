@@ -16,7 +16,7 @@
 
 运行：
   python tests/test_headed_wechat_copy.py
-（需 playwright 已装且 `playwright install chromium`；脚本自己负责起/停服务）
+（需 playwright 已装；浏览器用系统 Edge/Chrome，无需额外安装；脚本自己负责起/停服务）
 """
 import sys
 import time
@@ -24,6 +24,10 @@ import subprocess
 import urllib.request
 import os
 from playwright.sync_api import sync_playwright
+
+# 浏览器启动走公共回退链：系统 Edge/Chrome 优先（零下载），见 core/browser_utils.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.browser_utils import launch_browser
 
 # Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
 try:
@@ -80,7 +84,7 @@ def run():
         check("服务启动并监听 5000", True)
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(
+            browser = launch_browser(p,
                 headless=False, slow_mo=120, args=["--disable-dev-shm-usage"])
             context = browser.new_context(viewport={"width": 1440, "height": 900})
             # 授予剪贴板读写权限，否则 navigator.clipboard 写入会被拒
@@ -193,6 +197,10 @@ def run():
 
             # ---------- 阶段 7：小红书页全链路 ----------
             page.click('.tab-btn[data-page="social"]', timeout=10000)
+            # 首次进入小红书页会弹一次「使用教程」（产品行为，属预期），
+            # 不关掉会遮罩后续点击（2026-10-13 实锤：tutorial-modal intercepts）
+            page.evaluate("document.querySelectorAll('.modal').forEach(m=>m.remove())")
+            page.wait_for_timeout(150)
             page.wait_for_selector("#page-social.active", timeout=10000)
             check("切换到小红书页 #page-social", True)
             page.wait_for_selector("#social-tpl-grid .tpl-mini", timeout=10000)
@@ -211,10 +219,16 @@ def run():
             browser.close()
     finally:
         try:
-            proc.terminate()
+            # venv 的 python.exe 是 launcher：terminate 只杀它，底层真实解释器
+            # 会变孤儿继续占住 5000 端口（2026-10-13 实测残留）→ 改用树杀
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           capture_output=True)
             proc.wait(timeout=5)
         except Exception:
-            proc.kill()
+            try:
+                proc.kill()
+            except Exception:
+                pass
 
     # ---------- 汇总 ----------
     print("\n" + "=" * 50)

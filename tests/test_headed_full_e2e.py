@@ -20,7 +20,7 @@
   - 本套件会通过 UI 建/删账号 → 测试前快照 data/*.json，退出时(含崩溃)还原
 
 运行：python tests/test_headed_full_e2e.py
-（脚本自起/自停服务；需 playwright + chromium）
+（脚本自起/自停服务；浏览器用系统 Edge/Chrome，无需 playwright install chromium）
 """
 import atexit
 import sys
@@ -30,6 +30,10 @@ import os
 import pathlib
 import urllib.request
 from playwright.sync_api import sync_playwright
+
+# 浏览器启动走公共回退链：系统 Edge/Chrome 优先（零下载），见 core/browser_utils.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.browser_utils import launch_browser
 
 # Windows 管道/重定向默认 GBK，✓/✗ 等字符会 UnicodeEncodeError；强制 UTF-8
 try:
@@ -100,7 +104,7 @@ def run():
         check("服务启动并监听 5000", True)
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False, slow_mo=100,
+            browser = launch_browser(p, headless=False, slow_mo=100,
                                         args=["--disable-dev-shm-usage"])
             context = browser.new_context(viewport={"width": 1440, "height": 900})
             context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE)
@@ -515,10 +519,16 @@ def run():
             browser.close()
     finally:
         try:
-            proc.terminate()
+            # venv 的 python.exe 是 launcher：terminate 只杀它，底层真实解释器
+            # 会变孤儿继续占住 5000 端口（2026-10-13 实测残留）→ 改用树杀
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           capture_output=True)
             proc.wait(timeout=5)
         except Exception:
-            proc.kill()
+            try:
+                proc.kill()
+            except Exception:
+                pass
 
     print("\n" + "=" * 56)
     passed = sum(1 for _, ok, _ in results if ok)
