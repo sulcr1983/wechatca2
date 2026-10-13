@@ -17,6 +17,26 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# 系统浏览器候选路径（Chromium 内核，零下载；Edge 优先——Windows 基本自带）
+# 2026-10-13：BLCaptain 的 render.mjs 在 bundled Chromium 缺失时会读 CHROMIUM_PATH
+# 环境变量找现成浏览器（见 blcaptain-style-skill/src/render.mjs::findChromium），
+# 其默认候选只覆盖 Linux/Mac，Windows 靠本模块注入。
+_SYSTEM_BROWSER_CANDIDATES = [
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+]
+
+
+def _find_system_browser() -> str | None:
+    """返回系统 Chromium 内核浏览器路径（Edge 优先），找不到返回 None。"""
+    for path in _SYSTEM_BROWSER_CANDIDATES:
+        if os.path.exists(path):
+            return path
+    return None
+
+
 STYLE_MAP = {
     "sp-mist": "sp-mist",
     "sp-warm": "sp-warm",
@@ -75,11 +95,18 @@ class BLCaptainBridge:
     def _run(self, args: list, timeout: int = 120, cwd: str | None = None) -> subprocess.CompletedProcess:
         cmd = [self.node_bin, str(self.cli)] + args
         logger.debug("BLCaptain: %s", " ".join(cmd))
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+        if not env.get("CHROMIUM_PATH"):
+            # bundled Chromium 缺失时 render.mjs 会回退到 CHROMIUM_PATH 指定的系统浏览器；
+            # 用户显式设置过则尊重用户值（2026-10-13）
+            _sys_browser = _find_system_browser()
+            if _sys_browser:
+                env["CHROMIUM_PATH"] = _sys_browser
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout,
             cwd=cwd or str(self.blcaptain_dir),
             encoding="utf-8",
-            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+            env=env,
         )
         if result.returncode != 0:
             stderr = (result.stderr or "").strip()

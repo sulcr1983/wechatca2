@@ -895,6 +895,14 @@ def open_browser():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
+    # 中文启动提示由本文件打印（start-app.bat 保持纯 ASCII，见 AGENTS.md §4 编码纪律：
+    # cmd 在 chcp 65001 下会错位解析 bat 内的多字节行，导致"'xxx' is not recognized"碎片）
+    print(
+        "\n  SuperSu 正在启动，浏览器马上自动打开...\n"
+        f"  （若未自动弹出，请手动访问 http://127.0.0.1:{port}）\n"
+        "  关闭本窗口即停止服务（或按 Ctrl+C）\n",
+        flush=True,
+    )
     # 若由启动器负责开浏览器（避免双开标签页），跳过内置自动打开
     if not os.getenv("SUPERSU_NO_AUTOBROWSER"):
         threading.Timer(1.5, open_browser).start()

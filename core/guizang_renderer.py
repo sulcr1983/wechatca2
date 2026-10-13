@@ -24,6 +24,7 @@ import base64
 import mimetypes
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from core.browser_utils import launch_browser
 
 logger = logging.getLogger(__name__)
 
@@ -419,7 +420,7 @@ def render_social_cards(
     results = {}
     
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = launch_browser(p)
         page = browser.new_page()
         
         # 写入HTML
