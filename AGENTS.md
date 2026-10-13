@@ -56,9 +56,9 @@ docs/
 
 ```bash
 # 启动（二选一）
-start-app.bat                    # 双击即用：自动建 venv/装依赖/补 Chromium → 起服务 → 开浏览器
+start-app.bat                    # 双击即用：自动建 venv/装依赖 → 起服务 → 开浏览器
 python app.py                    # http://127.0.0.1:5000（等效，需自己先激活环境）
-# ⚠️ start-app.bat 的两条硬约束（改动前必读，2026-09-26 因这两条踩过「双击没反应」）：
+# ⚠️ start-app.bat 的三条硬约束（改动前必读；2026-09-26 / 10-13 因这些踩过坑）：
 #   1) 全程用 %~dp0 拼绝对路径调用 .venv\Scripts\python.exe，**不要用 activate.bat**——
 #      其内部写死创建时的绝对路径，项目一换目录就失效 → python 落到系统解释器
 #      → 报 No module named 'flask'。.venv 换目录后可用
@@ -66,6 +66,11 @@ python app.py                    # http://127.0.0.1:5000（等效，需自己先
 #   2) *.bat / *.cmd **必须 CRLF 换行**（已由 .gitattributes 的 eol=crlf 锁定）。
 #      裸 LF 会让 cmd 解析错乱、把行切成半截命令，表现为窗口一闪或一堆
 #      `'xxx' is not recognized`。
+#   3) **bat 内不写中文（保持纯 ASCII）**，判断逻辑不依赖 `>nul` / `2>nul` 设备重定向。
+#      cmd 会错位解析含多字节字符的 bat 行、吃掉下一行行首（2026-10-13 实锤，见变更 17）；
+#      设备重定向在部分机器上间歇性报「系统找不到指定的路径」并污染退出码。
+#      bat 不再下载 Chromium——封面渲染用系统 Edge/Chrome（core/browser_utils.py）。
+#      中文启动提示由 app.py 打印。
 
 # 测试
 python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 52/52 通过
@@ -168,8 +173,8 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ## 9. 已知注意事项
 
-- 封面渲染统一走 `core/guizang_renderer.py`（需 `playwright install chromium`）；旧 `scripts/render_worker.py` 双份实现已删除
-- ⚠️ **`.bat` 必须 CRLF**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。手写或工具生成的 `.bat` 若为 LF，cmd 会解析错乱（2026-09-26 导致 `start-app.bat` 双击完全不可用）
+- 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Edge/Chrome（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
+- ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
 - `scripts/start_flask.py` / `launcher.py` 为已废弃旧入口（零引用，见 HANDOFF §7 可记录债务），真实入口是 `app.py` / `start-app.bat`
 - `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`

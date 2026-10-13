@@ -154,6 +154,47 @@
 
 ---
 
+## 9. 任务 3：修「点 start 用不了」根因链 + 封面浏览器零下载化（2026-10-13）
+
+> 独立小任务，追加记录（与上方任务无耦合）。
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户："帮我看看为啥这个用不了。尤其是点 start" + "为啥需要 chromium？直接弹窗默认浏览器不行吗" |
+| 范围 | `start-app.bat` 启动链路；封面双引擎的浏览器获取方式；有头测试套件的浏览器启动 |
+| 完成判据 | 双击 start 零报错秒起；封面三引擎零下载出图（系统 Edge/Chrome）；回归绿；文档同步 |
+| 不在范围 | 业务功能代码、前端页面、微信推送链路（均未触碰） |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `start-app.bat` | 重写为纯 ASCII（删两处 Chromium 下载；依赖自检 `2>nul` → `if errorlevel 1`；三条硬约束注释；CRLF 保持） |
+| `app.py` | `__main__` 打印中文启动提示（承接 bat 移出的中文） |
+| `core/browser_utils.py` | **新增**：`launch_browser` 回退链单真源（msedge → chrome → bundled） |
+| `core/guizang_renderer.py` | 接入 `launch_browser`（删私有 `_launch_available_browser`） |
+| `core/blcaptain_bridge.py` | Node 调用注入 `CHROMIUM_PATH`（上游 findChromium 原生口子，vendored 零改动） |
+| `tests/test_headed_*.py` ×3 | 接入 `launch_browser`；docstring 更新；userflow 补 `import os` + sys.path |
+| `AGENTS.md` / `README.md` | 启动说明、bat 三条硬约束、浏览器策略同步 |
+| `HANDOFF.md` | 新增「变更 17」 |
+| `CLOSURE.md` | 本节 |
+
+### 验证（真实执行）
+- bat 实跑（双击等效）：零碎片 / 零「系统找不到指定的路径」/ 依赖自检不误触发 / 服务秒起 / 浏览器自动打开；
+- 三引擎出图：editorial / swiss / sp-mist 全 200，14 张 PNG Pillow 复核全有效；
+- 无头 + 有头（3 秒启动 + 截图）双链路 ✓；
+- **全测试矩阵 168/168 全绿**：test_e2e 52/52 · integration 35/35 · api_e2e 29/29 · headed_full_e2e 33/33（0 控制台报错）· wechat_copy 12/12 · userflow 7/7；
+- 有头套件三处基建修复（本轮跑全量时暴露并收掉，详见 HANDOFF 变更 17）：树杀停服（venv launcher 孤儿占 5000）、教程弹窗遮挡适配（wechat_copy / userflow 补 modal 移除）。
+
+### 回滚点
+- 主提交（启动链路 + 浏览器零下载化）：`2cff76e`；测试提交（套件适配）：`f89a5fb`；文档提交：本节所在提交。
+- 回滚：`git revert <hash>`（按需选择单笔或全部）。
+
+### 影响 / 风险
+低。系统 Edge/Chrome 与 bundled Chromium 同内核；回退链全失败时给明确报错（不静默）。`ms-playwright/` 里 ffmpeg/winldd 3.7MB 残渣无害可留。
+
+---
+
 ## 10. 任务 4：六族 · 十二色主题（72 套）+ 暗底斑马纹修复（2026-10-13）
 
 > 追加记录（与上方任务无耦合）。上游参考：[mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen）。

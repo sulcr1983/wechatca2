@@ -607,6 +607,29 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 17：修「点 start 用不了」根因链 + 封面浏览器零下载化（2026-10-13）🆕
+
+- **用户报障**："点 start 用不了"，且质疑"为啥需要 chromium？直接弹窗默认浏览器不行吗"。澄清：**打开界面一直用系统默认浏览器**（bat 的 `start http://...` / app.py 的 `webbrowser.open`），与 Chromium 无关；Chromium 只服务**封面 HTML→PNG 渲染**（无头浏览器当截图引擎）。
+- **根因（三条叠加，均实测复现）**：
+  1. **bat 每次启动自检 bundled Chromium，缺失即下载 183.6 MiB**（首次运行块 + 自检块共两处 `playwright install chromium`）。本机该下载从未成功（`ms-playwright/` 仅 3.7MB；02:23/11:32 两次安装尝试只装上 ffmpeg/winldd）——每次双击都卡在下载步，观感即"点了没反应"。
+  2. **bat 内 UTF-8 中文（chcp 65001）触发 cmd 错位解析**：cmd 读含多字节字符的行后，后续行起点错位、**吃掉行首** → REM/echo 行变半截命令 → 满屏 `'xxx' is not recognized` 碎片。实测两种启动方式（git bash `cmd //c` / PowerShell `cmd /c`）输出**完全相同**的碎片；命中行含行 1-14 未改动区域（`'服务（或按'` / `'CRLF'` / `'止服务（或按'` 等）——属**既有缺陷**，变更 15 的"无碎片"结论被推翻。对照实验：UTF-8+BOM 否决（BOM 破坏 `@echo off`）；GBK 编码可消碎片但编辑维护易再踩坑；**全 ASCII 零碎片**（定案）。
+  3. **`>nul` / `2>nul` 设备重定向在本机间歇失效**：依赖自检 `"%VENV%" -c "import flask, playwright" 2>nul || (...)` 被误判失败。实测同一命令 `2>_err.txt` → rc=0 干净；`2>nul` → 报「系统找不到指定的路径」+ rc=1 → 每次双击空跑一轮 pip 重装 + 报错。
+- **修复**：
+  - `start-app.bat` **重写为纯 ASCII**（删两处 Chromium 下载；不再需要 chcp；依赖自检改 `if errorlevel 1`，不再用设备重定向；三条硬约束留英文注释，见 AGENTS §4）。
+  - `app.py`：`__main__` 分支打印**中文启动提示**（PEP 528 直写控制台，936 下实测显示正常）——双击观感保持中文。
+  - **封面浏览器零下载化**：新增 `core/browser_utils.py::launch_browser`（回退链单真源：msedge → chrome → bundled，全失败给可操作报错）；`core/guizang_renderer.py` 接入（删私有 `_launch_available_browser`）；`core/blcaptain_bridge.py` 调 Node 时注入 `CHROMIUM_PATH` 指向系统 Edge/Chrome（上游 `render.mjs::findChromium` 原生支持该变量，vendored 子项目零改动）；三个有头测试套件接入同一 `launch_browser`。
+- **验证（全部真实执行）**：
+  - 归藏：系统 Edge 155.0.4283.45 实测启动渲染 ✓；重构后无头出图 3 张（889KB/667KB/1.2MB）✓；
+  - BLCaptain：`sp-mist` 经 CHROMIUM_PATH 16s 出 3 张 PNG（5.7/5.0/5.1MB）✓；
+  - 端到端：`POST /api/social/generate` 三引擎（editorial/swiss/sp-mist）全 200；Pillow 批量复核 14 张 PNG 全有效（1080×1440 / 1080×1080 / 2100×900 / 2160×2880）✓；
+  - **ASCII 版 bat 实跑（双击等效）**：零碎片、零「系统找不到指定的路径」、依赖自检不误触发、`Running on http://127.0.0.1:5000`、浏览器自动打开（日志出现浏览器 GET）✓；
+  - **全测试矩阵 168/168 全绿（真实执行）**：`test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` **33/33（0 控制台报错）** · `test_headed_wechat_copy` **12/12** · `test_headed_userflow` **7/7**。
+  - 有头套件随本轮**三处基建修复**（跑全量时暴露并当场收掉）：① **树杀停服**——venv 的 python.exe 是 launcher，`proc.terminate()` 只杀它、底层解释器变孤儿继续占 5000（实测残留），三个自起服务套件统一改 `taskkill /T /F`；② **教程弹窗遮挡适配**——wechat_copy / userflow 在 9-25 教程弹窗上线后从未跑过（覆盖盲区今日暴露），点击被 `tutorial-modal` 遮挡（56 次重试失败），补 modal 移除（与 full_e2e 同款）；③ 首轮 32/33 的单项失败为环境波动，复跑 33/33（含该项）全过。
+- **影响**：启动脚本（重写）、封面双引擎浏览器获取方式、3 个有头测试套件、`app.py` 启动输出。
+- **风险**：低。系统 Edge/Chrome 与 bundled Chromium 同内核；回退链全失败时给明确报错（不静默）。未装系统浏览器的机器封面功能会明确报错（原路径是卡 183MB 下载）。
+
+---
+
 ### 变更 18：六族 · 十二色主题（72 套）+ 暗底斑马纹修复（2026-10-13）🆕
 
 - **用户诉求**：参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen）的主题风格给 SuperSu 增加模板，且明确"**要遵守它的版权规定**"。

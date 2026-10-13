@@ -266,7 +266,7 @@ graph TB
 项目根目录有一份 **`start-app.bat`**，双击即可：
 
 1. 自动用项目自带的 `.venv` 运行（无需手动配环境）
-2. 首次缺失依赖/浏览器时自动补装
+2. 首次缺失 Python 依赖时自动补装（封面渲染直接用系统 Edge/Chrome，无需额外下载）
 3. 启动后**自动打开浏览器**到 `http://127.0.0.1:5000`
 4. 关闭那个黑窗口即停止服务（或按 `Ctrl+C`）
 
@@ -278,7 +278,7 @@ graph TB
 ```bash
 # 1️⃣ 安装依赖（首次）
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe -m playwright install chromium
+# 封面渲染直接用系统 Edge/Chrome（Chromium 同内核），无需 playwright install chromium
 
 # 2️⃣ 启动
 .venv\Scripts\python.exe app.py
@@ -322,7 +322,7 @@ PEXELS_API_KEY=your-pexels-key
 # 快速自检（无需起服务）
 python tests/test_e2e.py
 
-# 有头全按钮（需 Chromium，脚本自起/自停服务）
+# 有头全按钮（浏览器用系统 Edge/Chrome，脚本自起/自停服务）
 python tests/test_headed_full_e2e.py
 ```
 
