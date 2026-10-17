@@ -158,10 +158,72 @@ Pexels API 条款明确：每次使用都必须**显著展示 Pexels 链接**（
 
 ---
 
+## 五之三、最终场景确认（2026-10-18 01:43 用户确认）
+
+> **实际用途：闭源、免费、自己用 + 发到自己群里大家一起免费使用。不是公开商用产品。**
+
+这个场景下**路线 D 完美适配**：
+
+- **仓库保持私有**（不开源）→ 不产生"开源声明与 AGPL 冲突"问题
+- **PWA 只分发自研资产** → 部署产物不含 AGPL 代码 → 不触发 §13 网络条款的源码提供义务
+- **封面功能留本地**（AGPL 资产不出本机）→ 群里朋友用 PWA 只能用排版/复制，封面需本地版
+- **不收费** → BLCaptain 的"营利目的"条款不涉及；且 PWA 不含 BLCaptain
+
+### 静态包白名单（定稿）
+
+| 进包 | 不进包 |
+|---|---|
+| `public/themes/su-*.json`（**119 套**自研） | `public/themes/*.json` 中 **45 套旧主题**（aurora / bold-blue / github / vogue / sspai / bytedance / monocle / bauhaus…，命名含第三方品牌名） |
+| `public/theme-thumbs/su-*.jpg`（119 张） | 对应 45 张缩略图 |
+| `public/vendor/`（4KB） | `cover-templates/`、`screenshot-backgrounds/`、`images/`、`social-thumb/`、`prototypes/` |
+| app shell（HTML/JS/CSS） | `uploads/`、`output/`、`temp_covers/`、`data/`、`.env` |
+| `public/fonts/*.woff2` + `OFL.txt` | — |
+
+**效果：164 套 → 119 套，包体 ~8MB → ~1.6MB。**
+
+### ⚠️ 必须改的坑：默认主题正好在被排除的 45 套里
+
+`app.py` 里 `theme_id` 默认值是 `bold-blue`（属于 45 套旧主题）→ 按白名单打包后默认主题 404。改 3 处（约 0.5 人日）：
+1. `app.py` 默认值改为 `su-*` 主题（建议 `su-biz-azure` 或按品牌色挑）
+2. 前端 `activeTpl` 初始值同步
+3. 加兜底：主题加载失败回退列表第一项
+
+### 两套构建
+
+| 构建 | 主题 | 用途 |
+|---|---|---|
+| **public（CF 托管）** | 仅 119 套 `su-*` | 对外发布（群里） |
+| **private（本地 Flask）** | 全部 164 套 | 自己用，不出公网 |
+
+CI 硬断言：
+```
+grep -r "guizang" dist/ && exit 1
+ls dist/themes/ | grep -v "^su-" && exit 1
+```
+
+### 字体自托管（并入阶段 1）
+`public/fonts/` 放 DM Sans / Noto Sans SC / JetBrains Mono 的 woff2 + `@font-face` + `font-display:swap` + `OFL.txt`；同时把 10 套 cover-templates 的 Google Fonts 外链改本地路径（顺手压掉断网字体回退导致的标题溢出）。
+
+### 工作量定稿
+
+| 阶段 | 人日 |
+|---|---|
+| 阶段 1 静态 PWA + Pyodide（含字体自托管、白名单、默认主题修正） | **4.5–6.5** |
+| 阶段 2 JS 引擎替换（可选，提升首屏） | 18–25 |
+| 阶段 3 封面搬前端 | **0（取消）** |
+| 阶段 4 推送（留本地） | 0 |
+
+---
+
 ## 六、待决策
 
-1. **许可证路线**：**D 私有仓库 + PWA 只分发自研资产（推荐，见五之二）**／A 整仓 AGPL + 公开源码／B 删净 AGPL 资产重写归藏引擎／C 购买上游授权
-2. **BLCaptain**：走 A 则保留并显式打包；走闭源部署则先买商业授权；或暂时移除该引擎（封面只剩归藏 2 风格）
-3. **是否启动 PWA 阶段 1**（3-5 人日）
-4. 版权整改 P0/P1 是否现在做（约 1 人日）
-5. 微信推送：保留本地后端，还是纯前端版直接不提供
+场景已确认（闭源 / 免费 / 群内分享）→ **路线 D 已定，无需再选许可证**。
+
+剩下的是一个动作：
+
+1. **是否现在启动 PWA 阶段 1**（4.5–6.5 人日）：
+   - 内容：Vite 静态站 + Web Worker 内 Pyodide 跑现有引擎；只打包 119 套 su-* 主题；字体自托管；默认主题改 su-biz-azure；本地服务探测（有 Flask 才显示封面/推送）
+   - 交付：一个网址，群里打开即用，数据全在浏览器，可安装到桌面/手机（PWA）
+2. 附带 0.5 人日：修默认主题兜底（`bold-blue` → `su-biz-azure`）——这个即使不做 PWA 也建议改（本地也受益）
+
+**不需要做的**：整仓 AGPL 化、买上游授权、删归藏资产（因为都不分发）。
