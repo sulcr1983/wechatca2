@@ -183,9 +183,11 @@ Pexels API 条款明确：每次使用都必须**显著展示 Pexels 链接**（
 
 ### ⚠️ 必须改的坑：默认主题正好在被排除的 45 套里
 
-> **核实补充（2026-10-18 02:00）**
-> -  引用共 8 处：、（DEFAULT_THEME）/（GALLERY_THEMES）/（GROUPS）+ 3 处测试断言 +  脚本。
-> - 197121/ **只用于 format_engine 自带的 gallery 页生成**（），**不影响 Flask 前端与 PWA 前端**（前端用  + 自己的分组 chips）。因此「分组静默丢组」不阻塞 PWA 阶段 1；建议后续把 gallery 分组改为按  族前缀自动生成（0.5 人日，可选）。
+> **核实补充（2026-10-18 02:10，含合规终审）**
+> - `bold-blue` 引用共 8 处：`app.py:190`、`core/format_engine.py:113`（DEFAULT_THEME）/`:55`（GALLERY_THEMES）/`:2050`（GROUPS）+ 3 处测试断言 + `output/e2e_audit` 脚本。
+> - `GROUPS`/`GALLERY_THEMES` 只用于 format_engine 自带的 gallery 页生成（`buttons_html`），**不影响 Flask 前端与 PWA 前端**（前端用 `/api/themes` + 自己的分组 chips）→ 「分组静默丢组」不阻塞 PWA 阶段 1。建议后续把 gallery 分组改为按 `su-*` 族前缀自动生成（0.5 人日，可选）。
+> - **合规终审（compliance-auditor）**：45 套旧主题在初始提交 `f2bbb16` 即存在、从未带第三方 source 字段 → 风险降为「低-中」，**私有构建可继续使用（本机默认观感不必换）**；公开静态包只保留 4 套通用命名（`bold-blue` / `bold-navy` / `bold-green` / `minimal-gray`），改名 `su-*` 前缀后纳入白名单；其余 41 套（`github` / `vogue` / `sspai` / `bytedance` …）不公开（商标问题）。`bold-blue-ocean` 为死路径（layouts/palettes 不存在），无需处理。
+> - **唯一剩余高风险：`public/images/` 10 张照片**（无出处）→ 公开包排除即可。
 
 
 `app.py` 里 `theme_id` 默认值是 `bold-blue`（属于 45 套旧主题）→ 按白名单打包后默认主题 404。改 3 处（约 0.5 人日）：
