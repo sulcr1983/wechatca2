@@ -120,25 +120,36 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 | GET | `/assets/<path:filename>` | public/ 静态资源 |
 | POST | `/open-folder` | 打开本地文件夹 |
 
-## 6. 公众号页面关键元素（顶部模板条 + 双区布局）
+## 6. 公众号页面关键元素（2026-10-18 重设计：贴边三段式 + 解析条 + 风格条）
 
 ```
-.topbar                  → 共享顶栏（#page-wechat 之外）：.tab-btn 页面切换（公众号排版 | 小红书封面）+ #btn-settings 设置
+.topbar                  → 贴边白 chrome（56px，底部 1px）：.logo（朱砂方章「版」）+ .tab-btn
+                           （公众号排版 | 小红书封面，active 底部朱砂条）+ 教程 / 设置
 #page-wechat
-  .tpl-bar              → 顶部紧凑模板条（固定高度 ~135px）
-    #tpl-strip           → 横向色卡网格（164 张 .tpl-card，换行滚动）
-    #tpl-search          → 内联搜索过滤框
-    .tpl-toggle          → 收起/展开按钮
-  .wechat-body           → 下方双区 grid（0.85fr | 1.15fr）
-    .col-text            → 左：#input-area（textarea，响应式 rem）
-      .editor-header     → #btn-demo（看示例/清空）+ #module-picker（插入模块下拉，
-                           11 个模块模板，选中即在光标处插入 ::: 围栏并触发渲染）
-    .col-preview         → 右：手机预览框（390×760）+ 底部操作栏
-      #preview-frame     → iframe 实时预览（srcdoc blob URL）
-    .btn-copy / btn-history / btn-push / AI 按钮
-  ⚠️ 加载即自动选中第一套主题（activeTpl = themes[0].id）→ 输入即渲染，无需先手动点选
-  ⚠️ 复制按钮写入 text/html 富文本（ClipboardItem），公众号可直接粘贴成排版样式；
-     非安全上下文（局域网 IP / 旧浏览器）降级走隐藏 contenteditable + execCommand('copy')
+  .workspace             → 主区 flex 双栏（无 gap，1px 分隔）
+    .col-text            → 左栏 620px：.editor-header 48px
+                           （#btn-import 导入文档 / #btn-clear 清空 / #btn-insert 插入 popover / #btn-demo 看示例）
+                           + .editor-area（#input-area，Markdown 源码，flex-1）+ .parse-bar 44px
+      .parse-bar         → #sw-chip 智能转换开关（on/off 双态）+ 识别结构 chips（#parse-chips）
+                           + #tidy-hint 已自动整理瞬态 + #btn-format 整理格式
+    .col-divider         → 1px 分隔线
+    .col-preview         → 右栏：.preview-header 48px（.pv-btn 网页HTML|手机预览 分段 + #theme-chip 当前风格胶囊）
+                           + .preview-content 舞台（#preview-frame，手机模式 375×min(600,100%)）
+                           + .tpl-bar 风格条 104px
+      .tpl-bar           → #tpl-search 紧凑筛选 + #tpl-toggle 收起 + #btn-all-tpl 全部 164 套
+                           + #tpl-strip 最近使用胶囊（.tpl-card 含 .swatch/.tname/.tpl-fav）
+  .footbar               → 底栏 64px：#foot-status 已保存 + #foot-count 字数/结构 + #ai-toggle
+                           + #btn-history 历史 + #btn-push 推送草稿箱（secondary）+ #btn-copy 复制（唯一 primary）
+  .ai-panel              → AI 工具面板（默认收起，功能保留）
+  .drawer#drawer-tpl     → 模板库抽屉 560（#drawer-search + #family-chips 六族 + #drawer-grid 两列卡片）
+  .popover#popover-insert→ 插入模块（10 项，光标处插入 ::: 围栏）
+  .dialog#dialog-copy    → 手动复制指引（剪贴板降级第三级）
+  .dialog#dialog-error   → 渲染错误浮层
+  ⚠️ 后向兼容契约（勿删）：#tpl-strip（风格胶囊容器）/ .tpl-card + .tname / .tpl-bar(class) /
+     #tpl-toggle（切换 .tpl-bar.collapsed）/ #tpl-search —— 三套有头测试依赖
+  ⚠️ 加载即自动选中上次主题（localStorage supersu.lastTheme，缺省首套）→ 输入即渲染
+  ⚠️ 解析条统计源 = /api/render 返回的 markdown（引擎识别结果），不是编辑器原文
+  ⚠️ 复制写入 text/html（ClipboardItem）；非安全上下文走 execCommand；再失败弹 #dialog-copy 手动指引
 ```
 
 ## 7. 小红书页面关键元素（双引擎 + 自动搜图）
