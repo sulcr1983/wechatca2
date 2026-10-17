@@ -292,5 +292,13 @@
 
 ### 影响 / 风险
 - 界面结构与配色整体更换；小红书页继承新 token（布局未动）。
+### 补充（同日）：模板库缩略图与收藏优先
+| 文件 | 改动 |
+|------|------|
+| `scripts/gen_theme_thumbs.py` | 新增：164 套主题真实渲染缩略图生成（480×240 JPEG） |
+| `public/theme-thumbs/*.jpg` | 新增：164 张缩略图 + manifest.json（2.8MB） |
+| `templates/index.html` | 卡片真实缩略图（回退渐变）、收藏星标、收藏优先排序、抽屉默认「最近使用」、预览微信外框（导航条+互动条）、默认跨族精选 |
+验证：E2E 62/62 · 有头全按钮 33/33（0 报错）。
+回滚：`git revert <本次提交>`；缩略图可删目录 + 前端 onerror 自动回退渐变。
 - 旧 DOM 契约保留，测试无需改；`#module-picker`（旧 select）已移除，由 `#btn-insert` popover 替代。
 - P1 遗留：富文本粘贴（turndown）/ docx 导入（mammoth）/ pangu / 三模式 UI 入口；P2 遗留：历史抽屉、移动端单栏、a11y。
