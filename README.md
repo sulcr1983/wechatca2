@@ -391,6 +391,8 @@ wechatca2/
 | [docs/testing.md](docs/testing.md) | 6 个测试套件的跑法、实测基线、5 个坑、DOM 契约 |
 | [docs/project-conventions.md](docs/project-conventions.md) | 产出物规范：三类东西三个家、Git 约定、清理计划 |
 | [docs/audit-playbook.md](docs/audit-playbook.md) | 36 项审计清单，每项含命令 / 判定标准 / 处置方式 |
+| [docs/pwa-build-plan.md](docs/pwa-build-plan.md) | **PWA 施工图**：范围、10 条定稿决策、D1–D10 文件级任务、验收表、部署 |
+| [docs/pwa-design.md](docs/pwa-design.md) | PWA 设计存档：路线对比、架构、性能预算、域名研究 |
 | [AGENTS.md](AGENTS.md) | 项目定位、架构速查、工程纪律、验收规则 |
 | [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、变更记录 |
 | [CLOSURE.md](CLOSURE.md) | 任务收尾记录（完成项 / 验证 / 回滚点 / 剩余项） |
