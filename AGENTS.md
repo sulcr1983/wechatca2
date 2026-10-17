@@ -274,7 +274,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 ### 文档分层与回写
 - 内部真源：`AGENTS.md` / `MEMORY.md` / `HANDOFF.md` / `CLOSURE.md`；外部用户：`README.md`。
 - 改代码 / 接口 / 配置 / 架构边界 / 用户行为后，必须同步对应文档（含本文件与 README 测试计数）。
-- 单任务结束执行 `CLOSURE.md` 收尾程序（更新文档、受控提交、必要时写 `docs/task_closure_*.md`）。
+- 单任务结束执行 `CLOSURE.md` 收尾程序（更新文档、受控提交）。**不再新建 `docs/task_closure_*.md`**，全部并入 `CLOSURE.md`（见 `docs/project-conventions.md`）。
 
 ### 对外贡献 / 多 Agent
 - 个人工具，对外 PR 前先读贡献规则、一次一问题、不混入无关改动。
