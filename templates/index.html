@@ -1365,8 +1365,17 @@ function showPreview(html) {
   const shell = document.getElementById('phone-shell');
   if (shell) shell.style.display = 'flex';
   previewFrame.style.display = 'block';
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  previewFrame.src = URL.createObjectURL(blob);
+  // 同步写入（doc.write）：body 立即就绪，避免 blob URL 异步加载的时序问题与内存泄漏
+  try {
+    const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+  } catch (e) {
+    // 极端环境兜底：退回 blob URL
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    previewFrame.src = URL.createObjectURL(blob);
+  }
 }
 
 // Auto render on input change
