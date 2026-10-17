@@ -652,6 +652,35 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 19：公众号页重设计（设计阶段）+ 自动编辑三模式（2026-10-16 / 10-17 / 10-18）
+
+**A. 公众号排版页重设计（设计阶段完成，界面未落代码）**
+- **用户诉求**：解决"长期不好看、不好用"；重设版面与配色；确认不接 AI 也能自动排版；自动排版要便于衔接模板选择流程。
+- **可行性调研**：无 AI 自动排版可行——现有 `preprocessor` 已覆盖纯文本 90% 结构；补齐方案 = turndown（富文本粘贴→Markdown）+ mammoth.js（docx→HTML→MD）+ pangu.js（中英文空格，**只进渲染管道**），三者均 MIT、本地 vendor、禁 CDN（`public/vendor/` 现仅 fitty.min.js，尚未引入）。
+- **设计流程**：走「UI 设计全栈专家团」（TeamCreate `ui-supersu`）——视觉建筑师 + 体验设计师并行产出、v1.1→v1.3 多轮对抗修订后收口；Ardot 画布产出 **5 帧**设计稿（fileId **737147257801936**）：帧1 主工作台 / 帧2 模板库抽屉 560 / 帧3 历史抽屉 480 / 帧4 手动复制指引 560 / 帧5 渲染错误浮层 480。
+- **设计系统**：暖纸 `#F7F4EE` → 白卡 `#FFFFFF` → 印泥朱砂 `#AF3E2B`（白字对比度约 5:1）+ Noto Sans SC / Inter / JetBrains Mono；三段式骨架（顶栏 56 白 chrome / 左 620 内容 | 右 819 预览+风格 / 底栏 64）；模板选择 = 右栏「最近使用」胶囊条 + 模板库抽屉（两行 chips：全部/收藏/最近 + 六族 卷宗/庙会/信笺/素页/夜航/钢印）。
+- **交互定稿**：主路径「粘贴 →（可选换风格）→ 复制」2-3 步；富文本粘贴默认开 + toast 撤销 + `Ctrl+Shift+V` 逃生门；编辑器 = 整理后 Markdown 源码（粘贴/导入写回、手动打字不改写）；复制唯一 primary（min-w 148/h 40）；解析条（智能转换 switch / 识别结构 chips / 整理格式）on-off 双态；出稿三件套（复制/推送/历史）权重 0<1<唯一主。
+- **HTML 交互原型**：`docs/prototypes/wechat-redesign.html`（单文件零依赖，可点可玩：实时渲染 / 主题切换含深色反相 / 模板库抽屉 / 富文本粘贴模拟 / 复制降级浮层 / 插入 popover）。
+- **方案文档**：`docs/wechat-page-redesign.md`（tokens / 交互规范 / 前端契约 / P0-P3 落地顺序 / 待决策项）。
+- **落地决策（用户拍板 2026-10-18）**：① 落地基准 = **完整版原型**（非简化版）；② 先收工程账再落 P0 界面；③ 三模式默认 auto + 设置里可切。
+
+**B. 自动编辑三模式（P1 部分落地，2026-10-17）**
+- **用户诉求**：自动排版要更强——长文、教程等不同文体都要有合适的整理方式。
+- **参考与合规**：借鉴 [YiShu5/GZHcomposing](https://github.com/YiShu5/GZHcomposing) `js/preprocess.js` 的三模式思路，**clean-room 实现、未复制其代码**。
+- **实现**：`core/preprocessor.py` 290→396 行，`preprocess(text, mode='auto')` 四值：
+  - `conservative`：仅识别显式结构（序号/短行标题、列表、引用、代码块），不主动加标题；
+  - `longform`：长散文按「标签：内容」白名单补至多 5 个 `###` 小标题（间隔 ≥2 段）；
+  - `tutorial`：教程标签（准备工作/注意事项/…）→ 小标题；中文序数（首先/然后/第一步…）→ 列表项；
+  - `auto`：短文或已有结构 → conservative；长散文无结构 → longform。
+- **关键修复**：首句不再被无条件提升为巨标题（auto 下须"确像标题"才提升）——历史上散文被误排的最大痛点。
+- **测试**：`tests/test_e2e.py` +4 项 → **E2E 56/56**；有头走查 `scripts/walkthrough_autedit.py`（纯散文/半结构化/长文自动分层三类输入，真实经过 `/api/render` 验证预览）。
+- ⚠️ **现状**：三模式**尚无 UI 入口**（`/api/render` 未暴露 `mode`，app.py:201 仍单参调用），属 P1 接线项。
+
+**影响**：`core/preprocessor.py` / `tests/test_e2e.py` / `templates/index.html`（placeholder 1 行）/ 新增 2 个原型 + 方案文档 + 走查脚本。
+**风险**：低。preprocess 默认行为变化（首行标题规则收紧 + 长文补 ###）经 56 项测试覆盖；前端尚未消费 mode；界面重设计为 0% 落地（P0 待执行）。
+
+---
+
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）

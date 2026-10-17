@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperSu 排版 · 新版交互原型</title>
+<style>
+:root{
+  --bg-canvas:#F7F4EE; --bg-surface:#FAF9F5; --bg-raised:#FFFFFF; --bg-hover:#F0EDE8;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --text-soft:#6E6759; --text-muted:#9B9484;
+  --accent:#AF3E2B; --accent-hover:#96331F; --accent-soft:rgba(175,62,43,.08);
+  --success:#5F8F73; --warning:#B8863F; --disabled:#B9B2A6;
+  --r-card:16px; --r-dialog:14px; --r-btn:8px;
+  --font:"Noto Sans SC","PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --mono:"JetBrains Mono","Cascadia Code",monospace;
+  --shadow-card:0 1px 8px rgba(87,76,54,.06);
+  --shadow-float:0 16px 48px rgba(20,18,14,.22);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg-canvas);color:var(--text);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;border:none;background:none;cursor:pointer}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
+::-webkit-scrollbar-track{background:transparent}
+
+.app{display:flex;flex-direction:column;height:100vh;background:var(--bg-raised);min-width:1080px}
+
+/* ── 顶栏 ── */
+.topbar{display:flex;align-items:center;gap:8px;height:56px;padding:0 20px;background:var(--bg-raised);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600}
+.logo-text{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.logo-div{width:1px;height:16px;background:var(--border);margin:0 4px}
+.tabs{display:flex;gap:2px;height:100%}
+.tab{position:relative;padding:0 14px;height:100%;font-size:13px;font-weight:500;color:var(--text-soft);display:flex;align-items:center}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);font-weight:600}
+.tab.active::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--accent);border-radius:1px}
+.topbar .spacer{flex:1}
+.top-btn{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--r-btn);font-size:13px;color:var(--text-soft)}
+.top-btn:hover{background:var(--bg-hover);color:var(--text)}
+.top-btn.icon{width:36px;padding:0;justify-content:center}
+
+/* ── 主区 ── */
+.workspace{flex:1;display:flex;min-height:0}
+.col-text{flex:0 0 620px;display:flex;flex-direction:column;min-height:0;background:var(--bg-raised)}
+.col-divider{flex:0 0 1px;background:var(--border)}
+.col-preview{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg-raised)}
+
+/* 编辑器头部 */
+.editor-header{display:flex;align-items:center;gap:8px;height:48px;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.btn-sm{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-btn);font-size:12px;font-weight:500;color:var(--text-soft);white-space:nowrap}
+.btn-sm.sec{border:1px solid var(--border-hi);background:var(--bg-raised)}
+.btn-sm.sec:hover{border-color:var(--text-muted);color:var(--text)}
+.btn-sm.ghost:hover{background:var(--bg-hover);color:var(--text)}
+.btn-sm.icon{width:32px;padding:0;justify-content:center}
+.editor-header .spacer{flex:1}
+
+/* 编辑区 */
+.editor-area{flex:1;padding:16px;min-height:0;display:flex}
+.editor-inner{flex:1;background:var(--bg-surface);border-radius:12px;padding:20px;overflow-y:auto}
+#editor{width:100%;height:100%;border:none;outline:none;resize:none;background:transparent;font-family:var(--font);font-size:14px;line-height:1.85;color:var(--text)}
+#editor::placeholder{color:var(--text-muted)}
+
+/* 解析条 */
+.parse-bar{display:flex;align-items:center;gap:6px;height:44px;padding:0 20px;background:var(--bg-surface);border-top:1px solid var(--border);flex-shrink:0}
+.sw-chip{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:999px;background:var(--accent-soft);border:1px dashed transparent;cursor:pointer}
+.sw-chip.off{background:transparent;border-color:var(--border-hi)}
+.sw-chip.off .sw-text{color:var(--text-muted)}
+.sw-chip.off .sw-ico{opacity:.45}
+.sw-chip.off .sw-track{background:var(--border-hi)}
+.sw-chip.off .sw-dot{margin-left:0}
+.sw-ico{display:flex;color:var(--accent)}
+.sw-text{font-size:13px;font-weight:500;color:var(--accent)}
+.sw-track{width:28px;height:16px;border-radius:999px;background:var(--accent);display:flex;align-items:center;padding:2px;transition:background .15s}
+.sw-dot{width:12px;height:12px;border-radius:50%;background:#fff;margin-left:auto;transition:margin .15s}
+.parse-label{font-size:11px;font-weight:500;color:var(--text-soft);letter-spacing:.08em;margin-left:4px}
+.chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:var(--bg-hover);font-size:12px;color:var(--text-soft);cursor:pointer;border:1px solid transparent}
+.chip:hover{border-color:var(--border-hi)}
+.chip.flash{background:var(--accent-soft);border-color:rgba(175,62,43,.3);color:var(--accent);font-weight:600}
+.parse-bar .spacer{flex:1}
+.tidy{font-size:12px;color:var(--success);display:n;align-items:center;gap:4px}
+.tidy.show{display:inline-flex}
+.btn-format{font-size:12px;font-weight:500;color:var(--accent);padding:4px 8px;border-radius:6px}
+.btn-format:hover{background:var(--accent-soft)}
+
+/* 预览工具行 */
+.preview-header{display:flex;align-items:center;gap:8px;height:48px;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.seg{display:flex;gap:2px;background:var(--bg-hover);border-radius:var(--r-btn);padding:2px}
+.seg-btn{display:flex;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:6px;font-size:12px;color:var(--text-soft)}
+.seg-btn.active{background:var(--bg-raised);color:var(--text);font-weight:500;box-shadow:var(--shadow-card)}
+.theme-chip{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:var(--r-btn);background:var(--bg-surface);border:1px solid var(--border);cursor:pointer}
+.theme-chip:hover{border-color:var(--border-hi)}
+.theme-chip .dots{display:flex;gap:2px}
+.theme-chip .dot{width:10px;height:10px;border-radius:50%}
+.theme-chip .tname{font-size:13px;font-weight:600}
+.preview-header .spacer{flex:1}
+
+/* 预览舞台 */
+.stage{flex:1;background:var(--bg-canvas);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;min-height:0}
+.phone{width:375px;height:min(600px,100%);background:var(--t-bg,#fff);border-radius:12px;border:1px solid var(--border-hi);box-shadow:0 4px 16px rgba(87,76,54,.10);display:flex;flex-direction:column;overflow:hidden;transition:background .25s}
+.phone-nav{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-bottom:1px solid var(--border);color:var(--t-primary,#3C434D);flex-shrink:0}
+.phone-nav .nav-title{font-size:13px;font-weight:500}
+.phone-nav .spacer{flex:1}
+.phone-nav .dot3{display:flex;gap:3px}
+.phone-nav .dot3 i{width:4px;height:4px;border-radius:50%;background:var(--text-muted)}
+.phone-hero{height:110px;background:linear-gradient(135deg,var(--t-accent,#4B9F78),var(--t-primary,#3C434D));flex-shrink:0;transition:background .25s}
+.phone-body{flex:1;overflow-y:auto;padding:18px;color:var(--t-primary,#3C434D)}
+.phone-body .pv-kicker{font-size:11px;font-weight:600;color:var(--t-accent,#4B9F78);letter-spacing:1.6px;margin-bottom:8px}
+.phone-body h1{font-size:22px;font-weight:600;line-height:1.35;margin-bottom:14px}
+.phone-body h2{font-size:17px;font-weight:600;margin:16px 0 10px}
+.phone-body p{font-size:15px;line-height:1.75;margin-bottom:12px}
+.phone-body ul{padding-left:20px;margin-bottom:12px}
+.phone-body li{font-size:15px;line-height:1.8}
+.phone-body .pv-quote{background:rgba(127,127,127,.06);border-left:3px solid var(--t-accent,#4B9F78);border-radius:6px;padding:12px;font-size:14px;line-height:1.6;margin-bottom:12px}
+.phone-body .pv-tags{font-size:13px;color:var(--t-accent,#4B9F78)}
+.phone-body strong{font-weight:600}
+
+/* 风格条 */
+.style-bar{height:104px;background:var(--bg-raised);border-top:1px solid var(--border);padding:14px 20px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+.sb-top{display:flex;align-items:center;gap:8px}
+.sb-kicker{font-size:11px;font-weight:500;color:var(--text-soft);letter-spacing:.08em}
+.sb-top .spacer{flex:1}
+.sb-all{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:var(--accent);padding:4px 8px;border-radius:6px}
+.sb-all:hover{background:var(--accent-soft)}
+.pill-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.pill{display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;border-radius:var(--r-btn);background:var(--bg-surface);border:1px solid var(--border);font-size:13px;color:var(--text-soft);white-space:nowrap;cursor:pointer;flex-shrink:0}
+.pill:hover{border-color:var(--border-hi)}
+.pill.active{background:var(--bg-raised);border-color:var(--accent);color:var(--accent);font-weight:600}
+.pill .dots{display:flex;gap:2px}
+.pill .dot{width:8px;height:8px;border-radius:50%}
+
+/* 底栏 */
+.footbar{display:flex;align-items:center;gap:8px;height:64px;padding:0 20px;background:var(--bg-raised);border-top:1px solid var(--border);flex-shrink:0}
+.foot-status{font-size:12px;color:var(--text-muted)}
+.foot-count{font-size:12px;color:var(--success)}
+.footbar .spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:var(--r-btn);font-size:13px;font-weight:500;color:var(--text-soft)}
+.btn.ghost:hover{background:var(--bg-hover);color:var(--text)}
+.btn.sec{border:1px solid var(--border-hi);background:var(--bg-raised)}
+.btn.sec:hover{border-color:var(--text-muted);color:var(--text)}
+.btn.sec:disabled{border-color:var(--border);color:var(--disabled);cursor:not-allowed}
+.btn.pri{background:var(--accent);color:#fff;font-weight:600;min-width:148px;justify-content:center;box-shadow:0 2px 10px rgba(175,62,43,.25)}
+.btn.pri:hover{background:var(--accent-hover)}
+.btn.pri.done{background:var(--success)}
+.btn .hint{font-size:11px;font-family:var(--mono);opacity:.75}
+
+/* ── 遮罩 / 抽屉 / 浮层 ── */
+.mask{position:fixed;inset:0;background:rgba(26,24,18,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:90}
+.mask.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100vh;background:var(--bg-raised);box-shadow:var(--shadow-float);z-index:100;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;gap:10px;height:64px;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.drawer-head h3{font-size:17px;font-weight:600}
+.drawer-head .count{font-size:12px;color:var(--text-muted)}
+.drawer-head .spacer{flex:1}
+.d-search{padding:12px 20px;flex-shrink:0}
+.d-search-inner{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:var(--r-btn);background:var(--bg-canvas);border:1px solid var(--border)}
+.d-search-inner input{flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--text)}
+.d-search-inner input::placeholder{color:var(--text-muted)}
+.d-chips{padding:0 20px 12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.d-chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.d-chip{height:30px;padding:0 12px;border-radius:var(--r-btn);background:var(--bg-canvas);font-size:13px;color:var(--text-soft);display:inline-flex;align-items:center}
+.d-chip:hover{color:var(--text)}
+.d-chip.active{background:var(--accent-soft);border:1px solid rgba(175,62,43,.3);color:var(--accent);font-weight:600}
+.d-grid{flex:1;overflow-y:auto;padding:4px 20px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.tpl-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;background:var(--bg-raised);position:relative}
+.tpl-card:hover{border-color:var(--border-hi)}
+.tpl-card.active{border-color:var(--accent);border-width:1.5px}
+.tpl-prev{height:64px;position:relative}
+.tpl-star{position:absolute;top:8px;right:8px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#fff}
+.tpl-badge{position:absolute;top:8px;left:8px;height:22px;padding:0 8px;border-radius:999px;background:var(--accent);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center}
+.tpl-info{padding:10px 12px 12px}
+.tpl-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.tpl-desc{font-size:11px;color:var(--text-muted)}
+
+.dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);background:var(--bg-raised);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:var(--shadow-float)}
+.dialog.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.dialog-inner{padding:20px 24px 24px;display:flex;flex-direction:column;gap:14px}
+.dlg-head{display:flex;align-items:center;gap:10px}
+.dlg-head h3{font-size:16px;font-weight:600}
+.dlg-head .spacer{flex:1}
+.dlg-desc{font-size:13px;line-height:1.7;color:var(--text-soft)}
+.step{display:flex;align-items:center;gap:10px}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-text{font-size:13px}
+.dlg-actions{display:flex;gap:10px}
+
+/* popover */
+.popover{position:absolute;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-float);z-index:120;padding:6px;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s}
+.popover.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+.pop-item{display:flex;align-items:center;gap:10px;width:100%;height:44px;padding:0 10px;border-radius:var(--r-btn);font-size:13px;color:var(--text)}
+.pop-item:hover{background:var(--bg-hover)}
+.pop-item .pop-ico{color:var(--text-soft);display:flex}
+.pop-sep{height:1px;background:var(--border);margin:6px 4px}
+
+/* toast */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(8px);display:flex;align-items:center;gap:10px;max-width:480px;min-height:44px;padding:8px 16px;border-radius:var(--r-btn);background:#2A2721;color:#fff;font-size:13px;box-shadow:0 8px 24px rgba(20,18,14,.18);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .undo{margin-left:auto;height:24px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.28);color:#fff;font-size:12px;font-weight:500;flex-shrink:0}
+.toast .undo:hover{background:rgba(255,255,255,.12)}
+.toast .t-sub{display:block;font-size:11px;color:rgba(255,255,255,.62);margin-top:2px}
+
+/* 原型控制条（非设计内容） */
+.proto{position:fixed;right:16px;bottom:16px;z-index:300;display:flex;gap:6px;background:rgba(42,39,33,.92);padding:8px 10px;border-radius:12px;align-items:center}
+.proto .tag{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.08em;padding-right:4px;border-right:1px solid rgba(255,255,255,.15);margin-right:2px}
+.proto button{height:26px;padding:0 10px;border-radius:6px;background:rgba(255,255,255,.1);color:#fff;font-size:11px}
+.proto button:hover{background:rgba(255,255,255,.2)}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="logo-mark">版</div>
+    <span class="logo-text">SuperSu 排版</span>
+    <span class="logo-div"></span>
+    <nav class="tabs">
+      <button class="tab active" id="tab-wechat">公众号排版</button>
+      <button class="tab" id="tab-social">小红书封面</button>
+    </nav>
+    <span class="spacer"></span>
+    <button class="top-btn" id="btn-tutorial">教程</button>
+    <button class="top-btn icon" id="btn-settings" title="设置">⚙</button>
+  </header>
+
+  <!-- 主区 -->
+  <main class="workspace">
+    <!-- 左栏 · 内容 -->
+    <section class="col-text">
+      <div class="editor-header">
+        <button class="btn-sm sec" id="btn-import">导入文档</button>
+        <button class="btn-sm ghost icon" id="btn-clear" title="清空">🗑</button>
+        <span class="spacer"></span>
+        <button class="btn-sm ghost" id="btn-insert">+ 插入</button>
+        <button class="btn-sm ghost" id="btn-demo">看示例</button>
+      </div>
+      <div class="editor-area"><div class="editor-inner">
+        <textarea id="editor" placeholder="粘贴或输入内容，自动排版" spellcheck="false"></textarea>
+      </div></div>
+      <div class="parse-bar" id="parse-bar">
+        <div class="sw-chip" id="sw-chip" title="粘贴/导入时自动转换富文本">
+          <span class="sw-ico">✦</span>
+          <span class="sw-text">智能转换</span>
+          <span class="sw-track"><span class="sw-dot"></span></span>
+        </div>
+        <span class="parse-label">识别结构</span>
+        <span id="chips"></span>
+        <span class="spacer"></span>
+        <span class="tidy" id="tidy">✓ 已自动整理 3 处</span>
+        <button class="btn-format" id="btn-format">整理格式 →</button>
+      </div>
+    </section>
+
+    <div class="col-divider"></div>
+
+    <!-- 右栏 · 预览 + 风格 -->
+    <section class="col-preview">
+      <div class="preview-header">
+        <div class="seg">
+          <button class="seg-btn" data-mode="web">网页 HTML</button>
+          <button class="seg-btn active" data-mode="phone">手机预览</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="theme-chip" id="theme-chip">
+          <span class="dots" id="chip-dots"></span>
+          <span class="tname" id="chip-name">素页 · 竹青</span>
+          <span>▾</span>
+        </button>
+      </div>
+      <div class="stage">
+        <div class="phone" id="phone">
+          <div class="phone-nav">
+            <span>‹</span><span class="nav-title">公众号文章</span>
+            <span class="spacer"></span>
+            <span class="dot3"><i></i><i></i><i></i></span>
+          </div>
+          <div class="phone-hero"></div>
+          <div class="phone-body" id="pv-body"></div>
+        </div>
+      </div>
+      <div class="style-bar">
+        <div class="sb-top">
+          <span class="sb-kicker">最近使用</span>
+          <span class="spacer"></span>
+          <button class="sb-all" id="btn-all-tpl">全部 164 套 ›</button>
+        </div>
+        <div class="pill-row" id="pill-row"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 底栏 -->
+  <footer class="footbar">
+    <span class="foot-status" id="foot-status">已保存 · 14:32</span>
+    <span class="foot-count" id="foot-count"></span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="btn-history">历史</button>
+    <button class="btn sec" id="btn-push">推送草稿箱</button>
+    <button class="btn pri" id="btn-copy">复制 <span class="hint">Ctrl+Enter</span></button>
+  </footer>
+</div>
+
+<!-- 遮罩 -->
+<div class="mask" id="mask"></div>
+
+<!-- 模板库抽屉 -->
+<aside class="drawer" id="drawer-tpl" style="width:560px">
+  <div class="drawer-head">
+    <h3>模板库</h3><span class="count">164 套</span>
+    <span class="spacer"></span>
+    <button class="top-btn icon" data-close="drawer-tpl">✕</button>
+  </div>
+  <div class="d-search"><div class="d-search-inner">
+    <span style="color:var(--text-muted)">⌕</span>
+    <input id="tpl-search" placeholder="搜索族名或色名…">
+  </div></div>
+  <div class="d-chips">
+    <div class="d-chip-row">
+      <button class="d-chip active" data-group="all">全部 164</button>
+      <button class="d-chip" data-group="fav">我的收藏 12</button>
+      <button class="d-chip" data-group="recent">最近使用 8</button>
+    </div>
+    <div class="d-chip-row" id="family-row"></div>
+  </div>
+  <div class="d-grid" id="tpl-grid"></div>
+</aside>
+
+<!-- 历史抽屉 -->
+<aside class="drawer" id="drawer-history" style="width:480px">
+  <div class="drawer-head">
+    <h3>推送历史</h3>
+    <span class="spacer"></span>
+    <button class="top-btn" id="btn-clear-history">清空</button>
+    <button class="top-btn icon" data-close="drawer-history">✕</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px" id="history-list"></div>
+</aside>
+
+<!-- 复制指引浮层 -->
+<div class="dialog" id="dialog-copy" style="width:560px;border-radius:14px">
+  <div class="dialog-inner">
+    <div class="dlg-head">
+      <span style="color:var(--text-soft);display:flex">⚠</span>
+      <h3>无法自动复制</h3>
+      <span class="spacer"></span>
+      <button class="top-btn icon" data-close="dialog-copy">✕</button>
+    </div>
+    <p class="dlg-desc">当前浏览器环境不支持自动写入剪贴板（常见于局域网 IP 或旧版浏览器）。按下面三步手动复制，效果完全一样：</p>
+    <div class="step"><span class="step-num">1</span><span class="step-text">点一下右侧预览区，按 Ctrl+A 全选</span></div>
+    <div class="step"><span class="step-num">2</span><span class="step-text">按 Ctrl+C 复制</span></div>
+    <div class="step"><span class="step-num">3</span><span class="step-text">切到公众号后台，按 Ctrl+V 粘贴即可</span></div>
+    <div class="dlg-actions">
+      <button class="btn sec">复制 HTML 源码</button>
+      <span style="flex:1"></span>
+      <button class="btn pri" style="min-width:0" data-close="dialog-copy">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- 渲染错误浮层 -->
+<div class="dialog" id="dialog-error" style="width:480px;border-radius:14px">
+  <div class="dialog-inner">
+    <div class="dlg-head">
+      <span style="color:var(--accent);display:flex">⚠</span>
+      <h3>渲染出错</h3>
+    </div>
+    <p class="dlg-desc">你的原文已保留，可以重试或稍后再试。</p>
+    <div class="dlg-actions">
+      <button class="btn pri" style="min-width:0" id="btn-retry">重试</button>
+      <button class="btn ghost" data-close="dialog-error">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 插入模块 popover -->
+<div class="popover" id="popover-insert"></div>
+
+<!-- toast -->
+<div class="toast" id="toast"></div>
+
+<!-- 原型控制条（非设计内容） -->
+<div class="proto">
+  <span class="tag">原型控制</span>
+  <button id="proto-rich">模拟富文本粘贴</button>
+  <button id="proto-copyfail">模拟复制失败</button>
+  <button id="proto-error">模拟渲染错误</button>
+  <button id="proto-empty">清空</button>
+</div>
+
+<script>
+/* ── 数据 ── */
+const THEMES = [
+  {name:'素页 · 竹青', primary:'#3C434D', accent:'#4B9F78', bg:'#FFFFFF', desc:'墨灰为底，竹青点睛'},
+  {name:'素页 · 湖蓝', primary:'#3C434D', accent:'#4481A7', bg:'#FFFFFF', desc:'墨灰为底，湖蓝点睛'},
+  {name:'素页 · 朱砂', primary:'#3C434D', accent:'#A75144', bg:'#FFFFFF', desc:'墨灰为底，朱砂点睛'},
+  {name:'素页 · 紫藤', primary:'#3C434D', accent:'#9049A2', bg:'#FFFFFF', desc:'墨灰为底，紫藤点睛'},
+  {name:'素页 · 麦金', primary:'#3C434D', accent:'#A48A46', bg:'#FFFFFF', desc:'墨灰为底，麦金点睛'},
+  {name:'素页 · 铁灰', primary:'#3C434D', accent:'#686E77', bg:'#FFFFFF', desc:'墨灰为底，铁灰点睛'},
+  {name:'墨韵', primary:'#111111', accent:'#5A5A5A', bg:'#FFFFFF', desc:'浓墨纸感，适合深度长文'},
+  {name:'夜航 · 藏蓝', primary:'#D9E2EF', accent:'#4B7FE7', bg:'#0B1220', desc:'深色反相，科技感夜间阅读'},
+  {name:'暮色 · 琥珀', primary:'#2A2118', accent:'#D98A1F', bg:'#FFFFFF', desc:'暖棕底，琥珀色点缀'},
+  {name:'庙会 · 湖蓝', primary:'#3B2B1D', accent:'#2C99DD', bg:'#FFF7EC', desc:'暖米底，节庆感配色'},
+  {name:'信笺 · 竹青', primary:'#3B2B1D', accent:'#3AD08A', bg:'#FFF7EC', desc:'信纸质感，青绿点睛'},
+  {name:'钢印 · 铁灰', primary:'#3B2B1D', accent:'#5B6B84', bg:'#FFF7EC', desc:'钢印质感，冷灰基调'},
+];
+const FAMILIES = ['卷宗','庙会','信笺','素页','夜航','钢印'];
+const SAMPLE = `# 我完成了一个阳光星盘系统
+
+今天分享一个有趣的项目——
+
+## 核心功能
+
+- 它可以精确计算出生时刻的星盘图
+- 支持 12 宫位相位解读
+- 用行星的落点分析个人特质
+
+## 开发初衷
+
+市面上大多工具都是英文的，我想做一个完全本地化、中文友好的版本，数据不外传。
+
+> 数据全部在本地完成，隐私无忧。
+
+#阳光星盘 #个人项目 #星盘工具`;
+
+const MODULES = [
+  ['大标题','# '],['二级标题','## '],['有序列表','1. '],['无序列表','- '],
+  ['卡片组',':::cards\n\n### 第一项\n\n一句话说明\n\n:::'],['要点总结',':::summary\n\n把结论写在这里。\n\n:::'],
+  ['行动引导',':::cta\n\n给下一步一个自然入口。\n\n:::'],['关键数字',':::stat\n\n42%\n\n转化率提升\n\n:::'],
+  ['步骤流程',':::steps\n\n第一步\n\n第二步\n\n第三步\n\n:::'],['时间线',':::timeline\n\n2026-01：项目启动\n\n:::'],['引文卡',':::quote\n\n留下一句能记住的话。\n\n:::'],
+];
+
+const $ = s => document.querySelector(s);
+const editor = $('#editor'), pvBody = $('#pv-body');
+
+/* ── 主题 ── */
+let activeTheme = THEMES[0];
+function applyTheme(t){
+  activeTheme = t;
+  const phone = $('#phone');
+  phone.style.setProperty('--t-primary', t.primary);
+  phone.style.setProperty('--t-accent', t.accent);
+  phone.style.setProperty('--t-bg', t.bg);
+  $('#chip-name').textContent = t.name;
+  $('#chip-dots').innerHTML = [t.primary,t.accent,t.bg]
+    .map(c=>`<span class="dot" style="background:${c};${c==='#FFFFFF'?'border:1px solid var(--border-hi)':''}"></span>`).join('');
+  document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active', p.dataset.name===t.name));
+  document.querySelectorAll('.tpl-card').forEach(c=>c.classList.toggle('active', c.dataset.name===t.name));
+  document.querySelectorAll('.tpl-card .tpl-badge').forEach(b=>b.remove());
+  const active = document.querySelector(`.tpl-card[data-name="${t.name}"]`);
+  if(active) active.insertAdjacentHTML('afterbegin','<span class="tpl-badge">使用中</span>');
+  try{ localStorage.setItem('proto.theme', t.name); }catch(e){}
+}
+function renderPills(){
+  $('#pill-row').innerHTML = THEMES.slice(0,6).map(t=>
+    `<button class="pill${t.name===activeTheme.name?' active':''}" data-name="${t.name}">
+      <span class="dots">${[t.primary,t.accent,t.bg].map(c=>`<span class="dot" style="background:${c};${c==='#FFFFFF'?'border:1px solid var(--border-hi)':''}"></span>`).join('')}</span>
+      ${t.name}</button>`).join('');
+  document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{
+    const t = THEMES.find(x=>x.name===p.dataset.name); if(t) applyTheme(t);
+  });
+}
+function renderTplGrid(group='all', kw=''){
+  const k = kw.trim();
+  let list = THEMES;
+  if(group==='fav') list = THEMES.filter((t,i)=>i%4===1);
+  if(group==='recent') list = THEMES.slice(0,5);
+  if(FAMILIES.includes(group)) list = THEMES.filter(t=>t.name.startsWith(group));
+  if(k) list = THEMES.filter(t=>t.name.includes(k)||t.desc.includes(k));
+  $('#tpl-grid').innerHTML = list.map(t=>
+    `<div class="tpl-card${t.name===activeTheme.name?' active':''}" data-name="${t.name}">
+      <div class="tpl-prev" style="background:linear-gradient(135deg,${t.accent},${t.primary})">
+        <span class="tpl-star">☆</span>
+        ${t.name===activeTheme.name?'<span class="tpl-badge">使用中</span>':''}
+      </div>
+      <div class="tpl-info"><div class="tpl-name">${t.name}</div><div class="tpl-desc">${t.desc}</div></div>
+    </div>`).join('') || '<div style="grid-column:1/-1;color:var(--text-muted);font-size:13px;padding:20px 0">没有匹配的主题</div>';
+  document.querySelectorAll('.tpl-card').forEach(c=>c.onclick=()=>{
+    const t = THEMES.find(x=>x.name===c.dataset.name); if(t){ applyTheme(t); toast(`已切换到「${t.name}」`); }
+  });
+}
+function renderFamilies(){
+  $('#family-row').innerHTML = FAMILIES.map(f=>`<button class="d-chip" data-group="${f}">${f} 12</button>`).join('');
+  document.querySelectorAll('.d-chip').forEach(c=>c.onclick=()=>{
+    document.querySelectorAll('.d-chip').forEach(x=>x.classList.toggle('active',x===c));
+    renderTplGrid(c.dataset.group, $('#tpl-search').value);
+  });
+}
+
+/* ── 渲染（极简 MD → 预览，含 pangu 演示） ── */
+function pangu(s){ return s.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g,'$1 $2').replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g,'$1 $2'); }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function inline(s){ return esc(pangu(s)).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'); }
+function renderPreview(md){
+  let html='', inList=false;
+  for(const raw of md.split('\n')){
+    const t = raw.trim();
+    if(!t){ if(inList){html+='</ul>';inList=false;} continue; }
+    const close = ()=>{ if(inList){html+='</ul>';inList=false;} };
+    if(t.startsWith('### ')){ close(); html+=`<h2>${inline(t.slice(4))}</h2>`; }
+    else if(t.startsWith('## ')){ close(); html+=`<h2>${inline(t.slice(3))}</h2>`; }
+    else if(t.startsWith('# ')){ close(); html+=`<div class="pv-kicker">${inline(t.slice(2)).slice(0,20)}</div><h1>${inline(t.slice(2))}</h1>`; }
+    else if(t.startsWith('> ')){ close(); html+=`<div class="pv-quote">${inline(t.slice(2))}</div>`; }
+    else if(t.startsWith('- ')){ if(!inList){html+='<ul>';inList=true;} html+=`<li>${inline(t.slice(2))}</li>`; }
+    else if(/^:::/.test(t)||/^:::$/.test(t)){ continue; }
+    else { close(); html+=`<p>${inline(t)}</p>`; }
+  }
+  if(inList) html+='</ul>';
+  if(!html) html = '<p style="color:var(--text-muted);text-align:center;padding:40px 0">在左侧输入内容，这里实时预览</p>';
+  pvBody.innerHTML = html;
+}
+function updateParse(md){
+  const lines = md.split('\n').map(l=>l.trim()).filter(Boolean);
+  const h1 = lines.filter(l=>/^# /.test(l)).length;
+  const h2 = lines.filter(l=>/^## /.test(l)).length;
+  const li = lines.filter(l=>/^- /.test(l)).length;
+  const qu = lines.filter(l=>/^> /.test(l)).length;
+  const mod = lines.filter(l=>/^:::\w/.test(l)).length;
+  const parts = [];
+  if(h1) parts.push(['大标题',h1]); if(h2) parts.push(['小节',h2]);
+  if(li) parts.push(['列表',li]); if(qu) parts.push(['引用',qu]); if(mod) parts.push(['::: 模块',mod]);
+  $('#chips').innerHTML = parts.map(([n,c])=>`<button class="chip">${n} ×${c}</button>`).join('');
+  $('#foot-count').textContent = md.replace(/\s/g,'').length + ' 字 · 结构完整';
+  $('#foot-status').textContent = '已保存 · ' + new Date().toTimeString().slice(0,5);
+  $('#btn-push').disabled = !md.trim();
+  $('#btn-copy').disabled = !md.trim();
+  $('#btn-copy').classList.toggle('done', false);
+  $('#btn-copy').innerHTML = '复制 <span class="hint">Ctrl+Enter</span>';
+}
+let timer=null;
+editor.addEventListener('input', ()=>{
+  clearTimeout(timer);
+  timer = setTimeout(()=>{ renderPreview(editor.value); updateParse(editor.value); flashChips(); }, 400);
+});
+function flashChips(){
+  document.querySelectorAll('.chip').forEach(c=>{ c.classList.add('flash'); setTimeout(()=>c.classList.remove('flash'),400); });
+}
+
+/* ── toast ── */
+let toastTimer=null;
+function toast(msg, opts={}){
+  const el = $('#toast');
+  el.innerHTML = `<span>${msg}${opts.sub?`<span class="t-sub">${opts.sub}</span>`:''}</span>`;
+  if(opts.undo){
+    const b = document.createElement('button');
+    b.className='undo'; b.textContent='撤销';
+    b.onclick = ()=>{ opts.undo(); hideToast(); };
+    el.appendChild(b);
+  }
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, opts.undo?5000:3000);
+}
+function hideToast(){ $('#toast').classList.remove('show'); }
+
+/* ── 抽屉 / 浮层 ── */
+const mask = $('#mask');
+function openPanel(id){
+  mask.classList.add('show');
+  if(id.startsWith('drawer')) $('#'+id).classList.add('open');
+  else $('#'+id).classList.add('show');
+}
+function closeAll(){
+  mask.classList.remove('show');
+  document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.dialog').forEach(d=>d.classList.remove('show'));
+  $('#popover-insert').classList.remove('show');
+}
+mask.onclick = closeAll;
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAll(); });
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeAll);
+
+/* ── 顶栏 tab ── */
+$('#tab-social').onclick = ()=> toast('小红书封面页不在本次重设计范围，原型仅演示公众号排版页');
+$('#btn-tutorial').onclick = ()=> toast('三步：粘贴内容 → 看效果/换风格 → 复制到公众号');
+$('#btn-settings').onclick = ()=> toast('设置面板保持现有功能，视觉换新');
+
+/* ── 编辑器头部 ── */
+$('#btn-demo').onclick = ()=>{
+  if(editor.value.trim()){ editor.value=''; }
+  else { editor.value = SAMPLE; }
+  renderPreview(editor.value); updateParse(editor.value);
+  if(editor.value.trim()) toast('已载入示例文章');
+};
+$('#btn-clear').onclick = ()=>{
+  if(!editor.value.trim()) return;
+  editor.value=''; renderPreview(''); updateParse('');
+  $('#btn-demo').textContent='看示例';
+  $('#tidy').classList.remove('show');
+};
+$('#btn-import').onclick = ()=> toast('导入文档：选择 .docx 后自动转换为 Markdown（原型示意）');
+
+/* 智能转换开关 */
+$('#sw-chip').onclick = ()=>{
+  const chip = $('#sw-chip');
+  const off = chip.classList.toggle('off');
+  toast(off ? '智能转换已关闭：粘贴富文本时将保留纯文本' : '智能转换已开启：粘贴富文本自动转 Markdown');
+};
+/* 整理格式 */
+$('#btn-format').onclick = ()=>{
+  editor.value = editor.value.split('\n').map(l=>l.trim()).join('\n');
+  renderPreview(editor.value); updateParse(editor.value);
+  $('#tidy').classList.add('show');
+  setTimeout(()=>$('#tidy').classList.remove('show'), 3000);
+};
+
+/* ── 复制 / 推送 / 历史 ── */
+$('#btn-copy').onclick = ()=>{
+  const btn = $('#btn-copy');
+  btn.classList.add('done');
+  btn.innerHTML = '✓ 已复制';
+  setTimeout(()=>{ btn.classList.remove('done'); btn.innerHTML = '复制 <span class="hint">Ctrl+Enter</span>'; }, 1500);
+  toast('已复制富文本，可直接粘贴到公众号后台');
+};
+$('#btn-push').onclick = ()=> toast('已推送至草稿箱');
+$('#btn-history').onclick = ()=>{ openPanel('drawer-history'); };
+$('#btn-clear-history').onclick = ()=>{ $('#history-list').innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px 0">暂无记录</div>'; toast('已清空'); };
+$('#btn-all-tpl').onclick = ()=>{ openPanel('drawer-tpl'); };
+$('#theme-chip').onclick = ()=>{ openPanel('drawer-tpl'); };
+$('#tpl-search').addEventListener('input', e=>{
+  const active = document.querySelector('.d-chip.active');
+  renderTplGrid(active?active.dataset.group:'all', e.target.value);
+});
+
+/* 历史数据 */
+const HISTORY = [
+  {time:'今天 14:32', title:'我完成了一个阳光星盘系统', theme:'素页 · 竹青', status:'已推送'},
+  {time:'昨天 21:07', title:'公众号排版工具改版记录', theme:'墨韵', status:'已复制'},
+  {time:'10-14 09:15', title:'本地化工具的隐私设计', theme:'夜航 · 藏蓝', status:'已推送'},
+];
+function renderHistory(){
+  $('#history-list').innerHTML = HISTORY.map(h=>
+    `<div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">${h.time}</span><span style="flex:1"></span><span style="font-size:11px;color:var(--text-soft)">${h.theme}</span></div>
+      <div style="font-size:13px;font-weight:500">${h.title}</div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:500;color:var(--accent);cursor:pointer">恢复</span><span style="flex:1"></span><span style="font-size:11px;color:var(--success)">${h.status}</span></div>
+    </div>`).join('');
+}
+renderHistory();
+
+/* ── 插入模块 popover ── */
+const pop = $('#popover-insert');
+pop.innerHTML = MODULES.map((m,i)=>
+  `${i===4?'<div class="pop-sep"></div>':''}<button class="pop-item" data-i="${i}"><span class="pop-ico">✦</span>${m[0]}</button>`).join('');
+$('#btn-insert').onclick = (e)=>{
+  const r = e.currentTarget.getBoundingClientRect();
+  pop.style.top = (r.bottom+6)+'px';
+  pop.style.left = Math.min(r.left-232, window.innerWidth-296)+'px';
+  pop.classList.toggle('show');
+};
+pop.querySelectorAll('.pop-item').forEach(b=>b.onclick=()=>{
+  const [name, tpl] = MODULES[+b.dataset.i];
+  const s = editor.selectionStart ?? editor.value.length;
+  editor.value = editor.value.slice(0,s) + '\n' + tpl + '\n' + editor.value.slice(s);
+  renderPreview(editor.value); updateParse(editor.value);
+  pop.classList.remove('show');
+  toast(`已插入「${name}」模块`);
+});
+document.addEventListener('click', e=>{
+  if(!pop.contains(e.target) && e.target!==$('#btn-insert')) pop.classList.remove('show');
+});
+
+/* ── 原型控制（非设计内容） ── */
+$('#proto-empty').onclick = ()=>{ editor.value=''; renderPreview(''); updateParse(''); $('#btn-demo').textContent='看示例'; };
+$('#proto-error').onclick = ()=>{ openPanel('dialog-error'); };
+$('#proto-copyfail').onclick = ()=>{ openPanel('dialog-copy'); };
+$('#btn-retry').onclick = ()=>{ closeAll(); toast('重试成功，预览已恢复'); };
+const RICH_HTML = '<h1>周末 Citywalk 路线推荐</h1><p>这条路线<strong>全程 4 公里</strong>，适合周末慢走，老人小孩都能跟上。</p><h2>路线安排</h2><ul><li>老火车站文创园（拍工业风照片）</li><li>滨江步道（日落机位）</li><li>终点咖啡街（歇脚）</li></ul><blockquote>建议下午 3 点出发，刚好赶上日落。</blockquote>';
+function htmlToMd(html){
+  return html
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi,'# $1\n\n').replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi,'## $1\n\n')
+    .replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi,'### $1\n\n').replace(/<li[^>]*>([\s\S]*?)<\/li>/gi,'- $1\n')
+    .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi,'> $1\n\n')
+    .replace(/<(strong|b)>([\s\S]*?)<\/(strong|b)>/gi,'**$2**').replace(/<(em|i)>([\s\S]*?)<\/(em|i)>/gi,'*$2*')
+    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi,'$1\n\n').replace(/<br\s*\/?>/gi,'\n')
+    .replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+}
+$('#proto-rich').onclick = ()=>{
+  const before = editor.value;
+  editor.value = htmlToMd(RICH_HTML);
+  renderPreview(editor.value); updateParse(editor.value); flashChips();
+  $('#tidy').classList.add('show'); setTimeout(()=>$('#tidy').classList.remove('show'),3000);
+  toast('已从富文本粘贴，自动转换为 Markdown', { undo: ()=>{
+    editor.value = before; renderPreview(before); updateParse(before);
+    toast('已恢复粘贴前的原文');
+  }});
+};
+
+/* ── 快捷键 ── */
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('#btn-copy').click(); }
+});
+
+/* ── 初始化 ── */
+renderPills(); renderFamilies(); renderTplGrid();
+try{ const saved = localStorage.getItem('proto.theme'); if(saved){ const t = THEMES.find(x=>x.name===saved); if(t) applyTheme(t); else applyTheme(THEMES[0]); } else applyTheme(THEMES[0]); }catch(e){ applyTheme(THEMES[0]); }
+editor.value = SAMPLE;
+renderPreview(editor.value); updateParse(editor.value);
+</script>
+</body>
+</html>

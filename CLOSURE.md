@@ -236,3 +236,32 @@
 
 ### 影响 / 风险
 低。技法补丁仅对新族生效、初代 47 套字节级回归证明未受影响；斑马纹修复亮底零影响。待用户评审审查台后如需调手感，改 `build_themes.py` 对应族 patch / `FAMILY_TONES` 后重跑即可（生成物勿手改）。
+
+---
+
+## 任务 5：公众号页重设计（设计阶段）+ 自动编辑三模式（2026-10-16 → 10-18）
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `docs/wechat-page-redesign.md` | 新增：设计系统 tokens / 交互规范 / 前端契约 / P0-P3 落地顺序 |
+| `docs/prototypes/wechat-redesign.html` | 新增：完整交互原型（单文件零依赖，可点可玩） |
+| `docs/prototypes/first-principles-prototype.html` | 新增：简化多模板原型（方向验证，非落地基准） |
+| `core/preprocessor.py` | 新增四模式（conservative/longform/tutorial/auto）+ 首句标题规则收紧（290→396 行） |
+| `tests/test_e2e.py` | +4 项自动编辑测试（56/56） |
+| `scripts/walkthrough_autedit.py` | 新增：自动编辑有头走查（3 类输入） |
+| `templates/index.html` | placeholder 文案更新（1 行；界面重设计未落地） |
+
+### 验证（真实执行）
+- `tests/test_e2e.py` **56/56 通过**（含新增 4 项：散文不强提标题 / 长文自动分层 / tutorial 序数转列表 / conservative 不加标题）。
+- 完整交互原型 6 张有头截图验证（Playwright + 系统 Chrome）：主界面 / 模板库抽屉 / 深色主题夜航反相 / 富文本粘贴 toast+撤销 / 复制失败浮层 / 插入 popover。
+- 设计稿 5 帧经 Ardot `capture_layout` + `capture_screenshot` 双验证；修复 spacer 默认 100px 高度溢出、引用块文字撑高、解析条 padding 撑爆、tab 描边参数等问题。
+
+### 回滚点
+- 本次提交：`git log --oneline -1`（提交信息 `feat(design+preprocess): 公众号页重设计设计稿与原型 + 自动编辑三模式`）；回滚：`git revert <hash>`。
+- 设计稿为云端文件（Ardot fileId 737147257801936），不参与代码回滚。
+
+### 影响 / 风险
+- `preprocess` 默认行为变化：auto 模式首行须确像标题才提升为 `#`；长散文自动补 `###` 小标题（≤5 个、间隔 ≥2 段）。既有 56 项测试全过，无回归。
+- 三模式暂无 UI 入口（P1 接线项，用户已拍板「默认 auto + 设置可切」）。
+- 界面重设计 0% 落地（P0 待执行，落地基准 = 完整版原型）。

@@ -23,7 +23,7 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 app.py                  Flask 主应用（路由 + SSE + API）
 core/
   format_engine.py      排版引擎（164 主题，Markdown → 微信 HTML）
-  preprocessor.py       纯文本 → Markdown（正则规则，零延迟）
+  preprocessor.py       纯文本 → Markdown（纯规则零延迟；四模式 conservative/longform/tutorial/auto，⚠️ 尚无 UI 入口待接线）
   image_search.py       联网搜图（Wikimedia/Pexels 双轨；免 key 默认可用）
   ai_client.py          多平台 LLM 客户端（润色/摘要/排版）
   image_gen.py          AI 封面图生成（LLM 关键词 → 文生图 → PIL 叠加）
@@ -73,7 +73,7 @@ python app.py                    # http://127.0.0.1:5000（等效，需自己先
 #      中文启动提示由 app.py 打印。
 
 # 测试
-python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 52/52 通过
+python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 56/56 通过
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
 python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过

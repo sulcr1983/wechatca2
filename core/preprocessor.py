@@ -57,8 +57,98 @@ def _to_list_items(body: str):
     return lines or None
 
 
-def preprocess(text: str) -> str:
-    """将纯文本转为基础 Markdown，覆盖 90% 常见结构，无需 LLM 等待"""
+# ── 自动编辑（受 GZHcomposing 启发，clean-room 实现）──────────────────────
+# 参考 YiShu5/GZHcomposing 的 js/preprocess.js（3 模式：保守整理 / 长文分层 /
+# 教程步骤）。仅借鉴其算法思路，未复制其代码。
+_MODES = ('auto', 'conservative', 'longform', 'tutorial')
+
+# 教程模式：行首命中即视为小标题的标签
+_TUTORIAL_LABEL_RE = re.compile(
+    r'^(准备工作|操作步骤|操作说明|注意事项|常见问题|温馨提示|使用说明|'
+    r'第一步|第二步|第三步|第四步|第五步|方法|原理|小结|总结|前言|引言|背景|结语)$'
+)
+# 教程模式：中文序数/次序词开头的行 → 列表项
+_CN_ORDINAL_RE = re.compile(r'^(第[一二三四五六七八九十\d]+[、.．]|首先|其次|然后|最后|其一|其二)[：:]?\s*')
+# 长文分层：段落为「短标签：内容」时把标签提升为小标题（白名单避免误判）
+_AUTO_HEADING_LABEL_RE = re.compile(
+    r'^(核心观点|核心|结论|问题|原因|方法|步骤|要点|建议|误区|趋势|对比|'
+    r'本质|关键|原理|背景|影响|好处|风险|实践|提醒|总结|前言|引言|优势|劣势|'
+    r'区别|真相|底层逻辑|底层|观点|提示|说明)\s*[：:]\s*(.+)$'
+)
+
+
+def _looks_like_title(text: str) -> bool:
+    """判断一行是否像标题（短、无句尾标点、无句子功能词、无引用/列表标记）"""
+    s = text.strip()
+    if not s or len(s) > 24:
+        return False
+    if s.startswith(('#', '>', '-', '*', '```', '|', ':::')):
+        return False
+    if s.startswith(('「', '\u201c', '"', '\u300e')):
+        return False
+    if re.search(r'[。！？，、；：…）)】》」”]$', s):
+        return False
+    if _SENTENCE_WORDS.search(s):
+        return False
+    return True
+
+
+def _resolve_mode(text: str, mode: str) -> str:
+    """auto 模式：短文或已有结构 → conservative；长散文无结构 → longform"""
+    if mode != 'auto':
+        return mode
+    paragraphs = [p for p in re.split(r'\n\s*\n', text.strip()) if p.strip()]
+    if len(paragraphs) <= 3:
+        return 'conservative'
+    for p in paragraphs[:4]:
+        first = p.strip().split('\n')[0]
+        if re.match(r'^#{1,6}\s', first):
+            return 'conservative'
+        if re.match(r'^[一二三四五六七八九十\d]+[、.．)]\s', first):
+            return 'conservative'
+        if len(first) <= 12 and not _looks_like_sentence(first) and first[-1] not in '。！？，、；：）)】》」”':
+            return 'conservative'
+    return 'longform'
+
+
+def _insert_auto_headings(md_lines: list) -> list:
+    """长散文（尚无任何标题）按「标签：内容」补至多 5 个 ### 小标题，间隔 >= 2 段。"""
+    if any(l.startswith('#') for l in md_lines):
+        return md_lines
+    body = [l for l in md_lines if l.strip() and not l.startswith(('>', '-', '*'))]
+    if len(body) < 4:
+        return md_lines
+    out, since, count = [], 0, 0
+    for l in md_lines:
+        if count >= 5 or not l.strip() or l.startswith(('#', '>', '-', '*')):
+            out.append(l)
+            continue
+        m = _AUTO_HEADING_LABEL_RE.match(l.strip())
+        if m and since >= 2:
+            out.append(f'### {m.group(1)}')
+            out.append(m.group(2).strip())
+            count += 1
+            since = 0
+            continue
+        since += 1
+        out.append(l)
+    return out
+
+
+def preprocess(text: str, mode: str = 'auto') -> str:
+    """将纯文本转为基础 Markdown（无需 LLM）。
+
+    启发式设计受 GZHcomposing (YiShu5/GZHcomposing, js/preprocess.js) 思路启发：
+    仅借鉴其 3 模式（保守整理 / 长文分层 / 教程步骤）的算法，未复制其代码。
+
+    mode:
+      - conservative: 仅识别显式结构（序号/短行标题、列表、引用、代码块），不主动加标题。
+      - longform:     在 conservative 基础上，对长散文按「标签：内容」补少量小标题。
+      - tutorial:     强化教程标签（准备工作/注意事项/…）与小标题、中文序数转列表。
+      - auto(默认):   短文或已有结构→conservative；长散文无结构→longform。
+    """
+    mode = mode if mode in _MODES else 'auto'
+    effective = _resolve_mode(text, mode)
     lines = text.strip().split('\n')
     md_lines = []
     in_code_block = False   # 我们为「4 空格缩进」自动开的围栏
@@ -122,6 +212,18 @@ def preprocess(text: str) -> str:
                 container_depth -= 1
             continue
 
+        # 教程模式：行首标签 → 小标题
+        if mode == 'tutorial' and _TUTORIAL_LABEL_RE.match(stripped):
+            md_lines.append(f'## {stripped}')
+            continue
+
+        # 教程模式：中文序数/次序词开头 → 列表项
+        if mode == 'tutorial':
+            m = _CN_ORDINAL_RE.match(stripped)
+            if m:
+                md_lines.append('- ' + _CN_ORDINAL_RE.sub('', stripped))
+                continue
+
         # 有序号标题：一、/ 1. / (1) / ① 等
         if re.match(
             r'^[一二三四五六七八九十\d]+[、.．)]\s*.{1,40}$',
@@ -130,7 +232,7 @@ def preprocess(text: str) -> str:
             md_lines.append(f'## {stripped}')
             continue
 
-        # 并列清单：箭头行（掏手机 → 找 App → 等 App 打开 → 点开门）/ 项目符号行
+        # 并列清单：箭头行 / 项目符号行
         items = _to_list_items(stripped)
         if items:
             md_lines.extend(items)
@@ -143,7 +245,7 @@ def preprocess(text: str) -> str:
         is_isolated = prev_empty and next_empty
 
         has_comma = ',' in stripped or '，' in stripped
-        
+
         # 排除常见非标题词（单字、内容词等）
         common_non_title = {'内容', '简介', '说明', '备注', '注意', '提示', '参考', '来源', '链接'}
 
@@ -184,14 +286,18 @@ def preprocess(text: str) -> str:
             prev_empty = False
             result.append(line)
 
-    # 将第一行非空内容自动作为大标题（如果尚未标记为标题）
-    for i, line in enumerate(result):
-        if line.strip():
-            stripped = line.strip()
-            # 如果第一行不是标题、引用、列表、代码块等结构化标记
-            if not stripped.startswith(('#', '>', '-', '*', '```', '|')):
-                result[i] = f'# {stripped}'
-            break
+    # 长文分层：补自动小标题（仅 longform，且原文尚无任何标题）
+    if effective == 'longform':
+        result = _insert_auto_headings(result)
+
+    # 首行若像标题，提升为大标题（conservative 不提升；其余模式在首行确为标题时提升）
+    if mode != 'conservative':
+        for j, line in enumerate(result):
+            if line.strip():
+                s = line.strip()
+                if not s.startswith(('#', '>', '-', '*', '```', '|')) and _looks_like_title(s):
+                    result[j] = f'# {s}'
+                break
 
     return '\n'.join(result)
 

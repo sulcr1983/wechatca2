@@ -48,6 +48,9 @@ public/prototypes/
 # 本地启动脚本
 start_app.ps1
 
+# Playwright CLI 走查产物（snapshot/截图，会话级，不入库）
+.playwright-cli/
+
 # IDE
 .vscode/
 .idea/

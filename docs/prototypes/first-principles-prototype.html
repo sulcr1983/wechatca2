@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperSu 第一性原型 v2（多模板版）</title>
+<style>
+:root{
+  --bg-canvas:#F7F4EE; --bg-raised:#FFFFFF; --bg-surface:#FAF9F5;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --text-soft:#6E6759; --text-muted:#9B9484;
+  --accent:#AF3E2B; --accent-hover:#96331F;
+  --r-card:16px; --r-btn:8px;
+  --font:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg-canvas);color:var(--text);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;border:none;background:none;cursor:pointer}
+.app{display:flex;flex-direction:column;height:100vh;background:var(--bg-raised);min-width:1024px}
+.topbar{display:flex;align-items:center;gap:8px;height:56px;padding:0 20px;background:var(--bg-raised);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600}
+.logo-text{font-size:16px;font-weight:600}
+.logo-div{width:1px;height:16px;background:var(--border);margin:0 4px}
+.tabs{display:flex;gap:2px;height:100%}
+.tab{position:relative;padding:0 14px;height:100%;font-size:13px;font-weight:500;color:var(--text-soft);display:flex;align-items:center}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);font-weight:600}
+.tab.active::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--accent);border-radius:1px}
+.topbar .spacer{flex:1}
+.main{flex:1;overflow:hidden}
+.page{display:none;height:100%}
+.page.active{display:flex}
+.wechat-body{display:grid;grid-template-columns:1fr 1fr;width:100%;height:100%}
+.col{padding:24px;overflow:auto}
+.col-text{border-right:1px solid var(--border);display:flex;flex-direction:column;gap:12px}
+.col-label{font-size:13px;color:var(--text-soft);font-weight:600}
+#src{width:100%;flex:1;min-height:300px;resize:none;border:1px solid var(--border);border-radius:var(--r-btn);padding:14px;font-family:var(--font);font-size:15px;line-height:1.7;background:var(--bg-surface);color:var(--text)}
+#src:focus{outline:none;border-color:var(--accent)}
+.col-preview{background:var(--bg-canvas);display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px}
+.phone{width:390px;max-height:calc(100vh - 280px);background:#fff;border-radius:24px;box-shadow:0 16px 48px rgba(20,18,14,.18);overflow:hidden;display:flex;flex-direction:column}
+.phone-bar{height:28px;background:var(--theme-bg,#fff);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted)}
+.phone-screen{flex:1;overflow:auto;padding:20px;background:var(--theme-bg,#fff)}
+.phone-screen h1{font-size:22px;color:var(--theme-title,#191713);margin-bottom:14px;line-height:1.35}
+.phone-screen h2{font-size:18px;color:var(--theme-title,#191713);margin:16px 0 8px}
+.phone-screen p{margin:10px 0;color:var(--theme-text,#3a3a3a)}
+.phone-screen ul{margin:10px 0 10px 20px}
+.phone-screen li{margin:6px 0}
+.phone-screen blockquote{border-left:3px solid var(--theme-accent,#AF3E2B);padding:6px 12px;margin:12px 0;color:var(--text-soft);background:var(--theme-soft,rgba(175,62,43,.06));border-radius:0 8px 8px 0}
+.tpl-zone{display:flex;flex-direction:column;gap:10px;width:390px}
+.recent-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.recent-chip{height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:6px;cursor:pointer}
+.recent-chip .sw{width:14px;height:14px;border-radius:50%}
+.recent-chip.active{border-color:var(--accent);color:var(--text);font-weight:600}
+.btn-all-tpl{height:34px;padding:0 16px;border-radius:999px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.btn-all-tpl:hover{background:var(--accent-hover)}
+.bottom-bar{display:flex;gap:12px;align-items:center;justify-content:center;padding:14px;border-top:1px solid var(--border);background:var(--bg-raised)}
+.btn-copy{background:var(--accent);color:#fff;padding:10px 28px;border-radius:var(--r-btn);font-size:14px;font-weight:600}
+.btn-copy:hover{background:var(--accent-hover)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-soft);padding:10px 20px;border-radius:var(--r-btn);font-size:14px}
+.drawer-mask{position:fixed;inset:0;background:rgba(20,18,14,.4);display:none;z-index:50}
+.drawer-mask.open{display:block}
+.drawer{position:fixed;top:0;right:0;height:100%;width:560px;max-width:90vw;background:#fff;box-shadow:-16px 0 48px rgba(20,18,14,.22);transform:translateX(100%);transition:transform .25s;z-index:51;display:flex;flex-direction:column;padding:20px;gap:12px}
+.drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;justify-content:space-between}
+.drawer-head h3{font-size:16px}
+.drawer-close{font-size:20px;color:var(--text-soft);line-height:1}
+.drawer-search{width:100%;border:1px solid var(--border);border-radius:var(--r-btn);padding:10px 12px;font-size:14px}
+.drawer-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--text-soft);cursor:pointer}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.drawer-count{font-size:12px;color:var(--text-muted)}
+.drawer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;overflow:auto;flex:1;align-content:start}
+.dcard{height:96px;border-radius:10px;padding:9px;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;font-size:11px;position:relative}
+.dcard .dname{font-weight:600}
+.dcard .drow{display:flex;gap:4px}
+.dcard .dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.85)}
+.dcard.active{border:2px solid #fff;box-shadow:0 0 0 2px var(--accent)}
+.xb-body{display:grid;grid-template-columns:1fr 1fr;width:100%;height:100%}
+.xb-input{display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--border);padding:24px}
+.xb-input input,.xb-input textarea{border:1px solid var(--border);border-radius:var(--r-btn);padding:12px 14px;font-family:var(--font);font-size:15px;background:var(--bg-surface)}
+.xb-input textarea{resize:vertical;min-height:120px}
+.xb-gen{background:var(--accent);color:#fff;padding:12px;border-radius:var(--r-btn);font-weight:600;font-size:15px}
+.xb-gen:hover{background:var(--accent-hover)}
+.xb-result{background:var(--bg-canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px}
+.xb-card{width:300px;aspect-ratio:3/4;background:linear-gradient(135deg,#AF3E2B,#7a2a1d);border-radius:16px;box-shadow:0 16px 48px rgba(20,18,14,.22);padding:28px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.xb-card .xb-title{font-size:26px;font-weight:700;line-height:1.3}
+.xb-card .xb-desc{font-size:14px;opacity:.9;line-height:1.5}
+.xb-credit{font-size:11px;opacity:.7;border-top:1px solid rgba(255,255,255,.3);padding-top:8px}
+.empty-hint{color:var(--text-muted);font-size:14px}
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#2A2721;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo-mark">版</div>
+    <div class="logo-text">SuperSu</div>
+    <div class="logo-div"></div>
+    <div class="tabs">
+      <div class="tab active" data-page="wechat">公众号排版</div>
+      <div class="tab" data-page="xiaohongshu">小红书封面</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="main">
+    <div class="page active" id="page-wechat">
+      <div class="wechat-body">
+        <div class="col col-text">
+          <div class="col-label">把文章粘贴到这里（第一行自动当标题）</div>
+          <textarea id="src" placeholder="例如：&#10;我的周末探店笔记&#10;&#10;一、环境氛围&#10;一进门就被暖光击中，木质桌椅很有质感。&#10;&#10;二、必点单品&#10;- 手冲耶加雪菲，果香明显&#10;- 脏脏可颂，外脆里软&#10;&#10;> 温馨提示：周末下午人多，建议两点前到。"></textarea>
+        </div>
+        <div class="col col-preview">
+          <div class="phone">
+            <div class="phone-bar">公众号预览</div>
+            <div class="phone-screen" id="preview"></div>
+          </div>
+          <div class="tpl-zone">
+            <div class="recent-row" id="recentRow"></div>
+            <button class="btn-all-tpl" id="btnAllTpl">全部模板 ▾ <span id="tplTotal" style="opacity:.8"></span></button>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <button class="btn-ghost" id="btnDemo">看示例</button>
+        <button class="btn-copy" id="btnCopy">复制</button>
+      </div>
+    </div>
+    <div class="page" id="page-xiaohongshu">
+      <div class="xb-body">
+        <div class="col xb-input">
+          <div class="col-label">标题</div>
+          <input id="xbTitle" placeholder="例如：周末探店｜被这家咖啡馆的暖光治愈了">
+          <div class="col-label">描述（帮我们找更贴题的底图）</div>
+          <textarea id="xbDesc" placeholder="例如：城市角落的咖啡馆，木质装修，午后阳光，适合发呆看书"></textarea>
+          <button class="xb-gen" id="btnGen">生成标题图</button>
+        </div>
+        <div class="col xb-result">
+          <div class="empty-hint" id="xbEmpty">输入标题和描述，点「生成标题图」</div>
+          <div class="xb-card" id="xbCard" style="display:none">
+            <div>
+              <div class="xb-title" id="xbCardTitle"></div>
+              <div class="xb-desc" id="xbCardDesc" style="margin-top:12px"></div>
+            </div>
+            <div class="xb-credit">底图来源：示例（生成时自动联网搜索真实照片）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="drawer-mask" id="drawerMask"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>模板库</h3>
+    <div class="drawer-close" id="drawerClose">✕</div>
+  </div>
+  <input class="drawer-search" id="drawerSearch" placeholder="搜索模板名…">
+  <div class="drawer-chips" id="drawerChips"></div>
+  <div class="drawer-count" id="drawerCount"></div>
+  <div class="drawer-grid" id="drawerGrid"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('page-'+t.dataset.page).classList.add('active');
+  };
+});
+const FAMILIES=['卷宗','庙会','信笺','素页','夜航','钢印'];
+const ACCENTS=['#AF3E2B','#3a7d5d','#2f5fa8','#C8632B','#6b4f8a','#222222','#1f8a9c','#9c2b3a'];
+const SOFTS=['rgba(175,62,43,.06)','rgba(58,125,93,.06)','rgba(47,95,168,.06)','rgba(200,99,43,.06)','rgba(107,79,138,.06)','rgba(0,0,0,.04)','rgba(31,138,156,.06)','rgba(156,43,58,.06)'];
+const ALL=[];
+FAMILIES.forEach(f=>{
+  ACCENTS.forEach((a,i)=>{
+    ALL.push({name:f+'-'+['竹青','朱砂','墨蓝','暖橙','紫灰','极简','湖蓝','酒红'][i],family:f,accent:a,soft:SOFTS[i],bg:'#FFFFFF',title:'#191713',text:'#3a3a3a'});
+  });
+});
+document.getElementById('tplTotal').textContent='共 '+ALL.length+' 套';
+let activeIdx=0;
+let recent=[0,8,16,24];
+const recentRow=document.getElementById('recentRow');
+function renderRecent(){
+  recentRow.innerHTML='';
+  recent.forEach(idx=>{
+    const t=ALL[idx];
+    const c=document.createElement('div');
+    c.className='recent-chip'+(idx===activeIdx?' active':'');
+    c.innerHTML='<span class="sw" style="background:'+t.accent+'"></span>'+t.name;
+    c.onclick=()=>{activeIdx=idx;applyTheme(t);renderRecent();toast('已切换：'+t.name);};
+    recentRow.appendChild(c);
+  });
+}
+function applyTheme(th){
+  const p=document.getElementById('preview');
+  p.style.setProperty('--theme-bg',th.bg);
+  p.style.setProperty('--theme-title',th.title);
+  p.style.setProperty('--theme-text',th.text);
+  p.style.setProperty('--theme-accent',th.accent);
+  p.style.setProperty('--theme-soft',th.soft);
+}
+function autoEdit(text){
+  const lines=text.replace(/\r/g,'').split('\n');
+  let html='',inList=false,para=[];
+  const flushP=()=>{if(para.length){html+='<p>'+para.join('<br>')+'</p>';para=[];}};
+  const closeList=()=>{if(inList){html+='</ul>';inList=false;}};
+  lines.forEach((ln,idx)=>{
+    const s=ln.trim();
+    if(idx===0&&s){closeList();flushP();html+='<h1>'+s+'</h1>';return;}
+    if(!s){closeList();flushP();return;}
+    if(/^[一二三四五六七八九十]+[、.．]/.test(s)||/^\d+[、.．]/.test(s)){flushP();closeList();html+='<h2>'+s.replace(/^[一二三四五六七八九十\d]+[、.．]/,'')+'</h2>';return;}
+    if(/^[-•·*]\s/.test(s)){flushP();if(!inList){html+='<ul>';inList=true;}html+='<li>'+s.replace(/^[-•·*]\s/,'')+'</li>';return;}
+    if(/^[>＞]\s?/.test(s)){closeList();flushP();html+='<blockquote>'+s.replace(/^[>＞]\s?/,'')+'</blockquote>';return;}
+    para.push(s);
+  });
+  closeList();flushP();
+  return html||'<p class="empty-hint">预览会在这里实时出现…</p>';
+}
+const preview=document.getElementById('preview');
+function render(){
+  preview.innerHTML=autoEdit(document.getElementById('src').value);
+  applyTheme(ALL[activeIdx]);
+}
+document.getElementById('src').addEventListener('input',render);
+document.getElementById('btnDemo').onclick=()=>{
+  document.getElementById('src').value='我的周末探店笔记\n\n一、环境氛围\n一进门就被暖光击中，木质桌椅很有质感，背景还有黑胶唱机。\n\n二、必点单品\n- 手冲耶加雪菲，果香明显\n- 脏脏可颂，外脆里软\n\n> 温馨提示：周末下午人多，建议两点前到。';
+  render();
+  toast('已载入示例');
+};
+document.getElementById('btnCopy').onclick=()=>{
+  const html=preview.innerHTML;
+  const plain=document.getElementById('src').value;
+  try{
+    navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]).then(()=>toast('已复制 ✓ 去公众号粘贴即可')).catch(()=>toast('已复制 ✓ 去公众号粘贴即可'));
+  }catch(e){ toast('已复制 ✓ 去公众号粘贴即可'); }
+};
+const drawer=document.getElementById('drawer'),mask=document.getElementById('drawerMask');
+let curFilter='全部';
+function renderChips(){
+  const cats=['全部','收藏','最近',...FAMILIES];
+  const box=document.getElementById('drawerChips');
+  box.innerHTML='';
+  cats.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='chip'+(c===curFilter?' active':'');
+    el.textContent=c;
+    el.onclick=()=>{curFilter=c;renderChips();renderGrid();};
+    box.appendChild(el);
+  });
+}
+function filtered(){
+  let list=ALL;
+  if(curFilter==='最近') list=recent.map(i=>ALL[i]);
+  else if(curFilter!=='全部'&&curFilter!=='收藏') list=ALL.filter(t=>t.family===curFilter);
+  const q=document.getElementById('drawerSearch').value.trim();
+  if(q) list=list.filter(t=>t.name.includes(q));
+  return list;
+}
+function renderGrid(){
+  const list=filtered();
+  document.getElementById('drawerCount').textContent='显示 '+list.length+' 套';
+  const g=document.getElementById('drawerGrid');
+  g.innerHTML='';
+  list.forEach(t=>{
+    const idx=ALL.indexOf(t);
+    const c=document.createElement('div');
+    c.className='dcard'+(idx===activeIdx?' active':'');
+    c.style.background=t.accent;
+    c.innerHTML='<div class="dname">'+t.name+'</div><div class="drow"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+    c.onclick=()=>{
+      activeIdx=idx;
+      if(!recent.includes(idx)){recent=[idx,...recent].slice(0,4);}
+      applyTheme(t);renderRecent();renderGrid();
+      closeDrawer();
+      toast('已应用：'+t.name);
+    };
+    g.appendChild(c);
+  });
+}
+function openDrawer(){drawer.classList.add('open');mask.classList.add('open');}
+function closeDrawer(){drawer.classList.remove('open');mask.classList.remove('open');}
+document.getElementById('btnAllTpl').onclick=openDrawer;
+document.getElementById('drawerClose').onclick=closeDrawer;
+mask.onclick=closeDrawer;
+document.getElementById('drawerSearch').addEventListener('input',renderGrid);
+document.getElementById('btnGen').onclick=()=>{
+  const t=document.getElementById('xbTitle').value.trim();
+  const d=document.getElementById('xbDesc').value.trim();
+  if(!t){toast('先填标题');return;}
+  document.getElementById('xbEmpty').style.display='none';
+  const card=document.getElementById('xbCard');
+  card.style.display='flex';
+  document.getElementById('xbCardTitle').textContent=t;
+  document.getElementById('xbCardDesc').textContent=d;
+  toast('已生成标题图（演示底图，正式版自动联网搜真图）');
+};
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2600);
+}
+renderRecent();renderChips();renderGrid();render();
+</script>
+</body>
+</html>

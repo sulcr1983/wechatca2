@@ -739,6 +739,52 @@ def test_preprocess_bullet_lines():
     assert "•" not in md and "●" not in md, md
 
 
+# ── 预处理：自动编辑修复（受 GZHcomposing 启发，clean-room 实现）──
+
+from core.preprocessor import preprocess as _pp
+
+
+@test("预处理: 纯散文首句不再被强制当成巨标题（auto 模式）")
+def test_preprocess_prose_no_forced_title():
+    raw = ("今天我想聊聊一个很多人都忽略的问题。其实真正重要的是坚持做对的事，"
+           "而不是追风口。我们身边有太多人一开始热情满满，后来就放弃了。")
+    with app.test_client() as c:
+        md = c.post("/api/render", json={"raw_text": raw, "theme_id": "monocle"}).get_json()["markdown"]
+    # 首句不应变成 # 巨标题（这是此前自动编辑最大的痛点）
+    assert not md.lstrip().startswith("#"), md
+    # 且正文完整保留
+    assert "今天我想聊聊" in md
+
+
+@test("预处理: 长散文含『标签：内容』自动补 ### 小标题（auto→longform）")
+def test_preprocess_longform_auto_heading():
+    raw = ("我们总以为努力就会有回报，但现实常常不是这样。\n\n"
+           "很多人一开始热情高涨，报班买书定计划，但坚持不到一个月就放弃。\n\n"
+           "核心观点：做减法比做加法更重要。\n\n"
+           "很多人喜欢囤积功能和信息，结果反而更焦虑。\n\n"
+           "实践建议：每天只挑一件最重要的事做完。\n\n"
+           "坚持下去你会看到复利效应。")
+    with app.test_client() as c:
+        md = c.post("/api/render", json={"raw_text": raw, "theme_id": "monocle"}).get_json()["markdown"]
+    assert "### 核心观点" in md, md
+    assert "做减法比做加法更重要。" in md
+
+
+@test("预处理: tutorial 模式把『首先：…』转成列表项")
+def test_preprocess_tutorial_ordinal_list():
+    md = _pp("准备工作\n\n首先：安装好环境。\n\n然后：打开工具。\n\n注意事项\n\n不要频繁切换账号。", mode="tutorial")
+    assert "- 安装好环境。" in md, md
+    assert "- 打开工具。" in md, md
+    assert "## 准备工作" in md
+
+
+@test("预处理: conservative 模式不主动加标题（首行保持正文）")
+def test_preprocess_conservative_no_title():
+    md = _pp("苏哥标题\n第一段正文。", mode="conservative")
+    assert not md.startswith("#"), md
+    assert "苏哥标题" in md
+
+
 # ── AI 智能排版：LLM 只出结构决策(JSON)，正文由本地原样套用 ──
 
 @test("AI智能排版: LLM 返回结构JSON → 本地套用，正文一字不改 (engine=llm)")
