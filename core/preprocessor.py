@@ -27,6 +27,34 @@ _BULLET_RE = re.compile(r'^[·•●○\-*]\s*')
 _CONTAINER_OPEN_RE = re.compile(r'^:::\w+(?:\[[^\]]*\])?\s*$')
 _CONTAINER_CLOSE_RE = re.compile(r'^:::\s*$')
 
+# ── 2026-10-18 自动排版增强：多风格纯文本 → Markdown ─────────────────────
+# 分节标题：第X部分 / 第X章 / 第X节 / 第X篇（中文长文最强信号）
+_SECTION_RE = re.compile(r'^第[一二三四五六七八九十百零\d]+[部章节篇]')
+# 数字小节：3.1 / 3.2.1（点分多层编号）
+_NUMBERED_SUB_RE = re.compile(r'^\d+(?:\.\d+){1,3}[、.．]?\s*\S')
+# 提示 / 警示行 → 引用块
+_NOTICE_RE = re.compile(
+    r'^(注意|提示|警告|严重警告|核心提示|特别提醒|重要提示|重要说明|说明|备注|免责声明|声明|注)\s*[：:]'
+)
+# 序数词列表：首先，/ 其次，/ 第一，/ 步骤一：
+_ORDINAL_WORD_RE = re.compile(
+    r'^(首先|其次|再次|然后|最后|接着|另外|此外|同时|其一|其二|其三)\s*[，,、]\s*'
+)
+_CN_ORDINAL_LIST_RE = re.compile(r'^第[一二三四五六七八九十\d]+\s*[，,、]\s*')
+_STEP_RE = re.compile(r'^(步骤[一二三四五六七八九十\d]+)\s*[：:、.]?\s*')
+# 中文公文四级层级（对齐 Word-Formatter-Pro）：（一）→ 二级 / (1) → 四级
+_PAREN_CN_RE = re.compile(r'^[（(][一二三四五六七八九十百]+[）)]\s*\S')
+_PAREN_NUM_RE = re.compile(r'^[（(]\d+[）)]\s*\S')
+# setext / 装饰标题（对齐 docling）：==== 标题 ====、或文本下一行 ===/--- 下划线
+_DECORATED_TITLE_RE = re.compile(r'^[=＝]{3,}\s*(.+?)\s*[=＝]{3,}$')
+_UNDERLINE_RE = re.compile(r'^(?:={3,}|[-—]{3,})$')
+# 命令行 → 围栏代码块
+_CMD_RE = re.compile(
+    r'^(?:git|cd|npm|npx|yarn|pnpm|pip|pip3|python|python3|node|curl|wget|docker|sudo|'
+    r'mkdir|rm|cp|mv|ls|cat|echo|export|source|brew|apt|apt-get|chmod|ssh|scp|tar|unzip|'
+    r'make|go|cargo|java|mvn|gradle)\s+\S'
+)
+
 
 def _split_parallel_items(line: str):
     """箭头并列行 → 列表项；至少 3 项、每项都短、项内无逗号，否则不算清单"""
@@ -154,6 +182,7 @@ def preprocess(text: str, mode: str = 'auto') -> str:
     in_code_block = False   # 我们为「4 空格缩进」自动开的围栏
     in_fence = False        # 用户手写的 ``` 围栏
     container_depth = 0
+    in_cmd_code = False      # 命令行围栏代码块（2026-10-18）
 
     for i, line in enumerate(lines):
         stripped = line.strip()
@@ -224,12 +253,94 @@ def preprocess(text: str, mode: str = 'auto') -> str:
                 md_lines.append('- ' + _CN_ORDINAL_RE.sub('', stripped))
                 continue
 
-        # 有序号标题：一、/ 1. / (1) / ① 等
-        if re.match(
-            r'^[一二三四五六七八九十\d]+[、.．)]\s*.{1,40}$',
-            stripped,
-        ):
+        # 【2026-10-18】提示 / 警示行 → 引用块（强信号，先于标题判定）
+        if _NOTICE_RE.match(stripped):
+            md_lines.append(f'> {stripped}')
+            continue
+
+        # 【2026-10-18】命令行 → 围栏代码块（连续行合并）
+        if _CMD_RE.match(stripped):
+            if not in_cmd_code:
+                md_lines.append('```')
+                in_cmd_code = True
+            md_lines.append(stripped)
+            continue
+        if in_cmd_code:
+            md_lines.append('```')
+            in_cmd_code = False
+
+        # 【2026-10-18】分节标题：第X部分 / 第X章 / 第X节 / 第X篇
+        if _SECTION_RE.match(stripped):
             md_lines.append(f'## {stripped}')
+            continue
+
+        # 【2026-10-18】数字小节：3.1 / 3.2.1（先于普通序号判定）
+        if _NUMBERED_SUB_RE.match(stripped):
+            md_lines.append(f'### {stripped}')
+            continue
+
+        # 【2026-10-18】括号层级（中文公文标准）：（一）→ 二级；(1) → 四级
+        if _PAREN_CN_RE.match(stripped):
+            md_lines.append(f'### {stripped}')
+            continue
+        if _PAREN_NUM_RE.match(stripped):
+            md_lines.append(f'#### {stripped}')
+            continue
+
+        # 【2026-10-18】装饰标题：==== 第一章 ==== / 文本 + 下一行下划线 → 标题
+        _m_dec = _DECORATED_TITLE_RE.match(stripped)
+        if _m_dec:
+            md_lines.append(f'## {_m_dec.group(1)}')
+            continue
+        if _UNDERLINE_RE.match(stripped):
+            # 把上一行非空文本升级为标题（setext 风格）
+            for _k in range(len(md_lines) - 1, -1, -1):
+                _prev = md_lines[_k]
+                if _prev.strip():
+                    _text = _prev.strip().strip('=＝-— ').strip()
+                    if _text and not _text.startswith(('#', '>', '-', '```', '1.')):
+                        md_lines[_k] = f'## {_text}'
+                    break
+            continue
+
+        # 【2026-10-18】序数词 / 步骤 → 列表项
+        _m = _ORDINAL_WORD_RE.match(stripped)
+        if _m:
+            md_lines.append('- ' + stripped[_m.end():].strip())
+            continue
+        _m = _CN_ORDINAL_LIST_RE.match(stripped)
+        if _m:
+            md_lines.append('- ' + stripped[_m.end():].strip())
+            continue
+        _m = _STEP_RE.match(stripped)
+        if _m:
+            md_lines.append('- ' + stripped[_m.end():].strip())
+            continue
+
+        # 【2026-10-18】诗体引用：下一行是「——署名」时，本行按引用处理
+        _nxt = lines[i + 1].strip() if i + 1 < len(lines) else ''
+        if _nxt.startswith('——') or _nxt.startswith('-- '):
+            md_lines.append(f'> {stripped}')
+            continue
+        # 破折号署名行
+        if stripped.startswith('——'):
+            md_lines.append(f'> {stripped}')
+            continue
+
+        # 【2026-10-18】短标签行（≤8 字 + 冒号结尾、冒号后为空）→ 小标题
+        if len(stripped) <= 9 and stripped.endswith('：'):
+            md_lines.append(f'## {stripped[:-1].strip()}')
+            continue
+
+        # 序号段落（2026-10-18：按内容长度分流，避免把整句列表当标题）
+        #   短（≤20 字且无逗号句号冒号）→ 小标题；长 → 有序列表项
+        m_seq = re.match(r'^([一二三四五六七八九十\d]+)[、.．)]\s*(.+)$', stripped)
+        if m_seq:
+            _content = m_seq.group(2).strip()
+            if len(_content) <= 20 and not re.search(r'[，,。；;：:！!？?]', _content):
+                md_lines.append(f'## {stripped}')
+            else:
+                md_lines.append(f'1. {_content}')
             continue
 
         # 并列清单：箭头行 / 项目符号行
@@ -249,13 +360,18 @@ def preprocess(text: str, mode: str = 'auto') -> str:
         # 排除常见非标题词（单字、内容词等）
         common_non_title = {'内容', '简介', '说明', '备注', '注意', '提示', '参考', '来源', '链接'}
 
+        # 2026-10-18：真实 TXT 常无空行——除"孤立行"外，短行 + 下一行是较长正文 也视为标题
+        _nxt_line = lines[i + 1].strip() if i + 1 < len(lines) else ''
+        _heading_ctx = is_isolated or (len(_nxt_line) >= 15 and len(_nxt_line) > len(stripped))
         if (
-            is_isolated
-            and len(stripped) <= 12
+            _heading_ctx
+            and len(stripped) <= 22
             and len(stripped) >= 2
-            and not stripped.startswith('\u300c')
+            and not stripped.startswith(('\u300c', '\u201c', '\u201d', '——'))
             and not re.search(r'[。！？，、；：\u201c\u201d…\)】》]$', stripped[-1])
             and not has_comma
+            and '：' not in stripped
+            and ':' not in stripped
             and stripped not in common_non_title
             and not _looks_like_sentence(stripped)
         ):
@@ -271,6 +387,8 @@ def preprocess(text: str, mode: str = 'auto') -> str:
         md_lines.append(stripped)
 
     if in_code_block:
+        md_lines.append('```')
+    if in_cmd_code:
         md_lines.append('```')
 
     # 合并连续的非空行（去掉误加的空行），保留段落间的空行

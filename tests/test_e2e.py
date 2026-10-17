@@ -785,6 +785,65 @@ def test_preprocess_conservative_no_title():
     assert "苏哥标题" in md
 
 
+# ── 2026-10-18 多风格纯文本自动排版增强（用户真实长文回归）──
+
+@test("自动排版: 第X部分 → 章节标题；3.1 → 数字小节")
+def test_preprocess_multi_style_sections():
+    md = _pp("""第一部分商业报告
+2023年度总结报告
+3.1系统初始化指南""")
+    assert "## 第一部分商业报告" in md, md
+    assert "### 3.1系统初始化指南" in md, md
+
+
+@test("自动排版: 整句序号 → 有序列表（短序号词仍为小标题）")
+def test_preprocess_ordinal_length_split():
+    md = _pp("""一、营收增长：本季度总营收达到一千二百五十万元，环比增长百分之十五。
+二、项目背景""")
+    assert "1. 营收增长：" in md, md
+    assert "## 二、项目背景" in md, md
+
+
+@test("自动排版: 首先/第二，/步骤一 → 列表项")
+def test_preprocess_ordinal_words():
+    md = _pp("""首先，重构前端架构。
+第二，网传图片系伪造。
+步骤一：关闭总电源。""")
+    assert "- 重构前端架构。" in md, md
+    assert "- 网传图片系伪造。" in md, md
+    assert "- 关闭总电源。" in md, md
+
+
+@test("自动排版: 注意/警告 → 引用块；命令行 → 围栏代码块")
+def test_preprocess_notice_and_cmd_code():
+    md = _pp("""注意：数据已审计。
+请执行以下命令：
+git clone https://example.com/a.git
+cd a
+npm install""")
+    assert "> 注意：数据已审计。" in md, md
+    assert "```" in md and "git clone" in md and "npm install" in md, md
+
+
+@test("自动排版: 无空行的连续短行标题也能识别（真实 TXT 粘贴）")
+def test_preprocess_heading_without_blank_lines():
+    md = _pp("""测试文档多风格纯文本转换源文件
+第一部分标准化商业报告风格测试
+2023年度第四季度运营总结报告
+本报告旨在总结第四季度各部门的关键绩效指标，并规划下一阶段的工作重点。""")
+    assert md.lstrip().startswith("# "), md
+    assert "## 2023年度第四季度运营总结报告" in md, md
+
+
+@test("自动排版: 联系信息行（标签：值）不会被误判为标题")
+def test_preprocess_contact_line_not_heading():
+    md = _pp("""联系部门：公关部
+联系电话：400-XXX-XXXX
+发布日期：2023年10月27日""")
+    assert "## 联系部门" not in md, md
+    assert "联系部门：公关部" in md, md
+
+
 # ── AI 智能排版：LLM 只出结构决策(JSON)，正文由本地原样套用 ──
 
 @test("AI智能排版: LLM 返回结构JSON → 本地套用，正文一字不改 (engine=llm)")
