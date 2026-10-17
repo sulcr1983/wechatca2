@@ -4,7 +4,6 @@ import json
 import uuid
 import secrets
 import base64
-import webbrowser
 import threading
 import time
 from pathlib import Path
@@ -890,7 +889,11 @@ def api_server_ip():
 # ── 启动 ────────────────────────────────────────────────────────────────
 def open_browser():
     port = int(os.getenv("PORT", 5000))
-    webbrowser.open(f"http://127.0.0.1:{port}")
+    # 强制走 Chrome（Chrome 缺失时自动退回系统默认浏览器）：
+    # 本机默认浏览器被星愿浏览器抢占（UserChoice=ChromiumHTM），不能用 webbrowser.open
+    from core.browser_utils import open_url
+
+    open_url(f"http://127.0.0.1:{port}")
 
 
 if __name__ == "__main__":

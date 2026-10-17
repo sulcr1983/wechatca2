@@ -69,7 +69,7 @@ python app.py                    # http://127.0.0.1:5000（等效，需自己先
 #   3) **bat 内不写中文（保持纯 ASCII）**，判断逻辑不依赖 `>nul` / `2>nul` 设备重定向。
 #      cmd 会错位解析含多字节字符的 bat 行、吃掉下一行行首（2026-10-13 实锤，见变更 17）；
 #      设备重定向在部分机器上间歇性报「系统找不到指定的路径」并污染退出码。
-#      bat 不再下载 Chromium——封面渲染用系统 Edge/Chrome（core/browser_utils.py）。
+#      bat 不再下载 Chromium——封面渲染用系统 Chrome（缺失回退 Edge，core/browser_utils.py）。
 #      中文启动提示由 app.py 打印。
 
 # 测试
@@ -184,7 +184,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ## 9. 已知注意事项
 
-- 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Edge/Chrome（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
+- 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
 - ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
 - `scripts/start_flask.py` / `launcher.py` 为已废弃旧入口（零引用，见 HANDOFF §7 可记录债务），真实入口是 `app.py` / `start-app.bat`

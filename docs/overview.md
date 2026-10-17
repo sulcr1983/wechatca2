@@ -100,7 +100,7 @@ core/（纯 Python 引擎，不依赖 Flask）
 | 预览用 **iframe + doc.write** | 隔离主题 CSS；同步写入避免时序问题 |
 | 主题**预生成缩略图**（非 CSS 现场画） | 真实、快、可缓存；改主题重跑 2 分钟 |
 | 封面**双引擎** | 两套审美覆盖；BLCaptain 9 种商业风 |
-| 浏览器用**系统 Edge/Chrome** | 避免 183MB Chromium 下载卡死（历史事故） |
+| 浏览器用**系统 Chrome**（回退 Edge 再回退 bundled） | 避免 183MB Chromium 下载卡死（历史事故）；Chrome 是 Playwright 一等支持。<br>启动页也强制 Chrome——本机系统默认被星愿浏览器抢占（`UserChoice=ChromiumHTM`），`cmd start` / `webbrowser.open` 都会弹星愿 |
 | PWA 用 **Pyodide 跑现有 Python** | 引擎 0 改动、输出一致、5-10 天可上线（首屏 ~10MB） |
 | 整仓 **AGPL-3.0** | 归藏资产 AGPL；开源即合规；BLCaptain §1.3 也要求开源 |
 

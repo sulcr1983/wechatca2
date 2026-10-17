@@ -37,8 +37,11 @@ if errorlevel 1 (
     "%VENV%" -m pip install -r requirements.txt
 )
 
-REM 3) Launcher owns the browser opening (avoid double-open by app.py)
-set SUPERSU_NO_AUTOBROWSER=1
+REM 3) Browser opening is owned by app.py (core/browser_utils.open_url):
+REM    Chrome first, fall back to the system default browser. Do NOT add a
+REM    shell "start http://..." line here -- that always uses the system
+REM    default browser, which on this machine is hijacked by a third-party
+REM    browser (Twinkstar, ProgId=ChromiumHTM).
 
 echo.
 echo ======================================================
@@ -47,9 +50,6 @@ echo   The browser will open automatically in a moment.
 echo   Close this window (or press Ctrl+C) to stop.
 echo ======================================================
 echo.
-
-REM Open the default browser after the port is ready
-start "" cmd /c "timeout /t 2 /nobreak >/dev/null & start http://127.0.0.1:5000"
 
 "%VENV%" app.py
 pause
