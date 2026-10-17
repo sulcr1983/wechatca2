@@ -9,7 +9,7 @@
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
 [![Pexels](https://img.shields.io/badge/配图-Pexels%20优先-05A081?style=flat-square&logo=pexels&logoColor=white)](https://www.pexels.com/api/)
 [![Tests](https://img.shields.io/badge/测试-168%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](#-license)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](#-license)
 
 <p align="center">
   <img src="docs/screenshots/wechat.png" alt="公众号排版界面" width="48%">
@@ -400,7 +400,12 @@ wechatca2/
 
 ## 📄 License
 
-MIT License — 自由使用、修改、分发。
+**AGPL-3.0** — 本项目以 GNU Affero General Public License v3.0 发布，全文见根目录 LICENSE。
+
+- 可自由使用、修改、分发；衍生作品须同样以 AGPL-3.0 开源
+- 通过网络向他人提供服务时，须提供完整对应源码（AGPL §13）
+- 第三方组件、字体与图片许可见 THIRD_PARTY_NOTICES.md
+- 封面模板与设计参考来自 op7418/guizang-social-card-skill（AGPL-3.0），本项目对其做了适配修改
 
 ---
 
