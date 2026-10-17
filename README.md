@@ -8,7 +8,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
 [![Pexels](https://img.shields.io/badge/配图-Pexels%20优先-05A081?style=flat-square&logo=pexels&logoColor=white)](https://www.pexels.com/api/)
-[![Tests](https://img.shields.io/badge/测试-168%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
+[![Tests](https://img.shields.io/badge/测试-178%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](#-license)
 
 <p align="center">
@@ -74,11 +74,11 @@
 
 | | | | | |
 |:---:|:---:|:---:|:---:|:---:|
-| **164**<br>🎨 排版主题 | **11**<br>🖼️ 封面风格 | **3**<br>📐 输出比例 | **168**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
+| **164**<br>🎨 排版主题 | **11**<br>🖼️ 封面风格 | **3**<br>📐 输出比例 | **178**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
 
 - 🎨 **164 套排版主题** = 45 套早期原创 + 119 套自研原创（深色首屏 / 杂志大字 / 纸感手记 / 暗底沉浸 / 便签 / 网格 / 终端 / 新粗野 / 极简 / 商务 / 文艺 / 科技 / 节庆……）
 - 🖼️ **11 种封面风格** = 归藏设计系统（杂志 / 瑞士）+ BLCaptain（雾野 / 暖书房 / 海岸 / 夜纹 / 炉台 / 电蓝 / 石墨薄荷 / 安全珊瑚 / 酸性青柠）
-- 🧪 **168 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮，0 控制台报错
+- 🧪 **178 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮，0 控制台报错
 
 ---
 
@@ -266,7 +266,7 @@ graph TB
 项目根目录有一份 **`start-app.bat`**，双击即可：
 
 1. 自动用项目自带的 `.venv` 运行（无需手动配环境）
-2. 首次缺失 Python 依赖时自动补装（封面渲染直接用系统 Edge/Chrome，无需额外下载）
+2. 首次缺失 Python 依赖时自动补装（封面渲染直接用系统 Chrome，缺失回退 Edge，无需额外下载）
 3. 启动后**自动打开浏览器**到 `http://127.0.0.1:5000`
 4. 关闭那个黑窗口即停止服务（或按 `Ctrl+C`）
 
@@ -278,7 +278,7 @@ graph TB
 ```bash
 # 1️⃣ 安装依赖（首次）
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-# 封面渲染直接用系统 Edge/Chrome（Chromium 同内核），无需 playwright install chromium
+# 封面渲染直接用系统 Chrome（缺失回退 Edge），无需 playwright install chromium
 
 # 2️⃣ 启动
 .venv\Scripts\python.exe app.py
@@ -310,19 +310,19 @@ PEXELS_API_KEY=your-pexels-key
 
 | 套件 | 项数 | 覆盖 |
 |:-----|:----:|:-----|
-| `tests/test_e2e.py` | **52** ✅ | 端到端（无需起服务，Flask test_client） |
+| `tests/test_e2e.py` | **62** ✅ | 端到端（无需起服务，Flask test_client） |
 | `tests/test_integration.py` | **35** ✅ | 前后端联动（需先起服务） |
 | `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务） |
 | `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
 | `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
 | `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
-| **合计** | **168** | **全绿** |
+| **合计** | **178** | **全绿** |
 
 ```bash
 # 快速自检（无需起服务）
 python tests/test_e2e.py
 
-# 有头全按钮（浏览器用系统 Edge/Chrome，脚本自起/自停服务）
+# 有头全按钮（浏览器用系统 Chrome，脚本自起/自停服务）
 python tests/test_headed_full_e2e.py
 ```
 
@@ -346,7 +346,7 @@ python tests/test_headed_full_e2e.py
 
 ```
 wechatca2/
-├── app.py                      # Flask 主应用（25 条路由）
+├── app.py                      # Flask 主应用（28 条路由）
 ├── core/
 │   ├── format_engine.py        # 排版引擎（164 主题 Markdown → 微信 HTML）
 │   ├── preprocessor.py         # 纯文本 → Markdown（正则规则，零延迟）
@@ -367,7 +367,7 @@ wechatca2/
 │   ├── images/                 # 本地库存图（最终兜底）
 │   └── social-thumb/           # 封面缩略图
 ├── scripts/                    # 工具脚本（主题生成/去重/UX 验收等）
-├── tests/                      # E2E + 集成 + 有头测试（168 项）
+├── tests/                      # E2E + 集成 + 有头测试（178 项）
 ├── docs/
 │   ├── screenshots/            # 📷 README 配图
 │   ├── ux-audit/               # UX 诊断报告与验收截图
@@ -385,8 +385,14 @@ wechatca2/
 
 | 文档 | 内容 |
 |:-----|:-----|
-| [AGENTS.md](AGENTS.md) | 项目定位、架构速查、路由表、工程纪律、验收规则 |
-| [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、环境配置、变更记录 |
+| [docs/overview.md](docs/overview.md) | **先看这份**：一页看懂模块地图、三条数据流、主题系统、关键决策 |
+| [docs/runbook.md](docs/runbook.md) | 运行手册：装/起/停/清、数据在哪、12 条常见故障的处置 |
+| [docs/api-reference.md](docs/api-reference.md) | 28 个路由一览 + 三个高频接口的参数契约 |
+| [docs/testing.md](docs/testing.md) | 6 个测试套件的跑法、实测基线、5 个坑、DOM 契约 |
+| [docs/project-conventions.md](docs/project-conventions.md) | 产出物规范：三类东西三个家、Git 约定、清理计划 |
+| [docs/audit-playbook.md](docs/audit-playbook.md) | 36 项审计清单，每项含命令 / 判定标准 / 处置方式 |
+| [AGENTS.md](AGENTS.md) | 项目定位、架构速查、工程纪律、验收规则 |
+| [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、变更记录 |
 | [CLOSURE.md](CLOSURE.md) | 任务收尾记录（完成项 / 验证 / 回滚点 / 剩余项） |
 | [claude.md](claude.md) | 给 AI Agent 读的项目规则（路由表、架构、注意事项） |
 
