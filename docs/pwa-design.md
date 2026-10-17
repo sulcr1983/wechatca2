@@ -249,7 +249,7 @@ PWA 启动时探测 `http://127.0.0.1:5000/api/themes`（1.5s 超时）：
 | **归藏 `cover-templates` + 4 张 webp + `references/`** | ✅ | ✅ **进包**（开源路线） | 整仓 AGPL-3.0 + 公开源码 + 页脚源码链接 → 履行 §13 义务，合规 |
 | **自主封面引擎（clean-room 重写，见 §18）** | ✅ | ✅ 进包 | 风格与排版思路不受版权保护；**代码、类名、色值、命名必须全部自研**，不得照抄归藏数值 |
 | **BLCaptain 引擎** | ✅ | ✅ **进包**（开源路线） | 双许可 §1.3：开源项目 + 公开完整源码 = 免费使用；需保留 LICENSE 并在 README 说明安装方式 |
-| `public/images/` 10 张照片 | ✅ | ❌ | 来源不明，不能公开再分发 |
+| `public/images/` 10 张照片 | ✅ | ✅ **保留** | 用户决定（个人开源项目，风险已知可接受） |
 | 字体（DM Sans / Noto Sans SC / JetBrains Mono） | ✅ | ✅ 自托管 + OFL.txt | OFL-1.1 允许打包 |
 
 > **一句话**：本地版什么都不用删、什么都能用；PWA 包只装“渲染内核 + 119 套自研主题 + 字体”。
@@ -427,7 +427,7 @@ PWA 端用 **snapdom**（约 20KB，浏览器原生光栅化）把 DOM 模板渲
 | 2 | 新增 `THIRD_PARTY_NOTICES.md` | 归藏（AGPL-3.0 + 仓库链接）、BLCaptain（双许可 + 条款摘要）、fitty（MIT）、字体（OFL 三份）、Python 依赖清单 |
 | 3 | README 改声明 | MIT 徽章删除 → AGPL-3.0 + 上游署名 + 修改说明 |
 | 4 | PWA 页脚「源码」链接 | 指向 GitHub 公开仓库（履行 §13 网络条款） |
-| 5 | `public/images/` 10 张来源不明图 | 换图或删除（AGPL 不解决版权来源，公开仓库=再分发） |
+| 5 | `public/images/` 10 张来源不明图 | **按用户决定保留**（2026-10-18 02:08：个人开源项目风险可接受；风险已知：公开仓库属再分发，如有异议随时替换） |
 | 6 | BLCaptain 纳入仓库 | 提交代码副本（排除 node_modules）+ README 写 `npm install`；或说明"需自行安装" |
 | 7 | GitHub 仓库公开 | `sulcr1983/wechatca2`（本机 SSH key 已配置可用） |
 
