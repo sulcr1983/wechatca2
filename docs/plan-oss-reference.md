@@ -359,3 +359,58 @@ SOFTWARE.
 - ❌ 不改 `core/format_engine.py`（schema 已够用）
 - ❌ 不动现有 164 套主题（只做增量）
 - ❌ 不引入对方依赖（它是 Claude Code skill，架构不同）
+
+---
+
+## 11.8 抽样验证结果（2026-10-18，10 套）
+
+### 方法
+
+- 取 10 套覆盖不同 `layout` / 明暗 / 字体的主题（apple-gradient、academic-paper、bauhaus、dark-ocean、hero-azure、timeline-green、notion-doc、rice-paper-ink、swiss-grid、terminal-matrix）。
+- **只读参数**（不复制文件）：按 §11.3 反推 `bg / ink / accent / font / arch`，`layout` 与 `card` 作为引擎配置参数沿用。
+- 用 `build_theme()` 生成我方主题，**同一段样例文章**分别渲染，并排截图对比。
+- 工具：`scripts/probe_oss_themes.py`；产物：`output/probe_oss/{report.html, params.md, row*.png}`。
+
+### 反推结果（10 套全部成功）
+
+| 对方主题 | 我们的 arch | font | bg / ink / accent |
+|---|---|---|---|
+| apple-gradient | card | sans | `#f5f5f7` / `#1d1d1f` / `#0071e3` |
+| academic-paper | magazine | serif | `#FFFFFF` / `#0F0F0F` / `#1A3A6E` |
+| bauhaus | plain | sans | `#ffffff` / `#1a1a1a` / `#E30613` |
+| dark-ocean | night | sans | `#0f172a` / `#e2e8f0` / `#38bdf8` |
+| hero-azure | plain（layout=hero 沿用） | sans | `#ffffff` / `#333333` / `#0EA5E9` |
+| timeline-green | plain（layout=timeline 沿用） | sans | `#ffffff` / `#333333` / `#16a34a` |
+| notion-doc | plain | sans | `#ffffff` / `#37352F` / `#2383E2` |
+| rice-paper-ink | paper | serif | `#F8F4E8` / `#1F1A14` / `#8B1F1F` |
+| swiss-grid | magazine | serif（**误判**，应为 sans） | `#FFFFFF` / `#111111` / `#0047AB` |
+| terminal-matrix | night（深色优先于等宽） | sans | `#0A0A0A` / `#B0F5B0` / `#00FF41` |
+
+### 目视对比（3 个代表案例）
+
+| 案例 | 结论 | 差异点 |
+|---|---|---|
+| **apple-gradient**（card） | 气质接近：白卡分层、大圆角、留白、Mac 三圆点代码块都对 | 原版 h2 是**蓝色实底圆角标题条**，我们生成的是纯文字标题 |
+| **rice-paper-ink**（paper） | 气质接近：米底 + 宋体 + 竖线标题 + 引用块 | 原版引用是**无底色+上下细线**、代码块是**浅米底深字**；我们是底色块 + 黑底代码 |
+| **dark-ocean**（night） | 深色氛围像 | 原版 h2 带**大号半透明序号 01/02 + 交错色带**；且我们深色套的**代码块出现浅底浅字（对比度不足，属可读性缺陷）** |
+
+### 结论
+
+1. **方案 B1 可行**：10 套全部反推成功，生成的主题"整体气质"能到 **约 80%**，且**没有复制任何文件**。
+2. **丢的是"标志性结构"**，不是颜色：实底标题条、大号序号、交错色带、细分隔线、代码块配色策略。这些是各家的"签名设计"。
+3. **发现一个必须修的副作用**：反推后配色换了，但生成器的代码块底色是按骨架族写死的 → 深色套会出现**浅底浅字**。这说明反推不能只换 6 个参数，还要做**自适应校正**（代码块/引用底色按主色亮度派生）。
+4. **字体判定有误判**：`swiss-grid` 因 `font_family` 里带 `serif` 兜底被误判为衬线。规则要改成"取 font-family 的**首个**字体名判断"。
+
+### 三条可选增强（按性价比排序）
+
+| # | 动作 | 收益 | 工作量 |
+|---|---|---|---|
+| 1 | **代码块/引用底色自适应**（按 ink 亮度与 accent 派生，保证对比度 ≥ 4.5:1） | 修掉可读性缺陷，所有深色套受益 | 0.5 天 |
+| 2 | 生成器加 2 个特征开关：`h2_style=bar`（实底标题条）、`divider=line`（细分隔线） | 命中率 80% → 约 90%，覆盖 apple/sunset/sticky-note 一类 | 1 天 |
+| 3 | 个别"签名感特别强"的套走 B2（参数直映，visual 100%） | 少量高保真 | 每套 10 分钟 |
+
+### 建议路线
+
+**先做增强 1（修可读性）→ 再全量反推 85 套 → 去重出候选清单 → 只对命中率高的套入库。** 增强 2 视你挑中的套再决定要不要做。
+
+> 抽样产物（可自己看）：`output/probe_oss/report.html`（10 套并排）、`output/probe_oss/row1.png` / `row4.png` / `row8.png`。
