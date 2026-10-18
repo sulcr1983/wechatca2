@@ -102,11 +102,24 @@ export function createEngine({ onProgress } = {}) {
     });
   }
 
+  /** AI 排版：把 AI 给的结构决策套用到原文（正文不改一个字） */
+  function applyStructure(text, plan) {
+    return new Promise((resolve, reject) => {
+      const myId = ++seq;
+      const timer = setTimeout(() => {
+        pending.delete(myId);
+        reject(new Error('结构套用超时（30 秒）'));
+      }, DEFAULT_TIMEOUT);
+      pending.set(myId, { resolve, reject, timer });
+      send({ type: 'structure', payload: { id: myId, text, plan } });
+    });
+  }
+
   function destroy() {
     for (const [, job] of pending) clearTimeout(job.timer);
     pending.clear();
     worker.terminate();
   }
 
-  return { boot, setTheme, render, destroy, isReady: () => ready };
+  return { boot, setTheme, render, applyStructure, destroy, isReady: () => ready };
 }

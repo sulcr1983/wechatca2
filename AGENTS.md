@@ -80,6 +80,30 @@ python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量
                                       # 快捷入口：scripts/run_headed_test.bat（自起服务，需 5000 空闲）
 python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
 python tests/test_headed_wechat_copy.py  # 有头复制/推送/封面旧资产（自起服务，12 项）— 12/12 通过
+python tests/test_headed_pm_audit.py   # 产品经理视角有头全流程审计（16 类场景语料 + 逐元素覆盖，
+                                       # 输出 output/pm_audit/audit.json + report.html）。⚠️ 这是**审计套件**：
+                                       # 失败项即「发现的问题」，有问题就退出码 1（不用它当门禁）
+python tests/test_headed_audit_fixes.py  # 2026-10-18 审计修复专项（18 项，自起服务）— 18/18 通过
+                                       # 覆盖：看示例撤销、清空空态/撤销、真草稿、整理格式保缩进、
+                                       # Ctrl+Enter 复制（读剪贴板）、抽屉关闭、500 字提示、生成失败态
+
+# PWA 专项（线上站，系统 Chrome 有头）
+python scripts/pwa_offline_test.py     # 断网可用性 — 10/10 通过
+python scripts/pwa_incremental_test.py --phase 1 --clean  # 增量更新阶段1快照
+python scripts/pwa_incremental_test.py --phase 2          # 换一个文件重新部署后跑，验证 6/6
+python scripts/pwa_s1s3_test.py        # 首屏不阻塞 + AI 面板/润色/排版/摘要（mock 接口）9/9
+python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（输出 output/pwa_payload）
+
+# PWA 架构要点（2026-10-18 提速/静默更新改造）
+# · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
+#   换版本：改目录名 + pwa/src/engine.worker.js 的 PYODIDE_VERSION；构建会拷进 dist/runtime。
+# · SW 缓存分层：shell-<BUILD_ID>（版本化）/ store-runtime（Pyodide）/ store-data（?h=sha256）/ store-media。
+#   BUILD_ID 与数据清单由 build.mjs 注入 sw.js；清单内联（不联网取），SW 被回收后离线重启也不会失效。
+# · AI 是**纯前端 BYOK**：配置存 localStorage `supersu.ai`，直连 OpenAI 兼容接口；
+#   只支持允许浏览器直连的平台（DeepSeek / Moonshot / SiliconFlow / OpenAI），智谱等会 CORS 失败。
+# · 更新：打开 3s 后主动查 → 后台下载 → 空闲（不可见/空稿/30s 无输入且失焦）自动应用；
+#   `?reset-sw` 注销 SW + 清本站缓存并重载（卡住时的自救开关）。
+# · 首屏不阻塞：`#boot` 是底部小条（40px、pointer-events:none），引擎没就绪也能先输入。
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
 #    若已被你自己的 app.py 占用，直接 ABORT（退出码 2）——否则会连到旧进程用陈旧代码假通过。
 # ⚠️ 反过来更危险：如果你自己的 app.py 是**改动前**起的，它会一直占着 5000，套件也会连到旧代码。
@@ -128,18 +152,23 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 #page-wechat
   .workspace             → 主区 flex 双栏（无 gap，1px 分隔）
     .col-text            → 左栏 620px：.editor-header 48px
-                           （#btn-import 导入文档 / #btn-clear 清空 / #btn-insert 插入 popover / #btn-demo 看示例）
+                           （#btn-clear 清空 / #btn-insert 插入 popover / #btn-demo 看示例）
                            + .editor-area（#input-area，Markdown 源码，flex-1）+ .parse-bar 44px
-      .parse-bar         → #sw-chip 智能转换开关（on/off 双态）+ 识别结构 chips（#parse-chips）
-                           + #tidy-hint 已自动整理瞬态 + #btn-format 整理格式
+      .parse-bar         → 识别结构 chips（#parse-chips，纯展示 span）+ #tidy-hint 整理结果瞬态
+                           + #btn-format 整理格式
+                           ⚠️ 2026-10-18：「智能转换」#sw-chip 是假开关（无 paste 实现）已下线；
+                           「导入文档」#btn-import 是占位按钮已下线
     .col-divider         → 1px 分隔线
     .col-preview         → 右栏：.preview-header 48px（.pv-btn 网页HTML|手机预览 分段 + #theme-chip 当前风格胶囊）
                            + .preview-content 舞台（#preview-frame，手机模式 375×min(600,100%)）
                            + .tpl-bar 风格条 104px
       .tpl-bar           → #tpl-search 紧凑筛选 + #tpl-toggle 收起 + #btn-all-tpl 全部 164 套
                            + #tpl-strip 最近使用胶囊（.tpl-card 含 .swatch/.tname/.tpl-fav）
-  .footbar               → 底栏 64px：#foot-status 已保存 + #foot-count 字数/结构 + #ai-toggle
+  .footbar               → 底栏 64px：#foot-status（真实草稿状态：尚未保存 / 已保存 · HH:MM /
+                           本地保存失败）+ #foot-count 字数/结构 + #ai-toggle
                            + #btn-history 历史 + #btn-push 推送草稿箱（secondary）+ #btn-copy 复制（唯一 primary）
+                           ⚠️ 草稿落盘 localStorage `supersu.draft.v1`（input 500ms 防抖 + pagehide +
+                              visibilitychange + doRender 前），刷新自动恢复；清空也会写空草稿
   .ai-panel              → AI 工具面板（默认收起，功能保留）
   .drawer#drawer-tpl     → 模板库抽屉 560（#drawer-search + #family-chips 六族 + #drawer-grid 两列卡片）
   .popover#popover-insert→ 插入模块（10 项，光标处插入 ::: 围栏）
@@ -230,6 +259,9 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
   - **回归锚点**：重跑生成器后既有 47 套 su-* JSON **字节零改动**；164 套全量富样本渲染审计（标签平衡 / 无 None·空 style·拼接残渣）全过；四套件 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错）。
 - **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
+- **首行 = 文章大标题（2026-10-18 修订）**：`preprocess` 末尾的「首行提升」原实现遇到**已被规则标成 `##` 的首行**会因 `s.startswith('#')` 直接跳过 → 「短标题开头」的文章**全文没有 H1**，预览最大标题只有 h2、层级被压平，识别结构条的「大标题」恒为 0。现规则：首行是普通标题文本 → 直接加 `#`（各非保守模式，沿用原行为）；首行已被规则标为 `##~######` → 升为 `#`（**仅 `auto`/`longform`**；`tutorial` 首行多是「准备工作」这类小节标签，不强升）。例外：① 原文首行本身是手写 Markdown 标题（`## 保留标题`）→ 尊重作者显式层级不动；②「标签：值」行（`联系部门：公关部`）不提升 —— 与 `_looks_like_title`/短行标题检测的既有判定一致。回归：`test_e2e` 65/65（其中 3 条断言按新行为更新：short_heading / numbered_heading / multi_style_sections）
+- **代码块 `&nbsp;`**：渲染后的代码块缩进与空格是 `&nbsp;`（视觉正常、粘贴到公众号也正常），断言比对预览文本时必须先把 `\u00a0` 归一到空格，否则会出现「代码内容丢失」的假失败
+- **列表无 `<li>`**：`convert_lists_to_sections` 会把 `- 项` 渲染成 `<section><span>•</span>…</section>`，校验列表要看识别结构条的「列表 ×N」或 bullet 字符，不能数 `<li>`
 - 所有修改跑 E2E 验证（test_e2e 65/65）+ 集成测试（test_integration 35/35）
 - 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 33 项，0 控制台报错）
 - ⚠️ 有头套件的「0 控制台报错」**依赖上游 LLM 可达**：`/api/polish`、`/api/summary` 无本地兜底，上游（如 tokenpool 网关）返 5xx 时浏览器必记 1~2 条 500，套件退出码会是 1。此时先修上游，**不得为凑绿而放宽该判据**

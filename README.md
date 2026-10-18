@@ -316,6 +316,7 @@ PEXELS_API_KEY=your-pexels-key
 | `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
 | `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
 | `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
+| `tests/test_headed_pm_audit.py` | **69/74** | 产品经理视角有头全流程审计（16 类场景语料 + 逐元素覆盖；失败项即审计发现的问题，退出码 1） |
 | **合计** | **181** | **全绿** |
 
 ```bash
@@ -324,7 +325,13 @@ python tests/test_e2e.py
 
 # 有头全按钮（浏览器用系统 Chrome，脚本自起/自停服务）
 python tests/test_headed_full_e2e.py
+
+# 产品经理视角全流程审计（输出问题清单 + 自包含 HTML 报告）
+python tests/test_headed_pm_audit.py
 ```
+
+> `test_headed_pm_audit.py` 是**审计套件**（不是门禁）：它把「发现的问题」当作产出，
+> 有问题就退出码 1，结果落 `output/pm_audit/audit.json` + `output/pm_audit/report.html`。
 
 > 有头套件刻意不点 3 个有真实副作用的按钮——`确认推送`（真打微信接口）、`保存AI配置`、`测试连接`（会覆盖配置）；其后端路径由 `test_api_e2e.py` 覆盖。
 > ⚠️ `test_e2e.py` 会读写 `data/*.json`，但已在测试前后做快照 / 还原；仍建议跑测前备份真实配置。

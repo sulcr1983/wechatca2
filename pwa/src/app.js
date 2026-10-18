@@ -22,7 +22,7 @@ const RECENT_MAX = 8;
 /* ── 小工具 ─────────────────────────────────────────────────── */
 const $ = (id) => document.getElementById(id);
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 隐私模式满盘，忽略 */ } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
 const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* 同上 */ } };
 
 let toastTimer = null;
@@ -44,6 +44,7 @@ let byId = new Map();
 let activeId = DEFAULT_THEME;
 let mode = lsGet(LS.mode, 'phone');   // phone | web
 let engine = null;
+let engineReady = null;   // boot 的 Promise：渲染排队等它，但不挡输入
 let lastHtml = '';
 let lastMarkdown = '';
 let renderTimer = null;
@@ -60,6 +61,7 @@ async function main() {
   bindUI();
   applyMode();
   initUpdate();     // 更新管理独立于引擎，先起（动态 import，模块缺失也不影响排版）
+  initAi();         // AI 面板（纯前端 BYOK；未配置时不影响排版）
 
   try {
     themes = await (await fetch('./themes/index.json')).json();
@@ -76,20 +78,29 @@ async function main() {
   renderCaps();
   updateCharCount();
 
+  // 先把草稿恢复到输入框：引擎启动失败（弱网/离线首启）时也不能让用户看不到稿子
+  restoreDraft();
+
   // 引擎异步启动，UI 先可用（骨架 + 遮罩）
   engine = createEngine({ onProgress: onProgress });
-  try {
-    await engine.boot();
+  // 不阻塞 UI：用户马上就能输入/粘贴，引擎就绪后再渲染（弱网时不用干等）
+  engineReady = engine.boot().then(() => {
     setEngineState('ready', '引擎已就绪');
     $('boot').classList.add('gone');
-    restoreDraft();
     if ($('input').value.trim()) scheduleRender();
-  } catch (e) {
+  }).catch((e) => {
     setEngineState('error', '引擎加载失败');
-    $('boot-label').textContent = '引擎加载失败';
+    $('boot-label').textContent = '引擎加载失败，点这里重试';
     $('boot-fill').style.background = 'var(--accent)';
+    const bootEl = $('boot');
+    if (bootEl) {
+      bootEl.style.pointerEvents = 'auto';
+      bootEl.style.cursor = 'pointer';
+      bootEl.onclick = () => location.reload();
+    }
     toast('引擎加载失败：' + e.message, 'err');
-  }
+  });
+  await engineReady;
 }
 
 function onProgress({ pct, label }) {
@@ -127,6 +138,11 @@ async function doRender() {
 
   const mySeq = ++renderSeq;
   try {
+    // 引擎没就绪：先排队等它（不报错、不打断输入），就绪后 main() 会自动重排
+    if (!engine || !engine.isReady()) {
+      if (engineReady) await engineReady.catch(() => {});
+      if (!engine || !engine.isReady()) return;
+    }
     const json = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
     await engine.setTheme(activeId, json);
     const out = await engine.render(text);
@@ -375,10 +391,134 @@ async function copyRich() {
   toast('浏览器不让自动复制，请用右键菜单：全选预览 → 复制', 'err');
 }
 
-/* ── 草稿 ───────────────────────────────────────────────────── */
-function saveDraft(text) {
-  lsSet(LS.draft, { text, themeId: activeId, ts: Date.now() });
+/* ── AI 工具（纯前端 BYOK：Key 只存本机，不上传） ─────────────── */
+async function initAi() {
+  let ai;
+  try {
+    ai = await import('./ai.js');
+  } catch (e) {
+    return;   // AI 模块缺失不影响排版
+  }
+  const sheet = $('ai-sheet');
+  const mask = $('ai-mask');
+  const out = $('ai-out');
+  if (!sheet || !mask) return;
+
+  const open = () => {
+    const c = ai.loadConfig();
+    $('ai-base').value = c.baseUrl || '';
+    $('ai-model').value = c.model || '';
+    $('ai-key').value = c.key || '';
+    sheet.hidden = false;
+    mask.hidden = false;
+  };
+  const close = () => { sheet.hidden = true; mask.hidden = true; };
+  const readForm = () => ({
+    baseUrl: $('ai-base').value.trim(),
+    model: $('ai-model').value.trim(),
+    key: $('ai-key').value.trim(),
+  });
+  const say = (msg) => { if (!out) return; out.hidden = false; out.textContent = msg; };
+
+  const btnAi = $('btn-ai');
+  if (btnAi) btnAi.addEventListener('click', open);
+  $('ai-close').addEventListener('click', close);
+  mask.addEventListener('click', close);
+
+  $('ai-save').addEventListener('click', () => {
+    const cfg = readForm();
+    if (!cfg.baseUrl || !cfg.key || !cfg.model) { toast('接口地址、模型、Key 三项都要填', 'err'); return; }
+    ai.saveConfig(cfg);
+    toast('AI 配置已保存在本机');
+  });
+
+  $('ai-test').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = '测试中…';
+    try {
+      ai.saveConfig(readForm());
+      const r = await ai.testConnection();
+      say('连接成功：' + (r || 'ok'));
+      toast('AI 连接正常');
+    } catch (err) {
+      say('连接失败：' + err.message);
+      toast('AI 连接失败：' + err.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '测试连接';
+    }
+  });
+
+  const run = async (btn, label, fn) => {
+    const text = $('input').value.trim();
+    if (!text) { toast('先在编辑器里写点内容', 'err'); return; }
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = label + '中…';
+    try {
+      await fn(text);
+    } catch (err) {
+      say(label + '失败：' + err.message);
+      toast(label + '失败：' + err.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old;
+    }
+  };
+
+  $('ai-polish').addEventListener('click', (e) => run(e.currentTarget, '润色', async (text) => {
+    const outText = await ai.polish(text);
+    if (!outText) throw new Error('AI 返回空内容');
+    $('input').value = outText;
+    saveDraft(outText);
+    scheduleRender();
+    say('已润色并写回编辑器');
+    toast('润色完成');
+  }));
+
+  $('ai-format').addEventListener('click', (e) => run(e.currentTarget, '排版', async (text) => {
+    if (!engine || !engine.isReady()) throw new Error('引擎还没就绪，稍等几秒再试');
+    const plan = await ai.planStructure(text);
+    const res = await engine.applyStructure(text, plan);
+    if (!res || !res.markdown) throw new Error('结构套用失败');
+    $('input').value = res.markdown;
+    saveDraft(res.markdown);
+    scheduleRender();
+    say('已按 AI 结构重排（正文一个字没改）');
+    toast('智能排版完成');
+  }));
+
+  $('ai-summary').addEventListener('click', (e) => run(e.currentTarget, '摘要', async (text) => {
+    const s = await ai.summarize(text);
+    say(s || '（空）');
+    toast('摘要已生成');
+  }));
 }
+
+/* ── 草稿 ───────────────────────────────────────────────────── */
+// 落盘与渲染解耦：渲染失败 / 引擎还没就绪时也必须能存住稿子
+function saveDraft(text) {
+  const payload = { text: String(text == null ? '' : text), themeId: activeId, ts: Date.now() };
+  const ok = lsSet(LS.draft, payload);
+  return ok;
+}
+
+// 更新前落盘钩子：update.js 在 skipWaiting 之前 await 它（localStorage 同步写）
+window.__supersuFlushDraft = () => {
+  try { saveDraft($('input').value); } catch (e) { /* 忽略 */ }
+  return Promise.resolve();
+};
+
+let lastInputAt = Date.now();
+
+// 空闲判定钩子：update.js 用它决定「能不能静默应用更新」
+window.__supersuIsIdle = () => {
+  const empty = !$('input').value.trim();
+  const farFromInput = Date.now() - lastInputAt > 30000;
+  const notTyping = !document.hasFocus() || document.activeElement !== $('input');
+  return empty || (farFromInput && notTyping);
+};
 
 function restoreDraft() {
   const d = lsGet(LS.draft, null);
@@ -410,7 +550,22 @@ async function initUpdate() {
 function bindUI() {
   const input = $('input');
 
-  input.addEventListener('input', () => { updateCharCount(); scheduleRender(); });
+  let draftTimer = null;
+  input.addEventListener('input', () => {
+    updateCharCount();
+    scheduleRender();
+    lastInputAt = Date.now();
+    // 草稿独立落盘（500ms 防抖）：不再依赖 doRender 成功，
+    // 渲染失败、引擎未就绪、更新 reload 都不会丢最后一段输入
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => saveDraft(input.value), 500);
+  });
+
+  // 切走/关闭页面时补一刀（移动端 visibilitychange 比 beforeunload 可靠）
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveDraft(input.value);
+  });
+  window.addEventListener('pagehide', () => saveDraft(input.value));
 
   // 粘贴后立刻排版，不等打字防抖
   input.addEventListener('paste', () => { setTimeout(scheduleRender, 30); });

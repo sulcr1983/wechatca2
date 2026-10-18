@@ -446,12 +446,29 @@ def preprocess(text: str, mode: str = 'auto') -> str:
     if effective == 'longform':
         result = _insert_auto_headings(result)
 
-    # 首行若像标题，提升为大标题（conservative 不提升；其余模式在首行确为标题时提升）
-    if mode != 'conservative':
+    # 首行 = 文章大标题（conservative 不提升；其余模式一律提升）
+    #
+    # 2026-10-18 修复：原实现遇到「已被规则标成 ## 的首行」会因 `s.startswith('#')` 直接跳过，
+    # 于是「短标题开头」的文章全文没有 H1 —— 预览里最大标题只有 h2，层级被压平，
+    # 识别结构条里的「大标题」恒为 0（用户实测反馈）。
+    # 现规则：首行若是普通标题文本 → 直接加 #（各非保守模式，沿用原行为）；
+    #        首行若已被规则标为 ##~###### → 升为 #（仅 auto/longform 自动分层模式——
+    #        tutorial 模式首行多是「准备工作」这类小节标签，强行升为文章标题会误导层级）。
+    # 例外：原文首行本身就是用户手写的 Markdown 标题（如「## 保留标题」）→ 尊重作者显式层级，不动。
+    raw_first = next((l.strip() for l in lines if l.strip()), '')
+    if mode != 'conservative' and not re.match(r'^#{1,6}\s', raw_first):
         for j, line in enumerate(result):
             if line.strip():
                 s = line.strip()
-                if not s.startswith(('#', '>', '-', '*', '```', '|')) and _looks_like_title(s, is_first_line=True):
+                if s.startswith(('>', '-', '*', '```', '|')):
+                    break
+                m_head = re.match(r'^#{1,6}\s+(.+)$', s)
+                if m_head and mode in ('auto', 'longform'):
+                    result[j] = f'# {m_head.group(1).strip()}'
+                elif (not m_head and '：' not in s and ':' not in s
+                      and _looks_like_title(s, is_first_line=True)):
+                    # 「标签：值」行（联系部门：公关部）是元信息，不是标题 —— 与
+                    # 「短行标题检测」的既有判定保持一致（test_preprocess_contact_line_not_heading）
                     result[j] = f'# {s}'
                 break
 

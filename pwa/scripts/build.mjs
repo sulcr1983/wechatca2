@@ -22,6 +22,31 @@ const DIST = path.join(PWA, 'dist');
 const log = (...a) => console.log(...a);
 const rel = (p) => path.relative(ROOT, p).replace(/\\/g, '/');
 
+/** 内容指纹（16 位十六进制足够；用来做增量缓存键与 BUILD_ID） */
+const sha256 = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 16);
+
+// 与 sw.js 的 SHELL_CRITICAL + SHELL_OPTIONAL 保持一致：
+// 这些文件决定 BUILD_ID，任何变化都应该让浏览器认为 sw.js 是新的
+const SHELL_FILES = [
+  'index.html',
+  'src/app.js',
+  'src/style.css',
+  'src/bridge.js',
+  'src/engine.worker.js',
+  'src/update.js',
+  'src/ai.js',
+  'src/changelog.js',
+  'src/changelog.css',
+  'manifest.webmanifest',
+  'fonts/fonts.css',
+  // 图标也算：只换图标像素时 sw.js 必须变，否则永远不触发更新
+  'icons/favicon-32.png',
+  'icons/apple-touch-icon.png',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'icons/icon-512-maskable.png',
+];
+
 /* ── 文件操作 ─────────────────────────────────────────────────── */
 function rmrf(p) { fs.rmSync(p, { recursive: true, force: true }); }
 
@@ -184,6 +209,14 @@ function main() {
     { include: /\.(woff2|css|txt)$/ });
   log(`  ✓ 字体 ${fontN} 个文件`);
 
+  /* 2.5 Pyodide 运行时（同源自托管：一次下载永久命中，去掉 jsdelivr 单点） */
+  const runtimeSrc = path.join(PWA, 'public', 'runtime');
+  if (!fs.existsSync(runtimeSrc)) {
+    throw new Error('缺 pwa/public/runtime/pyodide/0.28.3（引擎无法启动）');
+  }
+  const runtimeN = copyDir(runtimeSrc, path.join(DIST, 'runtime'), { include: /\.(js|wasm|zip|json)$/ });
+  log(`  ✓ Pyodide 运行时 ${runtimeN} 个文件（同源）`);
+
   /* 3. 主题 JSON + 索引 */
   const index = buildThemeIndex();
   mkdirp(path.join(DIST, 'themes'));
@@ -233,6 +266,10 @@ function main() {
   const zipSize = writeZip(path.join(DIST, 'py', 'markdown.zip'), entries);
   log(`  ✓ 引擎 py/ + markdown.zip（${entries.length} 项，${(zipSize / 1024).toFixed(0)}KB）`);
 
+  /* 5.5 增量清单：每个数据文件的 sha256（SW 用它判断「这个文件变没变」） */
+  const manifest = buildDataManifest();
+  log(`  ✓ 增量清单 themes/manifest.json（${Object.keys(manifest).length} 项）`);
+
   /* 6. 封面模板（D5 起；需 --cover，且模板里的 Google Fonts 外链必须已在
    *    pwa/scripts/localize_cover_fonts.py 里换成自托管，否则断言会拦下） */
   const WITH_COVER = process.argv.includes('--cover');
@@ -262,6 +299,12 @@ function main() {
     if (n) log(`  ✓ vendor ${n} 个文件`);
   }
 
+  /* 7.5 响应头 + Service Worker 指纹注入（增量更新的两个前提） */
+  writeHeaders();
+  const buildId = computeBuildId();
+  stampSw(buildId, manifest);
+  log(`  ✓ SW 构建指纹 BUILD_ID=${buildId} + 内联清单 ${Object.keys(manifest).length} 项 + _headers`);
+
   /* 8. 断言 */
   if (!process.argv.includes('--skip-assert')) assertDist(index.length);
 
@@ -276,6 +319,93 @@ function dirSize(dir) {
     s += ent.isDirectory() ? dirSize(p) : fs.statSync(p).size;
   }
   return s;
+}
+
+/* ── 增量清单 / 构建指纹 / 响应头 ─────────────────────────────── */
+
+/** 生成 themes/manifest.json：{ "themes/xxx.json": "<sha256>", "py/xxx": "<sha256>" } */
+function buildDataManifest() {
+  const manifest = {};
+  const addDir = (relDir, accept) => {
+    const abs = path.join(DIST, relDir);
+    if (!fs.existsSync(abs)) return;
+    for (const f of fs.readdirSync(abs)) {
+      if (!accept(f)) continue;
+      const relPath = `${relDir}/${f}`;
+      manifest[relPath] = sha256(fs.readFileSync(path.join(DIST, relPath)));
+    }
+  };
+  addDir('themes', (f) => f.endsWith('.json') && f !== 'manifest.json');
+  addDir('py', () => true);
+  fs.writeFileSync(path.join(DIST, 'themes', 'manifest.json'), JSON.stringify(manifest), 'utf8');
+  return manifest;
+}
+
+/** BUILD_ID = shell 文件内容哈希；文件不变 → sw.js 字节不变 → 不触发无谓更新 */
+function computeBuildId() {
+  const parts = [];
+  for (const f of SHELL_FILES) {
+    const p = path.join(DIST, f);
+    if (fs.existsSync(p)) parts.push(f + ':' + sha256(fs.readFileSync(p)));
+  }
+  return sha256(parts.join('|'));
+}
+
+/** 把 sw.js 里的占位符替换成本次构建指纹 + 内联数据清单 */
+function stampSw(buildId, manifest) {
+  const p = path.join(DIST, 'sw.js');
+  let src = fs.readFileSync(p, 'utf8');
+  if (!src.includes('__BUILD_ID__')) {
+    throw new Error('sw.js 缺少 __BUILD_ID__ 占位符，无法注入构建指纹');
+  }
+  if (!src.includes('/*__DATA_MANIFEST__*/')) {
+    throw new Error('sw.js 缺少 /*__DATA_MANIFEST__*/ 占位符，无法内联数据清单');
+  }
+  // 内联而不是运行时 fetch：SW 被回收后离线重启时，manifest 请求必然失败，
+  // 拿不到清单就会退回普通键 → 与 ?h= 键不匹配 → 离线主题/引擎全废
+  src = src.replace('/*__DATA_MANIFEST__*/', `DATA_MANIFEST = ${JSON.stringify(manifest)};`);
+  src = src.replace(/__BUILD_ID__/g, buildId);
+  fs.writeFileSync(p, src, 'utf8');
+}
+
+/* ── Cloudflare Pages 响应头 ──────────────────────────────────── */
+const HEADERS_TXT = `# 由 pwa/scripts/build.mjs 生成（2026-10-18 增量更新）
+# 只有「URL 随内容变」的资源才配长缓存；HTML / SW / 版本文件必须每次校验。
+# themes、py 走 ?h=<sha256> 缓存键，由 Service Worker 命中，这里用默认策略。
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/version.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/changelog.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/themes/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/fonts/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/fonts.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/runtime/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/runtime/pyodide/0.28.3/pyodide.asm.wasm
+  Content-Type: application/wasm
+
+/theme-thumbs/*
+  Cache-Control: public, max-age=86400
+`;
+
+function writeHeaders() {
+  fs.writeFileSync(path.join(DIST, '_headers'), HEADERS_TXT, 'utf8');
 }
 
 /* ── 构建断言：漏拷或误拷都让构建失败 ───────────────────────────── */
@@ -300,7 +430,8 @@ function assertDist(themeCount) {
   walk(DIST);
 
   // 3) 主题数量与索引一致
-  const themeFiles = fs.readdirSync(path.join(DIST, 'themes')).filter((f) => f.endsWith('.json') && f !== 'index.json');
+  const themeFiles = fs.readdirSync(path.join(DIST, 'themes'))
+    .filter((f) => f.endsWith('.json') && f !== 'index.json' && f !== 'manifest.json');
   if (themeFiles.length !== themeCount) {
     problems.push(`主题文件数 ${themeFiles.length} ≠ 索引 ${themeCount}`);
   }
@@ -308,8 +439,24 @@ function assertDist(themeCount) {
   // 4) 关键文件存在
   for (const need of ['index.html', 'sw.js', 'manifest.webmanifest', 'src/app.js', 'src/engine.worker.js',
                      'src/update.js', 'src/changelog.js', 'src/changelog.css',
-                     'version.json', 'py/markdown.zip', 'themes/index.json']) {
+                     'version.json', 'py/markdown.zip', 'themes/index.json', '_headers']) {
     if (!fs.existsSync(path.join(DIST, need))) problems.push(`缺文件：${need}`);
+  }
+
+  // 5) 增量更新的前置条件（少一条就退化成全量更新）
+  const swSrc = fs.readFileSync(path.join(DIST, 'sw.js'), 'utf8');
+  if (swSrc.includes('__BUILD_ID__')) problems.push('sw.js 的 __BUILD_ID__ 未注入（BUILD_ID 不生效）');
+  if (swSrc.includes('__DATA_MANIFEST__')) problems.push('sw.js 的数据清单未内联（离线重启会拿不到 manifest）');
+  if (/cache:\s*'reload'/.test(swSrc)) problems.push("sw.js 仍在使用 cache:'reload'（会绕过 ETag 304）");
+  if (swSrc.includes('cover.js')) problems.push('sw.js 仍在预缓存不存在的 src/cover.js');
+
+  const mfPath = path.join(DIST, 'themes', 'manifest.json');
+  if (!fs.existsSync(mfPath)) {
+    problems.push('缺文件：themes/manifest.json');
+  } else {
+    const mf = JSON.parse(fs.readFileSync(mfPath, 'utf8'));
+    const n = Object.keys(mf).length;
+    if (n < themeCount + 1) problems.push(`增量清单条目 ${n} 少于主题数 ${themeCount}+1`);
   }
 
   if (problems.length) {
@@ -317,7 +464,8 @@ function assertDist(themeCount) {
     for (const p of problems) console.error('  ✗ ' + p);
     process.exit(1);
   }
-  log(`  ✓ 断言通过（无本地版专属目录、无 Google Fonts 外链、主题数一致、关键文件齐）`);
+  log(`  ✓ 断言通过（无本地版专属目录、无 Google Fonts 外链、主题数一致、关键文件齐、增量前置齐）`);
 }
 
 main();
+

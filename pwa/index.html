@@ -21,7 +21,7 @@
   <h1 class="boot-title">SuperSu</h1>
   <p class="boot-sub" id="boot-label">正在加载排版引擎…</p>
   <div class="boot-bar"><i id="boot-fill" style="width:0%"></i></div>
-  <p class="boot-note">引擎约 11MB，首次需下载；之后秒开且可离线使用。<br>文章内容始终留在你的浏览器里。</p>
+  <p class="boot-note">首次约 5MB（压缩后），之后走本地缓存秒开，可离线使用。<br>文章内容始终留在你的浏览器里。</p>
 </div>
 
 <!-- ── 顶栏 ───────────────────────────────────────────────────── -->
@@ -35,6 +35,7 @@
     <span class="engine-badge" id="engine-badge" data-state="loading">
       <i></i><span id="engine-text">引擎加载中</span>
     </span>
+    <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
     <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
       <button data-act="draft">恢复草稿</button>
@@ -44,6 +45,30 @@
     </div>
   </div>
 </header>
+
+<!-- AI 工具（纯前端 BYOK：Key 只存本机浏览器，不上传） -->
+<div class="ai-mask" id="ai-mask" hidden></div>
+<aside class="ai-sheet" id="ai-sheet" hidden aria-label="AI 工具">
+  <div class="ai-head">
+    <strong>AI 工具</strong>
+    <button class="icon-btn" id="ai-close" aria-label="关闭">✕</button>
+  </div>
+  <p class="ai-tip">纯浏览器直连，Key 只存在本机。支持 DeepSeek / Moonshot / SiliconFlow / OpenAI 等兼容接口；智谱等不允许浏览器直连的平台会连不上。</p>
+  <label class="ai-field"><span>接口地址</span><input id="ai-base" placeholder="https://api.deepseek.com/v1" autocomplete="off" spellcheck="false"></label>
+  <label class="ai-field"><span>模型</span><input id="ai-model" placeholder="deepseek-chat" autocomplete="off" spellcheck="false"></label>
+  <label class="ai-field"><span>API Key</span><input id="ai-key" type="password" placeholder="sk-..." autocomplete="off"></label>
+  <div class="ai-row">
+    <button class="ai-btn" id="ai-save">保存配置</button>
+    <button class="ai-btn ghost" id="ai-test">测试连接</button>
+  </div>
+  <div class="ai-sep"></div>
+  <div class="ai-row">
+    <button class="ai-btn" id="ai-polish">润色正文</button>
+    <button class="ai-btn ghost" id="ai-format">智能排版</button>
+    <button class="ai-btn ghost" id="ai-summary">生成摘要</button>
+  </div>
+  <div class="ai-out" id="ai-out" hidden></div>
+</aside>
 
 <!-- ── 主体 ───────────────────────────────────────────────────── -->
 <main class="stage" id="stage" data-tab="edit">

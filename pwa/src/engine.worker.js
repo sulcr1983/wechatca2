@@ -8,13 +8,15 @@
  * 跑在 Worker 里，下载与渲染都不阻塞 UI 线程。
  */
 
-const PYODIDE_VERSION = 'v0.28.3';
-const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
+// 运行时改为同源自托管（原先走 cdn.jsdelivr.net：国内不稳，且换源就整包重下）
+const PYODIDE_VERSION = '0.28.3';
+const PYODIDE_BASE = new URL(`../runtime/pyodide/${PYODIDE_VERSION}/`, self.location.href).href;
 const FS_ROOT = '/home/pyodide';
 const THEME_PATH = `${FS_ROOT}/active-theme.json`;
 
 let pyodide = null;
 let renderFn = null;
+let structureFn = null;    // AI 排版：把结构决策套用到原文（正文一字不改）
 let booting = null;
 let themeWritten = null;   // 已写进 FS 的主题 id，避免重复写
 
@@ -42,6 +44,10 @@ self.onmessage = async (e) => {
         themeWritten = payload.themeId;
       }
       post('theme-ready', { id: payload.id });
+    } else if (type === 'structure') {
+      if (!structureFn) throw new Error('引擎尚未就绪');
+      const md = structureFn(payload.text, JSON.stringify(payload.plan));
+      post('structured', { id: payload.id, markdown: md });
     } else if (type === 'render') {
       if (!renderFn) throw new Error('引擎尚未就绪');
       const t0 = performance.now();
@@ -67,7 +73,7 @@ async function boot() {
   if (booting) return booting;
 
   booting = (async () => {
-    post('progress', { pct: 4, label: '下载 Python 运行时（约 11MB）' });
+    post('progress', { pct: 4, label: '准备排版引擎（首次约 5MB，之后用本地缓存）' });
     importScripts(PYODIDE_BASE + 'pyodide.js');
 
     post('progress', { pct: 12, label: '初始化 WebAssembly' });
@@ -118,6 +124,18 @@ def _render(raw_text, theme_path):
 
 
 _render
+`);
+
+    // AI 排版：只套用结构（段号 → 标题/小节/列表/加粗），正文原样拼接
+    structureFn = pyodide.runPython(`
+import json as _json
+import preprocessor as _pp
+
+def _structure(raw_text, plan_json):
+    paras = _pp.split_paragraphs(raw_text)
+    return _pp.apply_structure(paras, _json.loads(plan_json))
+
+_structure
 `);
 
     post('progress', { pct: 100, label: '就绪' });

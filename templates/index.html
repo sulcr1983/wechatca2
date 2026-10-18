@@ -118,19 +118,9 @@ body {
 
 /* 结构解析条：内容被理解成什么 */
 .parse-bar { display:flex; align-items:center; gap:6px; height:44px; padding:0 20px; background:var(--bg-surface); border-top:1px solid var(--border); flex-shrink:0; overflow:hidden; }
-.sw-chip { display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; border-radius:999px; background:var(--accent-soft); border:1px dashed transparent; cursor:pointer; flex-shrink:0; user-select:none; }
-.sw-chip.off { background:transparent; border-color:var(--border-hi); }
-.sw-chip.off .sw-text { color:var(--text-muted); }
-.sw-chip.off .sw-ico { opacity:.45; }
-.sw-chip.off .sw-track { background:var(--border-hi); }
-.sw-chip.off .sw-dot { margin-left:0; }
-.sw-ico { display:flex; color:var(--accent); }
-.sw-text { font-size:13px; font-weight:500; color:var(--accent); }
-.sw-track { width:28px; height:16px; border-radius:999px; background:var(--accent); display:flex; align-items:center; padding:2px; transition:background .15s; }
-.sw-dot { width:12px; height:12px; border-radius:50%; background:#fff; margin-left:auto; transition:margin .15s; }
+/* 识别结构胶囊：纯展示，不可点（原来给 button + cursor:pointer 是假可点） */
 .parse-label { font-size:11px; font-weight:500; color:var(--text-soft); letter-spacing:.08em; margin-left:4px; flex-shrink:0; }
-.parse-chip { display:inline-flex; align-items:center; height:24px; padding:0 9px; border-radius:999px; background:var(--bg-hover); font-size:12px; color:var(--text-soft); cursor:pointer; border:1px solid transparent; white-space:nowrap; margin-right:4px; }
-.parse-chip:hover { border-color:var(--border-hi); }
+.parse-chip { display:inline-flex; align-items:center; height:24px; padding:0 9px; border-radius:999px; background:var(--bg-hover); font-size:12px; color:var(--text-soft); border:1px solid transparent; white-space:nowrap; margin-right:4px; }
 .parse-chip.flash { background:var(--accent-soft); border-color:rgba(175,62,43,.3); color:var(--accent); font-weight:600; }
 .parse-bar .spacer { flex:1; }
 .tidy-hint { font-size:12px; color:var(--success); display:none; align-items:center; gap:4px; flex-shrink:0; }
@@ -360,6 +350,7 @@ body {
 }
 .s-textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
 .s-counter { font-size:.68rem; color:var(--text-muted); text-align:right; margin-top:4px; font-family:var(--font-mono); }
+.s-counter.over { color:#c0392b; font-weight:700; }
 
 .style-tabs { display:flex; gap:3px; margin-bottom:8px; }
 .style-tab {
@@ -607,7 +598,6 @@ body {
     <!-- 左栏 · 内容：内容从哪来 → 被理解成什么 -->
     <section class="col-text">
       <div class="editor-header">
-        <button class="btn-sm sec" id="btn-import" type="button" title="导入 .docx 文档">导入文档</button>
         <button class="btn-sm ghost icon" id="btn-clear" type="button" title="清空编辑器">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </button>
@@ -619,15 +609,10 @@ body {
         <textarea id="input-area" placeholder="粘贴或输入内容，自动排版（识别标题/列表/引用，长文自动分层）"></textarea>
       </div></div>
       <div class="parse-bar">
-        <div class="sw-chip" id="sw-chip" title="粘贴/导入时自动把富文本转换为 Markdown">
-          <span class="sw-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/></svg></span>
-          <span class="sw-text">智能转换</span>
-          <span class="sw-track"><span class="sw-dot"></span></span>
-        </div>
         <span class="parse-label">识别结构</span>
         <span id="parse-chips"></span>
         <span class="spacer"></span>
-        <span class="tidy-hint" id="tidy-hint">已自动整理 3 处</span>
+        <span class="tidy-hint" id="tidy-hint"></span>
         <button class="btn-format" id="btn-format" type="button">整理格式 →</button>
       </div>
     </section>
@@ -702,7 +687,7 @@ body {
 
   <!-- 底部操作栏 -->
   <div class="footbar">
-    <span class="foot-status" id="foot-status">已保存</span>
+    <span class="foot-status" id="foot-status">尚未保存</span>
     <span class="foot-count" id="foot-count"></span>
     <span class="spacer"></span>
     <span class="ai-toggle" id="ai-toggle"><span class="ai-dot"></span> AI 工具</span>
@@ -852,6 +837,8 @@ let activeTpl = null;
 let lastHtml = '';
 let lastText = '';
 let renderTimer = null;
+let draftTimer = null;
+let renderSeq = 0;          // 渲染序号：清空后迟到的响应必须丢弃
 let aiOpen = false;
 
 // ── DOM refs ──
@@ -863,7 +850,6 @@ const pvContent = document.getElementById('pv-content');
 const pvEmpty = document.getElementById('pv-empty-state');
 const previewFrame = document.getElementById('preview-frame');
 // 2026-10 重设计新增 refs
-const swChip = document.getElementById('sw-chip');
 const parseChips = document.getElementById('parse-chips');
 const tidyHint = document.getElementById('tidy-hint');
 const footStatus = document.getElementById('foot-status');
@@ -1038,16 +1024,46 @@ const SAMPLE_ARTICLE = `今天分享一个有趣的项目——
 #阳光星盘 #个人项目 #星盘工具`;
 
 const demoBtn = document.getElementById('btn-demo');
-demoBtn.addEventListener('click', () => {
-  if (inputArea.value.trim()) {
-    inputArea.value = '';
-    demoBtn.textContent = '看示例';
-  } else {
+function syncDemoBtn() {
+  if (!demoBtn) return;
+  demoBtn.textContent = inputArea.value === SAMPLE_ARTICLE ? '清空' : '看示例';
+}
+if (demoBtn) {
+  demoBtn.addEventListener('click', () => {
+    const cur = inputArea.value;
+    // 已经是示例 → 清掉（可撤销）
+    if (cur === SAMPLE_ARTICLE) {
+      inputArea.value = '';
+      clearInputState();
+      updateParseBar();
+      updateFootStatus();
+      syncDemoBtn();
+      toast('已清空示例', { undo: () => { inputArea.value = cur; doRender(); updateFootStatus(); syncDemoBtn(); } });
+      return;
+    }
+    // 有用户内容 → 载入示例，但必须给撤销（原来直接静默清空，用户以为只是「看一下」）
+    const hadContent = !!cur.trim();
     inputArea.value = SAMPLE_ARTICLE;
-    demoBtn.textContent = '清空';
-  }
-  doRender();
-});
+    syncDemoBtn();
+    doRender();
+    updateParseBar();
+    updateFootStatus();
+    if (hadContent) {
+      toast('已换成示例，原内容可撤销', {
+        undo: () => {
+          if (inputArea.value.trim() && inputArea.value !== SAMPLE_ARTICLE
+              && !confirm('编辑器里已经有新内容，撤销会覆盖它，继续？')) return;
+          inputArea.value = cur;
+          doRender();
+          updateParseBar();
+          updateFootStatus();
+          syncDemoBtn();
+          toast('已恢复你的内容');
+        }
+      });
+    }
+  });
+}
 
 // ── 插入模块：把围栏容器模板写到光标处（语法与 core/format_engine.py 一致）──
 const MODULE_TEMPLATES = {
@@ -1133,7 +1149,7 @@ function updateParseBar(md) {
   if (c.qu) parts.push(['引用', c.qu]);
   if (c.mod) parts.push(['::: 模块', c.mod]);
   parseChips.innerHTML = parts.map(([n, v]) =>
-    `<button class="parse-chip" type="button">${n} ×${v}</button>`).join('');
+    `<span class="parse-chip">${n} ×${v}</span>`).join('');
 }
 function flashParseChips() {
   document.querySelectorAll('.parse-chip').forEach(c => {
@@ -1141,14 +1157,51 @@ function flashParseChips() {
     setTimeout(() => c.classList.remove('flash'), 400);
   });
 }
+// ── 本地草稿：页脚「已保存」必须是真的 ─────────────────────────
+// 原来只是每次输入刷新一下时间，刷新/关页就整篇丢失 —— 属于「假承诺」。
+const LS_DRAFT = 'supersu.draft.v1';
+let lastSavedAt = null;
+let draftSaveFailed = false;
+function saveDraft(text) {
+  const payload = { text: String(text == null ? '' : text), themeId: activeTpl, ts: Date.now(), v: 1 };
+  try {
+    localStorage.setItem(LS_DRAFT, JSON.stringify(payload));
+    lastSavedAt = payload.ts;
+    draftSaveFailed = false;
+    return true;
+  } catch (e) {
+    draftSaveFailed = true;
+    return false;
+  }
+}
+function restoreDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_DRAFT) || 'null');
+    if (!d || typeof d.text !== 'string' || !d.text.trim()) return false;
+    if (inputArea.value.trim()) return false;
+    inputArea.value = d.text;
+    lastSavedAt = d.ts || null;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function updateFootStatus() {
   if (!footCount) return;
   const c = countMd(inputArea.value);
   const empty = !inputArea.value.trim();
   footCount.textContent = empty ? '' : `${c.chars} 字 · 结构完整`;
-  if (footStatus && !empty) {
-    const d = new Date();
-    footStatus.textContent = '已保存 · ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (footStatus) {
+    const pad = n => String(n).padStart(2, '0');
+    if (draftSaveFailed) {
+      footStatus.textContent = '本地保存失败（存储可能已满）';
+    } else if (lastSavedAt) {
+      const d = new Date(lastSavedAt);
+      footStatus.textContent = '已保存 · ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    } else {
+      footStatus.textContent = '尚未保存';
+    }
   }
   const btnCopy = document.getElementById('btn-copy');
   const btnPush = document.getElementById('btn-push');
@@ -1233,6 +1286,8 @@ function renderDrawerGrid(group = 'all', kw = '') {
       syncThemeChip();
       renderDrawerGrid(CURRENT_GROUP, drawerSearch ? drawerSearch.value : '');
       doRender();
+      // 选完就关：一次点击应该完成「选主题」这件事，用户要能立刻看到套用效果
+      closeDrawer();
     };
   });
 }
@@ -1261,41 +1316,68 @@ function closeDialog(id) {
   if (el) el.classList.remove('show');
 }
 
-// ── 解析条 / 编辑器头部 / 抽屉交互绑定 ──
-if (swChip) {
-  swChip.addEventListener('click', () => {
-    const off = swChip.classList.toggle('off');
-    toast(off ? '智能转换已关闭：粘贴富文本时将保留纯文本' : '智能转换已开启：粘贴富文本自动转 Markdown');
-  });
-}
+// ── 编辑器头部 / 解析条交互绑定 ──
+// 「整理格式」：只整理正文行 —— 代码块缩进、嵌套列表缩进必须原样保留
 const btnFormat = document.getElementById('btn-format');
 if (btnFormat) {
   btnFormat.addEventListener('click', () => {
-    inputArea.value = inputArea.value.split('\n').map(l => l.trim()).join('\n');
+    const lines = inputArea.value.split('\n');
+    let inFence = false;
+    let changed = 0;
+    const out = lines.map(l => {
+      if (/^\s*(```|~~~)/.test(l)) {      // 围栏行本身只去行尾空白（``` 与 ~~~ 都算）
+        inFence = !inFence;
+        const t = l.replace(/\s+$/, '');
+        if (t !== l) changed++;
+        return t;
+      }
+      if (inFence) return l;              // 代码块内部一个字都不动
+      if (/^\s+([-*+]|\d+\.)\s/.test(l)) { // 嵌套列表保留缩进，只去行尾
+        const t = l.replace(/\s+$/, '');
+        if (t !== l) changed++;
+        return t;
+      }
+      const t = l.trim();
+      if (t !== l) changed++;
+      return t;
+    });
+    if (!changed) { toast('已经很整齐了，无需整理'); return; }
+    inputArea.value = out.join('\n');
     doRender();
     updateParseBar();
     updateFootStatus();
     flashParseChips();
     if (tidyHint) {
+      tidyHint.textContent = `已整理 ${changed} 行`;
       tidyHint.classList.add('show');
-      setTimeout(() => tidyHint.classList.remove('show'), 3000);
+      clearTimeout(tidyHint._t);
+      tidyHint._t = setTimeout(() => tidyHint.classList.remove('show'), 3000);
     }
   });
 }
+// 「清空」：给撤销，别让误触变成丢稿
 const btnClear = document.getElementById('btn-clear');
 if (btnClear) {
   btnClear.addEventListener('click', () => {
-    if (!inputArea.value.trim()) return;
+    const prev = inputArea.value;
+    if (!prev.trim()) return;
     inputArea.value = '';
-    inputArea.dispatchEvent(new Event('input'));
+    clearInputState();
     updateParseBar();
     updateFootStatus();
-    toast('已清空编辑器');
+    toast('已清空编辑器', {
+      undo: () => {
+        // 5 秒内用户可能又写了新内容：撤销前确认，别造成二次丢稿
+        if (inputArea.value.trim() && !confirm('编辑器里已经有新内容，撤销会覆盖它，继续？')) return;
+        inputArea.value = prev;
+        doRender();
+        updateParseBar();
+        updateFootStatus();
+        syncDemoBtn();
+        toast('已恢复清空前的文字');
+      }
+    });
   });
-}
-const btnImport = document.getElementById('btn-import');
-if (btnImport) {
-  btnImport.addEventListener('click', () => toast('文档导入即将上线：先直接复制文档内容粘贴，效果相同'));
 }
 if (themeChip) themeChip.addEventListener('click', openDrawer);
 const btnAllTpl = document.getElementById('btn-all-tpl');
@@ -1337,8 +1419,12 @@ if (dlgErrRetry) dlgErrRetry.addEventListener('click', () => { closeDialog('dial
 // =================================
 // 渲染「当前输入 + 当前所选主题(activeTpl)」；模板切换仅点击触发。
 async function doRender() {
-  const text = inputArea.value.trim();
+  const raw = inputArea.value;
+  const text = raw.trim();
+  // 草稿先落盘（存原文，不要 trim —— 代码围栏尾部的换行有语义）
+  saveDraft(raw);
   if (!text || !activeTpl) return;
+  const seq = ++renderSeq;
   lastText = text;
   
   try {
@@ -1349,11 +1435,13 @@ async function doRender() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'render failed');
+    if (seq !== renderSeq) return;      // 期间被清空/又改了 → 丢弃过期响应，别让旧内容复活
     lastHtml = data.html || '';
     showPreview(lastHtml);
     updateParseBar(data.markdown || '');
     updateFootStatus();
   } catch(e) {
+    if (seq !== renderSeq) return;
     console.error('render error', e);
     openDialog('dialog-error');
     toast('渲染失败：' + e.message);
@@ -1378,12 +1466,32 @@ function showPreview(html) {
   }
 }
 
+// 输入清空：预览 / 字数 / 解析条一起回空态（原来只清了 chips，右边还挂着上一篇）
+function clearInputState() {
+  renderSeq++;                 // 让还在飞的 /api/render 响应作废，避免旧内容「复活」
+  if (parseChips) parseChips.innerHTML = '';
+  if (footCount) footCount.textContent = '';
+  if (pvEmpty) pvEmpty.style.display = '';
+  const shell = document.getElementById('phone-shell');
+  if (shell) shell.style.display = 'none';
+  if (previewFrame) previewFrame.style.display = 'none';
+  try {
+    const doc = previewFrame && (previewFrame.contentDocument || previewFrame.contentWindow.document);
+    if (doc) { doc.open(); doc.write(''); doc.close(); }
+  } catch (e) { /* 未就绪时忽略 */ }
+  lastHtml = '';
+  lastText = '';
+  // 清空也要落盘：否则刷新后旧草稿会把已清掉的内容整篇复活
+  saveDraft('');
+}
+
 // Auto render on input change
 inputArea.addEventListener('input', () => {
+  syncDemoBtn();          // 示例被改动后，按钮文案要变回「看示例」
   clearTimeout(renderTimer);
   renderTimer = setTimeout(() => {
     if (!inputArea.value.trim()) {
-      if (parseChips) parseChips.innerHTML = '';
+      clearInputState();
       updateFootStatus();
       return;
     }
@@ -1391,7 +1499,20 @@ inputArea.addEventListener('input', () => {
     updateFootStatus();
     flashParseChips();
   }, 400);
+
+  // 草稿独立兜底（500ms）：不依赖渲染是否成功
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    saveDraft(inputArea.value);
+    updateFootStatus();
+  }, 500);
 });
+
+// 切走/关闭页面时补一刀：粘贴后 500ms 内关页也不能丢
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveDraft(inputArea.value);
+});
+window.addEventListener('pagehide', () => saveDraft(inputArea.value));
 
 // =================================
 // PREVIEW MODE
@@ -1548,6 +1669,18 @@ document.getElementById('btn-copy').addEventListener('click', async () => {
     openDialog('dialog-copy');
     toast('当前环境不支持自动复制，请手动复制');
   }
+});
+
+// 按钮上写着 Ctrl+Enter，就必须真的能用（原来只有小红书页实现了快捷键）
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.key !== 'Enter') return;
+  if (e.isComposing || e.repeat) return;                    // 输入法选词回车 / 长按不算
+  if (e.target && e.target.closest && e.target.closest('.modal, .drawer')) return;
+  const page = document.querySelector('.page.active');
+  if (!page || page.id !== 'page-wechat') return;
+  e.preventDefault();
+  const btn = document.getElementById('btn-copy');
+  if (btn && !btn.disabled) btn.click();
 });
 
 // 富文本复制兜底：隐藏 contenteditable 承载 HTML → 选区 → execCommand('copy')
@@ -2030,7 +2163,19 @@ document.querySelectorAll('.plt-btn').forEach(btn => {
 });
 
 document.getElementById('social-text').addEventListener('input', function() {
-  document.getElementById('social-char-count').textContent = this.value.length + ' / 500';
+  const counter = document.getElementById('social-char-count');
+  const n = this.value.length;
+  counter.textContent = n + ' / 500';
+  // 超限不硬截断（硬截会吃用户文字），但必须明确提示：变红 + 一次性 toast
+  const over = n > 500;
+  counter.classList.toggle('over', over);
+  counter.title = over ? `超出 ${n - 500} 字，建议精简（不影响生成，但排版可能拥挤）` : '';
+  if (over && !this._overToasted) {
+    this._overToasted = true;
+    toast(`文案 ${n} 字，超过建议的 500 字（仍可生成）`);
+  } else if (!over) {
+    this._overToasted = false;
+  }
   if (activeSocialStyle) {
     document.getElementById('spv-title').textContent = extractSocialTitle(this.value) || '封面标题';
     document.getElementById('spv-desc').textContent = extractSocialDesc(this.value) || '封面描述';
@@ -2126,10 +2271,12 @@ genBtn.addEventListener('click', async () => {
   genBtn.disabled = true;
   genBtn.textContent = '生成中…';
   const stopPoll = () => { if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; } };
+  let failed = false;        // 失败后迟到的 progress 响应不许再覆盖失败文案
   const poll = () => {
     fetch('/api/social/progress/' + task_id)
       .then(r => r.json())
       .then(d => {
+        if (failed) return;
         const t = GEN_STAGE_TEXT[d.stage] || GEN_STAGE_TEXT.unknown;
         if (stageEl) { stageEl.style.display = 'block'; stageEl.textContent = '正在生成封面 · ' + t; }
       })
@@ -2188,6 +2335,18 @@ genBtn.addEventListener('click', async () => {
     }
     toast('封面已生成');
   } catch(e) {
+    // 失败必须复位：原来 catch 只弹 toast，「正在生成封面 · …」会永久挂在结果区
+    failed = true;
+    stopPoll();
+    if (stageEl) {
+      stageEl.style.display = 'block';
+      stageEl.textContent = '生成失败：' + e.message + '（可重试）';
+    }
+    // 旧结果不能继续挂着，否则用户会当成这次生成出来的
+    const oldList = document.getElementById('results-list');
+    if (oldList) oldList.style.display = 'none';
+    const oldCredit = document.getElementById('bg-credit');
+    if (oldCredit) oldCredit.style.display = 'none';
     toast('生成失败: ' + e.message);
   } finally {
     stopPoll();
@@ -2197,7 +2356,7 @@ genBtn.addEventListener('click', async () => {
 });
 
 document.getElementById('social-text').addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === 'Enter') {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !e.isComposing && !e.repeat) {
     document.getElementById('btn-generate-cover').click();
   }
 });
@@ -2357,6 +2516,9 @@ if (bgHelp) bgHelp.addEventListener('click', e => { e.preventDefault(); openTuto
 
 loadSocialStyles();
 renderSocialEmptySamples();
+// 启动：先从本地草稿恢复（主题加载前填回输入框，loadThemes 会顺带渲染）
+if (restoreDraft()) toast('已恢复上次的草稿');
+syncDemoBtn();
 updateFootStatus();
 updateParseBar();
 if (document.querySelector('.plt-btn')) document.querySelector('.plt-btn').classList.add('active');
@@ -2375,14 +2537,21 @@ document.getElementById('lightbox').addEventListener('click', e => {
 // =================================
 // TOAST
 // =================================
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
 function toast(msg, opts = {}) {
   const el = document.getElementById('toast-el');
-  el.innerHTML = `<span>${msg}${opts.sub ? `<span class="t-sub">${opts.sub}</span>` : ''}</span>`;
+  el.innerHTML = `<span>${escHtml(msg)}${opts.sub ? `<span class="t-sub">${escHtml(opts.sub)}</span>` : ''}</span>`;
   if (opts.undo) {
     const b = document.createElement('button');
     b.className = 'undo';
     b.textContent = '撤销';
-    b.onclick = () => { opts.undo(); hideToast(); };
+    // .toast 是 pointer-events:none，且该属性会被子元素继承 → 必须显式打开，否则按钮永远点不动
+    b.style.pointerEvents = 'auto';
+    // 先收起当前 toast 再执行撤销：撤销里通常会再弹一条确认，否则会被这次 hide 吞掉
+    b.onclick = () => { hideToast(); opts.undo(); };
     el.appendChild(b);
   }
   el.style.opacity = '1';
@@ -2397,6 +2566,8 @@ function hideToast() {
   const el = document.getElementById('toast-el');
   el.style.opacity = '0';
   el.style.transform = 'translateX(-50%) translateY(0)';
+  // toast 只改透明度，DOM 还在：不清掉可点状态会留下一个看不见的「幽灵按钮」
+  el.querySelectorAll('.undo').forEach((b) => { b.style.pointerEvents = 'none'; });
 }
 </script>
 </body>

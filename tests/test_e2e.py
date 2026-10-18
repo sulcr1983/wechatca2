@@ -652,7 +652,7 @@ def test_preprocess_markdown_preserve():
         assert "> 引用文本" in md
 
 
-@test("预处理: 短标题检测（≤16字符无标点）")
+@test("预处理: 短标题检测（≤16字符无标点）→ 首行升为文章大标题 # ")
 def test_preprocess_short_heading():
     with app.test_client() as c:
         r = c.post("/api/render", json={
@@ -661,7 +661,8 @@ def test_preprocess_short_heading():
         })
         assert r.status_code == 200
         md = r.get_json()["markdown"]
-        assert "## 技术方案" in md
+        # 2026-10-18 行为变更：首行默认识别为文章大标题（原来停在 ##，全文无 H1、层级被压平）
+        assert md.startswith("# 技术方案"), md
 
 
 @test("预处理: 序号标题（一、/ 1. / ①）")
@@ -673,7 +674,8 @@ def test_preprocess_numbered_heading():
         })
         assert r.status_code == 200
         md = r.get_json()["markdown"]
-        assert "## 一、项目背景" in md
+        # 2026-10-18 行为变更：首行（一、项目背景）升为文章大标题；其后小节保持 ##
+        assert md.startswith("# 一、项目背景"), md
         assert "## 1. 具体步骤" in md
 
 
@@ -792,7 +794,8 @@ def test_preprocess_multi_style_sections():
     md = _pp("""第一部分商业报告
 2023年度总结报告
 3.1系统初始化指南""")
-    assert "## 第一部分商业报告" in md, md
+    # 2026-10-18 行为变更：首行升为文章大标题（#），其后层级保持 ##/###
+    assert md.startswith("# 第一部分商业报告"), md
     assert "### 3.1系统初始化指南" in md, md
 
 
