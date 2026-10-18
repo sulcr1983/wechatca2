@@ -3,6 +3,10 @@
 > **别再为排版跟编辑器搏斗半小时。**
 > 粘贴纯文本 → 好看的公众号排版；一句话 → 3 张小红书封面。
 > 全程本地运行 · 默认零 AI · 开箱即用。
+>
+> 🌐 **在线版（PWA，推荐，免安装）**：<https://supersu.ccwu.cc>
+> 备用地址：<https://supersu-pwa.pages.dev>
+> 本地版（已标记弃用，保留回退）：`python app.py` → <http://127.0.0.1:5000>
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)

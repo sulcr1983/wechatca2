@@ -51,6 +51,10 @@ def skip(name: str, detail: str = "") -> None:
 
 
 def main() -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="https://supersu.ccwu.cc/")
     args = ap.parse_args()
@@ -197,18 +201,10 @@ def main() -> int:
 
         cap_metrics = page.eval_on_selector("#style-caps", "e => [e.scrollLeft, e.scrollWidth, e.clientWidth]")
         sl_b = cap_metrics[0]
-        page.click('.style-scroll[data-dir="1"]')
-        try:
-            page.wait_for_function(f"document.getElementById('style-caps').scrollLeft > {sl_b}", timeout=5000)
-        except Exception:
-            pass
+        page.click('.style-scroll[data-dir="1"]'); page.wait_for_timeout(900)
         sl_a = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
         check("风格条右滚", sl_a > sl_b, f"{cap_metrics}", f"scrollLeft={sl_a}")
-        page.click('.style-scroll[data-dir="-1"]')
-        try:
-            page.wait_for_function(f"document.getElementById('style-caps').scrollLeft < {sl_a}", timeout=5000)
-        except Exception:
-            pass
+        page.click('.style-scroll[data-dir="-1"]'); page.wait_for_timeout(900)
         sl_c = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
         check("风格条左滚", sl_c < sl_a, f"scrollLeft={sl_a}", f"scrollLeft={sl_c}")
 
@@ -244,6 +240,17 @@ def main() -> int:
         page.locator(".fchip").nth(2).click(); page.wait_for_timeout(500)
         n3 = drawer_count(page)
         check("抽屉族筛选", chips > 2 and n3 != n2, f"{chips} chips / {n2}", f"{n3}")
+        page.locator('.fchip[data-fam="all"]').click(); page.wait_for_timeout(400)
+
+        # 进入族折叠视图，点同族色点换色
+        page.locator(".d-card.d-family-card").first.click(); page.wait_for_timeout(500)
+        tones = page.locator(".d-tone").count()
+        if tones > 1:
+            t0 = active_theme(page)
+            page.locator(".d-tone").nth(1).click(); page.wait_for_timeout(700)
+            check("同族色点换色", active_theme(page) != t0, t0, active_theme(page))
+        else:
+            skip("同族色点换色", f"色点数量 {tones}")
         page.locator('.fchip[data-fam="all"]').click(); page.wait_for_timeout(400)
 
         before_theme = active_theme(page)
@@ -292,12 +299,15 @@ def main() -> int:
         c1 = page.inner_text("#cl-count")
         check("更新记录搜索过滤", c0 != c1, c0, c1)
         page.fill("#cl-search", ""); page.wait_for_timeout(400)
-        type_chips = page.locator("#cl-chips button[data-type]").count()
+        type_btns = page.locator("#cl-chips button[data-type]")
+        type_chips = type_btns.count()
         if type_chips:
+            values = page.eval_on_selector_all("#cl-chips button[data-type]", "els => els.map(e => e.dataset.type)")
+            idx = next((i for i, v in enumerate(values) if v not in ("all", "")), 0)
             c2 = page.inner_text("#cl-count")
-            page.locator("#cl-chips button[data-type]").first.click(); page.wait_for_timeout(400)
+            type_btns.nth(idx).click(); page.wait_for_timeout(500)
             c3 = page.inner_text("#cl-count")
-            check("更新记录类型筛选", c2 != c3, f"{type_chips} 类 / {c2}", c3)
+            check("更新记录类型筛选", c2 != c3, f"{values} / {c2}", f"{values[idx]} / {c3}")
         else:
             skip("更新记录类型筛选", "当前面板无类型按钮")
         page.click("#cl-close")
@@ -390,26 +400,28 @@ def main() -> int:
         check("返回后按钮变「小红书」", page.inner_text("#btn-cover").strip() == "小红书", "", page.inner_text("#btn-cover"))
 
         # ── 7. 发布小票（#upd-demo 的三个按钮）──────────────────
-        try:
-            page.goto(url + "#upd-demo", wait_until="domcontentloaded", timeout=60000)
+        def open_demo(n: int):
+            page.goto(url + f"?upd-demo={n}#upd-demo", wait_until="domcontentloaded", timeout=60000)
+            page.evaluate("localStorage.removeItem('supersu.pwa.dismissedVersion')")
             page.wait_for_selector("#upd-card:not([hidden])", timeout=30000)
-            check("发布小票可打开", page.is_visible("#upd-card"), "hidden", "visible", snap(page, "upd-card"))
-            page.click("#upd-later")
-            check("小票「稍后」关闭", page.is_hidden("#upd-card"), "visible", "hidden")
 
-            page.goto(url + "#upd-demo", wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_selector("#upd-card:not([hidden])", timeout=30000)
+        try:
+            open_demo(1)
+            check("发布小票可打开", page.is_visible("#upd-card"), "hidden", "visible", snap(page, "upd-card"))
             page.click("#upd-all"); page.wait_for_timeout(600)
             check("小票「查看全部」打开面板", page.is_visible("#cl-panel"), "hidden", "visible")
-            page.click("#cl-close")
+            page.click("#cl-close"); page.wait_for_timeout(300)
 
-            page.goto(url + "#upd-demo", wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_selector("#upd-card:not([hidden])", timeout=30000)
+            open_demo(2)
             if page.is_visible("#upd-now"):
                 page.click("#upd-now"); page.wait_for_timeout(700)
                 check("小票「立即更新」有反馈", bool(toast(page)), "", toast(page), snap(page, "upd-now"))
             else:
                 skip("小票「立即更新」", "无 waiting worker 时按钮不显示（预期）")
+
+            open_demo(3)
+            page.click("#upd-later"); page.wait_for_timeout(300)
+            check("小票「稍后」关闭", page.is_hidden("#upd-card"), "visible", "hidden")
         except Exception as e:
             check("发布小票流程", False, "", str(e)[:160])
 
@@ -429,6 +441,7 @@ def main() -> int:
         check("移动端封面页可用", page.is_visible("#cover-root") and page.is_visible("#cv-gen"),
               "", "true", snap(page, "mobile-cover"))
         page.click("#btn-cover"); page.wait_for_timeout(300)
+        page.click('#tabs button[data-tab="preview"]'); page.wait_for_timeout(300)
         page.click("#btn-themes"); page.wait_for_timeout(400)
         if page.is_visible("#drawer-mask"):
             page.click("#drawer-mask", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
