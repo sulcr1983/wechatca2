@@ -70,6 +70,8 @@ const SHELL_OPTIONAL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png',
+  './brand/logo-64.png',
+  './brand/logo-256.png',
 ];
 
 // 数据类资源：体积大、变动少，按需 + install 时按 manifest 增量预取

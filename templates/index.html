@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c8832e'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-size='22' font-weight='700' font-family='sans-serif'%3ES%3C/text%3E%3C/svg%3E">
-<title>SuperSu — 公众号排版 + 封面生成</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32.png">
+<title>SuperSu 公众号编辑器 — 排版 + 封面</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -61,11 +61,12 @@ body {
   letter-spacing:-.01em; display:flex; align-items:center; gap:8px;
   margin-right:8px;
 }
-.topbar .logo::before {
-  content:"版"; width:28px; height:28px; flex-shrink:0;
-  background:var(--accent); border-radius:8px;
-  color:#fff; font-size:15px; font-weight:600;
-  display:flex; align-items:center; justify-content:center;
+.topbar .logo img {
+  width:28px; height:28px; border-radius:8px; flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(20,18,14,.10);   /* 图标自带浅色底，1px 描边让它在白顶栏上站得住 */
+}
+.topbar .logo .logo-sub {
+  font-weight:400; font-size:13px; color:var(--text-soft); margin-left:4px;
 }
 .tab-btn {
   position:relative; height:56px; padding:0 14px;
@@ -587,6 +588,12 @@ body {
   .social-grid { grid-template-columns:1fr; }
   /* D-3 修复：移动端不再隐藏预览与结果，改为堆叠可见（移除 display:none） */
   .app { padding:0 10px 10px; height:auto; min-height:100vh; overflow:visible; }
+  /* 窄屏顶栏本来就挤（标签会折行），系统名后缀收起来，别再加一份 */
+  .topbar .logo .logo-sub { display:none; }
+  /* 窄屏顶栏：标签不再竖排折行，整条改成横向可滑（教程/设置等入口不丢，只是要滑一下） */
+  .topbar { padding:0 12px; overflow-x:auto; scrollbar-width:none; }
+  .topbar::-webkit-scrollbar { display:none; }
+  .topbar .logo, .topbar .tab-btn, .topbar .top-btn { flex:0 0 auto; white-space:nowrap; }
 }
 </style>
 </head>
@@ -595,7 +602,7 @@ body {
 
 <!-- Topbar -->
 <nav class="topbar">
-  <span class="logo">SuperSu</span>
+  <span class="logo"><img src="/assets/brand/logo-64.png" alt="">SuperSu<span class="logo-sub">公众号编辑器</span></span>
   <button class="tab-btn active" data-page="wechat">公众号排版</button>
   <button class="tab-btn" data-page="social">小红书封面</button>
   <span class="spacer"></span>

@@ -1,22 +1,29 @@
 {
   "version": "1.3.0",
-  "generatedAt": "2026-10-18T22:20:57+08:00",
-  "totalCommits": 109,
+  "generatedAt": "2026-10-18T23:42:34+08:00",
+  "totalCommits": 113,
   "releases": [
     {
       "version": "1.3.0",
       "date": "2026-10-18",
       "title": "提速与智能更新（增量 · 静默 · AI · 轻量预览）",
       "counts": {
-        "added": 2,
-        "changed": 7,
-        "fixed": 1
+        "added": 3,
+        "changed": 9,
+        "fixed": 2
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "更新列表翻修——按时刻分版本、语义化版本号、构建自动生成、视觉升级",
+              "scope": "pwa",
+              "hash": "3c7fc05",
+              "date": "2026-10-18T22:30:47+08:00",
+              "breaking": false
+            },
             {
               "text": "更新面板改「发布小票」（版本/日期/三条亮点/查看全部）",
               "scope": "pwa",
@@ -37,6 +44,20 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "重写交接文档为「已完成 / 未完成」完整移交版 + 部署铁律落地",
+              "scope": "handoff",
+              "hash": "181552e",
+              "date": "2026-10-18T23:18:36+08:00",
+              "breaking": false
+            },
+            {
+              "text": "45 套早期原创主题字号对齐业界标尺（决策 B，仅改字号）",
+              "scope": "theme",
+              "hash": "6107844",
+              "date": "2026-10-18T23:05:11+08:00",
+              "breaking": false
+            },
             {
               "text": "新增更新模块交接文档（docs/update-handoff.md）—— 文件清单/挂载/发版流程/验证/已知坑",
               "scope": "",
@@ -92,6 +113,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "压力审计修复批——解析保真 / 安全清洗 / 业界字号 / 族折叠",
+              "scope": "engine+theme+ui",
+              "hash": "1d1330f",
+              "date": "2026-10-18T22:42:06+08:00",
+              "breaking": false
+            },
             {
               "text": "模板库缩略图被占位层遮挡 + 抽屉遮挡预览 + 版本号写死 + 移除模拟底栏",
               "scope": "pwa",

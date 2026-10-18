@@ -70,11 +70,11 @@ a { color: var(--accent); }
 
 .boot-mark {
   width: 22px; height: 22px; border-radius: 7px;
-  background: var(--accent);
-  display: grid; place-items: center;
+  overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(20, 18, 14, .10);   /* 图标自带浅色底，1px 描边让它在白底上站得住 */
 }
-.boot-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; opacity: .92; }
+.boot-mark img { width: 100%; height: 100%; display: block; }
 
 .boot-title { margin: 8px 0 0; font-size: 20px; font-weight: 600; letter-spacing: .01em; }
 .boot-sub { margin: 0; color: var(--text-soft); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -93,14 +93,17 @@ a { color: var(--accent); }
 }
 .top-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
 
-.seal {
+/* 品牌徽标：顶栏 / 启动条 / 更新区共用（资源在 public/brand，构建时拷进 dist/brand） */
+.brand-mark {
   width: 24px; height: 24px; border-radius: 6px;
-  background: var(--accent); color: #fff;
-  font-size: 13px; font-weight: 600; line-height: 24px; text-align: center;
-  flex: none; user-select: none;
+  flex: none; display: block;
+  box-shadow: 0 0 0 1px rgba(20, 18, 14, .10);
 }
+.brand-mark.lg { width: 40px; height: 40px; border-radius: 10px; }
+.brand-mark.xs { width: 16px; height: 16px; border-radius: 4px; }
 
-.brand { font-size: 15px; font-weight: 700; letter-spacing: .01em; }
+.brand { font-size: 15px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+.brand-tail { font-weight: 400; font-size: 12.5px; color: var(--text-soft); margin-left: 4px; }
 .brand-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .top-right { display: flex; align-items: center; gap: 8px; position: relative; }
@@ -344,6 +347,7 @@ body.browsing .drawer-mask { display: none; }
   display: flex; flex-direction: column;
 }
 .dialog-head { flex: none; height: 52px; padding: 0 12px 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.dialog-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .dialog-body { padding: 16px 20px 20px; font-size: 13px; line-height: 1.8; color: var(--text-soft); }
 .dialog-body p { margin: 0 0 12px; }
 .dialog-body strong { color: var(--text); }
@@ -377,6 +381,7 @@ body.browsing .drawer-mask { display: none; }
   .parse-bar { padding: 8px 14px; }
   .style-bar { padding: 0 92px 0 8px; }
   .brand-sub { display: none; }
+  .brand-tail { display: none; }   /* 窄屏顶栏挤，系统名只留 SuperSu */
   .tabs {
     display: grid; grid-template-columns: 1fr 1fr; height: var(--tabs-h);
     background: var(--bg-raised); border-top: 1px solid var(--border);

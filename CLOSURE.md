@@ -395,3 +395,53 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 ### 纪律说明
 本次改的是 `core/`，在 `pwa` 分支上做（当时 `pwa` 尚未有专属代码），改完把 `main` 快进同步。此后 `pwa` 有专属代码时，`core/` 改动必须回 `main` 做再 rebase。
 
+## 任务 9：品牌 logo 接入（本地版 + PWA，2026-10-18）
+
+**诉求**：用户提供「折纸 S」logo（初版蓝紫、后自行改成朱砂以匹配系统主色），要求放到首页系统名称左侧、系统更新相关位置，并处理 PWA 应用图标。
+
+### 决策（用户确认「按上面的方案」）
+- 配色 A：UI 主色仍朱砂（不动 `--accent`），只有徽标是彩色图。
+- 徽标形态 A：直接用整块圆角图标 + 1px 描边（不抠图）。
+- maskable 底色：浅底（与源图一致）。
+- 更新区范围 A：更新入口 + 更新记录面板头部 + 关于弹窗加 logo；**发布小票卡不加**（卡内已有版本徽标）。
+- 系统名称：**本轮未改名**，待用户确认。
+
+### 资产链路（新增）
+`docs/brand/logo-source.png`（源图 1254²）→ `scripts/build_brand_assets.py` →
+- `public/brand/`：logo-64 / logo-256 / favicon-32（本地版走 `/assets/brand/*`，PWA 构建拷进 `dist/brand/`）
+- `pwa/public/icons/`：icon-192 / icon-512 / icon-512-maskable / apple-touch-icon(180) / favicon-32（替换原朱砂「版」）
+
+**源图两个坑**（已写进脚本注释）：
+1. 圆角外的黑底不是纯黑（实际 1~5 的近似黑），用 `!= (0,0,0)` 判会得到 1px 圆角、黑角填不掉；
+2. 圆角是 iOS 式 squircle，按正圆角几何去裁会留一圈暗像素（缩到 32px 肉眼可见）→ 改按颜色判「V ≤ 215 且彩度 ≤ 40」填底色。**不能用 HSV 的 S 判彩度**：近黑像素（max 极小、min=0）时 S 退化成 255，黑底会整片漏填，必须用 V×S/255 反算。
+
+### 接入位置
+| 位置 | 本地版 | PWA |
+|------|--------|-----|
+| 浏览器标签页 | `/assets/brand/favicon-32.png`（替换原内联 SVG） | `icons/favicon-32.png` |
+| 顶栏名称左侧 | `.topbar .logo img` 28px | `.brand-mark` 24px（原 `.seal` 朱砂「版」已删） |
+| 启动条 | — | `.boot-mark` 22px（原朱砂方块 + 白点） |
+| 更新入口按钮 | — | `.brand-mark.xs` 16px（**保留原红点**「有未读更新」） |
+| 更新记录面板头部 | — | `#cl-head` 徽标 24px |
+| 关于弹窗 | — | `.brand-mark.lg` 40px |
+
+### 改动文件
+新增：`scripts/build_brand_assets.py`、`docs/brand/logo-source.png`、`public/brand/*`、`docs/brand/logo-prototype.html`（对比稿原型）
+修改：`templates/index.html`、`pwa/index.html`、`pwa/src/style.css`、`pwa/src/update/ui.js`、`pwa/src/update/changelog.js`、`pwa/public/sw.js`、`pwa/scripts/build.mjs`、`pwa/public/icons/*`（5 张替换）、`AGENTS.md`
+
+### 验证（真实执行）
+- 资产生成：8 张图**四角零残留**（全图扫描「深灰残留像素 = 0」，人工目视确认无圆弧描边）。
+- PWA 构建：`node pwa/scripts/build.mjs` 断言通过（关键文件含 `brand/*`、主题 164 套一致、无 Google Fonts 外链）；BUILD_ID 变化 → 用户端会收到一次静默更新（预期行为）。
+- 本地：`tests/test_e2e.py` **65/65**；`tests/test_headed_full_e2e.py` **33/33 通过 + 0 控制台报错**。
+- 两版目视（有头浏览器）：6 处（本地顶栏 / PWA 顶栏 / 启动条 / 更新入口 / 更新记录头部 / 关于弹窗）全部正常，无变形、重叠、破图。
+- 备注：PWA dist 预览时服务器日志有一条 `/release-notes.json?ts=` 404，**全仓库 grep 无该路径引用**，非本项目代码发出（浏览器扩展或缓存），不影响功能。
+
+### 追加（用户确认 5 项决策后，同日）
+1. **系统名称统一为「SuperSu 公众号编辑器」**：两版 `<title>` 改为 `SuperSu 公众号编辑器 — 排版 + 封面`；manifest `name` 改同（`short_name` 仍为 `SuperSu`，主屏标签短）；PWA 关于弹窗标题改「关于 SuperSu 公众号编辑器」；两版顶栏在粗体 `SuperSu` 后加浅色小字「公众号编辑器」（`.logo-sub` / `.brand-tail`，`margin-left:4px` 紧贴主名）。
+2. **发布小票卡也加 logo**（原方案 A 决定不加，用户改判为「全都加」）：`.upd-head` 首位插入 24px `.brand-mark`，版本徽标与日期保持原样。
+
+验证同上（改动仅文案与一个 `img` 节点），重跑 PWA 构建 + 65/65 + 33/33 与两版目视。
+
+### 回滚点
+- 新增文件删除 / 改回即可；图标与徽标复原为朱砂「版」方章。用户未要求提交，本轮**未 commit**。
+

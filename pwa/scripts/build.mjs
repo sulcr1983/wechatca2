@@ -48,6 +48,9 @@ const SHELL_FILES = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-512-maskable.png',
+  // 品牌徽标（顶栏 / 启动条 / 更新区用）：公共源在 public/brand，构建时拷进 dist/brand
+  'brand/logo-64.png',
+  'brand/logo-256.png',
 ];
 
 /* ── 文件操作 ─────────────────────────────────────────────────── */
@@ -204,6 +207,8 @@ function main() {
   copyDir(path.join(PWA, 'src'), path.join(DIST, 'src'), { include: /\.(js|css)$/ });
   copyFile(path.join(PWA, 'public', 'manifest.webmanifest'), path.join(DIST, 'manifest.webmanifest'));
   copyDir(path.join(PWA, 'public', 'icons'), path.join(DIST, 'icons'), { include: /\.png$/ });
+  // 品牌徽标：与本地版共用同一份源（public/brand），避免两版 logo 各存一份漂移
+  copyDir(path.join(ROOT, 'public', 'brand'), path.join(DIST, 'brand'), { include: /\.png$/ });
   copyFile(path.join(PWA, 'public', 'sw.js'), path.join(DIST, 'sw.js'));
   log('  ✓ app shell');
 
@@ -489,7 +494,8 @@ function assertDist(themeCount) {
   for (const need of ['index.html', 'sw.js', 'manifest.webmanifest', 'src/app.js', 'src/engine.worker.js',
                      'src/update/index.js', 'src/update/ui.js', 'src/update/changelog.js',
                      'src/update/update.css',
-                     'version.json', 'py/markdown.zip', 'themes/index.json', '_headers']) {
+                     'version.json', 'py/markdown.zip', 'themes/index.json', '_headers',
+                     'brand/logo-64.png', 'brand/logo-256.png']) {
     if (!fs.existsSync(path.join(DIST, need))) problems.push(`缺文件：${need}`);
   }
 

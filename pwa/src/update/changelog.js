@@ -149,7 +149,11 @@ export function createChangelog(options = {}) {
     closeBtn.id = 'cl-close';
     closeBtn.type = 'button';
     closeBtn.setAttribute('aria-label', '关闭更新记录');
-    head.append(titleWrap, closeBtn);
+    // 头部品牌徽标（与顶栏、启动条共用同一份资源）
+    const mark = el('img', 'brand-mark');
+    mark.src = './brand/logo-64.png';
+    mark.alt = '';
+    head.append(mark, titleWrap, closeBtn);
 
     /* 工具条 */
     const toolbar = el('div');

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F7F4EE">
 <meta name="description" content="SuperSu — 粘贴纯文本，得到排好版的公众号文章。全程在浏览器内运行，内容不上传。">
-<title>SuperSu · 公众号排版</title>
+<title>SuperSu 公众号编辑器 — 排版 + 封面</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 
 <!-- ── 引擎加载遮罩 ───────────────────────────────────────────── -->
 <div class="boot" id="boot">
-  <div class="boot-mark"><span class="boot-dot"></span></div>
+  <div class="boot-mark"><img src="./brand/logo-64.png" alt=""></div>
   <h1 class="boot-title">SuperSu</h1>
   <p class="boot-sub" id="boot-label">正在加载排版引擎…</p>
   <div class="boot-bar"><i id="boot-fill" style="width:0%"></i></div>
@@ -27,8 +27,8 @@
 <!-- ── 顶栏 ───────────────────────────────────────────────────── -->
 <header class="top">
   <div class="top-left">
-    <span class="seal">版</span>
-    <span class="brand">SuperSu</span>
+    <img class="brand-mark" src="./brand/logo-64.png" alt="">
+    <span class="brand">SuperSu<span class="brand-tail">公众号编辑器</span></span>
     <span class="brand-sub">本地排版 · 数据不出浏览器</span>
   </div>
   <div class="top-right">
@@ -146,7 +146,10 @@
 <!-- ── 关于 ───────────────────────────────────────────────────── -->
 <div class="dialog-mask" id="about-mask" hidden></div>
 <div class="dialog" id="about" hidden role="dialog" aria-modal="true">
-  <div class="dialog-head"><b>关于 SuperSu</b><button class="icon-btn" id="btn-about-close" aria-label="关闭">×</button></div>
+  <div class="dialog-head">
+    <div class="dialog-title"><img class="brand-mark lg" src="./brand/logo-256.png" alt=""><b>关于 SuperSu 公众号编辑器</b></div>
+    <button class="icon-btn" id="btn-about-close" aria-label="关闭">×</button>
+  </div>
   <div class="dialog-body">
     <p>公众号排版 + 小红书封面，纯本地运行。粘贴纯文本，自动识别结构，套上主题，一键复制到公众号后台。</p>
     <p><strong>你的内容不会离开这个浏览器。</strong>没有后端、没有账号、没有埋点。草稿存在浏览器本地存储，清除浏览器数据即消失。</p>

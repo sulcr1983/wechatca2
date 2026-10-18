@@ -1,5 +1,5 @@
 {
-  "name": "SuperSu · 公众号排版",
+  "name": "SuperSu 公众号编辑器",
   "short_name": "SuperSu",
   "description": "粘贴纯文本，得到排好版的公众号文章。全程在浏览器内运行，内容不上传。",
   "start_url": "./",

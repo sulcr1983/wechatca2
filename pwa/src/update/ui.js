@@ -6,12 +6,14 @@
 
 const TEMPLATE = `
   <button class="upd-btn" id="btn-update" hidden title="查看更新记录" aria-label="更新记录">
+    <img class="brand-mark xs" src="./brand/logo-64.png" alt="">
     <span class="upd-dot" id="upd-dot" hidden></span>
     <span class="upd-ver" id="upd-ver">更新记录</span>
   </button>
 
   <div class="upd-card" id="upd-card" hidden role="status" aria-live="polite">
     <div class="upd-head">
+      <img class="brand-mark" src="./brand/logo-64.png" alt="">
       <span class="upd-badge" id="upd-badge">新版</span>
       <span class="upd-date" id="upd-date"></span>
     </div>

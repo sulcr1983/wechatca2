@@ -37,9 +37,12 @@ core/
 scripts/
   build_themes.py           原创主题生成器（设计标尺 → 119 套 su-* 主题 JSON）
   theme_specs.py            原创主题的设计意图规格（47 初代 + 72 六族；新主题在这里加一条）
+  build_brand_assets.py     品牌 logo 资产生成器（源图 → UI 徽标 + PWA 5 张安装图标）
 templates/
   index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）
 public/                 静态资源（原 assets/，由 /assets/* 路由提供）
+  brand/                品牌 logo 徽标（**生成物**：`python scripts/build_brand_assets.py`
+                        从 docs/brand/logo-source.png 导出，两版共用；勿手改 PNG）
   themes/               164 套排版主题 JSON（45 套早期原创 + 119 套 su-* 原创）
                         ⚠️ su-* 119 套为**生成物**：改 scripts/theme_specs.py 后重跑
                            scripts/build_themes.py 重生成，勿手改 JSON
@@ -116,6 +119,9 @@ python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址
 # · 更新卡是「发布小票」：版本徽标 + 日期 + 3 条亮点（按文案自动标 新功能/优化/修复）+ 查看全部；
 #   `#upd-demo` 可随时预览该卡（不影响真实更新流程）。
 # · 预览里已移除「写留言/赞/在看」模拟底栏。
+# · 品牌 logo：源图 docs/brand/logo-source.png → scripts/build_brand_assets.py → public/brand（UI 徽标）
+#   + pwa/public/icons（5 张安装图标）；构建把 public/brand 拷进 dist/brand，**两版共用同一份资源**。
+#   本地版引 /assets/brand/*，PWA 引 ./brand/*（顶栏 / 启动条 / 更新入口 / 发布小票 / 更新记录头部 / 关于弹窗）。
 # · 轻量即时预览：引擎未就绪时用 marked(12KB br) + 主题 styles 出近似排版，badge 标「快速预览」，
 #   **复制按钮锁到精确结果**；引擎空闲时启动，就绪后原地替换。
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
@@ -161,7 +167,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 ## 6. 公众号页面关键元素（2026-10-18 重设计：贴边三段式 + 解析条 + 风格条）
 
 ```
-.topbar                  → 贴边白 chrome（56px，底部 1px）：.logo（朱砂方章「版」）+ .tab-btn
+.topbar                  → 贴边白 chrome（56px，底部 1px）：.logo（品牌 logo 徽标 + SuperSu 公众号编辑器）+ .tab-btn
                            （公众号排版 | 小红书封面，active 底部朱砂条）+ 教程 / 设置
 #page-wechat
   .workspace             → 主区 flex 双栏（无 gap，1px 分隔）
