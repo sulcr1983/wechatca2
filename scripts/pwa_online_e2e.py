@@ -172,7 +172,20 @@ def main() -> int:
         page.click("#btn-more"); page.click('[data-act="about"]'); page.click("#about-mask", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
         check("关于弹窗关闭（遮罩）", page.is_hidden("#about"), "visible", "hidden")
 
+        page.click("#btn-more"); page.click('[data-act="update"]'); page.wait_for_timeout(500)
+        check("更多菜单打开更新记录", page.is_visible("#cl-panel"), "hidden", "visible")
+        page.click("#cl-close"); page.wait_for_timeout(250)
+
         # ── 2. 编辑 / 预览 / 风格条 / 复制 ─────────────────────
+        check("空态有「看示例」按钮", page.is_visible("#btn-empty-demo"), "hidden", "visible")
+        page.click("#btn-empty-demo")
+        page.wait_for_function("document.getElementById('input').value.length > 100", timeout=10000)
+        page.wait_for_timeout(1200)
+        check("空态看示例可用", input_len(page) > 100, 0, input_len(page), snap(page, "empty-demo"))
+        page.click("#btn-clear"); page.wait_for_timeout(500)
+        bg = page.eval_on_selector("#btn-copy", "e => getComputedStyle(e).backgroundColor")
+        check("空态复制按钮为灰色禁用态", "175, 62, 43" not in bg, "", bg)
+
         before = input_len(page)
         page.click("#btn-demo")
         page.wait_for_function("document.getElementById('input').value.length > 100", timeout=10000)
@@ -229,6 +242,10 @@ def main() -> int:
         check("风格抽屉打开", page.is_visible("#drawer"), "hidden", "visible", snap(page, "drawer"))
         n0 = drawer_count(page)
         check("抽屉卡片已渲染", n0 > 0, "", f"{n0} 张")
+        dw = page.eval_on_selector("#drawer", "e => Math.round(e.getBoundingClientRect().width)")
+        check("抽屉加宽（桌面 500）", dw >= 480, "", dw)
+        th = page.eval_on_selector(".d-prev", "e => Math.round(e.getBoundingClientRect().height)")
+        check("抽屉缩略图放大", th >= 96, "", th)
 
         page.fill("#drawer-search", "商务"); page.wait_for_timeout(500)
         n1 = drawer_count(page)
@@ -431,6 +448,10 @@ def main() -> int:
         page.set_viewport_size({"width": 390, "height": 844})
         page.wait_for_timeout(600)
         check("移动端底部 tabs 可见", page.is_visible("#tabs"), "hidden", "visible", snap(page, "mobile-edit"))
+        check("移动端隐藏浮动更新按钮", page.is_hidden("#btn-update"), "visible", "hidden")
+        page.click("#btn-more"); page.click('[data-act="update"]'); page.wait_for_timeout(500)
+        check("移动端从更多打开更新记录", page.is_visible("#cl-panel"), "hidden", "visible")
+        page.click("#cl-close"); page.wait_for_timeout(250)
         page.click('#tabs button[data-tab="preview"]'); page.wait_for_timeout(400)
         check("移动端切到预览", page.get_attribute("#stage", "data-tab") == "preview",
               "edit", page.get_attribute("#stage", "data-tab"), snap(page, "mobile-preview"))

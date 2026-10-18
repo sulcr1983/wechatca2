@@ -654,6 +654,9 @@ function bindUI() {
   input.addEventListener('paste', () => { setTimeout(scheduleRender, 30); });
 
   $('btn-copy').addEventListener('click', copyRich);
+  const emptyDemo = $('btn-empty-demo');
+  if (emptyDemo) emptyDemo.addEventListener('click', () => $('btn-demo').click());
+
   $('btn-demo').addEventListener('click', () => {
     input.value = DEMO;
     updateCharCount();
@@ -748,6 +751,7 @@ function bindUI() {
       toast('草稿已清除');
     }
     if (act === 'clear-all') clearAll();
+    if (act === 'update') $('btn-update')?.click();   // 移动端浮动入口隐藏，从「更多」进
     if (act === 'about') openAbout();
   });
 

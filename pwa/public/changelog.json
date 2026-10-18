@@ -1,7 +1,7 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-19T05:02:28+08:00",
-  "totalCommits": 117,
+  "generatedAt": "2026-10-19T05:28:12+08:00",
+  "totalCommits": 119,
   "releases": [
     {
       "version": "1.4.0",
@@ -10,7 +10,8 @@
       "counts": {
         "added": 2,
         "changed": 1,
-        "fixed": 1
+        "fixed": 2,
+        "other": 1
       },
       "groups": [
         {
@@ -51,10 +52,30 @@
           "label": "修复",
           "items": [
             {
+              "text": "草稿在示例/清空/轻量预览时立即落盘 + E2E 断言修正",
+              "scope": "pwa",
+              "hash": "aded807",
+              "date": "2026-10-19T05:02:34+08:00",
+              "breaking": false
+            },
+            {
               "text": "封面入口文案改为「小红书」+ 线上全量有头 E2E",
               "scope": "pwa",
               "hash": "7a5e651",
               "date": "2026-10-19T04:59:38+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "README 写线上地址 + 线上全量有头 E2E 稳定化",
+              "scope": "",
+              "hash": "10ea504",
+              "date": "2026-10-19T05:11:58+08:00",
               "breaking": false
             }
           ]

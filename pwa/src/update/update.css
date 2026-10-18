@@ -58,9 +58,13 @@
 .upd-tag.fix { background: rgba(175, 62, 43, .12); color: var(--accent); }
 .upd-tag.opt { background: rgba(26, 127, 55, .12); color: #1a7f37; }
 
+/* 抽屉打开时让位，避免浮在风格卡片上 */
+body.browsing .upd-btn { display: none; }
+
 @media (max-width: 900px) {
-  .upd-btn { right: 12px; bottom: calc(12px + var(--tabs-h)); }
-  .upd-card { right: 12px; bottom: calc(54px + var(--tabs-h)); }
+  /* 手机端改从「更多」菜单进入，避免遮挡风格条/解析条 */
+  .upd-btn { display: none; }
+  .upd-card { right: 12px; bottom: calc(12px + var(--tabs-h)); }
 }
 
 /* SuperSu PWA · 更新记录面板
