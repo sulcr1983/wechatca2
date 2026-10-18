@@ -8,7 +8,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
 [![Pexels](https://img.shields.io/badge/配图-Pexels%20优先-05A081?style=flat-square&logo=pexels&logoColor=white)](https://www.pexels.com/api/)
-[![Tests](https://img.shields.io/badge/测试-178%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
+[![Tests](https://img.shields.io/badge/测试-181%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](#-license)
 
 <p align="center">
@@ -74,11 +74,11 @@
 
 | | | | | |
 |:---:|:---:|:---:|:---:|:---:|
-| **164**<br>🎨 排版主题 | **11**<br>🖼️ 封面风格 | **3**<br>📐 输出比例 | **178**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
+| **164**<br>🎨 排版主题 | **11**<br>🖼️ 封面风格 | **3**<br>📐 输出比例 | **181**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
 
 - 🎨 **164 套排版主题** = 45 套早期原创 + 119 套自研原创（深色首屏 / 杂志大字 / 纸感手记 / 暗底沉浸 / 便签 / 网格 / 终端 / 新粗野 / 极简 / 商务 / 文艺 / 科技 / 节庆……）
 - 🖼️ **11 种封面风格** = 归藏设计系统（杂志 / 瑞士）+ BLCaptain（雾野 / 暖书房 / 海岸 / 夜纹 / 炉台 / 电蓝 / 石墨薄荷 / 安全珊瑚 / 酸性青柠）
-- 🧪 **178 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮，0 控制台报错
+- 🧪 **181 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮，0 控制台报错
 
 ---
 
@@ -310,13 +310,13 @@ PEXELS_API_KEY=your-pexels-key
 
 | 套件 | 项数 | 覆盖 |
 |:-----|:----:|:-----|
-| `tests/test_e2e.py` | **62** ✅ | 端到端（无需起服务，Flask test_client） |
+| `tests/test_e2e.py` | **65** ✅ | 端到端（无需起服务，Flask test_client） |
 | `tests/test_integration.py` | **35** ✅ | 前后端联动（需先起服务） |
 | `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务） |
 | `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
 | `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
 | `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
-| **合计** | **178** | **全绿** |
+| **合计** | **181** | **全绿** |
 
 ```bash
 # 快速自检（无需起服务）
@@ -367,7 +367,7 @@ wechatca2/
 │   ├── images/                 # 本地库存图（最终兜底）
 │   └── social-thumb/           # 封面缩略图
 ├── scripts/                    # 工具脚本（主题生成/去重/UX 验收等）
-├── tests/                      # E2E + 集成 + 有头测试（178 项）
+├── tests/                      # E2E + 集成 + 有头测试（181 项）
 ├── docs/
 │   ├── screenshots/            # 📷 README 配图
 │   ├── ux-audit/               # UX 诊断报告与验收截图

@@ -73,7 +73,7 @@ python app.py                    # http://127.0.0.1:5000（等效，需自己先
 #      中文启动提示由 app.py 打印。
 
 # 测试
-python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 62/62 通过
+python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 65/65 通过
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
 python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
@@ -230,7 +230,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
   - **回归锚点**：重跑生成器后既有 47 套 su-* JSON **字节零改动**；164 套全量富样本渲染审计（标签平衡 / 无 None·空 style·拼接残渣）全过；四套件 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错）。
 - **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
-- 所有修改跑 E2E 验证（test_e2e 62/62）+ 集成测试（test_integration 35/35）
+- 所有修改跑 E2E 验证（test_e2e 65/65）+ 集成测试（test_integration 35/35）
 - 全系统前后端 E2E：test_api_e2e.py（后端 29 项）+ test_headed_full_e2e.py（前端双页 33 项，0 控制台报错）
 - ⚠️ 有头套件的「0 控制台报错」**依赖上游 LLM 可达**：`/api/polish`、`/api/summary` 无本地兜底，上游（如 tokenpool 网关）返 5xx 时浏览器必记 1~2 条 500，套件退出码会是 1。此时先修上游，**不得为凑绿而放宽该判据**
 - 有头套件不点的 3 个按钮（真实副作用，刻意避开）：`确认推送` / `保存AI配置` / `测试连接`；其后端路径由 test_api_e2e.py 覆盖。AI 按钮断言「真实产出或真报错」，不用固定 sleep 判"优雅降级"（会把响应慢误判成通过）
@@ -261,7 +261,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ### 验收规则（须给真实证据）
 - 声称完成前必须提供本轮实际运行的命令 / 测试 / 日志 / 截图 / 出图证据。
-- 改动跑 E2E（`test_e2e` 62/62）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG。
+- 改动跑 E2E（`test_e2e` 65/65）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG。
 - warning / lint / 测试计数漂移 / 文档索引缺失 / 本轮 TODO 按缺陷处理，除非明确记为非本轮债务。
 - UI 改动须检查真实渲染（`test_headed_full_e2e` 32/32），不只看代码。
 
@@ -296,7 +296,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - 生成耗时大头 ＝ 联网搜图（`core/image_search.py` timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
 - **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 164 套主题人工打标签分类 / 非技术用户可用性类验收。
-- **实施纪律**：一次一项 → 改完即测（`test_e2e` 62/62 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`（⚠️ 验收脚本每次运行都会重写其中 10 张，跑测后工作区会变脏）。
+- **实施纪律**：一次一项 → 改完即测（`test_e2e` 65/65 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`（⚠️ 验收脚本每次运行都会重写其中 10 张，跑测后工作区会变脏）。
 - **验收脚本计数（2026-09-25 订正）**：`ux_verify_p0` **15/15** · `ux_verify_p1` **15/15** · `ux_verify_tutorial` **13/13**。⚠️ 此前记为「15+13+13」已失效——教程弹窗（后加的产品行为）会遮罩挡住 p0/p1 的点击，两脚本已同步加弹窗关闭处理。
 - **实施状态（2026-09-25）**：第一批 U-1…U-6、第二批 U-7…U-11、U-2 真自适应、Pexels 配图与开源教程均已完成（`a4c869e`/`ef5b241`/`48eacf1` 及后续提交）；⚠️ 其中 U-7 的「悬停即试看」已于 **2026-09-26 按用户要求移除**——模板切换改为**仅点击触发**（悬停误触即切换体验不佳）；
   回归全绿（52/52 · 35/35 · 29/29 · 33/33 · 验收脚本 15+15+13）。

@@ -4,7 +4,7 @@
 > `pwa-design.md` 是设计存档（为什么这么做、路线怎么选的），`pwa-cloudflare-plan.md` 是合规与调研证据。
 > 三者冲突时，**以本文档为准**——这里写的是最终拍板结果。
 
-**基线**：本地版 `main` 分支已全绿（62 / 35 / 29 / 33 / 7 / 12 = 178）。PWA 在 `pwa` 分支上做，`main` 不受影响。
+**基线**：本地版 `main` 分支已全绿（65 / 35 / 29 / 33 / 7 / 12 = 181）。PWA 在 `pwa` 分支上做，`main` 不受影响。
 
 ---
 
@@ -94,6 +94,7 @@ pwa/
 ```
 
 **分支纪律**：`pwa` 分支只加 `pwa/` 与 `.gitignore`，**不改 `core/`、不改 `templates/`**。引擎有问题回 `main` 修。
+> 执行细则：`pwa` 分支最初只带文档时，`core/` 修复可在 `pwa` 上做、做完把 `main` **fast-forward** 同步；一旦 `pwa` 有了专属代码（D1 起），`core/` 改动必须回 `main` 做，再 `git rebase main`。
 
 ---
 
@@ -293,7 +294,7 @@ const item = new ClipboardItem({
 
 - [ ] 同一段 300 字样本，PWA 输出 HTML 与本地 `POST /api/render` 逐字节相同
 - [ ] Worker 崩溃/超时有提示，不白屏
-- [ ] 本地版 `main` 的 178 项测试仍全绿（`pwa` 分支不改 `core/`）
+- [ ] 本地版 `main` 的 181 项测试仍全绿（`pwa` 分支不改 `core/`）
 
 **性能（首次 / 二次）**
 

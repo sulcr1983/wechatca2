@@ -1,18 +1,46 @@
 import re
 
-# 中文句式常见功能词 — 包含这些词的短行大概率是句子而非标题
-# 注意：'的' 在标题中很常见（如"美丽的风景"），不作为独立判定词
+# 强句子信号 — 只有命中这些才算「短句而非标题」。
+#
+# 2026-10-18 修订：原词表混入了两类不该有的词，导致中文小标题几乎全被判成句子
+# （20 个典型小标题实测只识别 9 个：「常见问题」「我的做法」「写在最后」「使用方法」
+# 「内容清单」「效果对比」「重点在这里」全部 FAIL）：
+#   ① 超高频单字虚词：是/了/在/就/都/很/不/也/我/你/他/这/那/会/能/要/把/被/让/给/对/从/到/与/及/或
+#      —— 任何一句中文都含其中之一，等于恒真。
+#   ② 名词：问题|方法|内容|效果|特点|功能|目的|意义|影响|过程|结果|原因|作用|优势|发展|情况
+#      —— 这些恰恰是标题最常用的词。
+# 现在只保留三类真信号：强句式短语 / 主语代词+谓语 / 完成体词尾。
+# 另外：孤立成行的短行（前后空行）在调用处已跳过本判定，见「短行标题检测」。
 _SENTENCE_WORDS = re.compile(
-    r'(?:是|了|在|就|都|很|不|也|我|你|他|她|它|们|这|那|会|能|要|可以|已经|'
-    r'因为|所以|但是|如果|虽然|而且|然后|之后|之|与|及|或|把|被|让|给|对|从|到|'
-    r'应该|可能|必须|一定|怎么|怎样|怎么样|为什么|什么|哪|'
-    r'效果|发展|问题|方法|内容|情况|原因|结果|作用|影响|过程|特点|优势|功能|目的|意义)'
+    r'(?:是因为|所以|但是|不过|而且|然后|如果|虽然|因为|已经|可以|应该|可能|必须|一定|'
+    r'怎么样|怎么办|为什么|什么|是否|多少)'
+    r'|(?:我|你|他|她|它|您|我们|你们|他们)(?:们)?(?:把|被|的|想|说|觉得|认为|要|会|能|'
+    r'不|没|已经|也|都|就|还|再|又)'
+    r'|[着了过]$'
 )
-
 
 def _looks_like_sentence(text: str) -> bool:
     """检测一个短文本是否更像完整句子而非标题"""
     return bool(_SENTENCE_WORDS.search(text))
+
+
+# 孤立行（前后空行）专用的「强谓语」判定 —— 比 _SENTENCE_WORDS 更窄。
+#
+# 为什么需要两份：孤立成行的短行几乎必然是标题，用宽词表会把
+# 「为什么要跑那么远」「住在哪里」这类疑问式小标题全杀掉；但完全不判又会让
+# 「他说了一句话」「我把手机调成了飞行模式」这种正文短句漏成标题。
+# 折中：孤立行只认「主语 + 谓语/情态」和「动词 + 完成体」两类硬信号。
+# 刻意不收「的」——「我的做法」「出发前的准备」是名词短语，属标题。
+_PROSE_PREDICATE = re.compile(
+    r'(?:我|你|他|她|它|您)(?:们)?(?:把|被|说|想|觉得|认为|会|能|要|可以|应该|'
+    r'不|没|已经|也|都|就|还|再|又)'
+    r'|(?:说|想|做|去|来|看|听|写|读|吃|喝|坐|站|走)[着了过]'
+)
+
+
+def _looks_like_prose_line(text: str) -> bool:
+    """孤立成行的短行是否明显是正文句子（用于放宽标题识别时的兜底）"""
+    return bool(_PROSE_PREDICATE.search(text))
 
 
 # 箭头并列：A → B → C（正文里孤立的并列流程/清单）
@@ -105,8 +133,15 @@ _AUTO_HEADING_LABEL_RE = re.compile(
 )
 
 
-def _looks_like_title(text: str) -> bool:
-    """判断一行是否像标题（短、无句尾标点、无句子功能词、无引用/列表标记）"""
+def _looks_like_title(text: str, is_first_line: bool = False) -> bool:
+    """判断一行是否像标题（短、无句尾标点、无句子功能词、无引用/列表标记）
+
+    Args:
+        is_first_line: 是否文章首行。首行跳过「像句子」判定——产品约定是
+            「第一行自动当标题」（前端输入框 placeholder 就这么写的），
+            而首行标题常带逗号或主语（如「周末去海边，我把手机调成了飞行模式」），
+            用句式判定会把它误杀成普通段落。
+    """
     s = text.strip()
     if not s or len(s) > 24:
         return False
@@ -116,7 +151,7 @@ def _looks_like_title(text: str) -> bool:
         return False
     if re.search(r'[。！？，、；：…）)】》」”]$', s):
         return False
-    if _SENTENCE_WORDS.search(s):
+    if not is_first_line and _SENTENCE_WORDS.search(s):
         return False
     return True
 
@@ -373,7 +408,10 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             and '：' not in stripped
             and ':' not in stripped
             and stripped not in common_non_title
-            and not _looks_like_sentence(stripped)
+            # 2026-10-18：孤立成行的短行优先当标题（跳过宽词表判定），
+            # 但仍挡掉明显是正文的强谓语短句（「他说了一句话」）。
+            and (not _looks_like_prose_line(stripped) if is_isolated
+                 else not _looks_like_sentence(stripped))
         ):
             md_lines.append(f'## {stripped}')
             continue
@@ -413,7 +451,7 @@ def preprocess(text: str, mode: str = 'auto') -> str:
         for j, line in enumerate(result):
             if line.strip():
                 s = line.strip()
-                if not s.startswith(('#', '>', '-', '*', '```', '|')) and _looks_like_title(s):
+                if not s.startswith(('#', '>', '-', '*', '```', '|')) and _looks_like_title(s, is_first_line=True):
                     result[j] = f'# {s}'
                 break
 

@@ -844,6 +844,50 @@ def test_preprocess_contact_line_not_heading():
     assert "联系部门：公关部" in md, md
 
 
+@test("自动排版: 20 个典型中文小标题全部识别（句式词表收窄回归）")
+def test_preprocess_common_chinese_headings():
+    # 2026-10-18 修复前只识别 9/20：旧 _SENTENCE_WORDS 含「问题/方法/内容/效果」
+    # 等名词与「是/了/在/我/要」等超高频单字，任何短标题都会命中。
+    titles = [
+        "为什么要跑那么远", "住在哪里", "出发前的准备", "三步搭好环境", "常见问题",
+        "我的做法", "写在最后", "本周总结", "关于作者", "使用方法",
+        "需要注意的地方", "重点在这里", "为什么会这样", "如何选择主题", "内容清单",
+        "效果对比", "准备工作", "小结", "下一步计划", "几个建议",
+    ]
+    failed = []
+    for t in titles:
+        md = _pp(t + "\n\n这是一段足够长的正文内容，用来提供标题识别的上下文。", "conservative")
+        if not md.startswith("## "):
+            failed.append(t)
+    assert not failed, f"未识别为小标题: {failed}"
+
+
+@test("自动排版: 首行带逗号也提升为文章大标题（前端承诺「第一行当标题」）")
+def test_preprocess_first_line_with_comma_becomes_h1():
+    md = _pp("""周末去海边，我把手机调成了飞行模式
+
+出发前一晚我还在改稿，凌晨两点关电脑。
+
+为什么要跑那么远
+
+城市里的安静是借来的。海边的安静不要钱，也没人赶你走。""")
+    assert md.lstrip().startswith("# 周末去海边，我把手机调成了飞行模式"), md
+    assert "## 为什么要跑那么远" in md, md
+
+
+@test("自动排版: 正文段落不会被当成标题（收窄词表后不得反弹）")
+def test_preprocess_prose_stays_prose():
+    md = _pp("""他说了一句话
+
+出发前一晚我还在改稿，凌晨两点关电脑，第二天六点的车。上车之后才发现，我已经很久没有这样空着手坐三个小时了。
+
+城市里的安静是借来的。图书馆四点半闭馆，咖啡馆九点打烊，连公园都有保安吹哨子。""",
+             "conservative")
+    assert "## 城市里的安静是借来的" not in md, md
+    assert "## 他说了一句话" not in md, md
+
+
+
 # ── AI 智能排版：LLM 只出结构决策(JSON)，正文由本地原样套用 ──
 
 @test("AI智能排版: LLM 返回结构JSON → 本地套用，正文一字不改 (engine=llm)")
