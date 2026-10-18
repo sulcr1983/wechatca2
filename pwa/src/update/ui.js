@@ -7,7 +7,7 @@
 const TEMPLATE = `
   <button class="upd-btn" id="btn-update" hidden title="查看更新记录" aria-label="更新记录">
     <span class="upd-dot" id="upd-dot" hidden></span>
-    <span class="upd-ver" id="upd-ver">v—</span>
+    <span class="upd-ver" id="upd-ver">更新记录</span>
   </button>
 
   <div class="upd-card" id="upd-card" hidden role="status" aria-live="polite">

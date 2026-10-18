@@ -72,7 +72,9 @@ CST = timezone(timedelta(hours=8))
 
 def git_log() -> str:
     """读取全量非合并历史（只读操作）。"""
-    cmd = ["git", "-C", str(ROOT), "log", "--no-merges", "--date=short", GIT_PRETTY]
+    # --date=iso-strict 带上时刻（2026-10-18T19:10:59+08:00）：
+    # 同一个日期里要切多个版本时，只有「时刻」能区分先后。
+    cmd = ["git", "-C", str(ROOT), "log", "--no-merges", "--date=iso-strict", GIT_PRETTY]
     proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         raise SystemExit(f"git log 执行失败：{proc.stderr.strip()}")
@@ -132,9 +134,15 @@ def load_milestones() -> list[dict]:
 
 
 def assign_release(commit_date: str, milestones: list[dict]) -> dict:
-    """取 until 覆盖该日期的最早（最接近）那个版本；越界兜到最新版本。"""
+    """取 until 覆盖该时刻的最早（最接近）那个版本；越界兜到最新版本。
+
+    commit_date 为 iso-strict（如 2026-10-18T19:10:59+08:00），milestone 的 until
+    为本地时刻（如 2026-10-18T18:00:00）。两边都截到「秒」再比，
+    忽略时区后缀差异，也不受秒以下精度影响。
+    """
+    key = str(commit_date)[:19]
     for milestone in milestones:
-        if commit_date <= milestone["until"][:10]:
+        if key <= str(milestone["until"])[:19]:
             return milestone
     return milestones[-1]
 

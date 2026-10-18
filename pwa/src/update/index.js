@@ -40,7 +40,6 @@ export function createUpdater({ changelog } = {}) {
 
   const el = {
     btn: document.getElementById('btn-update'),
-    ver: document.getElementById('upd-ver'),
     dot: document.getElementById('upd-dot'),
     card: document.getElementById('upd-card'),
     cardText: document.getElementById('upd-card-text'),
@@ -90,12 +89,11 @@ export function createUpdater({ changelog } = {}) {
     try {
       const v = await fetchJSON('./version.json');
       state.running = v.version || '';
-      if (state.running) {
-        el.ver.textContent = 'v' + state.running;
-        el.btn.hidden = false;
-      }
+      // 入口按钮文案固定为「更新记录」（版本号放在更新记录面板里展示），
+      // 所以这里只负责把按钮亮出来，不再改文案
+      if (state.running) el.btn.hidden = false;
     } catch {
-      el.ver.textContent = 'v—';
+      // 版本文件拉不到：入口不出现即可，不影响排版与复制
     }
   }
 
@@ -271,7 +269,9 @@ export function createUpdater({ changelog } = {}) {
         ? (scope === 'latest' ? `最近 ${total} 条更新，已下载完成` : `本次共 ${total} 条更新，已下载完成`)
         : '界面与排版体验优化，已下载完成';
       showCard(title, {
-        canUpdate: true,
+        // 只有真有待应用的 worker 才给「立即更新」；预览(#upd-demo)或没有 waiting 时不给，
+        // 否则用户点了必然失败（弹出「暂时没拉到更新包」）
+        canUpdate: Boolean(state.waiting),
         badge: ver ? 'v' + ver : '新版',
         date,
         items: items.length ? items : [{ kind: 'opt', label: '优化', text: '界面与排版体验优化' }],
@@ -377,7 +377,7 @@ export function createUpdater({ changelog } = {}) {
 
       el.now.disabled = false;
       el.now.textContent = '立即更新';
-      showCard('暂时没拉到更新包，请检查网络后重试。', { canUpdate: false });
+      showCard('当前已是最新版本。', { canUpdate: false });
     } finally {
       if (!handedOff) clearTimeout(resetTimer);
     }

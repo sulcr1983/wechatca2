@@ -10,7 +10,7 @@
 
 import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -287,7 +287,20 @@ function main() {
   /* 6.5 版本与更新记录（前端更新检测靠这两个文件） */
   const ver = buildVersion();
   fs.writeFileSync(path.join(DIST, 'version.json'), JSON.stringify(ver, null, 2), 'utf8');
-  log(`  ✓ 版本 v${ver.version}（git ${ver.commits} 次提交，${ver.releasedAt}）`);
+  log(`  ✓ 版本 v${ver.version}（git ${ver.build} 次提交，${ver.releasedAt}）`);
+
+  // 更新记录：构建前用最新 git 历史重新生成 —— 这是「列表永远含最新内容」的保证。
+  // 失败不阻断构建，沿用现有 changelog.json（保证线上不会因为生成失败而空白）。
+  const genScript = path.join(PWA, 'scripts', 'gen_changelog.py');
+  if (fs.existsSync(genScript)) {
+    try {
+      execFileSync(pickPython(), [genScript], { cwd: ROOT, stdio: 'pipe' });
+      log('  ✓ 更新记录已按最新 git 历史重新生成');
+    } catch (e) {
+      log('  ! 重新生成更新记录失败，沿用现有 changelog.json：' + String((e && e.message) || e).split('\n')[0]);
+    }
+  }
+
   const clSrc = path.join(PWA, 'public', 'changelog.json');
   if (fs.existsSync(clSrc)) {
     copyFile(clSrc, path.join(DIST, 'changelog.json'));
@@ -326,7 +339,20 @@ function dirSize(dir) {
   return s;
 }
 
-/** 版本号自动生成：主.次取自 version.json，修订号 = git 提交数（每次发布必变） */
+/** 当前 .venv 里的 python（重新生成更新记录用）；找不到就回退系统 python */
+function pickPython() {
+  for (const p of [path.join(ROOT, '.venv', 'Scripts', 'python.exe'), path.join(ROOT, '.venv', 'bin', 'python')]) {
+    if (fs.existsSync(p)) return p;
+  }
+  return process.platform === 'win32' ? 'python' : 'python3';
+}
+
+/** 版本号：直接取 version.json 的语义化版本（主.次.修订）。
+ *
+ *  为什么不在这里拼提交数：更新记录里的版本号（1.3.0 / 1.2.0 …）是语义化版本，
+ *  若运行版本是 1.0.<提交数>，两者对不上 → 「当前版本」高亮错位、"这次更新了 N 条"判断全乱。
+ *  提交数单独放 build 字段，只做展示。发版时改 version.json 的 version 即可。
+ */
 function buildVersion() {
   let base = { name: 'SuperSu PWA', version: '1.0.0' };
   try {
@@ -336,14 +362,11 @@ function buildVersion() {
   try {
     commits = parseInt(execSync('git rev-list --count HEAD', { cwd: ROOT }).toString().trim(), 10) || 0;
   } catch { /* 非 git 环境 */ }
-  const parts = String(base.version || '1.0.0').split('.');
-  const maj = parseInt(parts[0], 10) || 1;
-  const min = parseInt(parts[1], 10) || 0;
   return {
     ...base,
-    version: commits ? `${maj}.${min}.${commits}` : (base.version || '1.0.0'),
+    version: String(base.version || '1.0.0'),
     releasedAt: new Date().toISOString().slice(0, 10),
-    commits,
+    build: commits,
   };
 }
 

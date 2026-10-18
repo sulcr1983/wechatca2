@@ -288,12 +288,12 @@ export function createChangelog(options = {}) {
     els.pill.textContent = current ? `v${current.replace(/^v/i, '')}` : '';
     els.pill.hidden = !current;
 
-    els.foot.textContent = `更新记录由 git 提交自动生成 · 最后更新 ${fmtTime(data.generatedAt)}`;
+    els.foot.textContent = `更新记录由 git 提交自动生成 · 共 ${Number(data.totalCommits) || state.totalEntries} 次提交 · 最后更新 ${fmtTime(data.generatedAt)}`;
 
     /* 时间线：DocumentFragment 一次性插入 */
     const frag = document.createDocumentFragment();
-    releases.forEach((rel) => {
-      const rv = buildRelease(rel);
+    releases.forEach((rel, index) => {
+      const rv = buildRelease(rel, index);
       state.view.push(rv);
       frag.append(rv.node);
     });
@@ -321,12 +321,14 @@ export function createChangelog(options = {}) {
     els.chips.replaceChildren(frag);
   }
 
-  function buildRelease(rel) {
+  function buildRelease(rel, index) {
     const release = rel || {};
     const version = String(release.version || '');
+    const isLatest = index === 0;               // 最新一版：给「最新」标签 + 强调边框
 
     const node = el('section', 'cl-rel');
     node.dataset.version = version;
+    if (isLatest) node.classList.add('is-latest');
 
     const dot = el('span', 'cl-dot');
     dot.setAttribute('aria-hidden', 'true');
@@ -339,9 +341,13 @@ export function createChangelog(options = {}) {
     if (release.date) dateEl.dateTime = release.date;
     const titleEl = el('span', 'cl-rel-title', release.title || '');
     if (release.title) titleEl.title = release.title;
+
+    const latestTag = el('span', 'cl-latest-tag', '最新');
+    latestTag.hidden = !isLatest;
+
     const countEl = el('span', 'cl-rel-count', `${countEntries(release)} 条`);
 
-    head.append(verEl, dateEl, titleEl, countEl);
+    head.append(verEl, dateEl, titleEl, latestTag, countEl);
     body.append(head);
 
     const groups = [];
@@ -358,7 +364,9 @@ export function createChangelog(options = {}) {
       const gdot = el('i', 'cl-gdot');
       gdot.dataset.type = type;
       gdot.setAttribute('aria-hidden', 'true');
-      groupHead.append(gdot, document.createTextNode(g.label || TYPE_LABELS[type] || type));
+      const gLabel = el('span', 'cl-group-label', g.label || TYPE_LABELS[type] || type);
+      const gCount = el('span', 'cl-group-count', String(items.length));
+      groupHead.append(gdot, gLabel, gCount);
 
       const list = el('ul', 'cl-items');
       const entries = [];
@@ -380,6 +388,7 @@ export function createChangelog(options = {}) {
 
   function buildItem(item, type, version) {
     const li = el('li', 'cl-item');
+    li.dataset.type = type;                    // 左侧色条/图标随类型走
 
     const text = el('div', 'cl-item-text');
     if (item.breaking) text.append(el('span', 'cl-breaking', '破坏性'));

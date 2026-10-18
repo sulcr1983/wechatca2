@@ -2,7 +2,7 @@
 
 > 适用范围：本仓库 PWA 的「更新」相关功能（版本检测、Service Worker 更新、右下角更新入口、发布小票、更新记录面板）。
 > 本文档面向**接手该模块的开发者**，讲清：文件在哪、改哪、怎么加新版本、怎么验证、已知坑。
-> 编写于 2026-10-18，基于提交 `dbfcdbe` 之后的「更新模块抽取」工作（尚未提交，见 §8）。
+> 编写于 2026-10-18。抽取工作已提交 `26ba27a`，本文档提交 `2a705d2`。
 
 ---
 
@@ -23,9 +23,9 @@
 | `pwa/src/update/changelog.js` | 更新记录面板（`#cl-panel`），从 `changelog.json` 渲染。导出 `createChangelog()` | 改记录面板样式/逻辑时 |
 | `pwa/src/update/update.css` | 更新模块**全部**样式（原 `style.css` 里的 `upd-*` 段已搬来） | 改外观时 |
 | `pwa/public/changelog.json` | 更新记录数据源（**由脚本生成，别手改**） | 一般不动 |
-| `pwa/version.json` | 当前版本声明（`version` 主.次字段），修订号由 git 提交数自动算 | 发版时改 |
-| `pwa/scripts/changelog_milestones.json` | 版本切点（从新到旧，`until` 为右闭边界） | 发版加新版本时加一条 |
-| `pwa/scripts/gen_changelog.py` | 从 git 历史 + milestones 生成 `changelog.json` 和 `CHANGELOG.md` | 发版时跑一次 |
+| `pwa/version.json` | 当前版本（**语义化版本**，如 `1.3.0`）。必须与更新记录最新版本**一致** | 发版时改 |
+| `pwa/scripts/changelog_milestones.json` | 版本切点（从新到旧，`until` 为**右闭时刻**、精确到秒，支持同一天切多版） | 发版加新版本时加一条 |
+| `pwa/scripts/gen_changelog.py` | 从 git 历史 + milestones 生成 `changelog.json` 和 `CHANGELOG.md`（**构建时自动跑**，见 §5） | 一般不用手动跑 |
 
 注意：`sw.js` 和 `build.mjs` 里有更新模块的**静态文件清单**（见 §3），加新文件时必须同步这两处，否则构建断言会报错。
 
@@ -74,15 +74,14 @@
 > 更新记录是**声明式生成**的，不要手改 `changelog.json`。
 
 1. 日常开发按 **Conventional Commits** 写 commit（`feat` / `fix` / `docs` / `chore` / `test` / `refactor` / `perf` / `style`；未知类型兜底 `other`，不丢条目）。
-2. 发版时，在 `pwa/scripts/changelog_milestones.json` **加一条**新版本切点（从新到旧排，带 `version` / `date` / `title` / `until` 右闭边界）。参考现有条目格式。
-3. 跑生成脚本：
+2. 发版时，在 `pwa/scripts/changelog_milestones.json` **加一条**新版本切点（从新到旧排，带 `version` / `date` / `title` / `until`）。`until` 是**右闭时刻**、精确到秒——同一天要切多个版本时靠它区分（脚本用 `--date=iso-strict` 取提交时刻分桶）。
+3. 改 `pwa/version.json` 的 `version` 为本次版本号（语义化，如 `1.4.0`），**并与第 2 步加的那条版本号一致**——运行版本和列表最新版本对齐，「当前版本」高亮与"这次更新了 N 条"判断才对得上。构建会把提交数写进 `build` 字段，仅作展示。
+4. 构建（见 §5，注意 safe-delete 坑）。**构建时会自动跑 `gen_changelog.py` 重新生成 `changelog.json`**，所以不用手动跑；想先预览也可以：
    ```bash
-   python pwa/scripts/gen_changelog.py        # 写 changelog.json + CHANGELOG.md
+   python pwa/scripts/gen_changelog.py         # 写 changelog.json + CHANGELOG.md
    python pwa/scripts/gen_changelog.py --check # 只自检、不写文件
    ```
-4. 改 `pwa/version.json` 的 `version` 字段（主.次，如 `1.1.0`）。**修订号由构建时 git 提交数自动算**，不用管。
-5. 构建（见 §6，注意 safe-delete 坑）。
-6. 本地验证（见 §6）。
+5. 本地验证（见 §6），需要时部署（见 §10）。
 
 ---
 
@@ -93,7 +92,7 @@
 CODEBUDDY_SAFE_DELETE_ENABLED=0 node pwa/scripts/build.mjs
 ```
 
-构建会把 `src/update/*` 打进 `pwa/dist/src/update/`，并把 `changelog.json` 拷到 `pwa/dist/`。构建末尾有**断言**（关键文件齐全、主题数一致、无本地版专属目录、无 Google Fonts 外链等），失败会直接报错。
+构建会把 `src/update/*` 打进 `pwa/dist/src/update/`，拷入 `changelog.json` 前**自动跑一次 `gen_changelog.py`**（用最新 git 历史重生成，失败则沿用现有文件、不阻断构建），版本号取 `version.json`（提交数写进 `build` 字段）。构建末尾有**断言**（关键文件齐全、主题数一致、无本地版专属目录、无 Google Fonts 外链等），失败会直接报错。
 
 `sw.js` 与 `build.mjs` 的更新文件清单（新增文件务必同步）：
 ```
@@ -110,13 +109,9 @@ src/update/update.css
 冒烟脚本（用系统 Chrome，不要用自带 Chromium）：
 
 ```bash
-# 1) 起本地服务（必须在 pwa/dist 下）
-cd pwa/dist && python pwa/../pwa/dist  # 见下
-```
-实际操作：
-```bash
+# 1) 起本地服务（服务根必须在 pwa/dist，否则相对路径全 404）
 cd pwa/dist && python -m http.server 8901 --bind 127.0.0.1
-# 另开：用系统 Chrome 打开 http://127.0.0.1:8901/#upd-demo
+# 2) 用系统 Chrome 打开 http://127.0.0.1:8901/#upd-demo
 ```
 
 人工核对清单（2026-10-18 自动化冒烟 **6/6 通过**）：
@@ -143,7 +138,7 @@ cd pwa/dist && python -m http.server 8901 --bind 127.0.0.1
 
 ## 8. 当前状态 & 留给接手人的事
 
-**本轮已完成（待提交）：**
+**本轮已完成（已提交 `26ba27a`）：**
 - 更新模块从 `pwa/src/{update.js,changelog.js,changelog.css}` 抽取为 `pwa/src/update/{index.js,ui.js,changelog.js,update.css}`。
 - DOM 改为模块自建（`ui.js`），`index.html` 只剩 `<div id="update-root">` + 一行 css link。
 - `app.js` / `sw.js` / `build.mjs` 的导入与清单已全部对齐。
@@ -155,9 +150,8 @@ cd pwa/dist && python -m http.server 8901 --bind 127.0.0.1
 - 工作区另有 `scripts/theme_stress_audit.py`（582 行，另开会话的模板应力审计活儿，**不要混进更新模块的提交**）。
 
 **建议接手人下一步（按性价比）：**
-1. 把这些抽取改动提交（建议单独一个 commit，便于回滚）。
-2. 若以后要给更新面板加功能，直接改 `pwa/src/update/` 内对应文件，记得同步 `sw.js` / `build.mjs` 清单。
-3. 发版按 §4 流程走。
+1. 若以后要给更新面板加功能，直接改 `pwa/src/update/` 内对应文件，记得同步 `sw.js` / `build.mjs` 清单。
+2. 发版按 §4 流程走。
 
 ---
 
