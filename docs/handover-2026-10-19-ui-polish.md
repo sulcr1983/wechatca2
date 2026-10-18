@@ -11,7 +11,7 @@
 |---|---|
 | 线上主站 | **https://supersu.ccwu.cc**（Cloudflare Pages 项目 `supersu-pwa`） |
 | 线上版本 | **1.4.0 / build 119**（已含小红书封面、入口「小红书」、草稿落盘修复） |
-| 仓库 HEAD | `5c6eca3`（已 push `origin/main`），含**首页体验优化** |
+| 仓库 HEAD | 写本文时 `5c6eca3`（首页优化提交，已 push）；本文提交后为 `feb94da` |
 | 首页优化是否上线 | **否。部署失败，线上还没有这份改动** |
 | 失败原因 | 2026-10-19 执行 `deploy.sh` 时 wrangler 报 `fetch failed`（网络/代理问题），**不是代码或构建错误** |
 | 本地构建产物 | `pwa/dist`：version 1.4.0 / build 121 / `BUILD_ID=8021b9873b1f7f26` |
