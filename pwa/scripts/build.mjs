@@ -34,11 +34,12 @@ const SHELL_FILES = [
   'src/style.css',
   'src/bridge.js',
   'src/engine.worker.js',
-  'src/update.js',
+  'src/update/index.js',
+  'src/update/ui.js',
   'src/ai.js',
   'src/light.js',
-  'src/changelog.js',
-  'src/changelog.css',
+  'src/update/changelog.js',
+  'src/update/update.css',
   'manifest.webmanifest',
   'fonts/fonts.css',
   // 图标也算：只换图标像素时 sw.js 必须变，否则永远不触发更新
@@ -463,7 +464,8 @@ function assertDist(themeCount) {
 
   // 4) 关键文件存在
   for (const need of ['index.html', 'sw.js', 'manifest.webmanifest', 'src/app.js', 'src/engine.worker.js',
-                     'src/update.js', 'src/changelog.js', 'src/changelog.css',
+                     'src/update/index.js', 'src/update/ui.js', 'src/update/changelog.js',
+                     'src/update/update.css',
                      'version.json', 'py/markdown.zip', 'themes/index.json', '_headers']) {
     if (!fs.existsSync(path.join(DIST, need))) problems.push(`缺文件：${need}`);
   }

@@ -51,7 +51,7 @@ const SHELL_CRITICAL = [
   './src/style.css',
   './src/bridge.js',
   './src/engine.worker.js',
-  './src/update.js',
+  './src/update/index.js',
 ];
 
 // optional：缺失只记日志，不影响安装（图标/字体/更新记录都能降级）
@@ -60,8 +60,9 @@ const SHELL_OPTIONAL = [
   './src/ai.js',
   './src/light.js',
   './vendor/marked.min.js',
-  './src/changelog.js',
-  './src/changelog.css',
+  './src/update/ui.js',
+  './src/update/changelog.js',
+  './src/update/update.css',
   './changelog.json',
   './fonts/fonts.css',
   './icons/favicon-32.png',

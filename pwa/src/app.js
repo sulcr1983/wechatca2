@@ -554,8 +554,8 @@ function restoreDraft() {
 async function initUpdate() {
   try {
     const [{ createChangelog }, { createUpdater }] = await Promise.all([
-      import('./changelog.js'),
-      import('./update.js'),
+      import('./update/changelog.js'),
+      import('./update/index.js'),
     ]);
     const view = createChangelog({ container: document.body });
     view.mount();

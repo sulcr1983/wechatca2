@@ -14,6 +14,8 @@
  * 而且用户如果一直不关标签页，靠 version.json 轮询也能发现远端已发新版。
  */
 
+import { mountUpdateUI } from './ui.js';
+
 const LS_SEEN = 'supersu.pwa.seenVersion';
 const LS_DISMISSED = 'supersu.pwa.dismissedVersion';
 const CHECK_MS = 60 * 60 * 1000;      // 每小时查一次
@@ -33,6 +35,9 @@ export function cmpVersion(a, b) {
 }
 
 export function createUpdater({ changelog } = {}) {
+  // 更新 UI 由模块自建（页面只留 #update-root），必须在取 DOM 之前挂载
+  mountUpdateUI();
+
   const el = {
     btn: document.getElementById('btn-update'),
     ver: document.getElementById('upd-ver'),
