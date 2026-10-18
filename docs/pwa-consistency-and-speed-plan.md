@@ -8,6 +8,57 @@
 > - ✅ **S3 AI（纯前端 BYOK）**：`pwa/src/ai.js` + 右上「AI」面板，支持润色 / 智能排版 / 摘要；智能排版 = LLM 只出结构 JSON → Pyodide `apply_structure` 套用（正文一字不改）。
 > - ⏳ **S4 小红书封面**：未开工。需 2~3 天（10 套模板 + modern-screenshot + 下载/长按保存），下一步单独做。
 
+## 七、首访提速（2026-10-18 二次改造，已上线）
+
+### 实测：首访到底慢在哪
+
+`scripts/pwa_timeline_probe.py`（空 profile，系统 Chrome）：
+
+| 里程碑 | 耗时 |
+|---|---|
+| FCP 首屏绘制 | 2.5s |
+| DOMContentLoaded | 2.4s |
+| 主题就绪 | 3.2s |
+| **引擎就绪（能精确排版）** | **22.6s** |
+
+分项传输（页面侧）：字体 94KB + 应用代码 41KB + 外壳 22KB + 主题 10KB；**真正的大头是 Worker 里的 12.1MB 运行时**（约 530KB/s ≈ 22 秒）。
+
+### 业界怎么做（调研结论）
+
+| 做法 | 代表 | 说明 |
+|---|---|---|
+| 首屏只给「可交互壳」 | Figma / Notion / StackBlitz | 先出 UI + 骨架，数据/运行时后到 |
+| 重运行时**离开首屏** | 各家 | 不进 `install`、不 `preload`、`load` 后 idle 启动 |
+| **轻量层先出近似结果** | VSCode Markdown 预览 / GitHub | 轻渲染器先给结果，重引擎好后替换 |
+| 关键动作后置 | 各家 | 精确结果就绪前禁用「复制/导出」 |
+| 拆包 + 按需 | Notion / Figma | 只拉当前页/当前主题，不一次全拉 |
+
+结论：**没有把 5MB 变没的银弹**，正解是「别让用户等它」。
+
+### 本次落地
+
+1. **轻量即时预览**（`pwa/src/light.js` + `vendor/marked.min.js` 39.9KB / br 约 12KB）：
+   引擎没就绪时用 marked + 主题 `styles` 直接出一版近似排版，badge 显示「快速预览 · 精确排版准备中」，**复制按钮保持禁用**；精确结果到达后原地替换并解锁复制。
+   极简预处理：首行短标题 → h1、孤立短行 → h2、列表/引用/表格/围栏原样交给 marked。
+2. **引擎改为空闲时启动**：`requestIdleCallback(timeout 2500)`，先让外壳/主题/轻量预览拿到带宽。
+3. 结果：**首访 2.5 秒就能看到排版**（原先 22.6 秒才有东西），精确版随后静默替换。
+
+### 还没做（可选，按需再上）
+
+- 把 `precacheData()`（168 个主题 1.55MB）移出 `install`，改为「引擎就绪后空闲预取」——进一步减少与引擎抢带宽。
+- 主题合并成 4~8 个 pack（164 个小请求 → 少量大请求）。
+- `saveData` / 2G/3G 时默认不自动下引擎，改成用户点「精确排版」再下。
+
+### 验收
+
+```bash
+python scripts/pwa_timeline_probe.py      # 首访里程碑
+python scripts/pwa_light_preview_test.py  # 6/6：2.5s 出近似预览、复制锁、精确后替换
+python scripts/pwa_offline_test.py        # 10/10（回归）
+python scripts/pwa_s1s3_test.py           # 9/9（回归）
+```
+
+
 ## 一、实测：现在还重下 11MB 吗？
 
 用系统 Chrome（有头）在 `https://supersu.ccwu.cc` 实测（`scripts/pwa_payload_probe.py`）：

@@ -35,6 +35,7 @@ const SHELL_FILES = [
   'src/engine.worker.js',
   'src/update.js',
   'src/ai.js',
+  'src/light.js',
   'src/changelog.js',
   'src/changelog.css',
   'manifest.webmanifest',

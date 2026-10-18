@@ -93,6 +93,8 @@ python scripts/pwa_incremental_test.py --phase 1 --clean  # 增量更新阶段1�
 python scripts/pwa_incremental_test.py --phase 2          # 换一个文件重新部署后跑，验证 6/6
 python scripts/pwa_s1s3_test.py        # 首屏不阻塞 + AI 面板/润色/排版/摘要（mock 接口）9/9
 python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（输出 output/pwa_payload）
+python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
+python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）
 # · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
@@ -104,6 +106,8 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 # · 更新：打开 3s 后主动查 → 后台下载 → 空闲（不可见/空稿/30s 无输入且失焦）自动应用；
 #   `?reset-sw` 注销 SW + 清本站缓存并重载（卡住时的自救开关）。
 # · 首屏不阻塞：`#boot` 是底部小条（40px、pointer-events:none），引擎没就绪也能先输入。
+# · 轻量即时预览：引擎未就绪时用 marked(12KB br) + 主题 styles 出近似排版，badge 标「快速预览」，
+#   **复制按钮锁到精确结果**；引擎空闲时启动，就绪后原地替换。
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
 #    若已被你自己的 app.py 占用，直接 ABORT（退出码 2）——否则会连到旧进程用陈旧代码假通过。
 # ⚠️ 反过来更危险：如果你自己的 app.py 是**改动前**起的，它会一直占着 5000，套件也会连到旧代码。

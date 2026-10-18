@@ -6,6 +6,7 @@
  */
 
 import { createEngine } from './bridge.js';
+import { renderLight } from './light.js';
 
 /* ── 存储键 ─────────────────────────────────────────────────── */
 const LS = {
@@ -83,24 +84,31 @@ async function main() {
 
   // 引擎异步启动，UI 先可用（骨架 + 遮罩）
   engine = createEngine({ onProgress: onProgress });
-  // 不阻塞 UI：用户马上就能输入/粘贴，引擎就绪后再渲染（弱网时不用干等）
-  engineReady = engine.boot().then(() => {
-    setEngineState('ready', '引擎已就绪');
-    $('boot').classList.add('gone');
-    if ($('input').value.trim()) scheduleRender();
-  }).catch((e) => {
-    setEngineState('error', '引擎加载失败');
-    $('boot-label').textContent = '引擎加载失败，点这里重试';
-    $('boot-fill').style.background = 'var(--accent)';
-    const bootEl = $('boot');
-    if (bootEl) {
-      bootEl.style.pointerEvents = 'auto';
-      bootEl.style.cursor = 'pointer';
-      bootEl.onclick = () => location.reload();
-    }
-    toast('引擎加载失败：' + e.message, 'err');
-  });
-  await engineReady;
+  // 引擎在空闲时再开始下载：先让外壳 / 主题 / 轻量预览拿到带宽。
+  // 首访实测引擎要 20 秒以上，这期间用户已经能看到近似排版并继续输入。
+  const startBoot = () => {
+    engineReady = engine.boot().then(() => {
+      setEngineState('ready', '引擎已就绪');
+      $('boot').classList.add('gone');
+      if ($('input').value.trim()) scheduleRender();
+    }).catch((e) => {
+      setEngineState('error', '引擎加载失败');
+      $('boot-label').textContent = '引擎加载失败，点这里重试';
+      $('boot-fill').style.background = 'var(--accent)';
+      const bootEl = $('boot');
+      if (bootEl) {
+        bootEl.style.pointerEvents = 'auto';
+        bootEl.style.cursor = 'pointer';
+        bootEl.onclick = () => location.reload();
+      }
+      toast('引擎加载失败：' + e.message, 'err');
+    });
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(startBoot, { timeout: 2500 });
+  } else {
+    setTimeout(startBoot, 1200);
+  }
 }
 
 function onProgress({ pct, label }) {
@@ -137,12 +145,23 @@ async function doRender() {
   }
 
   const mySeq = ++renderSeq;
+
+  // 引擎还没就绪（首次要下约 5MB）：先用 12KB 的轻量渲染给一版近似结果，
+  // 精确结果到了再原地替换。复制按钮保持禁用，避免把近似版粘进公众号。
+  if (!engine || !engine.isReady()) {
+    try {
+      const raw = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
+      const html = renderLight(text, JSON.parse(raw));
+      if (mySeq !== renderSeq) return;
+      if (html) {
+        showPreview(html);
+        setEngineState('loading', '快速预览 · 精确排版准备中');
+      }
+    } catch (e) { /* 轻量预览失败就安静等精确结果 */ }
+    return;
+  }
+
   try {
-    // 引擎没就绪：先排队等它（不报错、不打断输入），就绪后 main() 会自动重排
-    if (!engine || !engine.isReady()) {
-      if (engineReady) await engineReady.catch(() => {});
-      if (!engine || !engine.isReady()) return;
-    }
     const json = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
     await engine.setTheme(activeId, json);
     const out = await engine.render(text);

@@ -58,6 +58,8 @@ const SHELL_CRITICAL = [
 const SHELL_OPTIONAL = [
   './manifest.webmanifest',
   './src/ai.js',
+  './src/light.js',
+  './vendor/marked.min.js',
   './src/changelog.js',
   './src/changelog.css',
   './changelog.json',
