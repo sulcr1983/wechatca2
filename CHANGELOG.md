@@ -3,6 +3,17 @@
 > 本文件由 `pwa/scripts/gen_changelog.py` 从 git 历史自动生成，请勿手改。
 > 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.0] - 2026-10-19
+
+小红书封面（PWA）
+
+### 新增
+- 小红书封面——12 风格 / 3 尺寸 / 上传与 Wikimedia 搜图 (0f0f9c1)
+- 品牌 logo 接入两版 UI + 系统名统一为「SuperSu 公众号编辑器」 (7653a78)
+
+### 调整
+- 记录部署流程与 Windows Git Bash 坑 + 窄屏修复归档 (7bcf603)
+
 ## [1.3.0] - 2026-10-18
 
 提速与智能更新（增量 · 静默 · AI · 轻量预览）
