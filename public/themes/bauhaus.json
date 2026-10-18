@@ -16,7 +16,7 @@
       "padding": "16px"
     },
     "h1": {
-      "font_size": "31px",
+      "font_size": "22px",
       "font_weight": "900",
       "color": "#ffffff",
       "text_transform": "uppercase",
@@ -31,7 +31,7 @@
       "font_family": "'Helvetica Neue', Arial, sans-serif"
     },
     "h2": {
-      "font_size": "22px",
+      "font_size": "18px",
       "font_weight": "800",
       "color": "#1a1a1a",
       "text_transform": "uppercase",
@@ -47,7 +47,7 @@
       "font_family": "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
     },
     "h3": {
-      "font_size": "20px",
+      "font_size": "16px",
       "font_weight": "700",
       "color": "#1a1a1a",
       "text_transform": "uppercase",
@@ -281,7 +281,7 @@
       "font_family": "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
     },
     "h4": {
-      "font_size": "19px",
+      "font_size": "15px",
       "font_weight": "bold",
       "color": "#1a1a1a",
       "border_left": "2px solid #E30613",
@@ -292,7 +292,7 @@
       "font_family": "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
     },
     "h5": {
-      "font_size": "18px",
+      "font_size": "14px",
       "font_weight": "bold",
       "color": "#555555",
       "padding": "0",
@@ -302,7 +302,7 @@
       "font_family": "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
     },
     "h6": {
-      "font_size": "15px",
+      "font_size": "13px",
       "font_weight": "bold",
       "color": "#888888",
       "padding": "0",

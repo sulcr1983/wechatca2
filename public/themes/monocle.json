@@ -16,7 +16,7 @@
       "padding": "16px"
     },
     "h1": {
-      "font_size": "27px",
+      "font_size": "22px",
       "font_weight": "700",
       "color": "#2a5e38",
       "line_height": "1.25",
@@ -30,7 +30,7 @@
       "padding_bottom": "16px"
     },
     "h2": {
-      "font_size": "22px",
+      "font_size": "18px",
       "font_weight": "600",
       "color": "#2a5e38",
       "line_height": "1.4",
@@ -42,7 +42,7 @@
       "padding": "0"
     },
     "h3": {
-      "font_size": "19px",
+      "font_size": "16px",
       "font_weight": "600",
       "color": "#b8a04a",
       "line_height": "1.4",
@@ -275,7 +275,7 @@
       "font_family": "'Playfair Display', Georgia, 'Times New Roman', serif"
     },
     "h4": {
-      "font_size": "17px",
+      "font_size": "15px",
       "font_weight": "600",
       "color": "#2a5e38",
       "padding": "0",
@@ -285,7 +285,7 @@
       "font_family": "'Playfair Display', Georgia, 'Times New Roman', serif"
     },
     "h5": {
-      "font_size": "16px",
+      "font_size": "14px",
       "font_weight": "500",
       "color": "#5a6a50",
       "padding": "0",
@@ -295,7 +295,7 @@
       "font_family": "'Playfair Display', Georgia, 'Times New Roman', serif"
     },
     "h6": {
-      "font_size": "14px",
+      "font_size": "13px",
       "font_weight": "400",
       "color": "#778870",
       "padding": "0",

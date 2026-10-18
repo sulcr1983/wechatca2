@@ -28,7 +28,7 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h2": {
-      "font_size": "20px",
+      "font_size": "18px",
       "font_weight": "bold",
       "color": "#d97758",
       "border_bottom": "1px dashed rgba(74,65,61,0.3)",
@@ -39,7 +39,7 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h3": {
-      "font_size": "18px",
+      "font_size": "16px",
       "font_weight": "bold",
       "color": "#d97758",
       "border_bottom": "2px solid #d97758",
@@ -267,7 +267,7 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h4": {
-      "font_size": "17px",
+      "font_size": "15px",
       "font_weight": "bold",
       "color": "#c06b4d",
       "padding": "0",
@@ -277,7 +277,7 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h5": {
-      "font_size": "16px",
+      "font_size": "14px",
       "font_weight": "bold",
       "color": "#555555",
       "padding": "0",
@@ -287,7 +287,7 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     },
     "h6": {
-      "font_size": "15px",
+      "font_size": "13px",
       "font_weight": "bold",
       "color": "#888888",
       "padding": "0",

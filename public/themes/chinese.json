@@ -34,7 +34,7 @@
       "font_family": "'Noto Serif SC', 'KaiTi', 'STKaiti', serif"
     },
     "h2": {
-      "font_size": "20px",
+      "font_size": "18px",
       "font_weight": "bold",
       "color": "#8B1E22",
       "line_height": "1.2",
@@ -47,7 +47,7 @@
       "font_family": "'Noto Serif SC', 'KaiTi', 'STKaiti', serif"
     },
     "h3": {
-      "font_size": "18px",
+      "font_size": "16px",
       "font_weight": "600",
       "color": "#8B1E22",
       "line_height": "1.6",
@@ -273,7 +273,7 @@
       "font_family": "'Noto Serif SC', 'STSong', 'SimSun', serif"
     },
     "h4": {
-      "font_size": "17px",
+      "font_size": "15px",
       "font_weight": "bold",
       "color": "#8B1E22",
       "border_left": "2px solid #8B1E22",
@@ -284,7 +284,7 @@
       "font_family": "'Noto Serif SC', 'STSong', 'SimSun', serif"
     },
     "h5": {
-      "font_size": "16px",
+      "font_size": "14px",
       "font_weight": "bold",
       "color": "#555555",
       "padding": "0",
@@ -294,7 +294,7 @@
       "font_family": "'Noto Serif SC', 'STSong', 'SimSun', serif"
     },
     "h6": {
-      "font_size": "15px",
+      "font_size": "13px",
       "font_weight": "bold",
       "color": "#888888",
       "padding": "0",

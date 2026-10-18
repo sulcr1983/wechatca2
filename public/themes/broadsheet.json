@@ -16,7 +16,7 @@
       "padding": "16px"
     },
     "h1": {
-      "font_size": "28px",
+      "font_size": "22px",
       "font_weight": "900",
       "color": "#222222",
       "line_height": "1.2",
@@ -29,7 +29,7 @@
       "font_family": "Georgia, 'Times New Roman', serif"
     },
     "h2": {
-      "font_size": "21px",
+      "font_size": "18px",
       "font_weight": "700",
       "color": "#222222",
       "line_height": "1.4",
@@ -40,7 +40,7 @@
       "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h3": {
-      "font_size": "18px",
+      "font_size": "16px",
       "font_weight": "700",
       "color": "#333333",
       "line_height": "1.4",
@@ -269,7 +269,7 @@
       "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h4": {
-      "font_size": "17px",
+      "font_size": "15px",
       "font_weight": "700",
       "color": "#222222",
       "padding": "0",
@@ -279,7 +279,7 @@
       "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h5": {
-      "font_size": "15px",
+      "font_size": "14px",
       "font_weight": "600",
       "color": "#444444",
       "padding": "0",
@@ -289,7 +289,7 @@
       "font_family": "Georgia, 'Times New Roman', 'Noto Serif SC', serif"
     },
     "h6": {
-      "font_size": "14px",
+      "font_size": "13px",
       "font_weight": "500",
       "color": "#666666",
       "padding": "0",

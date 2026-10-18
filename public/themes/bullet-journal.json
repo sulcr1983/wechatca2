@@ -18,7 +18,7 @@
       "background_size": "20px 20px"
     },
     "h1": {
-      "font_size": "24px",
+      "font_size": "22px",
       "font_weight": "600",
       "color": "#555555",
       "line_height": "1.5",
@@ -30,7 +30,7 @@
       "font_family": "'JetBrains Mono', Consolas, monospace"
     },
     "h2": {
-      "font_size": "20px",
+      "font_size": "18px",
       "font_weight": "600",
       "color": "#666666",
       "line_height": "1.5",
@@ -41,7 +41,7 @@
       "font_family": "'JetBrains Mono', 'Fira Code', Consolas, monospace"
     },
     "h3": {
-      "font_size": "17px",
+      "font_size": "16px",
       "font_weight": "600",
       "color": "#e8734a",
       "line_height": "1.5",
@@ -272,7 +272,7 @@
       "font_family": "'JetBrains Mono', 'Fira Code', Consolas, monospace"
     },
     "h4": {
-      "font_size": "16px",
+      "font_size": "15px",
       "font_weight": "600",
       "color": "#666666",
       "padding": "0",
@@ -282,7 +282,7 @@
       "font_family": "'JetBrains Mono', 'Fira Code', Consolas, monospace"
     },
     "h5": {
-      "font_size": "15px",
+      "font_size": "14px",
       "font_weight": "500",
       "color": "#887766",
       "padding": "0",
@@ -292,7 +292,7 @@
       "font_family": "'JetBrains Mono', 'Fira Code', Consolas, monospace"
     },
     "h6": {
-      "font_size": "14px",
+      "font_size": "13px",
       "font_weight": "400",
       "color": "#aa9988",
       "padding": "0",
