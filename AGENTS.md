@@ -102,6 +102,7 @@ python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就�
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
 python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址加 #upd-demo 可预览）
+python scripts/pwa_cover_test.py          # PWA 封面有头 16/16（12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）
 # · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
@@ -124,6 +125,14 @@ python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址
 #   本地版引 /assets/brand/*，PWA 引 ./brand/*（顶栏 / 启动条 / 更新入口 / 发布小票 / 更新记录头部 / 关于弹窗）。
 # · 轻量即时预览：引擎未就绪时用 marked(12KB br) + 主题 styles 出近似排版，badge 标「快速预览」，
 #   **复制按钮锁到精确结果**；引擎空闲时启动，就绪后原地替换。
+# · 小红书封面（2026-10-19）：`pwa/src/cover/*` + `public/cover-templates`（构建时清洗 10 套）
+#   + `public/vendor/modern-screenshot.js`（MIT，离屏 iframe → PNG）。12 风格 =
+#   归藏 2（editorial/swiss，3 尺寸 3:4 / 1:1 / 21:9）+ 模板 10（仅 3:4）。
+#   底图三选一：纯色 / 上传 / Wikimedia Commons 免 key 搜图（API 与图片 CDN 均 CORS `*`；
+#   中文关键词走内置场景词表映射成英文，国内不可达时提示改用上传）。
+#   中文字体为 Noto 子集（`pwa/public/fonts/cover/`，GB2312 一级 + ASCII，4 字重 2.39MB），
+#   由 `scripts/build_cover_fonts.py` 生成；`cover-fonts.css` 只在封面页按需加载，
+#   不参与首屏字体预缓存。⚠️ 新增封面模块要同步 `sw.js` SHELL_OPTIONAL 与 `build.mjs` SHELL_FILES。
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
 #    若已被你自己的 app.py 占用，直接 ABORT（退出码 2）——否则会连到旧进程用陈旧代码假通过。
 # ⚠️ 反过来更危险：如果你自己的 app.py 是**改动前**起的，它会一直占着 5000，套件也会连到旧代码。
@@ -240,6 +249,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ## 9. 已知注意事项
 
+- **PWA 封面**（2026-10-19）：纯前端 `modern-screenshot` 生成，不依赖 Flask/Playwright；模板 10 套来自 AGPL-3.0 上游（已在 `THIRD_PARTY_NOTICES.md` 声明），构建时去掉 Google Fonts 并把示例文案替换为占位符。**Wikimedia 图库以纪实照片为主**，中文关键词靠场景词表映射，国内网络可能不可达——失败时必须提示改用上传/纯色，不得静默。
 - 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
 - ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
@@ -327,7 +337,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ### 验收规则（须给真实证据）
 - 声称完成前必须提供本轮实际运行的命令 / 测试 / 日志 / 截图 / 出图证据。
-- 改动跑 E2E（`test_e2e` 65/65）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG。
+- 改动跑 E2E（`test_e2e` 65/65）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG；PWA 封面改动须跑 `scripts/pwa_cover_test.py`（16/16，含断网生成）。
 - warning / lint / 测试计数漂移 / 文档索引缺失 / 本轮 TODO 按缺陷处理，除非明确记为非本轮债务。
 - UI 改动须检查真实渲染（`test_headed_full_e2e` 32/32），不只看代码。
 

@@ -15,6 +15,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { TEMPLATE_STYLES } from '../src/cover/catalog.js';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PWA = path.resolve(HERE, '..');
 const ROOT = path.resolve(PWA, '..');
@@ -38,10 +40,18 @@ const SHELL_FILES = [
   'src/update/ui.js',
   'src/ai.js',
   'src/light.js',
+  'src/cover/index.js',
+  'src/cover/catalog.js',
+  'src/cover/templates.js',
+  'src/cover/render.js',
+  'src/cover/search.js',
+  'src/cover/cover.css',
+  'vendor/modern-screenshot.js',
   'src/update/changelog.js',
   'src/update/update.css',
   'manifest.webmanifest',
   'fonts/fonts.css',
+  'fonts/cover-fonts.css',
   // 图标也算：只换图标像素时 sw.js 必须变，否则永远不触发更新
   'icons/favicon-32.png',
   'icons/apple-touch-icon.png',
@@ -278,16 +288,45 @@ function main() {
   const manifest = buildDataManifest();
   log(`  ✓ 增量清单 themes/manifest.json（${Object.keys(manifest).length} 项）`);
 
-  /* 6. 封面模板（D5 起；需 --cover，且模板里的 Google Fonts 外链必须已在
-   *    pwa/scripts/localize_cover_fonts.py 里换成自托管，否则断言会拦下） */
-  const WITH_COVER = process.argv.includes('--cover');
+  /* 6. 封面模板（默认包含）：清洗 Google Fonts / WCAG 强制白字段 / 本地底图路径，
+   *    输出单文件 HTML；缩略图改放 cover-thumbs（social-thumb 仍属本地版专属目录）。 */
   const coverSrc = path.join(ROOT, 'public', 'cover-templates');
+  mkdirp(path.join(DIST, 'cover-templates'));
   let coverN = 0;
-  if (WITH_COVER && fs.existsSync(coverSrc)) {
-    coverN = copyDir(coverSrc, path.join(DIST, 'cover-templates'), { include: /\.(html|css|js|png|jpg|jpeg|webp|svg|woff2)$/ });
-    copyDir(path.join(ROOT, 'public', 'images'), path.join(DIST, 'images'), { include: /\.(jpg|jpeg|png|webp)$/ });
+  for (const t of TEMPLATE_STYLES) {
+    const srcFile = path.join(coverSrc, t.id, 'index.html');
+    if (!fs.existsSync(srcFile)) throw new Error(`缺封面模板：${t.id}`);
+    let html = fs.readFileSync(srcFile, 'utf8');
+    // 去 Google Fonts（外链既违反构建断言，国内也不可达）
+    html = html.replace(/<link[^>]+fonts\.(?:googleapis|gstatic)\.com[^>]*>\s*/gi, '');
+    // 去「把所有文字强制白色」的补丁：纯色纸底会白字不可读；有底图时由运行时覆盖 CSS 重新加白
+    html = html.replace(/\s*\/\* WCAG contrast fix \*\/[\s\S]*?(?=<\/style>)/i, '\n');
+    // 底图 src 置空：模板引用的是本地版 images/，PWA 运行时会注入用户底图或移除
+    html = html.replace(/(<img[^>]*class="[^"]*\bcover-img\b[^"]*"[^>]*?)\ssrc="[^"]*"/i, '$1');
+    // Swiss 四套的 lead 是硬编码示例文案 → 统一成占位符
+    html = html.replace(/(<p[^>]*class="[^"]*\blead\b[^"]*"[^>]*>)[\s\S]*?(<\/p>)/i, '$1{{LEAD}}$2');
+    // 清掉模板自带的示例文案：kicker / t-cat 统一成「封面 · COVER」，副标题 h-sub 移除
+    html = html.replace(/(<p[^>]*class="[^"]*\bkicker\b[^"]*"[^>]*>)[\s\S]*?(<\/p>)/i, '$1封面 · COVER$2');
+    html = html.replace(/(<p[^>]*class="[^"]*\bt-cat\b[^"]*"[^>]*>)[\s\S]*?(<\/p>)/i, '$1封面 · COVER$2');
+    html = html.replace(/<p[^>]*class="[^"]*\bh-sub\b[^"]*"[^>]*>[\s\S]*?<\/p>/i, '');
+    // 示例署名与日期 → 占位符（运行时替换成用户署名 / 当前年月）
+    html = html.replace(/(<p[^>]*class="[^"]*\bt-meta\b[^"]*"[^>]*>)\/\s*阿苏(<\/p>)/i, '$1/ {{AUTHOR}}$2');
+    html = html.replace(/2026\.05/g, '{{DATE}}');
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>封面</title>');
+    fs.writeFileSync(path.join(DIST, 'cover-templates', `${t.id}.html`), html, 'utf8');
+    coverN += 1;
   }
-  if (coverN) log(`  ✓ 封面模板 ${coverN} 个文件`);
+  const coverThumbSrc = path.join(ROOT, 'public', 'social-thumb');
+  mkdirp(path.join(DIST, 'cover-thumbs'));
+  let coverThumbN = 0;
+  for (const t of TEMPLATE_STYLES) {
+    const p = path.join(coverThumbSrc, `${t.id}.png`);
+    if (fs.existsSync(p)) {
+      copyFile(p, path.join(DIST, 'cover-thumbs', `${t.id}.png`));
+      coverThumbN += 1;
+    }
+  }
+  log(`  ✓ 封面模板 ${coverN} 套 + 缩略图 ${coverThumbN} 张`);
 
   /* 6.5 版本与更新记录（前端更新检测靠这两个文件） */
   const ver = buildVersion();
@@ -370,7 +409,11 @@ function buildVersion() {
   return {
     ...base,
     version: String(base.version || '1.0.0'),
-    releasedAt: new Date().toISOString().slice(0, 10),
+    // 用本地日期：toISOString() 在东八区凌晨会退回前一天，发布小票日期会错
+    releasedAt: (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })(),
     build: commits,
   };
 }
@@ -490,16 +533,28 @@ function assertDist(themeCount) {
     problems.push(`主题文件数 ${themeFiles.length} ≠ 索引 ${themeCount}`);
   }
 
-  // 4) 关键文件存在
+  // 4) 封面模板齐全（10 套，清洗后的单文件）
+  for (const t of TEMPLATE_STYLES) {
+    if (!fs.existsSync(path.join(DIST, 'cover-templates', `${t.id}.html`))) {
+      problems.push(`缺封面模板：${t.id}`);
+    }
+  }
+
+  // 5) 关键文件存在
   for (const need of ['index.html', 'sw.js', 'manifest.webmanifest', 'src/app.js', 'src/engine.worker.js',
                      'src/update/index.js', 'src/update/ui.js', 'src/update/changelog.js',
                      'src/update/update.css',
                      'version.json', 'py/markdown.zip', 'themes/index.json', '_headers',
-                     'brand/logo-64.png', 'brand/logo-256.png']) {
+                     'brand/logo-64.png', 'brand/logo-256.png',
+                     'fonts/cover-fonts.css', 'fonts/cover/noto-serif-sc-400.woff2',
+                     'fonts/cover/noto-sans-sc-400.woff2',
+                     'src/cover/index.js', 'src/cover/catalog.js', 'src/cover/templates.js',
+                     'src/cover/render.js', 'src/cover/search.js', 'src/cover/cover.css',
+                     'vendor/modern-screenshot.js']) {
     if (!fs.existsSync(path.join(DIST, need))) problems.push(`缺文件：${need}`);
   }
 
-  // 5) 增量更新的前置条件（少一条就退化成全量更新）
+  // 6) 增量更新的前置条件（少一条就退化成全量更新）
   const swSrc = fs.readFileSync(path.join(DIST, 'sw.js'), 'utf8');
   if (swSrc.includes('__BUILD_ID__')) problems.push('sw.js 的 __BUILD_ID__ 未注入（BUILD_ID 不生效）');
   if (swSrc.includes('__DATA_MANIFEST__')) problems.push('sw.js 的数据清单未内联（离线重启会拿不到 manifest）');

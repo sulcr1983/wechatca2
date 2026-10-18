@@ -8,7 +8,8 @@
 ## 0. 一句话现状
 
 **PWA 已上线**：https://supersu.ccwu.cc（自定义域名）+ https://supersu-pwa.pages.dev，粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**，线上域名有头实测渲染通过（2026-10-18）。
-**没做的**：封面页、断网验证、离线包、真机验收（见 §3）。
+**没做的**：推送探测、离线包、真机验收（见 §3）。
+**2026-10-19 补**：小红书封面已落地——12 风格（归藏 2 × 3 尺寸 + 模板 10 × 3:4）、纯色/上传/Wikimedia 免 key 搜图、Noto 中文字体子集、断网可生成；有头测试 16/16。
 
 ⚠️ 2026-10-18 已完成基线提交（`0332b7f`）+ 部署上线。后续每完成一项仍按：跑 `smoke.py` → 单项提交 → 回 `files/TODO.md` 打勾。
 
@@ -38,7 +39,11 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 ```bash
 # PWA 有头冒烟（起静态服务 + 真实 Chrome 走一遍核心链路）
 .venv/Scripts/python.exe pwa/scripts/smoke.py
-# 期望：PWA 有头冒烟：23/23 通过
+# 期望：PWA 有头冒烟：24/24 通过
+
+# 封面专项（12 风格 / 3 尺寸 / 上传 / Wikimedia 搜图 / 断网生成）
+.venv/Scripts/python.exe scripts/pwa_cover_test.py
+# 期望：PWA 封面有头测试：16/16 通过
 
 # 本地版回归（确认没把 main 的东西改坏）
 .venv/Scripts/python.exe tests/test_e2e.py          # 65/65
@@ -60,14 +65,14 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 | PWA-1.3 | 主题索引 + 164 缩略图 + 风格胶囊 + 六族抽屉 | ✅ 164 套可选、缩略图真实加载 |
 | PWA-1.4 | 防抖渲染 + 解析条 + 手机/网页视图 | ✅ |
 | PWA-1.5 | 复制三级降级 + 草稿 + 清本地数据 | ✅ 代码齐（**但「粘贴到公众号样式完整」这条没在自动化里实测，需人工确认**） |
-| PWA-2.1–2.3 | 封面 19 种风格 / 三尺寸 / 底图三合一 | ❌ **完全没做** |
-| PWA-3.1 | manifest + SW + 离线 | 🟡 SW 已注册、策略已写；**断网验证没做** |
+| PWA-2.1–2.3 | 封面 12 种风格 / 三尺寸 / 底图三合一 | ✅ 2026-10-19：归藏 2 × 3 尺寸 + 模板 10 × 3:4；纯色 / 上传 / Wikimedia 搜图；长标题自适应；有头 16/16 |
+| PWA-3.1 | manifest + SW + 离线 | ✅ 2026-10-19：SW 已含封面模块/模板预缓存；`pwa_cover_test` 实测断网后仍可生成 |
 | PWA-3.2 | 「更多」菜单：推送探测本机 / AI 配置 | ❌ 只做了草稿/清数据/关于 |
 | PWA-3.3 | 合规收尾 | 🟡 LICENSE、THIRD_PARTY_NOTICES、关于页链接都有；构建断言已跑 |
 | PWA-3.4 | 部署 Cloudflare Pages | ✅ 2026-10-18 上线：项目 `supersu-pwa`，双地址在线——https://supersu-pwa.pages.dev + 自定义域名 **https://supersu.ccwu.cc**（新注册的免费域名，NS 已委派 CF，证书 Google CA）。部署脚本 `pwa/scripts/deploy.sh`（凭证从 `E:/test/opendoor/.env` 读，不落盘） |
 | PWA-3.5 | 离线包 zip | ❌ |
 | PWA-4.1–4.2 | 真机验收 + 群友试用 | ❌ |
-| （新增）更新管理 | 见 §7 | 🟡 代码齐、构建通过、**面板未在冒烟里覆盖** |
+| （新增）更新管理 | 见 §7 | ✅ 代码齐、构建通过；冒烟覆盖入口/记录面板 |
 
 ---
 
@@ -84,14 +89,15 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 - 验证：服务器侧抓取确认完整应用；有头浏览器（系统 Chrome）实测输入→解析→预览渲染通过；全球 DNS 解析正常
 - ⚠️ 国内直连 CF 的 172.6x 段不稳（本机 Clash 环境下 curl 被拦），真实用户访问以浏览器为准；发群时仍建议同时给离线包
 
-### 3.2 封面（D5，最大一块）
-- 施工图里已留开关：`node pwa/scripts/build.mjs --cover`
-- **卡点**：归藏封面模板外链了 5 个 Google Fonts，构建断言会拦。必须先把字体本地化：
-  1. 拉丁三族（Playfair Display / Inter / IBM Plex Mono）下载自托管
-  2. 中文两族（Noto Serif SC / Noto Sans SC）按常用 3500 字子集化，否则单字重 8MB+
-  3. 改写 10 个模板的 `<link>` 为本地 `@font-face`，断言才能过
-- 截图方案已验证：`html-to-image@1.11.13`，`skipFonts: true`，792ms 出 1080×1440
-- BLCaptain 9 种风格原本靠 Node CLI + Playwright，**浏览器里跑不了 Node**，需要把它的 HTML 模板取出来、数据注入改成 JS，再用同一套 html-to-image 出图
+### 3.2 封面（D5）——✅ 已完成 2026-10-19
+- 实现：`pwa/src/cover/`（UI / 模板 / 渲染 / 搜图）+ `modern-screenshot` 离屏 iframe → PNG。
+- 风格：归藏 `editorial` / `swiss`（3 尺寸）+ `public/cover-templates` 10 套（仅 3:4）。
+- 字体：`scripts/build_cover_fonts.py` 生成 Noto Serif/Sans SC 子集（GB2312 一级 + ASCII，4 字重 2.39MB），
+  构建拷进 `dist/fonts/cover/`；`cover-fonts.css` 只在封面页按需加载。
+- 底图：纯色 / 上传 / Wikimedia Commons 免 key 搜图（CORS 已验证；中文关键词走场景词表映射）。
+- 构建：默认清洗 10 套模板（去 Google Fonts / WCAG 强制白字段 / 示例文案 / 本地图路径）。
+- 限制：BLCaptain 9 风格仍未进 PWA（需要 Node）；Wikimedia 以纪实照片为主，国内网络可能不可达。
+- 验证：`scripts/pwa_cover_test.py` 16/16（含断网生成）。
 
 ### 3.3 离线验证（PWA-3.1 收尾）
 ```bash
@@ -120,14 +126,18 @@ pwa/
 │  ├─ app.js                  主交互：主题列表/防抖渲染/解析条/复制/草稿/抽屉（570 行）
 │  ├─ bridge.js               主线程 ⇄ Worker 的 Promise 化通道（含超时）
 │  ├─ engine.worker.js        Pyodide 加载 + 引擎调用 + 进度上报
-│  ├─ update.js               版本检测 / SW 更新流程 / 右下角按钮 / 提示卡
-│  ├─ changelog.js            更新记录面板（时间线 + 搜索 + 类型筛选，618 行）
-│  └─ changelog.css           面板样式（全部 #cl- 前缀，495 行）
+│  ├─ update/                 更新模块（index/ui/changelog/update.css，DOM 自建）
+│  ├─ cover/                  小红书封面（index UI / catalog 风格目录 / templates 模板 /
+│  │                          render 截图 / search 搜图 / cover.css）
+│  ├─ ai.js                   纯前端 BYOK AI（润色 / 摘要 / 智能排版）
+│  └─ light.js                轻量即时预览（marked，引擎未就绪时先出近似稿）
 ├─ public/
 │  ├─ manifest.webmanifest    name/icons/shortcuts
 │  ├─ sw.js                   Service Worker（307 行，三种缓存策略）
 │  ├─ icons/                  5 张图标（192/512/maskable/apple-touch/favicon）
-│  ├─ fonts/                  DM Sans + JetBrains Mono（8 woff2，154KB）+ OFL.txt
+│  ├─ fonts/                  DM Sans + JetBrains Mono（154KB）
+│  │  └─ cover/                Noto Serif/Sans SC 封面字体子集（4 woff2，2.39MB）+ OFL
+│  ├─ vendor/                 marked / fitty / modern-screenshot（截图库）
 │  └─ changelog.json          更新记录数据（由 gen_changelog.py 生成）
 ├─ scripts/
 │  ├─ build.mjs               白名单构建 + 三条断言 + 主题索引 + markdown.zip（核心）
@@ -139,7 +149,7 @@ pwa/
 └─ dist/                      构建产物（gitignore，不要手改）
 ```
 
-**构建时进 `dist/` 的东西**（白名单，见 `build.mjs`）：app shell、字体、164 套主题 JSON + `themes/index.json`、164 张缩略图、`py/{preprocessor.py, format_engine.py, markdown.zip}`、`version.json`、`changelog.json`、manifest、sw.js、icons。封面模板走 `--cover` 才拷。
+**构建时进 `dist/` 的东西**（白名单，见 `build.mjs`）：app shell、字体（含封面 Noto 子集）、164 套主题 JSON + `themes/index.json`、164 张缩略图、`py/{preprocessor.py, format_engine.py, markdown.zip}`、`version.json`、`changelog.json`、manifest、sw.js、icons、vendor、**清洗后的 10 套 `cover-templates/*.html` + `cover-thumbs/*.png`**。封面模板默认包含��不再是 `--cover` 开关）。
 
 ---
 

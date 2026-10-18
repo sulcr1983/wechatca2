@@ -8,7 +8,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
 [![Pexels](https://img.shields.io/badge/配图-Pexels%20优先-05A081?style=flat-square&logo=pexels&logoColor=white)](https://www.pexels.com/api/)
-[![Tests](https://img.shields.io/badge/测试-181%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
+[![Tests](https://img.shields.io/badge/测试-197%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](#-license)
 
 <p align="center">
@@ -74,11 +74,11 @@
 
 | | | | | |
 |:---:|:---:|:---:|:---:|:---:|
-| **164**<br>🎨 排版主题 | **11**<br>🖼️ 封面风格 | **3**<br>📐 输出比例 | **181**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
+| **164**<br>🎨 排版主题 | **12**<br>🖼️ PWA 封面风格 | **3**<br>📐 输出比例 | **197**<br>🧪 自动化测试 | **0**<br>💸 默认模式 AI 开销 |
 
 - 🎨 **164 套排版主题** = 45 套早期原创 + 119 套自研原创（深色首屏 / 杂志大字 / 纸感手记 / 暗底沉浸 / 便签 / 网格 / 终端 / 新粗野 / 极简 / 商务 / 文艺 / 科技 / 节庆……）
-- 🖼️ **11 种封面风格** = 归藏设计系统（杂志 / 瑞士）+ BLCaptain（雾野 / 暖书房 / 海岸 / 夜纹 / 炉台 / 电蓝 / 石墨薄荷 / 安全珊瑚 / 酸性青柠）
-- 🧪 **181 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮，0 控制台报错
+- 🖼️ **PWA 12 种封面风格** = 归藏（杂志 / 瑞士，支持 3 尺寸）+ 10 套模板（3:4）；本地版另有 BLCaptain 9 风格（Node / Playwright）
+- 🧪 **197 项自动化测试** = 单元 + E2E + API 全端点 + 有头浏览器全按钮 + PWA 封面，0 控制台报错
 
 ---
 
@@ -88,7 +88,7 @@
 |:--------|:---------|
 | **📝 自动排版** | 粘贴纯文本 → 自动识别标题 / 列表 / 引用 → Markdown → **164 套主题**任选（纯本地规则，零延迟零费用） |
 | **🖱️ 点卡换装** | 点击色卡立即切换预览；**最近使用 + 收藏**自动置顶，常用的永远在手边 |
-| **🖼️ 小红书封面** | 输入文案 → 选风格 → 一键生成 **3:4 / 1:1 / 21:9**（双引擎：归藏设计系统 + BLCaptain，标题字号自适应，永不溢出） |
+| **🖼️ 小红书封面** | 输入文案 → 选风格 → 生成 **3:4 / 1:1 / 21:9**；本地版双引擎 11 风格，PWA 版 12 风格（纯前端、可离线），标题字号自适应 |
 | **🌐 自动联网配图** | **Pexels 中文优先**（原生 zh-CN，图贴题）→ Wikimedia 兜底 → 都没有就明确告诉你，**绝不硬塞无关图片**；全自动署名 |
 | **⏳ 生成有反馈** | 生成中显示真实阶段（找底图 → 排版 → 完成），按钮置灰防重复点，不让你对着一动不动的界面干等 |
 | **🤖 AI 润色 / 摘要 / 排版** | 折叠在弹窗里按需展开；AI 失败自动本地兜底并说明原因，**永不静默** |
@@ -317,7 +317,8 @@ PEXELS_API_KEY=your-pexels-key
 | `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
 | `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
 | `tests/test_headed_pm_audit.py` | **69/74** | 产品经理视角有头全流程审计（16 类场景语料 + 逐元素覆盖；失败项即审计发现的问题，退出码 1） |
-| **合计** | **181** | **全绿** |
+| `scripts/pwa_cover_test.py` | **16** ✅ | PWA 封面有头（12 风格 / 3 尺寸 / 上传 / Wikimedia 搜图 / 断网生成） |
+| **合计** | **197** | **全绿** |
 
 ```bash
 # 快速自检（无需起服务）
@@ -343,6 +344,7 @@ python tests/test_headed_pm_audit.py
 | 状态 | 计划 | 说明 |
 |:----:|:-----|:-----|
 | ✅ 已完成 | 164 主题排版 · 双引擎封面 · Pexels 中文配图 · 按页教程 · 生成进度反馈 | 当前版本 |
+| ✅ 已完成 | **PWA 小红书封面**（12 风格 · 3 尺寸 · Wikimedia 搜图 · 断网可用） | 2026-10-19 |
 | 🔜 计划中 | **纯文字大字版式**（无底图、秒出、永不图文不符） | 小红书主流爆款形态 |
 | 🔜 计划中 | **多源候选 + 相关性打分选优**（CLIP / LLM 评分） | 进一步提升图文匹配度 |
 | 💡 探索中 | AI 生成专属底图 · 深色模式预览 · 模板可视化设计器 | 参考 WeMD / XHS_Cover 等开源实现 |

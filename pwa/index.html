@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="./fonts/fonts.css">
 <link rel="stylesheet" href="./src/style.css">
 <link rel="stylesheet" href="./src/update/update.css">
+<link rel="stylesheet" href="./src/cover/cover.css">
 </head>
 <body>
 
@@ -35,6 +36,7 @@
     <span class="engine-badge" id="engine-badge" data-state="loading">
       <i></i><span id="engine-text">引擎加载中</span>
     </span>
+    <button class="cover-btn" id="btn-cover" aria-pressed="false" title="生成小红书 / 公众号封面">封面</button>
     <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
     <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
@@ -125,6 +127,9 @@
   </section>
 </main>
 
+<!-- 封面页（DOM 由 src/cover/index.js 注入） -->
+<div id="cover-root" hidden></div>
+
 <!-- 移动端底部切换 -->
 <nav class="tabs" id="tabs">
   <button data-tab="edit" aria-pressed="true">内容</button>
@@ -173,5 +178,6 @@
 <!-- 轻量即时预览：12KB 的 marked（不等 5MB 的 Python 引擎） -->
 <script src="./vendor/marked.min.js" defer></script>
 <script type="module" src="./src/app.js"></script>
+<script type="module" src="./src/cover/index.js"></script>
 </body>
 </html>

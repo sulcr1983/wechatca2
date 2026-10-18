@@ -457,3 +457,44 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 新增文件删除 / 改回即可；图标与徽标复原为朱砂「版」方章。
 - 线上回滚：Cloudflare Pages 控制台把生产版本切回上一个部署，或 `git revert 7653a78` 后重新 deploy。
 
+---
+
+## 任务 10：PWA 小红书封面（S4，2026-10-19）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户拍板「S4：PWA 小红书封面」，并选定：2 套归藏 + 10 套模板 / Wikimedia 免 key 搜图 / 内嵌 Noto 子集 |
+| 范围 | PWA 封面页、封面模板与字体资产、纯前端搜图、离屏截图、SW/构建清单、有头测试 |
+| 完成判据 | 12 风格可出真实 PNG；3 尺寸正确；上传/搜图底图可用；断网仍可生成；0 控制台报错；构建断言通过 |
+| 不在范围 | BLCaptain 9 风格（需 Node/Playwright）；Pexels 搜图（需 key 且浏览器 CORS 不稳）；推送探测；离线 zip；真机验收 |
+
+### 实现要点
+- **渲染**：`modern-screenshot`（MIT，28KB）在离屏 iframe 内把 `#xhs-cover` 渲成 PNG；字体/底图全部内联，不依赖后端。
+- **风格**：归藏 `editorial` / `swiss`（3 尺寸 1080×1440 / 1080×1080 / 2100×900）+ `public/cover-templates` 10 套（3:4）。
+- **模板清洗（构建时）**：去掉 Google Fonts 外链、WCAG 强制白字段、示例文案（kicker/h-sub/署名/日期）与本地 `images/` 路径；Swiss 四套的硬编码 lead 改为 `{{LEAD}}`。
+- **字体**：`scripts/build_cover_fonts.py` 下载 Noto Serif/Sans SC，按 GB2312 一级 + ASCII + 常用标点子集化，4 字重共 2.39MB；`cover-fonts.css` 只在封面页按需加载，不参与首屏预缓存。
+- **底图**：纯色 / 上传（data URL）/ Wikimedia Commons 搜图（中英场景词映射、结果过滤+排序、24h 元数据缓存、图片转 data URL、失败明确提示）。
+- **自适应**：按封面高度循环缩小标题字号（不依赖 fitty），长标题多行不出框。
+- **离线**：封面模块、10 套模板、截图库进入 SW 预缓存；断网后仍可生成（字体在首次使用后缓存，缺失时回退系统字体）。
+
+### 改动文件
+新增：`pwa/src/cover/{index,catalog,templates,render,search}.js`、`pwa/src/cover/cover.css`、`scripts/build_cover_fonts.py`、`scripts/pwa_cover_test.py`、`public/vendor/modern-screenshot.js`、`pwa/public/fonts/cover/*`（4 woff2 + 2 OFL）、`pwa/public/fonts/cover-fonts.css`
+修改：`pwa/index.html`、`pwa/scripts/build.mjs`、`pwa/public/sw.js`、`pwa/version.json`、`pwa/scripts/changelog_milestones.json`、`requirements.txt`、`THIRD_PARTY_NOTICES.md`、`AGENTS.md`、`HANDOVER.md`、`README.md`、`files/TODO.md`、`docs/pwa-consistency-and-speed-plan.md`、`.workbuddy/memory/MEMORY.md`
+
+### 验证（真实执行）
+- `scripts/pwa_cover_test.py` → **16/16**：入口切换、12 风格、模板尺寸禁用、归藏 3 尺寸、模板 1 张、上传底图、Wikimedia 搜图、下载链接、窄屏、**断网生成**、0 JS 报错。
+- `pwa/scripts/smoke.py` → **24/24**（排版主链路无回归）。
+- `tests/test_e2e.py` → **65/65**。
+- `node pwa/scripts/build.mjs` → 断言通过（10 套模板、无 Google Fonts、字体齐全、主题 164 套一致）。
+- 有头截图：`output/pwa-cover-test.png`、`output/pwa-cover-test-mobile.png`（每次跑测重写）。
+
+### 回滚点
+- 代码：`git revert <本次提交>`；删除 `pwa/src/cover/`、`public/vendor/modern-screenshot.js`、`pwa/public/fonts/cover/`、`scripts/build_cover_fonts.py`、`scripts/pwa_cover_test.py` 即可完全移除封面能力。
+- 构建：`build.mjs` 的封面块可直接删除；`version.json` / milestones 回退到 1.3.0。
+- 线上：Cloudflare Pages 控制台切回上一个部署。
+
+### 影响 / 风险
+- dist 增加约 2.4MB（字体）+ 0.6MB（缩略图）+ 0.5MB（模板/截图库）；封面字体按需加载，不影响排版首屏。
+- Wikimedia 以纪实照片为主、中文检索弱（靠场景词映射）；国内网络可能不可达，UI 已明确提示改用上传/纯色。
+- 模板 10 套为 AGPL-3.0 上游资产，本项目整体 AGPL-3.0 且已在 `THIRD_PARTY_NOTICES.md` 声明；若要闭源分发需重新评估。

@@ -1,0 +1,9 @@
+/* 封面中文字体子集（GB2312 一级 + ASCII + 常用标点）
+ * 由 scripts/build_cover_fonts.py 生成，勿手改。
+ * Noto Serif SC / Noto Sans SC：SIL OFL 1.1，见 OFL-noto-*.txt。
+ * 只进封面页，不参与首屏字体预缓存（见 pwa/src/cover.js 的按需加载）。
+ */
+@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:400;font-display:block;src:url(./cover/noto-serif-sc-400.woff2) format('woff2');}
+@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:700;font-display:block;src:url(./cover/noto-serif-sc-700.woff2) format('woff2');}
+@font-face{font-family:'Noto Sans SC';font-style:normal;font-weight:400;font-display:block;src:url(./cover/noto-sans-sc-400.woff2) format('woff2');}
+@font-face{font-family:'Noto Sans SC';font-style:normal;font-weight:700;font-display:block;src:url(./cover/noto-sans-sc-700.woff2) format('woff2');}

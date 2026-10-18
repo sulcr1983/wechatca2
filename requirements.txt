@@ -8,3 +8,7 @@ platformdirs>=4.0
 # 小红书封面生成（必装依赖）：安装后还需执行 `playwright install chromium` 下载浏览器
 # >=1.61：低版本 clipboard 写入与 set_content 行为不一致，复制/底图会静默失败
 playwright>=1.61
+
+# 仅生成封面中文字体子集时需要（scripts/build_cover_fonts.py，产物已入库，日常运行不需要）
+fonttools>=4.50
+brotli>=1.1

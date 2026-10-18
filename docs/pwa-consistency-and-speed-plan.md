@@ -6,7 +6,7 @@
 > - ✅ **S1 静默更新 + 不阻塞首屏 + 真实文案**：启动提示改成底部小条（40px，pointer-events:none）；引擎未就绪也能输入；`update.js` 打开 3s 主动查、空闲（不可见 / 编辑器空 / 30s 无输入且失焦）自动应用、`BroadcastChannel` 多标签只刷一个、`?reset-sw` 自救。
 > - ✅ **S2 Pyodide 同源自托管**：5 个文件放 `pwa/public/runtime/pyodide/0.28.3/`，`_headers` immutable + wasm MIME，SW 走 `supersu-store-runtime-v1`；实测 runtime 缓存 11.69MB 跨版本保留，离线 10/10。
 > - ✅ **S3 AI（纯前端 BYOK）**：`pwa/src/ai.js` + 右上「AI」面板，支持润色 / 智能排版 / 摘要；智能排版 = LLM 只出结构 JSON → Pyodide `apply_structure` 套用（正文一字不改）。
-> - ⏳ **S4 小红书封面**：未开工。需 2~3 天（10 套模板 + modern-screenshot + 下载/长按保存），下一步单独做。
+> - ✅ **S4 小红书封面（2026-10-19）**：归藏 2 × 3 尺寸 + 模板 10 × 3:4；Noto 中文字体子集；纯色/上传/Wikimedia 搜图；modern-screenshot 离屏渲染；有头 16/16（含断网生成）。BLCaptain 9 风格未进 PWA（需 Node）。
 
 ## 七、首访提速（2026-10-18 二次改造，已上线）
 

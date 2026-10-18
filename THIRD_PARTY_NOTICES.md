@@ -40,6 +40,16 @@
 | 许可证 | **MIT** |
 | 版权 | Copyright (c) Rik Schennink |
 
+### 4. modern-screenshot
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `public/vendor/modern-screenshot.js`（构建后 `dist/vendor/`） |
+| 上游 | https://github.com/qq15725/modern-screenshot |
+| 许可证 | **MIT** |
+| 版权 | Copyright (c) wxm |
+| 用途 | PWA 小红书封面：在浏览器里把 DOM 渲成 PNG（离屏 iframe，不依赖 Playwright） |
+
 ---
 
 ## 二、字体（SIL Open Font License 1.1）
@@ -47,14 +57,14 @@
 | 字体 | 版权行 | 用途 |
 |---|---|---|
 | **DM Sans** | Copyright 2014 The DM Sans Project Authors | 前端西文正文 |
-| **Noto Sans SC** | Copyright 2014-2021 Adobe, with Reserved Font Name 'Source' | 前端中文正文（PWA 版用系统字体替代，未随包分发） |
+| **Noto Sans SC** | Copyright 2014-2021 Adobe, with Reserved Font Name 'Source' | PWA 封面中文字体子集（GB2312 一级 + ASCII，随包分发） |
 | **JetBrains Mono** | Copyright 2020 The JetBrains Mono Project Authors | 计数/代码 |
 | **Playfair Display** | Copyright 2017 The Playfair Display Project Authors | 封面模板标题（归藏模板使用） |
-| **Noto Serif SC** | Copyright 2014-2021 Adobe | 封面模板标题 |
+| **Noto Serif SC** | Copyright 2014-2021 Adobe | 封面中文字体子集（GB2312 一级 + ASCII，随包分发） |
 | **Inter** | Copyright 2016 The Inter Project Authors | 封面模板正文 |
 
 **OFL-1.1 义务摘要**：允许自由使用、修改、分发（含打包进产品）；须保留版权声明与本许可文本；不得单独售卖字体本身；修改后不得使用保留字体名（Noto 的 RFN 为 "Source"）；不得用作者名/字体名为产品背书。
-**许可全文**：https://openfontlicense.org/open-font-license-official-text/ · 本地副本见 `pwa/public/fonts/OFL.txt`（PWA 落地后生成）。
+**许可全文**：https://openfontlicense.org/open-font-license-official-text/ · 本地副本见 `pwa/public/fonts/OFL.txt` 与 `pwa/public/fonts/cover/OFL-noto-*.txt`。
 
 ---
 
