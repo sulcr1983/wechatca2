@@ -17,7 +17,7 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif"
     },
     "h1": {
-      "font_size": "25px",
+      "font_size": "22px",
       "font_weight": "900",
       "color": "#FFFFFF",
       "text_align": "left",
@@ -30,7 +30,7 @@
       "box_shadow": "6px 6px 0 #8030E9"
     },
     "h2": {
-      "font_size": "20px",
+      "font_size": "18px",
       "font_weight": "900",
       "color": "#111111",
       "line_height": "1.35",
@@ -44,7 +44,7 @@
       "box_shadow": "4px 4px 0 #111111"
     },
     "h3": {
-      "font_size": "17px",
+      "font_size": "16px",
       "font_weight": "700",
       "color": "#111111",
       "line_height": "1.4",
@@ -57,7 +57,7 @@
       "letter_spacing": "0.1em"
     },
     "h4": {
-      "font_size": "16px",
+      "font_size": "15px",
       "font_weight": "700",
       "color": "#111111",
       "line_height": "1.4",
@@ -65,7 +65,7 @@
       "margin_bottom": "8px"
     },
     "h5": {
-      "font_size": "15px",
+      "font_size": "14px",
       "font_weight": "600",
       "color": "#646464",
       "line_height": "1.4",
@@ -73,7 +73,7 @@
       "margin_bottom": "6px"
     },
     "h6": {
-      "font_size": "14px",
+      "font_size": "13px",
       "font_weight": "600",
       "color": "#646464",
       "line_height": "1.4",
@@ -81,7 +81,7 @@
       "margin_bottom": "6px"
     },
     "p": {
-      "font_size": "16px",
+      "font_size": "15px",
       "color": "#111111",
       "line_height": "1.9",
       "letter_spacing": "0.4px",
@@ -258,7 +258,7 @@
       "box_shadow": "2px 2px 0 #111111"
     },
     "list_item_text": {
-      "font_size": "16px",
+      "font_size": "15px",
       "color": "#111111",
       "line_height": "1.9",
       "letter_spacing": "0.4px"

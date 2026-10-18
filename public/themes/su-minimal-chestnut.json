@@ -28,7 +28,7 @@
       "padding": "0"
     },
     "h2": {
-      "font_size": "20px",
+      "font_size": "18px",
       "font_weight": "600",
       "color": "#3C434D",
       "line_height": "1.35",
@@ -40,7 +40,7 @@
       "padding_bottom": "10px"
     },
     "h3": {
-      "font_size": "17px",
+      "font_size": "16px",
       "font_weight": "600",
       "color": "#3C434D",
       "line_height": "1.4",
@@ -50,7 +50,7 @@
       "letter_spacing": "0.08em"
     },
     "h4": {
-      "font_size": "16px",
+      "font_size": "15px",
       "font_weight": "700",
       "color": "#3C434D",
       "line_height": "1.4",
@@ -58,7 +58,7 @@
       "margin_bottom": "8px"
     },
     "h5": {
-      "font_size": "15px",
+      "font_size": "14px",
       "font_weight": "600",
       "color": "#80858B",
       "line_height": "1.4",
@@ -66,7 +66,7 @@
       "margin_bottom": "6px"
     },
     "h6": {
-      "font_size": "14px",
+      "font_size": "13px",
       "font_weight": "600",
       "color": "#80858B",
       "line_height": "1.4",
@@ -74,7 +74,7 @@
       "margin_bottom": "6px"
     },
     "p": {
-      "font_size": "16px",
+      "font_size": "15px",
       "color": "#3C434D",
       "line_height": "2.0",
       "letter_spacing": "0.4px",
@@ -234,7 +234,7 @@
       "margin_top": "4px"
     },
     "list_item_text": {
-      "font_size": "16px",
+      "font_size": "15px",
       "color": "#3C434D",
       "line_height": "1.9",
       "letter_spacing": "0.4px"

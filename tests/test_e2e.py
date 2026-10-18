@@ -807,14 +807,16 @@ def test_preprocess_ordinal_length_split():
     assert "## 二、项目背景" in md, md
 
 
-@test("自动排版: 首先/第二，/步骤一 → 列表项")
+@test("自动排版: 首先/第二，/步骤一 → 列表项（步骤保留标签文字，原文保真）")
 def test_preprocess_ordinal_words():
     md = _pp("""首先，重构前端架构。
 第二，网传图片系伪造。
 步骤一：关闭总电源。""")
     assert "- 重构前端架构。" in md, md
     assert "- 网传图片系伪造。" in md, md
-    assert "- 关闭总电源。" in md, md
+    # 2026-10-18 行为变更：步骤标签「步骤一：」是整个标签文字，转列表时保留，
+    # 不再只留冒号后内容（原行为丢字，违反「原文不丢」；见 stress_audit H01）
+    assert "- 步骤一：关闭总电源。" in md, md
 
 
 @test("自动排版: 注意/警告 → 引用块；命令行 → 围栏代码块")

@@ -5,6 +5,8 @@
 SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 核心理念：**纯文本进，排版出。不用 AI 就不开 AI。**
 
+> ⚠️ **方向调整（2026-10-18，苏哥拍板）**：以后**主打 PWA 版**（`pwa/` → https://supersu.ccwu.cc）；**本地 Flask 版（`app.py` + `templates/index.html`）标记弃用、暂不删除**（保留作参考/回退）。引擎真源仍为两版共用：`core/preprocessor.py` + `core/format_engine.py` + `public/themes/`（PWA 由 `node pwa/scripts/build.mjs` 构建时拷入 `pwa/dist/py/`、`pwa/dist/themes/`，**改引擎后必须重跑构建**）；**UI 真源转为 `pwa/src/app.js` + `pwa/src/style.css`**。
+
 - 自动 Markdown 预处理（本地规则，零延迟零费用）
 - **164 套**主题自动排版（45 套早期原创 + 119 套 su-* 原创 = 47 初代 + 72 六族；Markdown → 微信内联 HTML）
 - 小红书封面生成（双引擎：归藏 Guizang + BLCaptain 9 风格；**自动联网搜真图作底图**）
@@ -244,6 +246,12 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 - 智能排版降级契约（2026-09-23，取代「失败即 500」旧版）：`/api/ai-format` 已配置 LLM → 走 LLM（`engine=llm`）；**未配置 / 调用失败 / AI 返回结构无法解析 → 一律本地 `preprocess` 兜底**（`engine=local`，响应带 `fallback` 说明原因，如「AI 网关 HTTP 500，已用本地规则排版」）；按钮永远给得出结果，且失败必带原因、不静默
 - 智能排版实现（2026-09-23，参照 GitHub 同类项目）：AI **不改写正文**，只返回结构决策 JSON（`{"title","sections","lists","bold"}`，走 `response_format={"type":"json_object"}`）；本地 `core/preprocessor.apply_structure` 按段号套用标记，越界/重叠/词不在原文的项一律忽略，**正文段落原样保留**。LLM 客户端对 429/5xx/超时退避重试一次（`core/ai_client._post_with_retry`，超时 45s）
 - 本地规则边界（2026-09-23 调研拍板）：本地只做**确定性识别**——编号标题（`一、`/`1.`）、短行标题、并列清单（箭头行 `A → B → C`、项目符号 `·•●○`）、引号引用、首个非层级段作大标题；**不做散文主题句提升、不做规则"发明"小节**（调研结论：doocs/md、wenyan-mcp 都不做，唯一同类 Word-Formatter-Pro 也只认编号；非 LLM 的散文分节只有 TextTiling/embedding 路线，与「不用 AI 就不开 AI」冲突）。并列清单规则对 AI 路径同样恒定生效，不依赖 AI 是否标注
+- **解析/渲染加固（2026-10-18，压力审计后按 1B/3C/4A 决策修复）**：
+  - `core/preprocessor.py` 8 处：① 纯分隔线（整行只由 `=`/`-`/`—` 组成）→ `<hr>`，不再产出 `## =` 假标题；② 短标签行**保留结尾冒号**（不再吞字）；③ 阿拉伯数字「连续有序列表」**保留原序号**（不再重排成 `1.` 或标题化）；④ 嵌套列表**保留行首缩进**；⑤ 含 `|` / 以 `<` 开头 / `$$` 公式块不判标题；⑥ `_BULLET_RE` 要求符号后跟空白（`**加粗**` 不再被拆成 `- *加粗**`）；⑦ 步骤行「步骤一：…」**保留标签文字**；⑧ 箭头行「标签：内容 → A → B」不误拆为清单
+  - `core/format_engine.py`：`md_to_html` 出口统一做 `sanitize_raw_html`（决策 4A 渲染层安全清洗）——危险标签（script/style/iframe/object/embed/form/…）/ 事件属性（`on*`）/ 危险协议 URL（`javascript:` / `vbscript:` / `data:text/html`）渲染前清除，正常标签与内联 style 保留
+  - `scripts/build_themes.py`：字号标尺**整体对齐业界调研比例**（交接文档 §4：四来源一致口径 = 正文 15–16 / h1 18–22 / h2 16–18）——`SCALE` 由 h1 25 / h2 20 / p 16 改为 **h1 22 / h2 18 / h3 16 / h4 15 / h5 14 / h6 13 / p 15**（正文取业内最推荐的 15px；13px 只留给 h6 与注释级）。改这一处重跑 `build_themes.py` 即 119 套全量生效，可逆
+  - 主题对比度（1B / 审计 P1-7）：`scripts/theme_stress_audit.py` 的 `contrast_ink_bg` 原拿 `colors.primary` 当「正文墨色」，对早期原创主题（其 `primary` 是品牌/标题色）**误报**——已改取真实的 `styles.p.color`；真实有问题的只有 `sunset-amber` / `wechat-native` 两套代码块前景（已加深）。渲染审计 156/164 → **164/164**
+  - ⚠️ 两条**刻意不修**：夹具 §13 箭头行「导入 TXT → … → 复制到公众号」同时被「原文保真 H01」（要保留箭头）与「转列表 S25」（要拆成分行）要求，**物理互斥**，本轮保留 S25；诗词分层（S22 = P2-3）不在 P0+P1 范围
 - 新增功能采用并存模式，不替换现有工作代码
 - **排版模块与页面布局（2026-09-25）**：两套能力，都无需 AI
   - **模块容器**：`process_fenced_containers` 支持 12 种 `:::type[标题]` 围栏（新增 `eyebrow` 小标签 / `cards` 卡片组 / `summary` 要点总结 / `cta` 行动引导；`cards` 内部用 `### 小标题` 分卡）。**必须成对写收尾 `:::`**：缺收尾时整段按普通文本原样输出，绝不吞正文（原实现在未闭合时会把后面整篇当成容器内容）

@@ -17,7 +17,7 @@
       "font_family": "'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif"
     },
     "h1": {
-      "font_size": "25px",
+      "font_size": "22px",
       "font_weight": "700",
       "color": "#3B2F26",
       "text_align": "center",
@@ -28,7 +28,7 @@
       "padding": "0"
     },
     "h2": {
-      "font_size": "20px",
+      "font_size": "18px",
       "font_weight": "700",
       "color": "#3B2F26",
       "line_height": "1.35",
@@ -40,7 +40,7 @@
       "padding_left": "12px"
     },
     "h3": {
-      "font_size": "17px",
+      "font_size": "16px",
       "font_weight": "700",
       "color": "#B4552A",
       "line_height": "1.4",
@@ -49,7 +49,7 @@
       "padding": "0"
     },
     "h4": {
-      "font_size": "16px",
+      "font_size": "15px",
       "font_weight": "700",
       "color": "#3B2F26",
       "line_height": "1.4",
@@ -57,7 +57,7 @@
       "margin_bottom": "8px"
     },
     "h5": {
-      "font_size": "15px",
+      "font_size": "14px",
       "font_weight": "600",
       "color": "#7E756D",
       "line_height": "1.4",
@@ -65,7 +65,7 @@
       "margin_bottom": "6px"
     },
     "h6": {
-      "font_size": "14px",
+      "font_size": "13px",
       "font_weight": "600",
       "color": "#7E756D",
       "line_height": "1.4",
@@ -73,7 +73,7 @@
       "margin_bottom": "6px"
     },
     "p": {
-      "font_size": "16px",
+      "font_size": "15px",
       "color": "#3B2F26",
       "line_height": "1.9",
       "letter_spacing": "0.4px",
@@ -231,7 +231,7 @@
       "margin_top": "4px"
     },
     "list_item_text": {
-      "font_size": "16px",
+      "font_size": "15px",
       "color": "#3B2F26",
       "line_height": "1.9",
       "letter_spacing": "0.4px"

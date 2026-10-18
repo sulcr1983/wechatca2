@@ -46,8 +46,12 @@ def _looks_like_prose_line(text: str) -> bool:
 # 箭头并列：A → B → C（正文里孤立的并列流程/清单）
 _ARROW_RE = re.compile(r'\s*(?:→|->|➔|➜|⇒)\s*')
 
-# 行首项目符号
-_BULLET_RE = re.compile(r'^[·•●○\-*]\s*')
+# 行首项目符号 —— 符号后必须跟空白（中文圆点可紧贴文字，ASCII 的 -/* 必须跟空格），
+# 否则 `**加粗**` 的第二个 * 会被当成项目符号，拆成「- *加粗文字**」（H03 实测踩到）。
+_BULLET_RE = re.compile(r'^(?:[·•●○]\s*|[-*]\s+)')
+
+# 阿拉伯数字有序项：`1. xxx` / `2．xxx` / `3) xxx`（用于探测「连续有序列表」）
+_ARABIC_ITEM_RE = re.compile(r'^\d+[.．)]\s+\S')
 
 # 围栏容器开标记：:::{type}[标题] / 收尾标记：:::
 # 这两类行必须原样穿透，否则短标记（如 :::cta[标题] 仅 10 字）会被「短行标题」规则
@@ -90,6 +94,9 @@ def _split_parallel_items(line: str):
     if len(parts) < 3 or any(len(p) > 14 for p in parts):
         return None
     if any(('，' in p or ',' in p) for p in parts):
+        return None
+    # 首段含冒号的「标签：内容 → A → B」是带箭头的散文（如「用途：测试…」），不是并列清单
+    if '：' in parts[0] or ':' in parts[0]:
         return None
     return parts
 
@@ -249,7 +256,12 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             if in_code_block:
                 md_lines.append('```')
                 in_code_block = False
-            md_lines.append(stripped)
+            # 列表项保留原始行首缩进：嵌套列表的二级缩进是内容的一部分。
+            # 原实现用 stripped 抹平缩进，导致嵌套层级丢失（S12 实测 0/6 保留）。
+            if re.match(r'^[-*+]\s', stripped):
+                md_lines.append(line.rstrip())
+            else:
+                md_lines.append(stripped)
             continue
 
         # 代码块：4 空格或 tab 缩进
@@ -322,6 +334,12 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             md_lines.append(f'#### {stripped}')
             continue
 
+        # 【2026-10-18】纯分隔线（整行只由 =/＝/-/— 组成）→ 一律当 <hr>，绝不产出标题。
+        # 原实现被装饰标题 / setext 下划线规则判成「## =」，夹具每章 ==== 分隔共冒出 32 个假标题。
+        if re.fullmatch(r'[=＝\-—]{3,}', stripped):
+            md_lines.append('---')
+            continue
+
         # 【2026-10-18】装饰标题：==== 第一章 ==== / 文本 + 下一行下划线 → 标题
         _m_dec = _DECORATED_TITLE_RE.match(stripped)
         if _m_dec:
@@ -347,9 +365,11 @@ def preprocess(text: str, mode: str = 'auto') -> str:
         if _m:
             md_lines.append('- ' + stripped[_m.end():].strip())
             continue
+        # 步骤标签「步骤一：…」→ 列表项，但**保留原始标签文字**（原文保真；
+        # 原实现只留冒号后内容，把「步骤一：」整段吞掉，夹具 4 条步骤因此缺失）。
         _m = _STEP_RE.match(stripped)
         if _m:
-            md_lines.append('- ' + stripped[_m.end():].strip())
+            md_lines.append('- ' + stripped)
             continue
 
         # 【2026-10-18】诗体引用：下一行是「——署名」时，本行按引用处理
@@ -362,18 +382,30 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             md_lines.append(f'> {stripped}')
             continue
 
-        # 【2026-10-18】短标签行（≤8 字 + 冒号结尾、冒号后为空）→ 小标题
+        # 【2026-10-18】短标签行（≤9 字 + 冒号结尾、冒号后为空）→ 小标题
+        # ⚠️ 保留冒号：原实现吞掉结尾冒号（「风险：」→「## 风险」），使原文保真检查判为丢字
+        # （夹具实测 22 个标签行因此缺失）。
         if len(stripped) <= 9 and stripped.endswith('：'):
-            md_lines.append(f'## {stripped[:-1].strip()}')
+            md_lines.append(f'## {stripped}')
             continue
 
         # 序号段落（2026-10-18：按内容长度分流，避免把整句列表当标题）
         #   短（≤20 字且无逗号句号冒号）→ 小标题；长 → 有序列表项
-        m_seq = re.match(r'^([一二三四五六七八九十\d]+)[、.．)]\s*(.+)$', stripped)
+        # 2026-10-18 修订：阿拉伯数字的「连续有序列表」（相邻原始行也是数字项）一律保留原序号
+        #   转成有序列表，不再重排成 1.（实测：夹具 1.~5. 教程步骤与 1.~6. 结尾清单被重排/标题化，
+        #   违反「原文保真」）；单行的短数字项仍按小标题处理（既有契约，见 test_e2e）。
+        m_seq = re.match(r'^([一二三四五六七八九十]+|\d+)[、.．)]\s*(.+)$', stripped)
         if m_seq:
-            _content = m_seq.group(2).strip()
-            if len(_content) <= 20 and not re.search(r'[，,。；;：:！!？?]', _content):
+            _marker, _content = m_seq.group(1), m_seq.group(2).strip()
+            _arabic = _marker.isdigit()
+            _prev_num = i > 0 and bool(_ARABIC_ITEM_RE.match(lines[i - 1].strip()))
+            _next_num = i + 1 < len(lines) and bool(_ARABIC_ITEM_RE.match(lines[i + 1].strip()))
+            if _arabic and (_prev_num or _next_num):
+                md_lines.append(stripped)
+            elif len(_content) <= 20 and not re.search(r'[，,。；;：:！!？?]', _content):
                 md_lines.append(f'## {stripped}')
+            elif _arabic:
+                md_lines.append(stripped)
             else:
                 md_lines.append(f'1. {_content}')
             continue
@@ -407,6 +439,11 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             and not has_comma
             and '：' not in stripped
             and ':' not in stripped
+            # 2026-10-18：表格行（含 |）、原始 HTML 片段（<）、公式块（$$）一律不当标题
+            # （S17 竖线表格误判、H06 的 <div>/<br> 被标题化、S20 的 $$ 被标题化）
+            and '|' not in stripped
+            and not stripped.startswith('<')
+            and not stripped.startswith('$')
             and stripped not in common_non_title
             # 2026-10-18：孤立成行的短行优先当标题（跳过宽词表判定），
             # 但仍挡掉明显是正文的强谓语短句（「他说了一句话」）。

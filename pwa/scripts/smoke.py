@@ -165,7 +165,16 @@ def main() -> int:
         page.click("#btn-themes")
         page.wait_for_selector("#drawer:not([hidden])")
         cards = page.locator("#drawer-grid .d-card").count()
-        check("风格库卡片数 = 164", cards == 164, f"实际 {cards}")
+        reps = page.locator("#drawer-grid .d-family-card").count()
+        # 2A 折叠后「全部」视图 = 每族 1 张代表卡 + 非族主题平铺；用 index.json 自校验（不写死数字）
+        idx = json.loads(page.evaluate(
+            "async () => await (await fetch('./themes/index.json')).text()"))
+        fams = {t["family"] for t in idx if t.get("family")}
+        classic = [t for t in idx if not t.get("family")]
+        expected = len(fams) + len(classic)
+        check("全部视图按族折叠（族代表卡 + 经典卡）",
+              cards == expected and reps == len(fams) and reps >= 6,
+              f"卡 {cards}，族代表 {reps}，期望 {expected}")
 
         thumbs = page.locator("#drawer-grid .d-thumb").count()
 
@@ -189,8 +198,16 @@ def main() -> int:
             zero: imgs.filter(i => i.complete && i.naturalWidth === 0).length,
           };
         }""")
-        check("缩略图元素已渲染", thumbs >= 160, f"{thumbs} 张")
+        check("缩略图元素已渲染", thumbs >= cards - 2, f"{thumbs} 张（卡 {cards}）")
         check("首屏缩略图真实加载", loaded["ok"] >= 8, f"已加载 {loaded['ok']}，坏图 {loaded['zero']}")
+
+        # 2A 折叠：切到某族 → 1 张代表卡 + 色调条（同族 12 换色可连续点）
+        page.locator("#drawer-filters .fchip").nth(2).click()
+        page.wait_for_timeout(400)
+        tones = page.locator("#drawer-grid .d-tone").count()
+        check("族视图展开色调条（同族换色折叠）", tones >= 6, f"{tones} 个色调")
+        page.locator('#drawer-filters .fchip[data-fam="all"]').click()
+        page.wait_for_timeout(300)
 
         # 搜索
         page.fill("#drawer-search", "卷宗")

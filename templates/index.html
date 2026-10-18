@@ -267,6 +267,17 @@ body {
 .d-info { padding:10px 12px 12px; }
 .d-name { font-size:13px; font-weight:600; margin-bottom:2px; }
 .d-desc { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* 族折叠（2A）：族代表卡 = 该族主题的入场卡；族视图 = 1 代表卡 + 12 色调色点 */
+.d-family-card .d-name { color:var(--accent); }
+.d-family-fold { grid-column:1/-1; display:flex; flex-direction:column; gap:14px; }
+.d-tone-strip { display:flex; gap:6px; overflow-x:auto; padding:2px 2px 8px; }
+.d-tone-strip::-webkit-scrollbar { height:6px; }
+.d-tone { flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:5px; width:44px; background:none; border:none; cursor:pointer; padding:0; font-family:var(--font); }
+.d-tone-dot { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); transition:box-shadow .12s ease; }
+.d-tone:hover .d-tone-dot { border-color:var(--border-hi); }
+.d-tone.active .d-tone-dot { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.d-tone-name { font-size:10px; color:var(--text-muted); white-space:nowrap; }
+.d-tone.active .d-tone-name { color:var(--accent); font-weight:600; }
 
 /* ── 插入模块 popover ── */
 .popover { position:fixed; width:280px; background:var(--bg-raised); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-xl); z-index:160; padding:6px; opacity:0; pointer-events:none; transform:translateY(-4px); transition:opacity .15s, transform .15s; }
@@ -1221,7 +1232,31 @@ function syncThemeChip() {
 // ── 模板库抽屉 ──
 const FAMILY_LIST = [['all', '全部'], ['fav', '我的收藏'], ['recent', '最近使用'],
   ['卷宗', '卷宗'], ['庙会', '庙会'], ['信笺', '信笺'], ['素页', '素页'], ['夜航', '夜航'], ['钢印', '钢印']];
+// 六族前缀：主题 name 以此开头即归该族（同族 12 套只差颜色，界面折叠成代表卡 + 色调条）
+const FAMILY_PREFIXES = FAMILY_LIST.filter(([k]) => k !== 'all' && k !== 'fav' && k !== 'recent').map(([k]) => k);
 let CURRENT_GROUP = 'all';
+// 族前缀（不属于六族则返回 null）
+function familyPrefix(name) {
+  const n = name || '';
+  return FAMILY_PREFIXES.find(f => n.startsWith(f)) || null;
+}
+// 色调名 = 主题名去掉族名前缀（如「卷宗·朱砂」→「朱砂」）
+function toneName(t) {
+  const f = familyPrefix(t.name);
+  if (!f) return t.name || '';
+  return (t.name || '').slice(f.length).replace(/^[·•\-\s]+/, '') || (t.name || '');
+}
+// 应用主题（activeTpl / localStorage / 最近 / 风格条 / 主题胶囊 / 重渲染 / 出预览）；close=true 时同时关抽屉
+function applyTheme(id, close) {
+  activeTpl = id;
+  try { localStorage.setItem('supersu.lastTheme', id); } catch (e) {}
+  pushRecent(id);
+  renderTplList(tplSearch.value);
+  syncThemeChip();
+  renderDrawerGrid(CURRENT_GROUP, drawerSearch ? drawerSearch.value : '');
+  doRender();
+  if (close) closeDrawer();
+}
 function renderFamilyChips() {
   if (!familyChips) return;
   familyChips.innerHTML = FAMILY_LIST.map(([key, label]) => {
@@ -1239,35 +1274,75 @@ function renderFamilyChips() {
     };
   });
 }
-function renderDrawerGrid(group = 'all', kw = '') {
-  if (!drawerGrid) return;
-  const k = (kw || '').trim().toLowerCase();
-  const fav = lsArr(LS_FAV), recent = lsArr(LS_RECENT);
-  let list = themes;
-  if (group === 'fav') list = themes.filter(t => fav.includes(t.id));
-  else if (group === 'recent') list = themes.filter(t => recent.includes(t.id));
-  else if (group !== 'all') list = themes.filter(t => (t.name || '').startsWith(group));
-  if (k) list = list.filter(t => (t.name || '').toLowerCase().includes(k));
-  if (!list.length) {
-    drawerGrid.innerHTML = `<div style="grid-column:1/-1;padding:24px 0;text-align:center;color:var(--text-muted);font-size:13px">没有匹配的风格，换个词试试</div>`;
-    return;
-  }
-  // 收藏 → 最近 → 其他（常用优先）
+// 单张主题卡（扁平网格用；族视图里的代表卡复用）
+function drawerCardHTML(t, fav) {
+  const c = t.colors || {};
+  const isFav = fav.includes(t.id);
+  return `<div class="d-card${activeTpl === t.id ? ' active' : ''}" data-tpl="${t.id}">
+    <div class="d-prev" style="background:linear-gradient(135deg,${c.accent || '#888'},${c.primary || '#333'})">
+      <img class="d-thumb" src="/assets/theme-thumbs/${t.id}.jpg" alt="${t.name}" loading="lazy" onerror="this.remove()">
+      <button class="d-star${isFav ? ' on' : ''}" data-fav="${t.id}" type="button" title="${isFav ? '取消收藏' : '收藏'}">${isFav ? '★' : '☆'}</button>
+      ${activeTpl === t.id ? '<span class="d-badge">使用中</span>' : ''}
+    </div>
+    <div class="d-info"><div class="d-name">${t.name}</div><div class="d-desc">${(t.description || '').slice(0, 18)}</div></div>
+  </div>`;
+}
+const DRAWER_EMPTY = `<div style="grid-column:1/-1;padding:24px 0;text-align:center;color:var(--text-muted);font-size:13px">没有匹配的风格，换个词试试</div>`;
+// 扁平网格（搜索 / 收藏 / 最近）：收藏 → 最近 → 其他（常用优先）
+function renderFlatGrid(list, fav, recent) {
+  if (!list.length) { drawerGrid.innerHTML = DRAWER_EMPTY; return; }
   const rank = t => fav.includes(t.id) ? 0 : (recent.includes(t.id) ? 1 : 2);
   list = list.slice().sort((a, b) => rank(a) - rank(b));
-  drawerGrid.innerHTML = list.map(t => {
+  drawerGrid.innerHTML = list.map(t => drawerCardHTML(t, fav)).join('');
+  bindDrawerCards();
+}
+// 族代表卡（「全部」视图用）：点它进入该族的折叠视图
+function familyRepCard(family, list, fav) {
+  const rep = list.find(t => t.id === activeTpl) || list[0];
+  const c = rep.colors || {};
+  const inUse = list.some(t => t.id === activeTpl);
+  return `<div class="d-card d-family-card${inUse ? ' active' : ''}" data-family="${family}" title="${family}族 · ${list.length} 色可选">
+    <div class="d-prev" style="background:linear-gradient(135deg,${c.accent || '#888'},${c.primary || '#333'})">
+      <img class="d-thumb" src="/assets/theme-thumbs/${rep.id}.jpg" alt="${family}族" loading="lazy" onerror="this.remove()">
+      <span class="d-badge">${list.length} 色</span>
+    </div>
+    <div class="d-info"><div class="d-name">${family}族</div><div class="d-desc">${list.length} 色可选</div></div>
+  </div>`;
+}
+// 「全部」视图：按族折叠 —— 每族 1 张代表卡（含当前主题则高亮），其余（初代/经典）照常平铺
+function renderAllFolded(fav, recent) {
+  const groups = {}; FAMILY_PREFIXES.forEach(f => groups[f] = []);
+  const classic = [];
+  themes.forEach(t => {
+    const f = familyPrefix(t.name);
+    if (f && groups[f]) groups[f].push(t); else classic.push(t);
+  });
+  const reps = FAMILY_PREFIXES.filter(f => groups[f].length).map(f => familyRepCard(f, groups[f], fav)).join('');
+  const rank = t => fav.includes(t.id) ? 0 : (recent.includes(t.id) ? 1 : 2);
+  const classicHTML = classic.slice().sort((a, b) => rank(a) - rank(b)).map(t => drawerCardHTML(t, fav)).join('');
+  drawerGrid.innerHTML = reps + classicHTML;
+  bindDrawerCards();
+}
+// 族视图：1 张代表卡 + 一条横向的色调色点（点色点换色，不关抽屉）
+function renderFamilyFold(family, list, fav) {
+  if (!list.length) { drawerGrid.innerHTML = DRAWER_EMPTY; return; }
+  const rep = list.find(t => t.id === activeTpl) || list[0];
+  const tones = list.map(t => {
     const c = t.colors || {};
-    const isFav = fav.includes(t.id);
-    return `<div class="d-card${activeTpl === t.id ? ' active' : ''}" data-tpl="${t.id}">
-      <div class="d-prev" style="background:linear-gradient(135deg,${c.accent || '#888'},${c.primary || '#333'})">
-        <img class="d-thumb" src="/assets/theme-thumbs/${t.id}.jpg" alt="${t.name}" loading="lazy" onerror="this.remove()">
-        <button class="d-star${isFav ? ' on' : ''}" data-fav="${t.id}" type="button" title="${isFav ? '取消收藏' : '收藏'}">${isFav ? '★' : '☆'}</button>
-        ${activeTpl === t.id ? '<span class="d-badge">使用中</span>' : ''}
-      </div>
-      <div class="d-info"><div class="d-name">${t.name}</div><div class="d-desc">${(t.description || '').slice(0, 18)}</div></div>
-    </div>`;
+    const col = c.accent || c.primary || '#888';
+    return `<button class="d-tone${t.id === activeTpl ? ' active' : ''}" data-tpl="${t.id}" type="button" title="${t.name}">
+      <span class="d-tone-dot" style="background:${col}"></span>
+      <span class="d-tone-name">${toneName(t)}</span>
+    </button>`;
   }).join('');
-  // 星标：收藏/取消（阻止冒泡，不切换主题）
+  drawerGrid.innerHTML = `<div class="d-family-fold">${drawerCardHTML(rep, fav)}<div class="d-tone-strip">${tones}</div></div>`;
+  bindDrawerCards();
+  drawerGrid.querySelectorAll('.d-tone').forEach(btn => {
+    btn.onclick = () => applyTheme(btn.dataset.tpl, false);   // 不关抽屉，连续对比同族换色
+  });
+}
+// 网格内交互绑定：星标收藏；族代表卡 → 进族视图；普通卡 → 应用并关抽屉
+function bindDrawerCards() {
   drawerGrid.querySelectorAll('.d-star').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -1279,17 +1354,32 @@ function renderDrawerGrid(group = 'all', kw = '') {
   });
   drawerGrid.querySelectorAll('.d-card').forEach(card => {
     card.onclick = () => {
-      activeTpl = card.dataset.tpl;
-      try { localStorage.setItem('supersu.lastTheme', activeTpl); } catch (e) {}
-      pushRecent(activeTpl);
-      renderTplList(tplSearch.value);
-      syncThemeChip();
-      renderDrawerGrid(CURRENT_GROUP, drawerSearch ? drawerSearch.value : '');
-      doRender();
-      // 选完就关：一次点击应该完成「选主题」这件事，用户要能立刻看到套用效果
-      closeDrawer();
+      if (card.dataset.family) {           // 族代表卡：切到该族视图，不关抽屉
+        CURRENT_GROUP = card.dataset.family;
+        renderFamilyChips();
+        renderDrawerGrid(CURRENT_GROUP, drawerSearch ? drawerSearch.value : '');
+        return;
+      }
+      applyTheme(card.dataset.tpl, true);  // 普通卡：应用主题并关抽屉（现有「选完就关」）
     };
   });
+}
+function renderDrawerGrid(group = 'all', kw = '') {
+  if (!drawerGrid) return;
+  const k = (kw || '').trim().toLowerCase();
+  const fav = lsArr(LS_FAV), recent = lsArr(LS_RECENT);
+  // 搜索优先：输入非空 → 全量扁平搜索（跨所有主题，不折叠）
+  if (k) {
+    renderFlatGrid(themes.filter(t => (t.name || '').toLowerCase().includes(k) || (t.id || '').toLowerCase().includes(k)), fav, recent);
+    return;
+  }
+  if (group === 'fav' || group === 'recent') {
+    renderFlatGrid(themes.filter(t => (group === 'fav' ? fav : recent).includes(t.id)), fav, recent);
+    return;
+  }
+  if (group === 'all') { renderAllFolded(fav, recent); return; }
+  // 族视图（group = 族名）
+  renderFamilyFold(group, themes.filter(t => (t.name || '').startsWith(group)), fav);
 }
 function openDrawer() {
   if (!drawerTpl) return;
@@ -2012,6 +2102,7 @@ async function loadPexelsStatus() {
     const res = await fetch("/api/pexels-config");
     const data = await res.json();
     const el = document.getElementById("pexels-status");
+    if (!el) return;   // 预存竞态：await 期间设置弹窗可能已被关闭，节点被移除 → 直接返回
     if (data.configured) {
       el.textContent = "✅ 已配置：联网搜图优先用 Pexels（中文更贴题）";
       el.style.color = "var(--green)";

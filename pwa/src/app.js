@@ -327,26 +327,21 @@ function renderFilters() {
     <button class="fchip" data-fam="${k}" aria-pressed="${drawerFam === k}">${label}</button>`).join('');
 }
 
-function renderDrawer() {
-  const grid = $('drawer-grid');
-  const fav = new Set(favList());
-  const q = drawerQ.trim().toLowerCase();
-
-  let list = themes;
-  if (drawerFam === 'fav') list = list.filter((t) => fav.has(t.id));
-  else if (drawerFam !== 'all') list = list.filter((t) => t.family === drawerFam);
-  if (q) list = list.filter((t) => (t.name + ' ' + t.id + ' ' + (t.desc || '')).toLowerCase().includes(q));
-
-  // 收藏优先
-  list = [...list].sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
-
-  if (!list.length) {
-    grid.innerHTML = '<div class="drawer-empty">没匹配的风格，换个词试试</div>';
-    return;
-  }
-
-  grid.innerHTML = list.map((t) => `
-    <button class="d-card" data-id="${t.id}" aria-pressed="${t.id === activeId}">
+/* ── 2A 族折叠（与本地版 templates/index.html 保持一致）──
+   同族 12 换色折叠成「1 张代表卡 + 色调色点条」；点色点换色**不关抽屉**，方便连续对比。 */
+function famLabel(f) { return f ? (FAMS[f] || f) : ''; }
+// 色调名 = 主题名去掉族前缀（「卷宗·朱砂」→「朱砂」）
+function toneName(t) {
+  const f = t.family;
+  if (!f) return t.name;
+  return String(t.name || '').replace(/^[^·•\-]*[·•\-]\s*/, '') || t.name;
+}
+// 单张主题卡（扁平网格 / 族代表卡共用）
+function drawerCard(t, fav) {
+  const inUse = t.id === activeId;
+  const isFav = fav.has(t.id);
+  return `
+    <button class="d-card" data-id="${t.id}" aria-pressed="${inUse}">
       <span class="d-prev">
         <img class="d-thumb" loading="lazy" alt="" src="./theme-thumbs/${t.id}.jpg"
              data-thumb="${t.id}">
@@ -356,10 +351,76 @@ function renderDrawer() {
       </span>
       <span class="d-body">
         <span class="d-name">${escapeHtml(t.name)}</span>
-        <span class="d-fav" data-fav="${t.id}" data-on="${fav.has(t.id) ? 1 : 0}"
-              role="button" tabindex="0" aria-label="收藏">${fav.has(t.id) ? '★' : '☆'}</span>
+        <span class="d-fav" data-fav="${t.id}" data-on="${isFav ? 1 : 0}"
+              role="button" tabindex="0" aria-label="收藏">${isFav ? '★' : '☆'}</span>
       </span>
-    </button>`).join('');
+    </button>`;
+}
+// 族代表卡：点它进入该族的折叠视图
+function familyRepCard(fam, list, fav) {
+  const rep = list.find((t) => t.id === activeId) || list[0];
+  const inUse = list.some((t) => t.id === activeId);
+  return `
+    <button class="d-card d-family-card" data-family="${fam}" aria-pressed="${inUse}">
+      <span class="d-prev">
+        <img class="d-thumb" loading="lazy" alt="" src="./theme-thumbs/${rep.id}.jpg"
+             data-thumb="${rep.id}">
+        <span class="d-fallback" style="background:${rep.background};color:${rep.primary}">
+          <i></i><i></i><i></i><i></i>
+        </span>
+        <span class="d-badge">${list.length} 色</span>
+      </span>
+      <span class="d-body">
+        <span class="d-name">${escapeHtml(famLabel(fam))}族</span>
+        <span class="d-count">${list.length} 色可选</span>
+      </span>
+    </button>`;
+}
+// 扁平网格：收藏优先
+function renderFlat(list, fav) {
+  const grid = $('drawer-grid');
+  const ranked = [...list].sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
+  grid.innerHTML = ranked.length
+    ? ranked.map((t) => drawerCard(t, fav)).join('')
+    : '<div class="drawer-empty">没匹配的风格，换个词试试</div>';
+}
+// 「全部」视图按族折叠：每族 1 张代表卡，其余（初代/经典）平铺
+function renderAllFolded(fav) {
+  const fams = [...new Set(themes.map((t) => t.family).filter(Boolean))];
+  const byFam = {}; fams.forEach((f) => { byFam[f] = []; });
+  const classic = [];
+  themes.forEach((t) => { (t.family && byFam[t.family] ? byFam[t.family] : classic).push(t); });
+  const reps = fams.filter((f) => byFam[f].length).map((f) => familyRepCard(f, byFam[f], fav)).join('');
+  const ranked = [...classic].sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
+  $('drawer-grid').innerHTML = reps + ranked.map((t) => drawerCard(t, fav)).join('');
+}
+// 族视图：1 张代表卡 + 一条横向色调色点（点色点换色，不关抽屉）
+function renderFamilyFold(fam, fav) {
+  const list = themes.filter((t) => t.family === fam);
+  const grid = $('drawer-grid');
+  if (!list.length) { grid.innerHTML = '<div class="drawer-empty">没匹配的风格，换个词试试</div>'; return; }
+  const rep = list.find((t) => t.id === activeId) || list[0];
+  const tones = list.map((t) => {
+    const col = t.accent || t.primary || '#888';
+    const on = t.id === activeId;
+    return `<button class="d-tone${on ? ' active' : ''}" data-id="${t.id}" type="button" aria-pressed="${on}">
+      <span class="d-tone-dot" style="background:${col}"></span>
+      <span class="d-tone-name">${escapeHtml(toneName(t))}</span>
+    </button>`;
+  }).join('');
+  grid.innerHTML = `<div class="d-fold">${drawerCard(rep, fav)}<div class="d-tone-strip">${tones}</div></div>`;
+}
+function renderDrawer() {
+  const fav = new Set(favList());
+  const q = drawerQ.trim().toLowerCase();
+  // 搜索优先：全量扁平（跨所有主题，不折叠）
+  if (q) {
+    renderFlat(themes.filter((t) => (t.name + ' ' + t.id + ' ' + (t.desc || '')).toLowerCase().includes(q)), fav);
+    return;
+  }
+  if (drawerFam === 'fav') { renderFlat(themes.filter((t) => fav.has(t.id)), fav); return; }
+  if (drawerFam === 'all') { renderAllFolded(fav); return; }
+  renderFamilyFold(drawerFam, fav);
 }
 
 function toggleFav(id) {
@@ -649,9 +710,19 @@ function bindUI() {
   $('drawer-grid').addEventListener('click', (e) => {
     const favBtn = e.target.closest('.d-fav');
     if (favBtn) { e.stopPropagation(); toggleFav(favBtn.dataset.fav); return; }
+    const tone = e.target.closest('.d-tone');
+    // 同族换色：不关抽屉，让用户可以连点不同色调逐个对比（与本地版一致）
+    if (tone) { setActive(tone.dataset.id); return; }
     const card = e.target.closest('.d-card');
+    if (!card) return;
+    if (card.dataset.family) {   // 族代表卡 → 进入该族的折叠视图（不关抽屉）
+      drawerFam = card.dataset.family;
+      renderFilters();
+      renderDrawer();
+      return;
+    }
     // 选模板不关抽屉：让用户可以连点几个逐个看效果（选风格时预览就在左边）
-    if (card) setActive(card.dataset.id);
+    setActive(card.dataset.id);
   });
 
   // 更多菜单

@@ -318,6 +318,20 @@ body.browsing .drawer-mask { display: none; }
 .d-fav:hover { background: var(--bg-hover); color: var(--accent); }
 .d-fav[data-on="1"] { color: var(--accent); }
 
+/* ── 2A 族折叠（与本地版 templates/index.html 一致）：族代表卡 + 12 色调色点 ── */
+.d-family-card .d-name { color: var(--accent); }
+.d-badge { position: absolute; right: 8px; bottom: 8px; z-index: 2; padding: 1px 7px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 10px; }
+.d-count { flex: none; font-size: 10px; color: var(--text-muted); }
+.d-fold { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; }
+.d-fold > .d-card { max-width: 200px; }
+.d-tone-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; }
+.d-tone { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 46px; background: none; border: none; padding: 0; cursor: pointer; }
+.d-tone-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); transition: box-shadow .12s ease; }
+.d-tone:hover .d-tone-dot { border-color: var(--border-hi); }
+.d-tone[aria-pressed="true"] .d-tone-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.d-tone-name { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.d-tone[aria-pressed="true"] .d-tone-name { color: var(--accent); font-weight: 600; }
+
 .drawer-empty { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13px; }
 
 /* ── 对话框 ───────────────────────────────────────────────────── */

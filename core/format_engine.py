@@ -778,13 +778,48 @@ def _build_cards_html(title: str, lines: list[str]) -> str:
     return html
 
 
+# ── 原始 HTML 安全清洗（决策 4A，2026-10-18）─────────────────────────────
+# python-markdown 会**原样透传**用户输入里的原始 HTML，公众号预览即等于在浏览器里
+# 执行这段内容。故 md→html 之后必须先做一次白名单式清洗：只删危险构造（脚本/样式/
+# 框架/表单/事件属性/危险协议 URL），**不动**正常标签（标题/段落/表格/代码/图片）与内联 style。
+_DANGEROUS_BLOCK_RE = re.compile(
+    r"<\s*(?:script|style|iframe|object|embed|form|meta|link|base|svg|math)\b[^>]*>"
+    r".*?<\s*/\s*(?:script|style|iframe|object|embed|form|meta|link|base|svg|math)\s*>"
+    r"|<\s*/?\s*(?:script|style|iframe|object|embed|form|meta|link|base|svg|math)\b[^>]*/?>",
+    re.IGNORECASE | re.DOTALL,
+)
+# 事件属性：onclick / onerror / onload … 一律删除（不管值是什么）
+_EVENT_ATTR_RE = re.compile(r"\son[a-z]+\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s>]+)", re.IGNORECASE)
+# 危险协议 URL：javascript: / vbscript: / data:text/html（href/src/action… 等）
+_DANGEROUS_URL_RE = re.compile(
+    r"\b(href|src|xlink:href|action|formaction|poster|background)\s*=\s*([\"']?)\s*"
+    r"(?:javascript|vbscript|data:text/html)[^\"'>\s]*\2",
+    re.IGNORECASE,
+)
+
+
+def _kill_dangerous_url(match) -> str:
+    quote = match.group(2)
+    return f"{match.group(1)}={quote}#{quote}"
+
+
+def sanitize_raw_html(html: str) -> str:
+    """清洗渲染结果里来自用户输入的原始 HTML（白名单式：只删危险项）。"""
+    if "<" not in html:
+        return html
+    html = _DANGEROUS_BLOCK_RE.sub("", html)
+    html = _EVENT_ATTR_RE.sub("", html)
+    html = _DANGEROUS_URL_RE.sub(_kill_dangerous_url, html)
+    return html
+
+
 def md_to_html(content: str) -> str:
-    """Markdown 转 HTML"""
+    """Markdown 转 HTML（出口统一做原始 HTML 安全清洗，见 4A）"""
     html = markdown.markdown(
         content,
         extensions=["tables", "fenced_code", "nl2br"],
     )
-    return html
+    return sanitize_raw_html(html)
 
 
 # ── 核心：内联样式注入 ──────────────────────────────────────────────────
