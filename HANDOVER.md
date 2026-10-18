@@ -7,10 +7,10 @@
 
 ## 0. 一句话现状
 
-**PWA 的排版主链路已经跑通并且可以发布了**：粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**。
-**没做的**：封面页、Cloudflare 部署、离线包、真机验收。
+**PWA 已上线**：https://supersu.ccwu.cc（自定义域名）+ https://supersu-pwa.pages.dev，粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**，线上域名有头实测渲染通过（2026-10-18）。
+**没做的**：封面页、断网验证、离线包、真机验收（见 §3）。
 
-⚠️ **当前所有改动都还没提交**（`git status` 里一堆 `??`）。接手第一件事：跑一遍 §1.3 的验证，确认全绿后立刻提交，否则没有回滚基线。
+⚠️ 2026-10-18 已完成基线提交（`0332b7f`）+ 部署上线。后续每完成一项仍按：跑 `smoke.py` → 单项提交 → 回 `files/TODO.md` 打勾。
 
 ---
 
@@ -64,7 +64,7 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 | PWA-3.1 | manifest + SW + 离线 | 🟡 SW 已注册、策略已写；**断网验证没做** |
 | PWA-3.2 | 「更多」菜单：推送探测本机 / AI 配置 | ❌ 只做了草稿/清数据/关于 |
 | PWA-3.3 | 合规收尾 | 🟡 LICENSE、THIRD_PARTY_NOTICES、关于页链接都有；构建断言已跑 |
-| PWA-3.4 | 部署 Cloudflare Pages | ❌ **没做（苏哥明确要求过，被中断）** |
+| PWA-3.4 | 部署 Cloudflare Pages | ✅ 2026-10-18 上线：项目 `supersu-pwa`，双地址在线——https://supersu-pwa.pages.dev + 自定义域名 **https://supersu.ccwu.cc**（新注册的免费域名，NS 已委派 CF，证书 Google CA）。部署脚本 `pwa/scripts/deploy.sh`（凭证从 `E:/test/opendoor/.env` 读，不落盘） |
 | PWA-3.5 | 离线包 zip | ❌ |
 | PWA-4.1–4.2 | 真机验收 + 群友试用 | ❌ |
 | （新增）更新管理 | 见 §7 | 🟡 代码齐、构建通过、**面板未在冒烟里覆盖** |
@@ -73,18 +73,16 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 
 ## 3. 未完成清单（按该做的顺序）
 
-### 3.1 【最高优先】部署到 Cloudflare Pages
-苏哥明确要求过"去 Cloudflare 自己建个项目地址"，被打断了。
+### 3.1 【已完成 2026-10-18】部署到 Cloudflare Pages
 
-```bash
-# 凭证在 E:\test\opendoor\.env（CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN）
-# 项目名约定：supersu-pwa    目标网址：https://supersu-pwa.pages.dev
-```
-要做：
-1. 写 `pwa/scripts/deploy.sh`：从 `E:/test/opendoor/.env` 读两个变量注入环境（**不落盘、不打印**），`npx wrangler pages deploy pwa/dist --project-name=supersu-pwa`
-2. 首次部署会创建项目；若无权限需在 Cloudflare 后台手动先建项目
-3. 部署后必须验证：`curl --noproxy '*'` 打开首页 200 + 关键资源可达
-4. ⚠️ `pages.dev` 国内不稳定（DNS 污染），发群前同时给离线包
+苏哥明确要求过"去 Cloudflare 自己建个项目地址"，**已完成**。
+
+- 项目：`supersu-pwa`（生产分支 main，基线提交 `0332b7f`）
+- 地址：https://supersu-pwa.pages.dev ｜ 自定义域名 **https://supersu.ccwu.cc**
+- 域名：2026-10-18 在 DNSHE 新注册 `supersu.ccwu.cc`（ccwu.cc 后缀，永久有效），NS 委派 Cloudflare（craig/lara.ns.cloudflare.com），zone 与 Pages 同账号
+- 部署方式：`bash pwa/scripts/deploy.sh`（凭证从 `E:/test/opendoor/.env` 读，不落盘不打印；先 `pages project create` 再 deploy——wrangler 4.x 不会自动建项目）
+- 验证：服务器侧抓取确认完整应用；有头浏览器（系统 Chrome）实测输入→解析→预览渲染通过；全球 DNS 解析正常
+- ⚠️ 国内直连 CF 的 172.6x 段不稳（本机 Clash 环境下 curl 被拦），真实用户访问以浏览器为准；发群时仍建议同时给离线包
 
 ### 3.2 封面（D5，最大一块）
 - 施工图里已留开关：`node pwa/scripts/build.mjs --cover`
@@ -239,9 +237,9 @@ node pwa/scripts/build.mjs
 
 ## 10. 接手后建议的顺序
 
-1. **先提交**（跑完 §1.3 验证）→ 建立基线
-2. **部署 Cloudflare**（§3.1）→ 先有个能打开的网址，后面每一步都能给别人看
-3. **补「更多」菜单 + 离线验证**（§3.4、§3.3）→ 功能闭环
+1. ~~先提交~~ ✅（0332b7f）→ ~~部署 Cloudflare~~ ✅（supersu.ccwu.cc）→ ~~补「更多」菜单 + 离线验证~~ 见下
+2. **离线验证**（§3.3）→ Chrome DevTools 离线刷新，确认 SW 缓存够用
+3. **补「更多」菜单**（§3.4）→ 推送探测 + AI 配置
 4. **封面**（§3.2）→ 最大一块，要先把字体搞定
 5. **离线包 + 真机验收**（§3.5、PWA-4.x）
 6. 全程：每完成一项 → 跑 `smoke.py` → 单项提交 → 回 `files/TODO.md` 打勾 → 重新生成 changelog

@@ -40,7 +40,7 @@
 | PWA-3.1 | manifest + Service Worker（shell 预缓存 / 引擎字体 CacheFirst / 导航回退） | 断网刷新仍可用；Lighthouse PWA 项通过 | ⬜ |
 | PWA-3.2 | 「更多」菜单：推送探测本机 5000 / AI 配置 / 清数据 / 关于 | 无本机服务时提示「需在本机运行 SuperSu」，不卡死 | ⬜ |
 | PWA-3.3 | 合规收尾：页脚源码链接 + `THIRD_PARTY_NOTICES` 核对 + 三条构建断言 | dist 无 `fonts.googleapis.com`、无 prototypes；字体含 OFL.txt | ⬜ |
-| PWA-3.4 | build.mjs 定稿 + 部署 Cloudflare Pages（`supersu-pwa`） | 线上网址能打开并渲染 | ⬜ |
+| PWA-3.4 | build.mjs 定稿 + 部署 Cloudflare Pages（`supersu-pwa`） | 线上网址能打开并渲染 | ✅ 2026-10-18：supersu-pwa.pages.dev + 自定义域名 supersu.ccwu.cc 双地址在线，有头浏览器实测渲染通过 |
 | PWA-3.5 | 离线包 `supersu-pwa.zip` + 使用说明 | 解压后起静态服务能用 | ⬜ |
 
 ### 阶段 4 · 真机验收（D10，1-2 人日）
