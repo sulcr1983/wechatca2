@@ -195,13 +195,22 @@ def main() -> int:
         check("点击风格胶囊切换", caps > 1 and active_theme(page) != before_theme,
               f"{before_theme}（{caps} 个）", active_theme(page), snap(page, "theme"))
 
-        sl_b = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
-        page.click('.style-scroll[data-dir="1"]'); page.wait_for_timeout(700)
+        cap_metrics = page.eval_on_selector("#style-caps", "e => [e.scrollLeft, e.scrollWidth, e.clientWidth]")
+        sl_b = cap_metrics[0]
+        page.click('.style-scroll[data-dir="1"]')
+        try:
+            page.wait_for_function(f"document.getElementById('style-caps').scrollLeft > {sl_b}", timeout=5000)
+        except Exception:
+            pass
         sl_a = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
-        check("风格条右滚", sl_a >= sl_b, sl_b, sl_a)
-        page.click('.style-scroll[data-dir="-1"]'); page.wait_for_timeout(700)
-        check("风格条左滚", page.eval_on_selector("#style-caps", "e => e.scrollLeft") <= sl_a,
-              sl_a, page.eval_on_selector("#style-caps", "e => e.scrollLeft"))
+        check("风格条右滚", sl_a > sl_b, f"{cap_metrics}", f"scrollLeft={sl_a}")
+        page.click('.style-scroll[data-dir="-1"]')
+        try:
+            page.wait_for_function(f"document.getElementById('style-caps').scrollLeft < {sl_a}", timeout=5000)
+        except Exception:
+            pass
+        sl_c = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
+        check("风格条左滚", sl_c < sl_a, f"scrollLeft={sl_a}", f"scrollLeft={sl_c}")
 
         page.click("#btn-copy"); page.wait_for_timeout(900)
         t = toast(page)
@@ -214,7 +223,9 @@ def main() -> int:
               and page.is_disabled("#btn-copy"), "", f"len=0 empty={page.is_visible('#preview-empty')}",
               snap(page, "clear"))
 
-        page.click("#btn-more"); page.click('[data-act="draft"]'); page.wait_for_timeout(700)
+        page.click("#btn-demo"); page.wait_for_timeout(1200)
+        page.evaluate("document.getElementById('input').value = ''")   # 模拟输入框空、草稿还在
+        page.click("#btn-more"); page.click('[data-act="draft"]'); page.wait_for_timeout(500)
         check("恢复草稿（有内容时）", input_len(page) > 100, 0, input_len(page), snap(page, "restore"))
 
         # ── 3. 风格抽屉 ─────────────────────────────────────────
@@ -248,8 +259,13 @@ def main() -> int:
 
         page.click("#btn-drawer-close")
         check("抽屉关闭（X）", page.is_hidden("#drawer"), "visible", "hidden")
-        page.click("#btn-themes"); page.click("#drawer-mask", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
-        check("抽屉关闭（遮罩）", page.is_hidden("#drawer"), "visible", "hidden")
+        page.click("#btn-themes"); page.wait_for_timeout(400)
+        if page.is_visible("#drawer-mask"):
+            page.click("#drawer-mask", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
+            check("抽屉关闭（遮罩）", page.is_hidden("#drawer"), "visible", "hidden")
+        else:
+            skip("抽屉关闭（遮罩）", "桌面端为让位布局，遮罩仅移动端显示")
+            page.click("#btn-drawer-close")
 
         # ── 4. AI 面板 ──────────────────────────────────────────
         page.click("#btn-clear"); page.wait_for_timeout(300)
@@ -412,7 +428,14 @@ def main() -> int:
         page.click("#btn-cover"); page.wait_for_timeout(500)
         check("移动端封面页可用", page.is_visible("#cover-root") and page.is_visible("#cv-gen"),
               "", "true", snap(page, "mobile-cover"))
-        page.click("#btn-cover")
+        page.click("#btn-cover"); page.wait_for_timeout(300)
+        page.click("#btn-themes"); page.wait_for_timeout(400)
+        if page.is_visible("#drawer-mask"):
+            page.click("#drawer-mask", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
+            check("移动端抽屉遮罩关闭", page.is_hidden("#drawer"), "visible", "hidden", snap(page, "mobile-drawer"))
+        else:
+            skip("移动端抽屉遮罩关闭", "遮罩不可见")
+            page.click("#btn-drawer-close")
         page.set_viewport_size({"width": 1440, "height": 960})
 
         # ── 9. 控制台错误 ──────────────────────────────────────

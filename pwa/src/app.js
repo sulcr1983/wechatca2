@@ -156,6 +156,7 @@ async function doRender() {
       if (html) {
         showPreview(html);
         setEngineState('loading', '快速预览 · 精确排版准备中');
+        saveDraft(text);   // 引擎没就绪也要先把稿子存住
       }
     } catch (e) { /* 轻量预览失败就安静等精确结果 */ }
     return;
@@ -656,11 +657,13 @@ function bindUI() {
   $('btn-demo').addEventListener('click', () => {
     input.value = DEMO;
     updateCharCount();
+    saveDraft(input.value);   // 不等渲染，立即落盘
     scheduleRender();
   });
   $('btn-clear').addEventListener('click', () => {
     input.value = '';
     updateCharCount();
+    saveDraft('');            // 清空也要落盘，避免刷新后旧草稿复活
     doRender();
     input.focus();
   });
