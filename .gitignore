@@ -62,3 +62,6 @@ Thumbs.db
 # PWA 构建产物与依赖（2026-10-18）
 pwa/dist/
 pwa/node_modules/
+
+# wrangler 本地状态/日志缓存
+.wrangler/
