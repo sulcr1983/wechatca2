@@ -442,6 +442,18 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 
 验证同上（改动仅文案与一个 `img` 节点），重跑 PWA 构建 + 65/65 + 33/33 与两版目视。
 
+### 窄屏修复（用户点名：不用问，直接修）
+`templates/index.html` 的 `@media (max-width:800px)` 内加：`.logo-sub` 隐藏；`.topbar` 改 `overflow-x:auto` + 隐藏滚动条；`.logo/.tab-btn/.top-btn` 设 `flex:0 0 auto; white-space:nowrap`。
+**修的是既有问题**（改动前就有）：窄屏顶栏里「公众号排版/小红书封面/教程/设置」会被压成竖排单字折行。实测：375px 现在单行、可横滑（scrollW 459 > clientW 355），800/1440 无横滑、后缀小字照常显示。
+
+### 部署上线（2026-10-19）
+- 铁律流程走完：commit `7653a78`（pwa 分支）→ `git checkout main` + `--ff-only` 快进 → `git push origin main`（6107844..7653a78）。
+- `pwa/scripts/deploy.sh` → Cloudflare Pages `supersu-pwa`，生产分支 main，部署 ID `00cadd0d`。
+- ⚠️ **Windows 坑**：本机默认 `bash` 是 `C:\Windows\system32\bash.exe`（WSL），跑 deploy.sh 会误报「找不到凭证文件 /e/test/opendoor/.env」。必须显式用 Git Bash：
+  `& "C:\Program Files\Git\bin\bash.exe" pwa/scripts/deploy.sh`
+- 线上核验（真实 HTTP）：`https://supersu.ccwu.cc/` 200、`<title>` = 「SuperSu 公众号编辑器 — 排版 + 封面」、含 `brand-mark` / `brand-tail`；`/brand/logo-64.png` 200（4457B）；`/icons/icon-192.png` 200（24877B）；manifest `name` = 「SuperSu 公众号编辑器」（short_name 仍 SuperSu，3 个图标）；**`/sw.js` 的 BUILD_ID `3676585593e9f892` 与本地 dist 完全一致** → 线上就是本次构建产物。
+
 ### 回滚点
-- 新增文件删除 / 改回即可；图标与徽标复原为朱砂「版」方章。用户未要求提交，本轮**未 commit**。
+- 新增文件删除 / 改回即可；图标与徽标复原为朱砂「版」方章。
+- 线上回滚：Cloudflare Pages 控制台把生产版本切回上一个部署，或 `git revert 7653a78` 后重新 deploy。
 

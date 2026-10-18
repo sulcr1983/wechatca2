@@ -135,6 +135,13 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 #    直接失败；若把 stderr 重定向到 $null，失败会被吞掉，旧进程继续服务旧代码，
 #    表现为「改完代码界面却没变」的假象（2026-09-25 实测踩过）。
 #    清完务必核验： (Get-NetTCPConnection -LocalPort 5000 -State Listen).Count 应为 0
+
+# 部署（PWA 主站 → Cloudflare Pages 项目 supersu-pwa → https://supersu.ccwu.cc）
+# 铁律（§11）：deploy.sh 有硬预检 —— 已跟踪文件必须干净、HEAD 必须已含在 origin/main，否则直接中止。
+# ⚠️ 本机默认 `bash` 是 C:\Windows\system32\bash.exe（WSL），跑 deploy.sh 会误报
+#    「找不到凭证文件 /e/test/opendoor/.env」。必须显式用 Git Bash：
+#      & "C:\Program Files\Git\bin\bash.exe" pwa/scripts/deploy.sh
+#    凭证从 E:/test/opendoor/.env 读取（不落盘副本、不回显）。
 ```
 
 ## 5. 路由速查
