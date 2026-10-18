@@ -4,3 +4,6 @@
 # 2026-09-26 实测踩过：start-app.bat 因 LF 换行导致一键启动完全不可用。
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Shell 脚本必须 LF：CRLF 会让 bash 解析错乱（2026-10-18 deploy.sh 实测踩到）
+*.sh text eol=lf

@@ -22,6 +22,25 @@ set +a
 : "${CLOUDFLARE_ACCOUNT_ID:?ERROR: .env 缺少 CLOUDFLARE_ACCOUNT_ID}"
 : "${CLOUDFLARE_API_TOKEN:?ERROR: .env 缺少 CLOUDFLARE_API_TOKEN}"
 
+# ── 铁律（2026-10-18）：部署到服务器的一律先同步 git ─────────────────────
+# 线上内容必须与仓库可对齐、可回滚：已跟踪文件必须干净，且 HEAD 必须已推送到 origin/main
+# （deploy 用的就是 --branch=main）。
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  echo "ERROR: 工作区有未提交改动 —— 部署前请先 commit（铁律：部署的一律同步 git）" >&2
+  git status --short --untracked-files=no >&2
+  exit 1
+fi
+if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main 2>/dev/null; then
+  echo "ERROR: 当前 HEAD 未推送到 origin/main —— 铁律：部署的一律同步 git（先 git push）" >&2
+  exit 1
+fi
+untracked="$(git status --porcelain --untracked-files=all | grep '^??' || true)"
+if [[ -n "$untracked" ]]; then
+  echo "WARN: 有未跟踪文件（未纳入 git；若它们会进 dist 请先提交）:" >&2
+  echo "$untracked" >&2
+fi
+echo "==> git 预检通过（工作区干净、HEAD 已推送 origin/main）"
+
 # 确认 dist 存在（构建产物，gitignore；缺失则先 build）
 if [[ ! -f pwa/dist/index.html ]]; then
   echo "ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs" >&2

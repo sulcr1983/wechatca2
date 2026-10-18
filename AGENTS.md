@@ -323,6 +323,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 - 嵌套仓库 `blcaptain-style-skill/` 与父仓分别审计、分别提交，勿将其改动吸入父仓。
 - `.env`、`data/`（含加密 AppSecret）、`.workbuddy/`、`output/`、`uploads/`、`blcaptain-style-skill/` 已被 gitignore，禁止 force-add。
 - dirty worktree 中不回滚 / 覆盖 / 吸入用户未授权改动。
+- ⛔ **铁律（2026-10-18）：部署到服务器的一律先同步 git**——凡「已部署 / 准备部署到服务器」的内容（PWA 构建产物、`pwa/public/*`、品牌与静态资源、主题、脚本等），其**源码必须先 commit 并 push**，做到 `HEAD` 已包含在 `origin/main` 里、且工作区无未提交改动；**禁止「只在本地改 / 只在服务器上改、git 没有对应提交」的状态**。落地点：`pwa/scripts/deploy.sh` 部署前做 git 预检（工作区脏 / HEAD 未推送 → 直接中止）。
 
 ### 文档分层与回写
 - 内部真源：`AGENTS.md` / `MEMORY.md` / `HANDOFF.md` / `CLOSURE.md`；外部用户：`README.md`。
