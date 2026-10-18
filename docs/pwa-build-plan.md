@@ -183,6 +183,9 @@ const item = new ClipboardItem({
 
 **这是全项目风险最高的一步**。先只验证「能出 HTML」，UI 接不接得上放 D3。
 
+> ✅ **2026-10-18 已实测通过**：Pyodide v0.28.3 跑通现有引擎，436 字样本输出与本地 `POST /api/render` **逐字节一致**（html 4821B）；引擎启动 6.7s、单次渲染 415ms。
+> ⚠️ **踩过的坑**：`markdown` 打包成 zip 时必须把 `markdown-<ver>.dist-info/{METADATA,entry_points.txt,top_level.txt,WHEEL}` 一起打进去。markdown 3.10 优先用 entry points 解析扩展名（`tables`/`fenced_code`/`nl2br`），缺 dist-info 会退化成 `import_module('tables')` → `ModuleNotFoundError`。补上即解决，引擎零改动。
+
 ### D3 UI 接引擎
 
 | 项 | 内容 |
@@ -210,7 +213,13 @@ const item = new ClipboardItem({
 | 验 | 任一风格 → 出 3 张真实 PNG；上传底图能叠上去；长标题不溢出 |
 | 回滚 | 封面整块 `feature flag`（`localStorage.cover=0` 隐藏入口） |
 
-⚠️ **风险点**：本地版靠 Playwright 截图，浏览器里没有 Playwright。必须先做「HTML 模板 → canvas 截图」的可行性验证（用 `html-to-image` 或 `foreignObject`），**验证不过就降级为纯 CSS 绘制 + Canvas 2D 手绘文字**，并在 D5 首日就决定。
+✅ **2026-10-18 已验证可行**：`html-to-image@1.11.13` 把归藏 `editorial-ink-classic` 渲成 1080×1440 PNG 只用 **792ms**（2.24MB），底图正常叠加、文字清晰、长标题自动换行不溢出。证据 `docs/pwa-spike/0b-cover.png`。
+
+⚠️ **新发现的硬约束：字体必须自托管。** 归藏模板外链了 5 个 Google Fonts 家族（Noto Serif SC / Noto Sans SC / Playfair Display / Inter / IBM Plex Mono）。PWA 两条都不能留：合规断言禁止 `fonts.googleapis.com`，且国内被墙。
+- 拉丁字族（Playfair / Inter / Plex Mono）直接自托管，体积小
+- 中文字族（Noto Serif SC / Noto Sans SC）必须**按常用字子集化**（3500 常用字约 1-2MB/字重），否则单个字重就 8MB+
+- 截图时 `html-to-image` 传 `skipFonts: true`，字体由页面已加载的 `@font-face` 提供，避免重复内联
+- BLCaptain 侧的字体策略同样要核（D5 首日一起看）
 
 ### D6 manifest + SW + 离线
 
@@ -325,8 +334,9 @@ bash pwa/scripts/deploy.sh
 
 | 风险 | 概率 | 应对 |
 |---|---|---|
-| Pyodide 在浏览器里跑不通现有引擎（隐藏的环境依赖） | 中 | D2 首日验证；不通则退回「JS 重写核心渲染」或「Workers Python + $5/月」 |
-| 浏览器内截图做封面不可行 | 中 | D5 首日验证 `foreignObject`；不通则 Canvas 2D 手绘 |
+| ~~Pyodide 跑不通现有引擎~~ | ~~中~~ | ✅ 2026-10-18 已实测：逐字节一致。风险解除 |
+| ~~浏览器内截图不可行~~ | ~~中~~ | ✅ 2026-10-18 已实测：`html-to-image` 792ms 出 1080×1440。风险解除 |
+| **封面字体子集化**（中文两族，做不好体积失控） | 中 | D5 首日定方案：常用 3500 字子集 + 按字重分片；实在不行中文字族退回系统字体（视觉略降级） |
 | 首屏 11MB 体感重 | 高 | 进度条 + 明确文案 + 二次秒开；后续可考虑把引擎拆包 |
 | iOS 内存（Pyodide ~150MB） | 中 | Worker 内运行、单页复用；超长文档分片；真机先测 |
 | `pages.dev` 国内打不开 | 高 | 离线包兜底；长期走备案域名 |

@@ -715,14 +715,59 @@ python tests/test_headed_wechat_copy.py
 
 ---
 
+### 变更 22：浏览器统一 Chrome 优先，修「启动页弹星愿」（2026-10-18）
+
+**诉求**：用户反映"为啥一直弹窗在星愿浏览器，还有 edge，为啥不是 chrome"。
+
+**根因（两个独立来源）**：
+1. `start-app.bat` 里 `start "" cmd /c "... & start http://127.0.0.1:5000"` —— cmd 内置 `start` **永远走系统默认浏览器**；本机默认被星愿抢占（`StartMenuInternet\Chromium` = `C:\Program Files\Twinkstar Browser\twinkstar.exe`，http/https `UserChoice` = `ChromiumHTM`）。
+2. `core/browser_utils.py` 原 `for channel in ("msedge", "chrome")` —— 装了 Edge 就永远轮不到 Chrome；`core/blcaptain_bridge.py` 的候选路径表同样 Edge 在前。
+
+**修法**：`browser_utils.py` 改 `("chrome", "msedge")` 并把可执行文件探测收敛为本模块单真源（`find_chrome_executable` / `find_edge_executable` / `find_system_browser` / `open_url`）；`blcaptain_bridge.py` 删自带候选表；`start-app.bat` 删掉 cmd `start` 那行、取消 `SUPERSU_NO_AUTOBROWSER`，改由 `app.py::open_browser()` 经 `open_url()` 打开。
+
+**验证**：实测 `launch_browser` 返回 `155.0.8059.84`（Chrome，Edge 是 `155.0.4283.45`）；`open_url` 干跑 spawn 的正是 chrome.exe，去掉 Chrome 路径后能回退系统默认；启动 Chrome 后 `twinkstar.exe` 进程数 21→21（不会连带拉起）；回归 62/35/29/33/7/12 = **178 全绿**。
+
+**回滚**：`git revert e7383f8`。
+
+---
+
+### 变更 23：PWA 文档体系 + 阶段 0 可行性验证（2026-10-18）
+
+**背景**：苏哥要求"先做完文档再开工"，且"小项目不要过度设计"。
+
+**文档产出**：
+- `docs/overview.md`（一页看懂，替代此前写的 requirements.md / architecture.md —— 个人项目不需要 34 项 FR 与 10 条 ADR）
+- `docs/api-reference.md`（28 路由一张表 + 3 个高频接口契约）
+- `docs/testing.md`（6 套件跑法、实测基线、5 个坑、DOM 契约）
+- `docs/runbook.md`（装起停 + 数据在哪 + 12 条故障处置 + 备份迁移）
+- `docs/pwa-build-plan.md`（**PWA 施工图**：范围、10 条定稿决策、D1-D10 文件级任务、验收表、部署、风险）
+- `pwa-design.md` 冻结为设计存档，冲突以施工图为准
+
+**阶段 0 验证（两项命门，均已通过）**：
+- **0a Pyodide 跑现有引擎**：436 字样本输出与本地 `POST /api/render` **逐字节一致**（html 4821B）；引擎启动 6.7s、渲染 415ms；Pyodide v0.28.3
+- **0b 浏览器内 HTML→PNG**：`html-to-image@1.11.13` 把归藏模板渲成 1080×1440 PNG 只用 **792ms**（2.24MB），底图正常、文字清晰、长标题不溢出
+- 证据：`docs/pwa-spike/{report.json,0a-pyodide.png,0b-cover.png}`；结论详见 `CLOSURE.md` 任务 7
+
+**两个技术结论**：
+1. `markdown` 打包成 zip 必须带 `markdown-<ver>.dist-info/{METADATA,entry_points.txt,top_level.txt,WHEEL}` —— markdown 3.10 优先用 entry points 解析扩展名，缺 dist-info 会 `ModuleNotFoundError: No module named 'tables'`。补上即解决，引擎零改动。
+2. 归藏封面模板外链 5 个 Google Fonts 家族 → PWA 必须自托管（合规断言禁止 `fonts.googleapis.com`，且国内被墙）；中文两族需按常用字子集化。
+
+**验证中发现的既有问题（未改，待决策）**：`preprocessor._looks_like_sentence` 词表含「是/了/在/我/你/要/为什么/问题/方法/内容/效果」等超高频词与名词，导致中文短标题几乎永远被判成句子 —— 20 个典型小标题实测**只识别 9 个**（「常见问题」「我的做法」「写在最后」「使用方法」全 FAIL）。属 `core/` 改动，会改变全部渲染输出并需重跑 178 项测试 + 重生成 164 张缩略图。
+
+**回滚点**：`git revert` 对应提交；`docs/pwa-spike/` 可整目录删除，无代码依赖。
+
+---
+
 ## 9. 下一步开发建议
 
 ### NEXT STEP 1（唯一最优先）
-> 2026-09-23 盘点注：本项已过期（用户早已在使用新前端），下一步建议待重新规划。
-- **action**：确认用户能看到最新前端并收集反馈
-- **reason**：用户已连续 2 次抱怨"页面没变"，需要先解决信任问题再继续开发
-- **affected files**：templates/index.html
-- **validation criteria**：用户在浏览器看到浅色暖调新设计，而非旧的深色页面
+> 2026-10-18 更新：阶段 0 可行性验证已通过（见变更 23），下一步是 **PWA D1**。
+- **action**：按 `docs/pwa-build-plan.md` 从 D1 开工（pwa/ 骨架 + 设计系统 + manifest + 图标），进度在 `files/TODO.md` 的 PWA-1.1 起
+- **reason**：两个命门（Pyodide 跑引擎 / 浏览器内截图）实测均通过，8-11 人日排期成立
+- **affected files**：`pwa/**`（不改 `core/`、不改 `templates/`）
+- **validation criteria**：`python -m http.server 8080 -d pwa` 打开能看到三段式布局、字体生效、启动遮罩
+
+> 历史（2026-09-23 已过期）：确认用户能看到最新前端并收集反馈 —— 用户早已在使用新前端，本项作废。
 
 ### DO NOT DO
 - 不要碰 docs/prototypes/prototype_full.html 和 docs/prototypes/prototype_ai_simplify.html（已废弃）

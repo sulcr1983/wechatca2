@@ -302,3 +302,52 @@
 回滚：`git revert <本次提交>`；缩略图可删目录 + 前端 onerror 自动回退渐变。
 - 旧 DOM 契约保留，测试无需改；`#module-picker`（旧 select）已移除，由 `#btn-insert` popover 替代。
 - P1 遗留：富文本粘贴（turndown）/ docx 导入（mammoth）/ pangu / 三模式 UI 入口；P2 遗留：历史抽屉、移动端单栏、a11y。
+
+## 任务 7：PWA 阶段 0 可行性验证（2026-10-18）
+
+**结论：两项命门全部通过，PWA 施工图 D1-D10 的排期成立。**
+
+### 验的是什么
+
+| # | 假设 | 判据 |
+|---|------|------|
+| 0a | 浏览器内 Pyodide 能跑通现有 Python 引擎 | 输出与本地 `POST /api/render` 的 html **逐字节相同** |
+| 0b | 浏览器内能把封面 HTML 渲成 PNG（没有 Playwright） | 出 1080×1440 真图，文字清晰、长标题不溢出 |
+
+### 实测结果
+
+| 项 | 结果 | 数字 |
+|---|------|------|
+| 0a | ✅ 逐字节一致 | 引擎启动 **6686ms**；渲染 436 字 **415ms**；markdown 429 字、html 4821 字节，与本地完全相同 |
+| 0b | ✅ 出图成功 | **792ms** 出 1080×1440 PNG（2.24MB），底图正常叠加，文字清晰无溢出 |
+
+环境：Pyodide **v0.28.3**（jsdelivr CDN）；`html-to-image` 1.11.13；系统 Chrome 155.0.8059.84 有头。
+证据：`docs/pwa-spike/report.json`、`docs/pwa-spike/0a-pyodide.png`、`docs/pwa-spike/0b-cover.png`。
+
+### 两个关键技术结论（已回写施工图）
+
+1. **markdown 打包必须带 dist-info**。markdown 3.10 优先用 entry points 找扩展（`tables`/`fenced_code`/`nl2br`），zipimport 里没有 `.dist-info` 会退化成 `import_module('tables')` → `ModuleNotFoundError`。把 `markdown-<ver>.dist-info/{METADATA,entry_points.txt,top_level.txt,WHEEL}` 一起打进 zip 即解决，**不改引擎一行**。
+2. **封面模板依赖 Google Fonts**（Noto Serif SC / Noto Sans SC / Playfair Display / Inter / IBM Plex Mono 五个家族）。PWA 两条路都不允许保留该外链：合规断言禁止 `fonts.googleapis.com`，且国内被墙。D5 必须自托管（中文需子集化，否则体积失控）。
+
+### 验证中发现的两处既有问题（**本轮未改**，等决策）
+
+| # | 问题 | 证据 |
+|---|------|------|
+| B-1 | `preprocessor._looks_like_sentence` 词表含「是/了/在/我/你/要/为什么/问题/方法/内容/效果」等超高频词与**名词**，导致中文短标题几乎永远被判成句子 | 20 个典型小标题实测**只识别 9 个**：「常见问题」「我的做法」「写在最后」「使用方法」全 FAIL；spike 截图里「为什么要跑那么远」「住在哪里」均未成标题 |
+| B-2 | 封面模板字体外链 | 见上 |
+
+B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且会改变全部渲染输出、需重跑 178 项测试并重生成 164 张缩略图 —— 需苏哥单独决策是否插队修。
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `docs/pwa-spike/{report.json,0a-pyodide.png,0b-cover.png}` | 新增：验证证据（spike 代码跑完即删，未入库） |
+| `docs/pwa-build-plan.md` | D2 / D5 补「已验证」与实测数字；新增字体自托管的硬约束 |
+| `files/TODO.md` | PWA-0a/0b/0c 打勾 |
+| `CLOSURE.md` | 本节 |
+
+### 回滚点
+- `git revert <本次提交>`；`docs/pwa-spike/` 可整目录删除，无代码依赖。
+
+### 剩余项
+- D1 起按施工图推进；D5 的字体子集化方案需在动工前定（见待决策）。

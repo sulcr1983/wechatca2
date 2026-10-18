@@ -1,0 +1,25 @@
+{
+ "0a": {
+  "ok": true,
+  "mdSame": true,
+  "htmlSame": true,
+  "mdDiff": -1,
+  "htmlDiff": -1,
+  "bootMs": 6686,
+  "renderMs": 415,
+  "htmlLen": 4821,
+  "expectedHtmlLen": 4821,
+  "msg": "逐字节一致（引擎启动 6686ms，渲染 415ms）"
+ },
+ "0b": {
+  "ok": true,
+  "shotMs": 792,
+  "bytes": 2296077,
+  "totalMs": 1325,
+  "nodeW": 1080,
+  "nodeH": 1440,
+  "imgLoaded": true,
+  "fontAvailable": true,
+  "msg": "出图成功 792ms / 2242KB"
+ }
+}
