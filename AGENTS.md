@@ -96,6 +96,7 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
+python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址加 #upd-demo 可预览）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）
 # · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
@@ -110,6 +111,8 @@ python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/
 # · 模板库抽屉：打开时 `body.browsing` → 桌面端主区 `padding-right:460px` 让位（不遮挡预览）、
 #   编辑器收起、抽屉 460px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。
 # · 版本号由 build.mjs 自动生成 `1.0.<git 提交数>`，写 dist/version.json（不再手写死）。
+# · 更新卡是「发布小票」：版本徽标 + 日期 + 3 条亮点（按文案自动标 新功能/优化/修复）+ 查看全部；
+#   `#upd-demo` 可随时预览该卡（不影响真实更新流程）。
 # · 预览里已移除「写留言/赞/在看」模拟底栏。
 # · 轻量即时预览：引擎未就绪时用 marked(12KB br) + 主题 styles 出近似排版，badge 标「快速预览」，
 #   **复制按钮锁到精确结果**；引擎空闲时启动，就绪后原地替换。

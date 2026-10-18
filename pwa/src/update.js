@@ -39,7 +39,11 @@ export function createUpdater({ changelog } = {}) {
     dot: document.getElementById('upd-dot'),
     card: document.getElementById('upd-card'),
     cardText: document.getElementById('upd-card-text'),
+    badge: document.getElementById('upd-badge'),
+    date: document.getElementById('upd-date'),
+    list: document.getElementById('upd-list'),
     later: document.getElementById('upd-later'),
+    all: document.getElementById('upd-all'),
     now: document.getElementById('upd-now'),
   };
 
@@ -119,9 +123,60 @@ export function createUpdater({ changelog } = {}) {
   }
 
   /* ── 提示卡 ───────────────────────────────────────────── */
-  function showCard(text, { canUpdate = true } = {}) {
+  const escHtml = (s) => String(s == null ? '' : s)
+    .replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /** 按文案猜分类，给「发布小票」打标签 */
+  function kindOf(text) {
+    if (/修复|修正|解决|bug|报错/i.test(text)) return { kind: 'fix', label: '修复' };
+    if (/优化|提速|加快|减少|更快|静默|缓存|不丢/.test(text)) return { kind: 'opt', label: '优化' };
+    return { kind: 'new', label: '新功能' };
+  }
+
+  /** 取「上次看到之后」的更新条目（最多 3 条亮点 + 总数）
+   *  注意：changelog 的版本号可能落后于运行版本（历史数据），取不到就回退到最近一批，
+   *  避免「发布小票」永远只有一句占位文案。 */
+  function highlightsSince(since) {
+    if (!state.data || !Array.isArray(state.data.releases) || !state.data.releases.length) {
+      return { items: [], total: 0, scope: 'none' };
+    }
+    let list = state.data.releases.filter((r) => cmpVersion(r.version, since) > 0);
+    let scope = 'newer';
+    if (!list.length) {
+      list = state.data.releases.slice(0, 1);
+      scope = 'latest';
+    }
+    const items = [];
+    let total = 0;
+    for (const r of list) {
+      for (const g of r.groups || []) {
+        for (const it of g.items || []) {
+          total += 1;
+          if (items.length < 3 && it && it.text) {
+            items.push({ ...kindOf(it.text), text: it.text });
+          }
+        }
+      }
+    }
+    return { items, total, scope };
+  }
+
+  function showCard(text, { canUpdate = true, badge = '', date = '', items = [] } = {}) {
     if (!el.card) return;
     el.cardText.textContent = text;
+    if (el.badge) {
+      el.badge.textContent = badge;
+      el.badge.hidden = !badge;
+    }
+    if (el.date) {
+      el.date.textContent = date;
+      el.date.hidden = !date;
+    }
+    if (el.list) {
+      el.list.innerHTML = items.map((it) =>
+        `<li><span class="upd-tag ${it.kind}">${it.label}</span><span>${escHtml(it.text)}</span></li>`
+      ).join('');
+    }
     // 每次显示都重置按钮：否则上一次卡在「更新中…」后，本次提示点不了
     if (el.now) {
       el.now.disabled = false;
@@ -203,16 +258,19 @@ export function createUpdater({ changelog } = {}) {
     if (el.dot) el.dot.hidden = false;
     if (!isDismissed()) {
       const since = localStorage.getItem(LS_SEEN) || '';
-      const ver = state.remote || state.running;
-      let text = ver
-        ? `v${ver} 已下载完成，空闲时会自动应用（也可点「立即更新」）`
-        : '有新版本，已下载完成；空闲时会自动更新（也可点「立即更新」）';
-      if (state.data && since) {
-        const newer = state.data.releases.filter((r) => cmpVersion(r.version, since) > 0);
-        const n = newer.reduce((s, r) => s + r.groups.reduce((m, g) => m + g.items.length, 0), 0);
-        if (n > 0) text = `v${ver || '新版'}：${n} 条更新（新功能 / 优化 / 修复），已下载完成，空闲时自动应用`;
-      }
-      showCard(text, { canUpdate: true });
+      const ver = state.remote || state.running || '';
+      const { items, total, scope } = highlightsSince(since);
+      const date = state.data && state.data.generatedAt
+        ? String(state.data.generatedAt).slice(0, 10) : '';
+      const title = total > 0
+        ? (scope === 'latest' ? `最近 ${total} 条更新，已下载完成` : `本次共 ${total} 条更新，已下载完成`)
+        : '界面与排版体验优化，已下载完成';
+      showCard(title, {
+        canUpdate: true,
+        badge: ver ? 'v' + ver : '新版',
+        date,
+        items: items.length ? items : [{ kind: 'opt', label: '优化', text: '界面与排版体验优化' }],
+      });
     }
     tryAutoApply();
   }
@@ -346,6 +404,7 @@ export function createUpdater({ changelog } = {}) {
       });
     }
     if (el.now) el.now.addEventListener('click', applyUpdate);
+    if (el.all) el.all.addEventListener('click', () => openChangelog());
   }
 
   /* ── 启动 ─────────────────────────────────────────────── */
@@ -368,6 +427,11 @@ export function createUpdater({ changelog } = {}) {
     reconcileSeenVersion();
     initSW();
     checkRemoteVersion();
+
+    // 预览入口：地址加 #upd-demo 直接展示「发布小票」（不影响正常更新流程）
+    if (location.hash === '#upd-demo') {
+      setTimeout(() => { onReady(); }, 800);
+    }
     // 回到前台时清掉「刚更新完」标志，避免下次再弹
     try {
       if (localStorage.getItem(RELOAD_FLAG)) localStorage.removeItem(RELOAD_FLAG);
