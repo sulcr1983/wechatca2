@@ -85,7 +85,7 @@ function closeCover() {
   $('tabs').hidden = false;
   document.body.classList.remove('cover-open');
   const btn = $('btn-cover');
-  if (btn) { btn.textContent = '封面'; btn.setAttribute('aria-pressed', 'false'); }
+  if (btn) { btn.textContent = '小红书'; btn.setAttribute('aria-pressed', 'false'); }
 }
 
 /* ── 风格 / 尺寸 ── */
