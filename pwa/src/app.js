@@ -308,6 +308,7 @@ let drawerQ = '';
 function openDrawer() {
   $('drawer').hidden = false;
   $('drawer-mask').hidden = false;
+  document.body.classList.add('browsing');   // 让主区给抽屉让位（桌面端不重叠）
   renderFilters();
   renderDrawer();
   $('drawer-search').focus();
@@ -316,6 +317,7 @@ function openDrawer() {
 function closeDrawer() {
   $('drawer').hidden = true;
   $('drawer-mask').hidden = true;
+  document.body.classList.remove('browsing');
 }
 
 function renderFilters() {
@@ -648,7 +650,8 @@ function bindUI() {
     const favBtn = e.target.closest('.d-fav');
     if (favBtn) { e.stopPropagation(); toggleFav(favBtn.dataset.fav); return; }
     const card = e.target.closest('.d-card');
-    if (card) { setActive(card.dataset.id); closeDrawer(); }
+    // 选模板不关抽屉：让用户可以连点几个逐个看效果（选风格时预览就在左边）
+    if (card) setActive(card.dataset.id);
   });
 
   // 更多菜单

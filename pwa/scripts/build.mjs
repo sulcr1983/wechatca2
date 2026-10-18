@@ -10,6 +10,7 @@
 
 import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -283,7 +284,9 @@ function main() {
   if (coverN) log(`  ✓ 封面模板 ${coverN} 个文件`);
 
   /* 6.5 版本与更新记录（前端更新检测靠这两个文件） */
-  copyFile(path.join(PWA, 'version.json'), path.join(DIST, 'version.json'));
+  const ver = buildVersion();
+  fs.writeFileSync(path.join(DIST, 'version.json'), JSON.stringify(ver, null, 2), 'utf8');
+  log(`  ✓ 版本 v${ver.version}（git ${ver.commits} 次提交，${ver.releasedAt}）`);
   const clSrc = path.join(PWA, 'public', 'changelog.json');
   if (fs.existsSync(clSrc)) {
     copyFile(clSrc, path.join(DIST, 'changelog.json'));
@@ -320,6 +323,27 @@ function dirSize(dir) {
     s += ent.isDirectory() ? dirSize(p) : fs.statSync(p).size;
   }
   return s;
+}
+
+/** 版本号自动生成：主.次取自 version.json，修订号 = git 提交数（每次发布必变） */
+function buildVersion() {
+  let base = { name: 'SuperSu PWA', version: '1.0.0' };
+  try {
+    base = JSON.parse(fs.readFileSync(path.join(PWA, 'version.json'), 'utf8'));
+  } catch { /* 缺文件就用默认 */ }
+  let commits = 0;
+  try {
+    commits = parseInt(execSync('git rev-list --count HEAD', { cwd: ROOT }).toString().trim(), 10) || 0;
+  } catch { /* 非 git 环境 */ }
+  const parts = String(base.version || '1.0.0').split('.');
+  const maj = parseInt(parts[0], 10) || 1;
+  const min = parseInt(parts[1], 10) || 0;
+  return {
+    ...base,
+    version: commits ? `${maj}.${min}.${commits}` : (base.version || '1.0.0'),
+    releasedAt: new Date().toISOString().slice(0, 10),
+    commits,
+  };
 }
 
 /* ── 增量清单 / 构建指纹 / 响应头 ─────────────────────────────── */

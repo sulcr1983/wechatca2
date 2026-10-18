@@ -203,11 +203,14 @@ export function createUpdater({ changelog } = {}) {
     if (el.dot) el.dot.hidden = false;
     if (!isDismissed()) {
       const since = localStorage.getItem(LS_SEEN) || '';
-      let text = '有新版本，已下载完成；空闲时会自动更新（也可点「立即更新」）';
+      const ver = state.remote || state.running;
+      let text = ver
+        ? `v${ver} 已下载完成，空闲时会自动应用（也可点「立即更新」）`
+        : '有新版本，已下载完成；空闲时会自动更新（也可点「立即更新」）';
       if (state.data && since) {
         const newer = state.data.releases.filter((r) => cmpVersion(r.version, since) > 0);
         const n = newer.reduce((s, r) => s + r.groups.reduce((m, g) => m + g.items.length, 0), 0);
-        if (n > 0) text = `有 ${n} 条更新，已下载完成；空闲时会自动更新`;
+        if (n > 0) text = `v${ver || '新版'}：${n} 条更新（新功能 / 优化 / 修复），已下载完成，空闲时自动应用`;
       }
       showCard(text, { canUpdate: true });
     }

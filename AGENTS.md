@@ -95,6 +95,7 @@ python scripts/pwa_s1s3_test.py        # 首屏不阻塞 + AI 面板/润色/排�
 python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（输出 output/pwa_payload）
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
+python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）
 # · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
@@ -106,6 +107,10 @@ python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s
 # · 更新：打开 3s 后主动查 → 后台下载 → 空闲（不可见/空稿/30s 无输入且失焦）自动应用；
 #   `?reset-sw` 注销 SW + 清本站缓存并重载（卡住时的自救开关）。
 # · 首屏不阻塞：`#boot` 是底部小条（40px、pointer-events:none），引擎没就绪也能先输入。
+# · 模板库抽屉：打开时 `body.browsing` → 桌面端主区 `padding-right:460px` 让位（不遮挡预览）、
+#   编辑器收起、抽屉 460px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。
+# · 版本号由 build.mjs 自动生成 `1.0.<git 提交数>`，写 dist/version.json（不再手写死）。
+# · 预览里已移除「写留言/赞/在看」模拟底栏。
 # · 轻量即时预览：引擎未就绪时用 marked(12KB br) + 主题 styles 出近似排版，badge 标「快速预览」，
 #   **复制按钮锁到精确结果**；引擎空闲时启动，就绪后原地替换。
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
