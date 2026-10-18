@@ -1,5 +1,8 @@
 # HANDOVER — PWA 交接说明
 
+> **最新交接（2026-10-19 首页体验优化）**：先看 [`docs/handover-2026-10-19-ui-polish.md`](docs/handover-2026-10-19-ui-polish.md)。
+> 关键状态：首页优化已提交 `5c6eca3` 并 push，但 Cloudflare 部署失败（wrangler `fetch failed`），**线上仍是 build 119**；接手第一件事是重试部署并跑线上全量有头 E2E。
+
 > 写于 2026-10-18 12:15。对象：接手继续做这个 PWA 的人（包括未来的我和别的 agent）。
 > **先读 `docs/pwa-build-plan.md`（施工图）读细节，本文只讲「现在在哪、还差什么、怎么接着做」。**
 
@@ -8,7 +11,7 @@
 ## 0. 一句话现状
 
 **PWA 已上线**：https://supersu.ccwu.cc（自定义域名）+ https://supersu-pwa.pages.dev，粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**，线上域名有头实测渲染通过（2026-10-18）。
-**没做的**：推送探测、离线包、真机验收（见 §3）。
+**没做的**：推送探测、离线包、真机验收（见 §3）。**2026-10-19 首页优化已提交但未部署成功**，详见 `docs/handover-2026-10-19-ui-polish.md`。
 **2026-10-19 补**：小红书封面已落地——12 风格（归藏 2 × 3 尺寸 + 模板 10 × 3:4）、纯色/上传/Wikimedia 免 key 搜图、Noto 中文字体子集、断网可生成；有头测试 16/16。
 
 ⚠️ 2026-10-18 已完成基线提交（`0332b7f`）+ 部署上线。后续每完成一项仍按：跑 `smoke.py` → 单项提交 → 回 `files/TODO.md` 打勾。
@@ -44,6 +47,10 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 # 封面专项（12 风格 / 3 尺寸 / 上传 / Wikimedia 搜图 / 断网生成）
 .venv/Scripts/python.exe scripts/pwa_cover_test.py
 # 期望：PWA 封面有头测试：16/16 通过
+
+# 线上全量有头 E2E（打到 supersu.ccwu.cc，逐按钮 + 截图）
+.venv/Scripts/python.exe scripts/pwa_online_e2e.py
+# 期望：85 项左右通过，2 项预期 SKIP
 
 # 本地版回归（确认没把 main 的东西改坏）
 .venv/Scripts/python.exe tests/test_e2e.py          # 65/65
@@ -247,6 +254,7 @@ node pwa/scripts/build.mjs
 
 ## 10. 接手后建议的顺序
 
+0. **先处理 2026-10-19 首页优化**：重试 `deploy.sh` → 跑 `scripts/pwa_online_e2e.py` → 详情见 `docs/handover-2026-10-19-ui-polish.md`。
 1. ~~先提交~~ ✅（0332b7f）→ ~~部署 Cloudflare~~ ✅（supersu.ccwu.cc）→ ~~补「更多」菜单 + 离线验证~~ 见下
 2. **离线验证**（§3.3）→ Chrome DevTools 离线刷新，确认 SW 缓存够用
 3. **补「更多」菜单**（§3.4）→ 推送探测 + AI 配置
@@ -256,4 +264,4 @@ node pwa/scripts/build.mjs
 
 ---
 
-*本文档基于 2026-10-18 12:15 的实测状态撰写（构建通过、冒烟 23/23、未提交）。若与代码冲突，以代码与实测为准，并回来更新本文。*
+*本文档基于 2026-10-19 的实测状态更新（首页优化已提交未部署）。若与代码冲突，以代码与实测为准，并回来更新本文。*
