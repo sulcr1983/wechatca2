@@ -1,0 +1,21 @@
+SuperSu PWA · 字体许可说明
+================================
+
+本目录自托管以下字体（SIL Open Font License 1.1）：
+
+1) DM Sans
+   Copyright 2014 The DM Sans Project Authors
+   https://fonts.google.com/specimen/DM+Sans
+
+2) JetBrains Mono
+   Copyright 2020 The JetBrains Mono Project Authors
+   https://fonts.google.com/specimen/JetBrains+Mono
+
+3) Noto Sans SC（不随包分发，使用系统字体替代）
+   Copyright 2014-2021 Adobe, with Reserved Font Name 'Source'
+   https://fonts.google.com/noto/specimen/Noto+Sans+SC
+
+OFL-1.1 全文：https://openfontlicense.org/open-font-license-official-text/
+
+义务摘要：允许自由使用、修改、分发（含打包进产品），须保留版权声明与本许可文本；
+不得单独售卖字体本身；修改后不得使用保留字体名（Noto 的 RFN 为 "Source"）。

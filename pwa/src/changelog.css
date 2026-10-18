@@ -1,0 +1,495 @@
+/* SuperSu PWA · 更新记录面板
+ *
+ * 与 .drawer 视觉同族（同底色、同边框、同遮罩），但更宽、更「文档流」。
+ * 所有选择器都以 #cl- 的 ID 打头，确保不碰现有的 .drawer / .btn / body。
+ */
+
+#cl-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 75;                 /* 抽屉 50 / 对话框 61 之上，toast 90 之下 */
+  font-family: var(--font);
+  color: var(--text);
+}
+
+/* 组件自己写了 display:flex，原生 [hidden] 会被盖掉，这里必须 !important */
+#cl-layer[hidden],
+#cl-layer [hidden] { display: none !important; }
+
+#cl-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 18, 14, .28);
+  backdrop-filter: blur(1px);
+  animation: cl-fade .22s ease;
+}
+
+#cl-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(760px, 92vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-canvas);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  outline: 0;
+  animation: cl-slide .22s ease;
+}
+
+@keyframes cl-fade {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes cl-slide {
+  from { transform: translateX(24px); opacity: .4 }
+  to { transform: translateX(0); opacity: 1 }
+}
+
+/* ── 头部（不随主体滚动，等效吸顶） ───────────────────────────── */
+#cl-head {
+  flex: none;
+  height: 56px;
+  padding: 0 10px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+#cl-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+#cl-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--text);
+}
+
+#cl-version-pill {
+  flex: none;
+  height: 22px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(175, 62, 43, .16);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+}
+
+#cl-close {
+  margin-left: auto;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  color: var(--text-soft);
+  font-size: 15px;
+  line-height: 1;
+  transition: background .15s, color .15s;
+}
+
+#cl-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+#cl-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── 工具条（第二行吸顶） ─────────────────────────────────────── */
+#cl-toolbar {
+  flex: none;
+  padding: 12px 20px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+#cl-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#cl-search {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  outline: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+#cl-search::placeholder { color: var(--text-muted); }
+
+#cl-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+#cl-search::-webkit-search-cancel-button { filter: grayscale(1); }
+
+#cl-count {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#cl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#cl-chips button {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+#cl-chips button:hover {
+  border-color: var(--border-hi);
+  color: var(--text);
+}
+
+#cl-chips button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+#cl-chips button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── 更新提示条 ───────────────────────────────────────────────── */
+#cl-banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  color: var(--accent-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+#cl-banner::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ── 滚动主体 ─────────────────────────────────────────────────── */
+#cl-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 22px 28px 20px;
+}
+
+#cl-timeline {
+  position: relative;
+  padding-top: 2px;
+}
+
+/* 2px 竖线；节点圆点 12px，中心 6px，所以线落在 left:5px 才同心 */
+#cl-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 12px;
+  bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* ── 版本节点 ─────────────────────────────────────────────────── */
+#cl-panel .cl-rel {
+  position: relative;
+  padding: 0 0 26px 30px;
+}
+
+#cl-panel .cl-rel:last-child { padding-bottom: 10px; }
+
+#cl-panel .cl-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: var(--bg-raised);
+  border: 2px solid var(--border-hi);
+  transition: background .15s, border-color .15s;
+}
+
+/* 当前运行版本：实心朱砂 + 3px 浅朱砂外圈 */
+#cl-panel .cl-rel.is-current .cl-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+#cl-panel .cl-rel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+#cl-panel .cl-rel-ver {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .01em;
+}
+
+#cl-panel .cl-rel-date {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#cl-panel .cl-rel-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#cl-panel .cl-rel-count {
+  flex: none;
+  height: 20px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 分组 ─────────────────────────────────────────────────────── */
+#cl-panel .cl-group { padding-top: 11px; }
+
+#cl-panel .cl-group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 0 3px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+#cl-panel .cl-gdot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+#cl-panel .cl-gdot[data-type="added"] { background: var(--success); }
+#cl-panel .cl-gdot[data-type="fixed"] { background: var(--accent); }
+#cl-panel .cl-gdot[data-type="changed"] { background: #6B7C93; }
+#cl-panel .cl-gdot[data-type="removed"] { background: #B05A3C; }
+#cl-panel .cl-gdot[data-type="deprecated"] { background: #9B8A5A; }
+#cl-panel .cl-gdot[data-type="security"] { background: #8B3A62; }
+#cl-panel .cl-gdot[data-type="other"] { background: var(--text-muted); }
+
+/* ── 条目 ─────────────────────────────────────────────────────── */
+#cl-panel .cl-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#cl-panel .cl-item {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px 5px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.7;
+  transition: background .12s;
+}
+
+#cl-panel .cl-item:hover { background: var(--bg-hover); }
+
+#cl-panel .cl-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+#cl-panel .cl-breaking {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  margin-right: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+#cl-panel .cl-scope {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+#cl-panel .cl-hash {
+  flex: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .01em;
+}
+
+/* 「新」标记：默认不占位、不进无障碍树，is-new 时才亮出来 */
+#cl-panel .cl-new {
+  display: none;
+  flex: none;
+  align-items: center;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#cl-panel .cl-item.is-new::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+#cl-panel .cl-item.is-new .cl-new { display: inline-flex; }
+
+/* ── 空态 ─────────────────────────────────────────────────────── */
+#cl-empty {
+  padding: 56px 8px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ── 页脚 ─────────────────────────────────────────────────────── */
+#cl-foot {
+  flex: none;
+  padding: 9px 20px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 窄屏 ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #cl-panel {
+    width: 100%;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  #cl-head { padding: 0 8px 0 16px; }
+  #cl-toolbar { padding: 10px 14px 10px; }
+  #cl-banner { padding: 9px 14px; }
+  #cl-scroll { padding: 16px 14px 24px; }
+  #cl-foot { padding: 9px 14px; }
+
+  #cl-panel .cl-item { flex-wrap: wrap; row-gap: 2px; }
+  #cl-panel .cl-item-text { flex: 1 1 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #cl-mask,
+  #cl-panel { animation: none; }
+}

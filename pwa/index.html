@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F4EE">
+<meta name="description" content="SuperSu — 粘贴纯文本，得到排好版的公众号文章。全程在浏览器内运行，内容不上传。">
+<title>SuperSu · 公众号排版</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="stylesheet" href="./fonts/fonts.css">
+<link rel="stylesheet" href="./src/style.css">
+<link rel="stylesheet" href="./src/changelog.css">
+</head>
+<body>
+
+<!-- ── 引擎加载遮罩 ───────────────────────────────────────────── -->
+<div class="boot" id="boot">
+  <div class="boot-mark"><span class="boot-dot"></span></div>
+  <h1 class="boot-title">SuperSu</h1>
+  <p class="boot-sub" id="boot-label">正在加载排版引擎…</p>
+  <div class="boot-bar"><i id="boot-fill" style="width:0%"></i></div>
+  <p class="boot-note">引擎约 11MB，首次需下载；之后秒开且可离线使用。<br>文章内容始终留在你的浏览器里。</p>
+</div>
+
+<!-- ── 顶栏 ───────────────────────────────────────────────────── -->
+<header class="top">
+  <div class="top-left">
+    <span class="seal">版</span>
+    <span class="brand">SuperSu</span>
+    <span class="brand-sub">本地排版 · 数据不出浏览器</span>
+  </div>
+  <div class="top-right">
+    <span class="engine-badge" id="engine-badge" data-state="loading">
+      <i></i><span id="engine-text">引擎加载中</span>
+    </span>
+    <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
+    <div class="menu" id="menu" hidden>
+      <button data-act="draft">恢复草稿</button>
+      <button data-act="clear-draft">清空草稿</button>
+      <button data-act="clear-all">清除本地数据</button>
+      <button data-act="about">关于 / 源码</button>
+    </div>
+  </div>
+</header>
+
+<!-- ── 主体 ───────────────────────────────────────────────────── -->
+<main class="stage" id="stage" data-tab="edit">
+
+  <!-- 左：编辑 -->
+  <section class="pane pane-edit" id="pane-edit">
+    <div class="pane-head">
+      <span class="pane-title">内容</span>
+      <div class="pane-actions">
+        <button class="ghost-btn" id="btn-demo">看示例</button>
+        <button class="ghost-btn" id="btn-clear">清空</button>
+        <span class="pane-meta" id="char-count">0 字</span>
+      </div>
+    </div>
+    <textarea id="input" class="input" spellcheck="false"
+      placeholder="把文章粘进来。
+
+第一行会自动当作标题，前后空行的短行会变成小标题，
+「-」开头变列表，「>」开头变引用，Git 命令会自动变代码块。
+
+也可以直接写 Markdown。"></textarea>
+    <div class="parse-bar" id="parse-bar">
+      <span class="parse-hint">粘贴后自动识别结构</span>
+    </div>
+  </section>
+
+  <!-- 右：预览 -->
+  <section class="pane pane-preview" id="pane-preview">
+    <div class="pane-head">
+      <span class="pane-title">预览</span>
+      <div class="pane-actions">
+        <button class="ghost-btn" id="btn-mode" title="切换手机 / 网页视图">手机</button>
+        <button class="primary-btn" id="btn-copy" disabled>复制到公众号</button>
+      </div>
+    </div>
+
+    <div class="preview-wrap" id="preview-wrap">
+      <div class="phone-shell" id="phone-shell" hidden>
+        <div class="wx-nav"><span>‹</span><span class="wx-nav-title" id="wx-title">未命名</span><span>⋯</span></div>
+        <iframe id="preview" class="preview" title="预览" sandbox="allow-same-origin"></iframe>
+        <div class="wx-bar"><span>写留言</span><span>赞</span><span>在看</span></div>
+      </div>
+      <div class="preview-empty" id="preview-empty">
+        <b>左边写点什么</b>
+        <span>排版会实时出现在这里</span>
+      </div>
+    </div>
+
+    <div class="style-bar" id="style-bar">
+      <button class="style-scroll" data-dir="-1" aria-label="往前">‹</button>
+      <div class="style-caps" id="style-caps"></div>
+      <button class="style-scroll" data-dir="1" aria-label="往后">›</button>
+      <button class="style-more" id="btn-themes">全部风格</button>
+    </div>
+  </section>
+</main>
+
+<!-- 移动端底部切换 -->
+<nav class="tabs" id="tabs">
+  <button data-tab="edit" aria-pressed="true">内容</button>
+  <button data-tab="preview" aria-pressed="false">预览</button>
+</nav>
+
+<!-- ── 主题抽屉 ───────────────────────────────────────────────── -->
+<div class="drawer-mask" id="drawer-mask" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="风格库">
+  <div class="drawer-head">
+    <b>风格库</b>
+    <input class="drawer-search" id="drawer-search" type="search" placeholder="搜名字或 id…" aria-label="搜索风格">
+    <button class="icon-btn" id="btn-drawer-close" aria-label="关闭">×</button>
+  </div>
+  <div class="drawer-filters" id="drawer-filters"></div>
+  <div class="drawer-grid" id="drawer-grid"></div>
+</aside>
+
+<!-- ── 关于 ───────────────────────────────────────────────────── -->
+<div class="dialog-mask" id="about-mask" hidden></div>
+<div class="dialog" id="about" hidden role="dialog" aria-modal="true">
+  <div class="dialog-head"><b>关于 SuperSu</b><button class="icon-btn" id="btn-about-close" aria-label="关闭">×</button></div>
+  <div class="dialog-body">
+    <p>公众号排版 + 小红书封面，纯本地运行。粘贴纯文本，自动识别结构，套上主题，一键复制到公众号后台。</p>
+    <p><strong>你的内容不会离开这个浏览器。</strong>没有后端、没有账号、没有埋点。草稿存在浏览器本地存储，清除浏览器数据即消失。</p>
+    <p>引擎在浏览器里用 WebAssembly 跑 Python，与本地版同一套代码，输出完全一致。</p>
+    <p class="about-links">
+      <a href="https://github.com/sulcr1983/wechatca2" target="_blank" rel="noopener">源代码</a>
+      <span>·</span>
+      <span>AGPL-3.0</span>
+      <span>·</span>
+      <a href="https://github.com/sulcr1983/wechatca2/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">第三方许可</a>
+    </p>
+  </div>
+</div>
+
+<!-- ── 右下角更新入口 ──────────────────────────────────────────── -->
+<button class="upd-btn" id="btn-update" hidden title="查看更新记录" aria-label="更新记录">
+  <span class="upd-dot" id="upd-dot" hidden></span>
+  <span class="upd-ver" id="upd-ver">v—</span>
+</button>
+
+<!-- 新版本提示卡（非阻塞，出现在更新按钮上方） -->
+<div class="upd-card" id="upd-card" hidden role="status" aria-live="polite">
+  <b>有新版本可用</b>
+  <p id="upd-card-text">排版引擎和界面有更新。</p>
+  <div class="upd-actions">
+    <button class="ghost-btn" id="upd-later">稍后</button>
+    <button class="primary-btn" id="upd-now">立即更新</button>
+  </div>
+</div>
+
+<!-- ── toast ──────────────────────────────────────────────────── -->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

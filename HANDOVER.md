@@ -1,0 +1,251 @@
+# HANDOVER — PWA 交接说明
+
+> 写于 2026-10-18 12:15。对象：接手继续做这个 PWA 的人（包括未来的我和别的 agent）。
+> **先读 `docs/pwa-build-plan.md`（施工图）读细节，本文只讲「现在在哪、还差什么、怎么接着做」。**
+
+---
+
+## 0. 一句话现状
+
+**PWA 的排版主链路已经跑通并且可以发布了**：粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**。
+**没做的**：封面页、Cloudflare 部署、离线包、真机验收。
+
+⚠️ **当前所有改动都还没提交**（`git status` 里一堆 `??`）。接手第一件事：跑一遍 §1.3 的验证，确认全绿后立刻提交，否则没有回滚基线。
+
+---
+
+## 1. 30 秒上手
+
+### 1.1 环境
+| 项 | 值 |
+|---|---|
+| 仓库 / 分支 | `E:\test\wechatca2` / **`pwa` 分支** |
+| 分支基线 | `c527004 fix(preprocess): 修中文小标题识别不出来` |
+| Python | `E:\test\wechatca2\.venv\Scripts\python.exe`（**别用系统 python**） |
+| Node | v22.22.2（只有构建脚本用，无 npm 依赖） |
+| 浏览器 | 系统 Chrome（`core/browser_utils.py` 已统一 Chrome 优先） |
+
+### 1.2 跑起来
+```bash
+cd /e/test/wechatca2
+node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，15s）
+.venv/Scripts/python.exe -m http.server 8080 -d pwa/dist
+# 打开 http://127.0.0.1:8080   首次要下 11MB Pyodide，耐心等进度条
+```
+**必须走 http://**，`file://` 打开会因为 fetch / Service Worker 受限而跑不起来。
+
+### 1.3 验证（唯一可信的健康度判据）
+```bash
+# PWA 有头冒烟（起静态服务 + 真实 Chrome 走一遍核心链路）
+.venv/Scripts/python.exe pwa/scripts/smoke.py
+# 期望：PWA 有头冒烟：23/23 通过
+
+# 本地版回归（确认没把 main 的东西改坏）
+.venv/Scripts/python.exe tests/test_e2e.py          # 65/65
+.venv/Scripts/python.exe tests/test_api_e2e.py      # 29/29（自起服务，要求 5000 空闲）
+```
+本地版全量基线：**65 / 35 / 29 / 33 / 7 / 12 = 181 全绿**。
+
+---
+
+## 2. 进度到哪了
+
+对照 `files/TODO.md` 的 PWA 编号：
+
+| 编号 | 任务 | 状态 |
+|---|---|---|
+| PWA-0a/0b/0c | 可行性验证（Pyodide 跑引擎、浏览器内截图） | ✅ 逐字节一致；封面截图 792ms 出 1080×1440 |
+| PWA-1.1 | `pwa/` 骨架 + 设计系统 + manifest + 图标 + 启动遮罩 | ✅ |
+| PWA-1.2 | Pyodide Worker + bridge + build.mjs | ✅ 引擎启动 6.7s、渲染 436 字 415ms |
+| PWA-1.3 | 主题索引 + 164 缩略图 + 风格胶囊 + 六族抽屉 | ✅ 164 套可选、缩略图真实加载 |
+| PWA-1.4 | 防抖渲染 + 解析条 + 手机/网页视图 | ✅ |
+| PWA-1.5 | 复制三级降级 + 草稿 + 清本地数据 | ✅ 代码齐（**但「粘贴到公众号样式完整」这条没在自动化里实测，需人工确认**） |
+| PWA-2.1–2.3 | 封面 19 种风格 / 三尺寸 / 底图三合一 | ❌ **完全没做** |
+| PWA-3.1 | manifest + SW + 离线 | 🟡 SW 已注册、策略已写；**断网验证没做** |
+| PWA-3.2 | 「更多」菜单：推送探测本机 / AI 配置 | ❌ 只做了草稿/清数据/关于 |
+| PWA-3.3 | 合规收尾 | 🟡 LICENSE、THIRD_PARTY_NOTICES、关于页链接都有；构建断言已跑 |
+| PWA-3.4 | 部署 Cloudflare Pages | ❌ **没做（苏哥明确要求过，被中断）** |
+| PWA-3.5 | 离线包 zip | ❌ |
+| PWA-4.1–4.2 | 真机验收 + 群友试用 | ❌ |
+| （新增）更新管理 | 见 §7 | 🟡 代码齐、构建通过、**面板未在冒烟里覆盖** |
+
+---
+
+## 3. 未完成清单（按该做的顺序）
+
+### 3.1 【最高优先】部署到 Cloudflare Pages
+苏哥明确要求过"去 Cloudflare 自己建个项目地址"，被打断了。
+
+```bash
+# 凭证在 E:\test\opendoor\.env（CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN）
+# 项目名约定：supersu-pwa    目标网址：https://supersu-pwa.pages.dev
+```
+要做：
+1. 写 `pwa/scripts/deploy.sh`：从 `E:/test/opendoor/.env` 读两个变量注入环境（**不落盘、不打印**），`npx wrangler pages deploy pwa/dist --project-name=supersu-pwa`
+2. 首次部署会创建项目；若无权限需在 Cloudflare 后台手动先建项目
+3. 部署后必须验证：`curl --noproxy '*'` 打开首页 200 + 关键资源可达
+4. ⚠️ `pages.dev` 国内不稳定（DNS 污染），发群前同时给离线包
+
+### 3.2 封面（D5，最大一块）
+- 施工图里已留开关：`node pwa/scripts/build.mjs --cover`
+- **卡点**：归藏封面模板外链了 5 个 Google Fonts，构建断言会拦。必须先把字体本地化：
+  1. 拉丁三族（Playfair Display / Inter / IBM Plex Mono）下载自托管
+  2. 中文两族（Noto Serif SC / Noto Sans SC）按常用 3500 字子集化，否则单字重 8MB+
+  3. 改写 10 个模板的 `<link>` 为本地 `@font-face`，断言才能过
+- 截图方案已验证：`html-to-image@1.11.13`，`skipFonts: true`，792ms 出 1080×1440
+- BLCaptain 9 种风格原本靠 Node CLI + Playwright，**浏览器里跑不了 Node**，需要把它的 HTML 模板取出来、数据注入改成 JS，再用同一套 html-to-image 出图
+
+### 3.3 离线验证（PWA-3.1 收尾）
+```bash
+# Chrome DevTools → Application → Service Workers → Offline → 刷新
+```
+期望：仍能用（引擎和主题都已在缓存里）。
+`sw.js` 的 `SHELL` 预缓存清单已含 `src/update.js`、`src/changelog.js`、`src/changelog.css`、`version.json`、`changelog.json`（2026-10-18 补齐）。**以后新增前端模块，务必同步往 SHELL 里加**，否则离线时该模块静默不可用。
+
+### 3.4 「更多」菜单补两项（PWA-3.2）
+- 推送草稿箱：点击时 `fetch('http://127.0.0.1:5000/api/server-ip', {mode:'cors'})` 探测本机服务；通则桥接，不通提示「需在本机运行 SuperSu」
+- AI 润色/智能排版：入口 + 用户自填 Key（存 localStorage，纯前端直连 LLM）
+
+### 3.5 离线包（PWA-3.5）
+`pwa/dist` 打 zip + `使用说明.txt`（解压 → 起静态服务 → 打开）。注意：双击 `index.html` 用 `file://` 打不开，必须说明要起服务。
+
+---
+
+## 4. 文件地图
+
+```
+pwa/
+├─ index.html                 app shell（顶栏/编辑区/预览/风格条/抽屉/关于/更新按钮）
+├─ version.json               版本号（当前 1.0.0）—— 更新检测靠它
+├─ src/
+│  ├─ style.css               设计系统 + 全部布局（暖纸朱砂，变量与本地版共用）
+│  ├─ app.js                  主交互：主题列表/防抖渲染/解析条/复制/草稿/抽屉（570 行）
+│  ├─ bridge.js               主线程 ⇄ Worker 的 Promise 化通道（含超时）
+│  ├─ engine.worker.js        Pyodide 加载 + 引擎调用 + 进度上报
+│  ├─ update.js               版本检测 / SW 更新流程 / 右下角按钮 / 提示卡
+│  ├─ changelog.js            更新记录面板（时间线 + 搜索 + 类型筛选，618 行）
+│  └─ changelog.css           面板样式（全部 #cl- 前缀，495 行）
+├─ public/
+│  ├─ manifest.webmanifest    name/icons/shortcuts
+│  ├─ sw.js                   Service Worker（307 行，三种缓存策略）
+│  ├─ icons/                  5 张图标（192/512/maskable/apple-touch/favicon）
+│  ├─ fonts/                  DM Sans + JetBrains Mono（8 woff2，154KB）+ OFL.txt
+│  └─ changelog.json          更新记录数据（由 gen_changelog.py 生成）
+├─ scripts/
+│  ├─ build.mjs               白名单构建 + 三条断言 + 主题索引 + markdown.zip（核心）
+│  ├─ smoke.py                有头冒烟测试（23 项）
+│  ├─ gen_changelog.py        git 历史 → changelog.json + CHANGELOG.md
+│  ├─ changelog_milestones.json  版本切分配置（手工维护）
+│  ├─ make_icons.py           图标生成（Pillow，可复现）
+│  └─ fetch_fonts.py          字体下载 + CSS 本地化
+└─ dist/                      构建产物（gitignore，不要手改）
+```
+
+**构建时进 `dist/` 的东西**（白名单，见 `build.mjs`）：app shell、字体、164 套主题 JSON + `themes/index.json`、164 张缩略图、`py/{preprocessor.py, format_engine.py, markdown.zip}`、`version.json`、`changelog.json`、manifest、sw.js、icons。封面模板走 `--cover` 才拷。
+
+---
+
+## 5. 踩过的坑（别重犯）
+
+| 坑 | 现象 | 结论 |
+|---|---|---|
+| **Worker 相对路径** | 引擎启动卡住，控制台 404 | Worker 在 `/src/` 下，`fetch('py/x')` 会解析成 `/src/py/x`。必须 `new URL('../py/x', self.location.href)` |
+| **`[hidden]` 被 `display:flex` 覆盖** | 抽屉明明 `hidden` 却挡住按钮点击 | CSS 顶部加 `[hidden] { display: none !important; }` |
+| **markdown 打包缺 dist-info** | `ModuleNotFoundError: No module named 'tables'` | markdown 3.10 用 entry points 解析扩展名，zip 里必须带 `markdown-<ver>.dist-info/{METADATA,entry_points.txt,top_level.txt,WHEEL}` |
+| **`doc.write` 进 sandbox iframe** | 控制台刷 `Blocked script execution ... sandboxed` | 改用 `iframe.srcdoc = html`，纯数据赋值，无脚本注入 |
+| **内联事件属性** | 同上，`onerror=` 会被当脚本 | 全部 `addEventListener`（缩略图失败用捕获阶段委托） |
+| **单线程测试服务器** | 164 张缩略图随机 `ERR_FAILED` | `ThreadingHTTPServer` + `request_queue_size = 256`；另外 lazy 图被浏览器取消属正常，测试里单独归类 |
+| **右下角浮动按钮压住风格条** | 有头测试点不到「全部风格」 | `.style-bar { padding-right: 96px }` 给它让位 |
+| **Clash 系统代理拦 localhost** | curl 502 / Playwright 连不上 | curl 加 `--noproxy '*'`；浏览器 `args:['--no-proxy-server']` |
+| **Playwright channel 顺序** | 一直弹 Edge 不弹 Chrome | `browser_utils.BROWSER_CHANNELS = ("chrome","msedge")`，已修 |
+| **`start-app.bat` 的 cmd start** | 启动页弹星愿浏览器 | 已删那行，改由 `app.py::open_browser()` 走 Chrome（本地版的事，PWA 无关） |
+
+---
+
+## 6. 三条数据流
+
+**① 排版**
+```
+textarea → 400ms 防抖 → bridge.render(text)
+  → Worker: pyodide.runPython 里 preprocessor.preprocess(text,'auto')
+           → format_engine.convert_markdown_to_wechat_html(md, '/home/pyodide/active-theme.json')
+  → { html, markdown } → iframe.srcdoc = html → 解析条统计 markdown
+```
+主题 JSON 由 `bridge.setTheme(id, jsonText)` 写进 Pyodide 内存 FS，首次切换才写（有 id 去重）。
+
+**② 复制**
+`ClipboardItem(text/html)` → `execCommand('copy')` → 手动指引浮层（三级降级）。
+
+**③ 更新**
+见 §7。
+
+---
+
+## 7. 更新管理怎么设计的
+
+按业界成熟做法（Workbox 官方文档 / web.dev 同一套），**核心原则：永远不自动换掉用户正在用的版本**。
+
+```
+页面加载
+ ├─ fetch version.json (no-store) → 当前运行版本 v1.0.0 → 右下角按钮显示
+ ├─ fetch changelog.json → 喂给更新记录面板
+ ├─ localStorage.seenVersion 对比：
+ │    有值且 < 运行版本 → 说明刚更新过 → 900ms 后自动弹更新记录（高亮 since 之后的条目）
+ │    无值 → 首次访问 → 静默记下，不打扰
+ └─ registerSW({ updateViaCache:'none' })   ← 关键：不让 HTTP 缓存住 sw.js
+      ├─ updatefound → installing.statechange='installed' && 已有 controller
+      │    → state.waiting 存起来 → 右下角红点 + 提示卡「有 N 条更新」
+      ├─ 用户点「立即更新」→ waiting.postMessage({type:'SKIP_WAITING'})
+      │    → controllerchange → location.reload()（只 reload 一次）
+      ├─ 用户点「稍后」→ 记 dismissedVersion，本次不再打扰
+      └─ 每小时 + 回到前台 → registration.update()；同时轮询 version.json
+```
+
+**两个独立线索都保留**：SW 更新保证资源一致；`version.json` 轮询保证「用户一直不关标签页」也能发现远端已发新版。
+
+**更新记录数据**：`pwa/public/changelog.json`，由 `pwa/scripts/gen_changelog.py` 从 git 历史生成（Keep a Changelog 分类 + Conventional Commits 解析 + 非规范提交兜底归 `other`）。版本切分靠 `changelog_milestones.json`（手工维护 9 个里程碑）。改完代码要重新生成：
+```bash
+.venv/Scripts/python.exe pwa/scripts/gen_changelog.py
+node pwa/scripts/build.mjs
+```
+
+**发新版流程**（正规做法）：
+1. 改 `pwa/version.json` 的 version（SemVer：新功能 +minor、只修 bug +patch）
+2. 在 `changelog_milestones.json` 顶部加一条里程碑
+3. 跑 `gen_changelog.py` → 跑 `build.mjs` → 部署
+4. `sw.js` 的 `VERSION` 常量**也要一起改**（`v1` → `v2`），否则缓存不换名
+
+---
+
+## 8. 需要苏哥拍板的事
+
+| # | 事项 | 现状 | 建议 |
+|---|---|---|---|
+| 1 | **更新记录生成器要不要换成现成轮子** | 现在是零依赖自研 `gen_changelog.py`（约 200 行） | 候选：`git-cliff`（Rust 单二进制，快、模板化）或 `conventional-changelog-cli`（npm 全局包）。两者都能用，代价是引入新运行时。个人项目建议维持零依赖 |
+| 2 | **封面字体子集化方案** | 未定 | 中文两族按 3500 常用字子集（约 1-2MB/字重）；若嫌大，可让中文退回系统字体（视觉略降级） |
+| 3 | **域名走哪一阶段** | 未定 | `pages.dev` 先自测 → 群里发时同时给离线包 → 要长期稳定需自购域名 + 备案 + 国内 CDN |
+| 4 | 图标四角透明 | apple-touch-icon 带透明圆角，iOS 会填黑 | 上真机看，觉得难看就改满铺版（`make_icons.py` 一行参数） |
+
+---
+
+## 9. 环境与凭证
+
+- **Cloudflare**：账号复用 `E:\test\opendoor`，凭证在同目录 `.env`。**不要复制进本仓库、不要提交、不要在日志/对话里打印**。
+- **`.gitignore` 已排除**：`pwa/dist/`、`pwa/node_modules/`、`data/`、`.env`、`output/`、`blcaptain-style-skill/`（vendored）。
+- **`docs/pwa-spike/`** 里是阶段 0 的验证证据（2.4MB 的 PNG），不是运行时依赖。
+- **本地版（main 分支能力）没动**：`core/`、`app.py`、`templates/` 都还是本地版那套，PWA 只读不写。
+
+---
+
+## 10. 接手后建议的顺序
+
+1. **先提交**（跑完 §1.3 验证）→ 建立基线
+2. **部署 Cloudflare**（§3.1）→ 先有个能打开的网址，后面每一步都能给别人看
+3. **补「更多」菜单 + 离线验证**（§3.4、§3.3）→ 功能闭环
+4. **封面**（§3.2）→ 最大一块，要先把字体搞定
+5. **离线包 + 真机验收**（§3.5、PWA-4.x）
+6. 全程：每完成一项 → 跑 `smoke.py` → 单项提交 → 回 `files/TODO.md` 打勾 → 重新生成 changelog
+
+---
+
+*本文档基于 2026-10-18 12:15 的实测状态撰写（构建通过、冒烟 23/23、未提交）。若与代码冲突，以代码与实测为准，并回来更新本文。*
