@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperSu 功能扩展方案 — 向 135 / 秀米 / 壹伴 靠近</title>
+<style>
+  :root{
+    --bg:#F7F4EE; --bg-2:#FAF9F5; --card:#FFFFFF;
+    --bd:#EAE6DD; --bd-hi:#D8D2C6;
+    --tx:#191713; --tx-soft:#6E6759; --tx-mute:#9B9484;
+    --accent:#AF3E2B; --accent-soft:#F3E4E0; --ok:#5F8F73; --warn:#B8863B;
+    --r-lg:16px; --r:12px; --r-sm:8px;
+    --shadow:0 1px 2px rgba(25,23,19,.05), 0 8px 24px rgba(25,23,19,.06);
+    --mono:"JetBrains Mono","SFMono-Regular",Consolas,monospace;
+    --sans:"PingFang SC","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.75 var(--sans)}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(175,62,43,.3)}
+  a:hover{border-bottom-color:var(--accent)}
+
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px 96px}
+  header.top{background:var(--card);border-bottom:1px solid var(--bd);padding:28px 0 24px;margin-bottom:32px}
+  header.top .wrap{padding-bottom:0}
+  .mark{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:13px;color:var(--tx-soft);letter-spacing:.02em}
+  .seal{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+  h1.title{font-size:29px;line-height:1.35;margin:14px 0 8px;letter-spacing:-.01em}
+  .sub{color:var(--tx-soft);font-size:14px;margin:0}
+  .meta{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-block;padding:3px 10px;border-radius:99px;background:var(--bg-2);border:1px solid var(--bd);font-size:12px;color:var(--tx-soft)}
+  .chip.accent{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+
+  nav.toc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;margin-bottom:28px;box-shadow:var(--shadow)}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px}
+  @media (max-width:700px){nav.toc ol{columns:1}}
+  nav.toc li{margin:3px 0;font-size:13.5px}
+
+  h2{font-size:20px;margin:40px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+  h2 .num{color:var(--accent);font-family:var(--mono);font-size:15px;margin-right:8px}
+  h3{font-size:16px;margin:26px 0 8px}
+  h4{font-size:14px;margin:18px 0 6px;color:var(--tx-soft)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--bg-2);border:1px solid var(--bd);border-radius:5px;padding:1px 5px}
+
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;margin:14px 0;box-shadow:var(--shadow)}
+  .card.flat{box-shadow:none}
+  .note{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 16px;margin:14px 0;font-size:14px}
+  .note.ok{border-color:var(--ok);background:#EAF1EC}
+  .note.warn{border-color:var(--warn);background:#F7F0E2}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;background:var(--card);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+  th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top}
+  th{background:var(--bg-2);font-weight:600;color:var(--tx-soft);font-size:12.5px;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  td.c,th.c{text-align:center;white-space:nowrap}
+  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  .pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .p0{background:#F6E3DF;color:#8E2F1C}
+  .p1{background:#F3EDDD;color:#8A6A22}
+  .p2{background:#EDEDEA;color:#5F5B52}
+  .yes{color:var(--ok);font-weight:600}
+  .no{color:var(--tx-mute)}
+  .tbd{font-family:var(--mono);font-size:12px;color:var(--warn)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:760px){.grid2{grid-template-columns:1fr}}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+  .kpi .k{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px}
+  .kpi .k b{display:block;font-size:22px;line-height:1.2;color:var(--accent)}
+  .kpi .k span{font-size:12.5px;color:var(--tx-soft)}
+
+  .spec{border-left:2px solid var(--bd-hi);padding-left:14px;margin:12px 0}
+  .spec dl{margin:0}
+  .spec dt{font-size:12.5px;color:var(--tx-mute);font-weight:600;margin-top:9px}
+  .spec dd{margin:2px 0 0;font-size:14px}
+
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--bd);color:var(--tx-mute);font-size:12.5px}
+  .legend{font-size:12.5px;color:var(--tx-soft);margin:6px 0 0}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="mark"><span class="seal">版</span> SuperSu · 功能扩展方案</div>
+    <h1 class="title">向 135编辑器 / 秀米 / 壹伴 靠近：功能清单与落地顺序</h1>
+    <p class="sub">纯本地、内容不出浏览器；零 AI 也能出稿。本方案只补「编辑与分发」的硬能力，不碰他们的 AI 与素材库。</p>
+    <div class="meta">
+      <span class="chip accent">2026-10-19</span>
+      <span class="chip">30 项功能 · 5 个批次</span>
+      <span class="chip">原型：docs/prototypes/feature-expansion.html</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <ol>
+    <li><a href="#s1">一页看懂</a></li>
+    <li><a href="#s2">产品边界：守什么 / 不追什么</a></li>
+    <li><a href="#s3">功能总清单（30 项）</a></li>
+    <li><a href="#s4">P0 详解（6 项）</a></li>
+    <li><a href="#s5">与竞品功能对照</a></li>
+    <li><a href="#s6">批次与验收</a></li>
+    <li><a href="#s7">待定项</a></li>
+  </ol>
+</nav>
+
+<h2 id="s1"><span class="num">01</span>一页看懂</h2>
+
+<table>
+  <tr><th style="width:110px">项</th><th>内容</th></tr>
+  <tr><td>给谁</td><td>写公众号的个人作者（本项目主要用户＝苏哥本人，兼顾开源后的外部用户）</td></tr>
+  <tr><td>从哪开始</td><td>在编辑器里写完 / 粘贴完一篇文章</td></tr>
+  <tr><td>要完成什么</td><td>把这篇稿子「发出去或交出去」——公众号、小红书、朋友圈、存档交付</td></tr>
+  <tr><td>算完成</td><td>目标平台的成品可以拿到手，且内容不失真（字没丢、图能显示、样式在）</td></tr>
+  <tr><td>现状缺口</td><td>现在出口只有「复制富文本」一条；没有长图、没有文件导出、外链图到公众号会失效、主题不能自定义</td></tr>
+</table>
+
+<div class="kpi">
+  <div class="k"><b>30</b><span>功能项（含扩展项）</span></div>
+  <div class="k"><b>6</b><span>P0 必做</span></div>
+  <div class="k"><b>0</b><span>新增外部依赖（P0 全部复用现有能力）</span></div>
+  <div class="k"><b>0</b><span>新增后端要求（P0 纯前端可完成）</span></div>
+</div>
+
+<div class="note">
+  <b>一句话策略</b>：他们卖「素材量 + AI + 多人协作」；我们补「出口数量 + 内容保真 + 样式可控」。前者靠钱堆，后者靠工程。
+</div>
+
+<h2 id="s2"><span class="num">02</span>产品边界：守什么 / 不追什么</h2>
+
+<div class="grid2">
+  <div class="card">
+    <h4>守住（我们的差异点，不能为了像他们而丢掉）</h4>
+    <ul>
+      <li><b>纯本地 / 纯前端</b>：文章不出浏览器；不做云端账号体系</li>
+      <li><b>零 AI 也能出稿</b>：AI 是可选加速器，不是必经之路</li>
+      <li><b>免费 + 开源</b>：不做会员付费墙、不做素材按次购买</li>
+      <li><b>164 套自研主题</b>：字号已对齐业界标尺，不做「数量军备竞赛」</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>不追（做了会毁掉立身之本）</h4>
+    <ul>
+      <li><b>AI 写作 / 仿写 / AI 标题</b>：他们全押 AI；我们只保留 BYOK 可选</li>
+      <li><b>几万套素材库</b>：版权与设计成本黑洞，收益边际递减</li>
+      <li><b>团队协作 / 多账号 / 数据分析 / 活码 / 批量回复</b>：个人工具用不上，且必须后端 + 认证服务号</li>
+      <li><b>定时群发</b>：需微信认证服务号与后端常驻</li>
+      <li><b>H5 页面制作</b>：那是秀米的另一条产品线，不是排版工具的事</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note warn">
+  <b>关于 135 的 SVG 交互动效（唯一想追但不建议现在追的）</b>：它之所以能活，是因为 135 走<b>公众号 API 上传</b>而不是复制粘贴——复制进公众号后台时微信会清洗标签，SVG / JS 全废。本项目本地版已有 <code>/api/push</code> 草稿箱推送这条路径，理论上可承载；但它是「一条新链路」而非一个前端小功能，且需要认证服务号 + IP 白名单。列入待定（见 §7）。
+</div>
+
+<h2 id="s3"><span class="num">03</span>功能总清单（30 项）</h2>
+
+<p class="legend">成本为粗略估算（人日），非承诺值；「落点」＝主要改动位置。<span class="pill p0">P0</span> 必做 · <span class="pill p1">P1</span> 顺手做 · <span class="pill p2">P2</span> 可选。</p>
+
+<div class="tbl-scroll">
+<table>
+  <tr>
+    <th class="c">#</th><th>功能</th><th>解决什么问题</th><th>关键行为</th><th class="c">成本</th><th>落点</th><th class="c">优先级</th>
+  </tr>
+  <tr><td class="c">1</td><td><b>长图导出</b></td><td>公众号发不了长图；朋友圈/小红书要的是图</td><td>整篇文章渲成一张竖版 PNG（宽度 1080，高度自适应；超长自动拼接）</td><td class="c">0.5 天</td><td>PWA（复用 modern-screenshot）+ 本地版（Playwright 整页截图）</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">2</td><td><b>导出 HTML 文件</b></td><td>留档、给客户交稿、二次使用</td><td>下载一个自包含 .html（样式全内联，双击可看）</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">3</td><td><b>导出 PDF</b></td><td>正式交付、打印、归档</td><td>调浏览器打印另存为 PDF，A4 或窄版可选</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">4</td><td><b>导出 Word（.docx）</b></td><td>对方只接受 Word</td><td>HTML → 简单 docx（保留标题/段落/列表/加粗）</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">5</td><td><b>导出 / 导入 Markdown</b></td><td>我们的内核本来就是 Markdown，用户却拿不到源文件</td><td>下载 .md；也能把 .md 拖回来继续编辑</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">6</td><td><b>外链图本地化</b></td><td>公众号拦外链图（防盗链）→ 复制过去变白图</td><td>渲染前扫描外链 <code>&lt;img&gt;</code>：能抓的转内嵌，抓不到的进正文上方提示条</td><td class="c">1 天</td><td>前端 + 引擎</td><td class="c"><span class="pill p0">P0</span></td></tr>
+
+  <tr><td class="c">7</td><td>九宫格切图</td><td>朋友圈/小红书九图最常用</td><td>拖一张图 → 3×3 切成 9 张（可调间距/顺序），打包下载</td><td class="c">0.5 天</td><td>前端 Canvas</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">8</td><td>我的主题（自定义）</td><td>164 套都是别人的；用户想存自己的配色字号</td><td>在现有主题上调 4 个色 + 正文字号 + 圆角 → 存本机；可命名/删除</td><td class="c">1 天</td><td>前端 + 引擎</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">9</td><td>主题导入 / 导出（JSON）</td><td>换机迁移、分享给朋友</td><td>导出全部自定义主题为一个 .json；导入合并（同 id 提示覆盖）</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">10</td><td>标点 / 半角自检</td><td>中文里混半角标点、重复标点很常见且扎眼</td><td>列出问题清单（行号 + 原文 + 建议），逐条点击跳转，<b>不改写得由用户确认</b></td><td class="c">1 天</td><td>引擎（本地规则）</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">11</td><td>结构大纲视图</td><td>长文改稿时找段落费劲</td><td>侧栏列出所有标题层级，点击滚动到该段</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">12</td><td>一键加小节序号</td><td>公文/长文要「一、二、三」</td><td>按当前标题层级自动加 <code>一、</code>/<code>（一）</code>/<code>1.</code>/<code>（1）</code>，可一键撤销</td><td class="c">0.5 天</td><td>引擎</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">13</td><td>草稿箱（多篇）</td><td>现在只存「最后一份草稿」，写第二篇第一篇就没了</td><td>本地保存多篇（标题+时间），支持新建/切换/删除/搜索</td><td class="c">1.5 天</td><td>前端</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">14</td><td>图片基础处理</td><td>图太大上传慢、尺寸不合适</td><td>压缩（质量/宽度滑块）、裁剪、加圆角/边框，处理完写回正文</td><td class="c">1.5 天</td><td>前端 Canvas</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">15</td><td>多主题一屏对比</td><td>选主题靠来回点，选不准</td><td>同一篇文章并排渲 4 套缩略预览，点中即应用</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">16</td><td>字数 / 阅读时长统计</td><td>发文前想知道篇幅</td><td>底栏显示 字数 / 预计阅读 x 分钟（按 400 字/分）</td><td class="c">0.2 天</td><td>前端</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">17</td><td>二维码生成</td><td>文末放跳转码</td><td>输入链接 → 生成二维码图片（可加白边/圆角/LOGO）</td><td class="c">0.5 天</td><td>前端 Canvas</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">18</td><td>表格移动端优化</td><td>宽表格在手机上挤成一坨</td><td>表格超宽时自动转「卡片式」或加横向滚动容器（可选开关）</td><td class="c">1 天</td><td>引擎</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">19</td><td>图片说明（图注）</td><td>排版里「[图片：xxx]」现在只是普通文字</td><td>识别为图注样式（小字灰色居中），保持原文</td><td class="c">0.5 天</td><td>引擎</td><td class="c"><span class="pill p1">P1</span></td></tr>
+  <tr><td class="c">20</td><td>批量导出图片</td><td>文章里多张图想单独取出来</td><td>把正文所有图（含外链已本地化的）打包成 zip</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p1">P1</span></td></tr>
+
+  <tr><td class="c">21</td><td>历史版本回滚</td><td>改坏了想退回上一稿</td><td>本地按时间存快照（保留最近 20 版），可预览/回滚</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">22</td><td>文章体裁推荐主题</td><td>164 套挑不动</td><td>按识别出的体裁（教程/评测/通知/散文）推 3 套并说明理由</td><td class="c">0.5 天</td><td>引擎 + 前端</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">23</td><td>多平台差异化导出</td><td>同一篇发公众号/知乎/简书，风格该微调</td><td>导出预设：公众号（原样）/ 知乎（去装饰、纯段落）/ 简书（保留标题层级）</td><td class="c">1 天</td><td>引擎</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">24</td><td>小红书正文格式化</td><td>封面有了，正文还是一片纯文本</td><td>把文案按小红书习惯整理（emoji 分段/要点前置/话题标签），封面+正文一次导出</td><td class="c">1 天</td><td>前端 + 引擎</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">25</td><td>首图/封面套图</td><td>一套样式想批量套到多张图</td><td>选模板 + 多张图 → 批量出封面</td><td class="c">1 天</td><td>PWA 封面模块</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">26</td><td>语病 / 错别字自检</td><td>发文前的最后一道关</td><td>本地词表 + 规则（的地得、重复词、书名号不成对），<b>只提示不自动改</b></td><td class="c">2 天</td><td>引擎</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">27</td><td>标题党检测/优化建议</td><td>标题决定打开率</td><td>本地规则给长度/句式建议（如超 20 字预警），<b>不做 AI 生成</b></td><td class="c">0.5 天</td><td>引擎</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">28</td><td>一键排版 ⇄ 源码双视图</td><td>只想看结果，不想看 Markdown</td><td>编辑区可切「所见即所得」与「Markdown 源码」两态</td><td class="c">1.5 天</td><td>前端</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">29</td><td>快捷键面板 / 命令面板</td><td>高手想少点鼠标</td><td><code>Ctrl+K</code> 唤起命令面板（切主题/导出/插模块）</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p2">P2</span></td></tr>
+  <tr><td class="c">30</td><td>阅读模式（文内定位）</td><td>校对长文要来回滚</td><td>顶部吸附进度条 + 段落书签，可一键跳回上次位置</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p2">P2</span></td></tr>
+</table>
+</div>
+
+<h2 id="s4"><span class="num">04</span>P0 详解（6 项）</h2>
+
+<h3>1. 长图导出</h3>
+<div class="spec"><dl>
+  <dt>触发</dt><dd>点顶栏「导出」→ 选「长图 PNG」</dd>
+  <dt>处理</dt><dd>用当前主题渲染整篇 → 以 1080px 定宽输出竖版；高度超过 8000px 时分段再拼接</dd>
+  <dt>结果</dt><dd>弹出预览（可滚），给「下载 PNG」；文件名 <code>标题-长图-YYYYMMDD.png</code></dd>
+  <dt>状态</dt><dd>渲染中显示进度；失败给原因（如画布超限）并建议改用 HTML 导出</dd>
+  <dt>边界</dt><dd>文章超过 5 万字时先提示「过长，建议分段」；空稿时按钮禁用</dd>
+</dl></div>
+
+<h3>2. 导出 HTML 文件</h3>
+<div class="spec"><dl>
+  <dt>触发</dt><dd>「导出」→「HTML 文件」</dd>
+  <dt>处理</dt><dd>用渲染结果拼一个自包含 HTML（样式已内联，图片尽量内嵌为 data URI）</dd>
+  <dt>结果</dt><dd>直接下载 <code>.html</code>，双击可看、可发给别人</dd>
+  <dt>边界</dt><dd>外链图未本地化时，导出内含外链并提示「对方网络可能看不到图」</dd>
+</dl></div>
+
+<h3>3. 导出 PDF</h3>
+<div class="spec"><dl>
+  <dt>触发</dt><dd>「导出」→「PDF」→ 选版式（窄版 手机阅读 / A4）</dd>
+  <dt>处理</dt><dd>调浏览器打印（只打印预览区），用户选「另存为 PDF」</dd>
+  <dt>结果</dt><dd>得到 PDF；窄版按手机宽度分页</dd>
+  <dt>边界</dt><dd>浏览器不支持打印时降级提示改用 HTML 导出</dd>
+</dl></div>
+
+<h3>4. 导出 Word（.docx）</h3>
+<div class="spec"><dl>
+  <dt>触发</dt><dd>「导出」→「Word」</dd>
+  <dt>处理</dt><dd>把渲染 HTML 按「标题/段落/列表/加粗/引用/代码」映射成 docx 结构；主题装饰（色块/背景）不还原</dd>
+  <dt>结果</dt><dd>下载 .docx；打开后层级正确、正文完整</dd>
+  <dt>边界</dt><dd>明确告知「Word 只保内容结构，不保主题视觉」，避免用户误期待</dd>
+</dl></div>
+
+<h3>5. 导出 / 导入 Markdown</h3>
+<div class="spec"><dl>
+  <dt>触发</dt><dd>「导出」→「Markdown」；或把 .md 拖进编辑区</dd>
+  <dt>处理</dt><dd>导出＝把引擎识别后的 Markdown 原样下载；导入＝读入编辑区（当纯文本处理，走同一套识别）</dd>
+  <dt>结果</dt><dd>导出 .md / 编辑区出现文件内容</dd>
+  <dt>边界</dt><dd>导入非 UTF-8 文件时提示编码问题，不静默乱码</dd>
+</dl></div>
+
+<h3>6. 外链图本地化</h3>
+<div class="spec"><dl>
+  <dt>触发</dt><dd>渲染时自动扫描；或用户点提示条上的「处理图片」</dd>
+  <dt>处理</dt><dd>列出正文里所有 http(s) 图片地址 → 能抓的转成内嵌数据；抓不到的（防盗链/跨域）标记保留</dd>
+  <dt>结果</dt><dd>提示条写明「N 张外链图，M 张已本地化、K 张需你手动上传」；本地化后复制到公众号可正常显示</dd>
+  <dt>边界</dt><dd><b>不静默失败</b>：抓取失败必须写原因（CORS / 403 / 超时）；不得把占位文字当图片</dd>
+</dl></div>
+
+<h2 id="s5"><span class="num">05</span>与竞品功能对照</h2>
+
+<div class="tbl-scroll">
+<table>
+  <tr><th>能力</th><th class="c">135</th><th class="c">秀米</th><th class="c">壹伴</th><th class="c">SuperSu 现状</th><th class="c">本方案</th></tr>
+  <tr><td>自动识别结构排版</td><td class="c yes">有</td><td class="c no">弱</td><td class="c yes">有</td><td class="c yes">有（本地规则）</td><td class="c yes">保持</td></tr>
+  <tr><td>主题 / 模板数量</td><td class="c">海量（会员）</td><td class="c">海量</td><td class="c">千款</td><td class="c">164 套自研</td><td class="c no">不追</td></tr>
+  <tr><td>长图导出</td><td class="c yes">有</td><td class="c yes">有</td><td class="c yes">有</td><td class="c no">无</td><td class="c yes">#1</td></tr>
+  <tr><td>PDF / Word 导出</td><td class="c yes">有</td><td class="c yes">有</td><td class="c yes">有</td><td class="c no">无</td><td class="c yes">#3 / #4</td></tr>
+  <tr><td>九宫格切图 / 拼图</td><td class="c yes">有</td><td class="c yes">有</td><td class="c yes">拼图</td><td class="c no">无</td><td class="c yes">#7</td></tr>
+  <tr><td>外链图防盗链处理</td><td class="c yes">有</td><td class="c yes">有</td><td class="c yes">采集</td><td class="c no">无</td><td class="c yes">#6</td></tr>
+  <tr><td>自定义主题</td><td class="c yes">DIY 样式</td><td class="c yes">有</td><td class="c yes">有</td><td class="c no">无</td><td class="c yes">#8</td></tr>
+  <tr><td>多篇草稿管理</td><td class="c yes">有</td><td class="c yes">有</td><td class="c yes">有</td><td class="c no">只有 1 份</td><td class="c yes">#13</td></tr>
+  <tr><td>SVG 交互动效</td><td class="c yes">主打</td><td class="c yes">有</td><td class="c yes">有</td><td class="c no">无</td><td class="c no">待定（§7）</td></tr>
+  <tr><td>AI 写作 / 仿写</td><td class="c yes">有</td><td class="c no">无</td><td class="c yes">主打</td><td class="c">仅 BYOK 可选</td><td class="c no">不追</td></tr>
+  <tr><td>团队协作 / 数据分析</td><td class="c">企业版</td><td class="c no">无</td><td class="c yes">有</td><td class="c no">无</td><td class="c no">不追</td></tr>
+  <tr><td><b>内容不出浏览器</b></td><td class="c no">云端</td><td class="c no">云端</td><td class="c no">云端</td><td class="c yes">✅</td><td class="c yes">守住</td></tr>
+  <tr><td><b>免费 / 开源</b></td><td class="c no">会员</td><td class="c">部分免费</td><td class="c no">会员</td><td class="c yes">✅</td><td class="c yes">守住</td></tr>
+</table>
+</div>
+
+<h2 id="s6"><span class="num">06</span>批次与验收</h2>
+
+<table>
+  <tr><th class="c">批次</th><th>内容</th><th>估算</th><th>验收（怎么算做完）</th></tr>
+  <tr><td class="c">B1<br><span class="chip">出口</span></td><td>#1 长图 · #2 HTML · #5 Markdown</td><td>1.5 天</td><td>三种导出都拿到真实文件；长图在手机上看清晰、字不糊、图不丢</td></tr>
+  <tr><td class="c">B2<br><span class="chip">保真</span></td><td>#6 外链图本地化 · #7 九宫格 · #20 批量导出图片</td><td>2 天</td><td>复制到公众号图能显示；九宫格切出 9 张可用图；失败必给原因</td></tr>
+  <tr><td class="c">B3<br><span class="chip">交付</span></td><td>#3 PDF · #4 Word · #17 二维码</td><td>2 天</td><td>PDF/Word 内容完整层级正确；Word 明确标注「不保视觉」</td></tr>
+  <tr><td class="c">B4<br><span class="chip">掌控</span></td><td>#8 我的主题 · #9 主题导入导出 · #15 多主题对比</td><td>2.5 天</td><td>改色改字号后预览即时变；导出 JSON 能在另一台机导入还原</td></tr>
+  <tr><td class="c">B5<br><span class="chip">效率</span></td><td>#13 草稿箱 · #11 大纲 · #10 标点自检 · #12 加序号 · #16 字数</td><td>4 天</td><td>草稿刷新不丢；标点自检只提示不改写；加序号可一键撤销</td></tr>
+  <tr><td class="c">B6<br><span class="chip">扩展</span></td><td>#14 图片处理 · #18 表格优化 · #19 图注 · #21–#30</td><td>按需</td><td>每项独立验收；不做完不影响前面批次</td></tr>
+</table>
+
+<div class="note ok">
+  <b>纪律</b>：每项独立提交，一次一项；改引擎（#10 / #12 / #18 / #19）必须重跑 <code>test_e2e</code> + 164 套渲染审计 + 重建 PWA 产物；改前端须跑有头套件并确认 0 控制台报错。
+</div>
+
+<h2 id="s7"><span class="num">07</span>待定项</h2>
+
+<table>
+  <tr><th class="c">#</th><th>待定</th><th>为什么卡住</th></tr>
+  <tr><td class="c">1</td><td>SVG 交互动效</td><td>需绑定「公众号 API 推送」链路（本地版有 <code>/api/push</code>），且需认证服务号 + IP 白名单；复制路径注定失效。要做需单独立项</td></tr>
+  <tr><td class="c">2</td><td>公众号文章链接采集</td><td>纯前端跨域大概率失败，只能靠本地后端代理 <span class="tbd">[TBD]</span></td></tr>
+  <tr><td class="c">3</td><td>Word 导出的还原度边界</td><td>只保结构 vs 尽力保视觉，需定一版 <span class="tbd">[TBD]</span></td></tr>
+  <tr><td class="c">4</td><td>长图最大像素上限</td><td>浏览器画布有尺寸上限，超长文需分段策略，具体阈值待实测 <span class="tbd">[TBD]</span></td></tr>
+  <tr><td class="c">5</td><td>本地版与 PWA 的功能对齐范围</td><td>导出类功能两版都做；带文件的（Word/zip）PWA 可做、本地版也可，需统一 <span class="tbd">[TBD]</span></td></tr>
+</table>
+
+<footer>
+  本方案基于 2026-10-19 的竞品官网实测与项目现状盘点；成本为粗略估算，非承诺。原型见 <code>docs/prototypes/feature-expansion.html</code>（单文件、可点击）。<br>
+  如与代码/线上冲突，以源码、<code>git log</code> 与实测为准。
+</footer>
+
+</div>
+</body>
+</html>
