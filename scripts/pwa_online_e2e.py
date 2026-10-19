@@ -214,11 +214,31 @@ def main() -> int:
 
         cap_metrics = page.eval_on_selector("#style-caps", "e => [e.scrollLeft, e.scrollWidth, e.clientWidth]")
         sl_b = cap_metrics[0]
-        page.click('.style-scroll[data-dir="1"]'); page.wait_for_timeout(900)
-        sl_a = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
+
+        def settled_scroll(prev: float, timeout: float = 5.0) -> int:
+            """点箭头后，等平滑滚动真正停下再读 scrollLeft。
+
+            原实现是固定 sleep 900ms —— 冷缓存/首次访问时滚动动画偶尔没走完，
+            会读出「没动」而误判失败（2026-10-19 线上首轮实测偶发过一次：
+            右滚读到 0、左滚却读到 260，两项互成镜像）。
+            与「不用固定 sleep 判优雅降级」是同一条教训。
+            """
+            end, changed, last = time.time() + timeout, False, round(prev)
+            while time.time() < end:
+                v = page.eval_on_selector("#style-caps", "e => Math.round(e.scrollLeft)")
+                if v != round(prev):
+                    changed = True
+                if changed and v == last:
+                    return v
+                last = v
+                page.wait_for_timeout(120)
+            return last
+
+        page.click('.style-scroll[data-dir="1"]')
+        sl_a = settled_scroll(sl_b)
         check("风格条右滚", sl_a > sl_b, f"{cap_metrics}", f"scrollLeft={sl_a}")
-        page.click('.style-scroll[data-dir="-1"]'); page.wait_for_timeout(900)
-        sl_c = page.eval_on_selector("#style-caps", "e => e.scrollLeft")
+        page.click('.style-scroll[data-dir="-1"]')
+        sl_c = settled_scroll(sl_a)
         check("风格条左滚", sl_c < sl_a, f"scrollLeft={sl_a}", f"scrollLeft={sl_c}")
 
         page.click("#btn-copy"); page.wait_for_timeout(900)
