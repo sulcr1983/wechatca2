@@ -25,6 +25,7 @@ const $ = (id) => document.getElementById(id);
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
 const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* 同上 */ } };
+const kb = (n) => (n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B');
 
 let toastTimer = null;
 function toast(msg, kind = '') {
@@ -755,6 +756,48 @@ function bindUI() {
     if (act === 'about') openAbout();
   });
 
+  // 导出菜单（方案 B1 · 出口三件套）：export.js 首次点击才动态加载（离线时它在 SW 预缓存里）
+  const xbtn = $('btn-export');
+  const xmenu = $('menu-export');
+  xbtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    xmenu.hidden = !xmenu.hidden;
+    xbtn.setAttribute('aria-expanded', String(!xmenu.hidden));
+  });
+  document.addEventListener('click', () => {
+    if (!xmenu.hidden) { xmenu.hidden = true; xbtn.setAttribute('aria-expanded', 'false'); }
+  });
+  xmenu.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-exp]');
+    if (!btn) return;
+    e.stopPropagation();
+    xmenu.hidden = true;
+    xbtn.setAttribute('aria-expanded', 'false');
+
+    const kind = btn.dataset.exp;
+    const title = $('wx-title')?.textContent || '';
+    try {
+      const X = await import('./export.js');
+      const theme = byId.get(activeId) || {};
+      if (kind === 'md') {
+        const r = X.exportMarkdown(lastMarkdown, title);
+        toast(`已导出 Markdown（${kb(r.bytes)}）`, 'ok');
+      } else if (kind === 'html') {
+        const r = X.exportHtml(lastHtml, theme, title);
+        // 外链图对方网络可能看不到 —— 提前说清楚，不静默
+        toast(r.externalImages
+          ? `已导出 HTML（${kb(r.bytes)}）· 含 ${r.externalImages} 张外链图，对方可能看不到`
+          : `已导出 HTML（${kb(r.bytes)}）`, 'ok');
+      } else if (kind === 'long') {
+        toast('正在生成长图…');
+        const r = await X.exportLongImage(lastHtml, theme, title);
+        toast(`已导出长图 ${r.width}×${r.height}（${kb(r.bytes)}）`, 'ok');
+      }
+    } catch (err) {
+      toast('导出失败：' + ((err && err.message) || err), 'err');
+    }
+  });
+
   $('btn-about-close').addEventListener('click', closeAbout);
   $('about-mask').addEventListener('click', closeAbout);
 
@@ -771,7 +814,7 @@ function bindUI() {
   // 快捷键
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doRender(); }
-    if (e.key === 'Escape') { closeDrawer(); closeAbout(); }
+    if (e.key === 'Escape') { closeDrawer(); closeAbout(); if (!$('menu-export').hidden) { $('menu-export').hidden = true; $('btn-export').setAttribute('aria-expanded', 'false'); } }
   });
 }
 

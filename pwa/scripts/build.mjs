@@ -39,6 +39,7 @@ const SHELL_FILES = [
   'src/update/index.js',
   'src/update/ui.js',
   'src/ai.js',
+  'src/export.js',
   'src/light.js',
   'src/cover/index.js',
   'src/cover/catalog.js',
@@ -550,6 +551,7 @@ function assertDist(themeCount) {
                      'fonts/cover/noto-sans-sc-400.woff2',
                      'src/cover/index.js', 'src/cover/catalog.js', 'src/cover/templates.js',
                      'src/cover/render.js', 'src/cover/search.js', 'src/cover/cover.css',
+                     'src/export.js',
                      'vendor/modern-screenshot.js']) {
     if (!fs.existsSync(path.join(DIST, need))) problems.push(`缺文件：${need}`);
   }

@@ -171,11 +171,11 @@
   <tr>
     <th class="c">#</th><th>功能</th><th>解决什么问题</th><th>关键行为</th><th class="c">成本</th><th>落点</th><th class="c">优先级</th>
   </tr>
-  <tr><td class="c">1</td><td><b>长图导出</b></td><td>公众号发不了长图；朋友圈/小红书要的是图</td><td>整篇文章渲成一张竖版 PNG（宽度 1080，高度自适应；超长自动拼接）</td><td class="c">0.5 天</td><td>PWA（复用 modern-screenshot）+ 本地版（Playwright 整页截图）</td><td class="c"><span class="pill p0">P0</span></td></tr>
-  <tr><td class="c">2</td><td><b>导出 HTML 文件</b></td><td>留档、给客户交稿、二次使用</td><td>下载一个自包含 .html（样式全内联，双击可看）</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">1</td><td><b>长图导出</b> <span class="pill" style="background:#EAF1EC;color:#2F6A4E">已实现</span></td><td>公众号发不了长图；朋友圈/小红书要的是图</td><td>整篇文章渲成一张竖版 PNG（宽度 1080，高度自适应；超长自动拼接）</td><td class="c">0.5 天</td><td>PWA（复用 modern-screenshot）+ 本地版（Playwright 整页截图）</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">2</td><td><b>导出 HTML 文件</b> <span class="pill" style="background:#EAF1EC;color:#2F6A4E">已实现</span></td><td>留档、给客户交稿、二次使用</td><td>下载一个自包含 .html（样式全内联，双击可看）</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
   <tr><td class="c">3</td><td><b>导出 PDF</b></td><td>正式交付、打印、归档</td><td>调浏览器打印另存为 PDF，A4 或窄版可选</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
   <tr><td class="c">4</td><td><b>导出 Word（.docx）</b></td><td>对方只接受 Word</td><td>HTML → 简单 docx（保留标题/段落/列表/加粗）</td><td class="c">1 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
-  <tr><td class="c">5</td><td><b>导出 / 导入 Markdown</b></td><td>我们的内核本来就是 Markdown，用户却拿不到源文件</td><td>下载 .md；也能把 .md 拖回来继续编辑</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
+  <tr><td class="c">5</td><td><b>导出 / 导入 Markdown</b> <span class="pill" style="background:#EAF1EC;color:#2F6A4E">导出已实现</span></td><td>我们的内核本来就是 Markdown，用户却拿不到源文件</td><td>下载 .md；也能把 .md 拖回来继续编辑</td><td class="c">0.5 天</td><td>前端</td><td class="c"><span class="pill p0">P0</span></td></tr>
   <tr><td class="c">6</td><td><b>外链图本地化</b></td><td>公众号拦外链图（防盗链）→ 复制过去变白图</td><td>渲染前扫描外链 <code>&lt;img&gt;</code>：能抓的转内嵌，抓不到的进正文上方提示条</td><td class="c">1 天</td><td>前端 + 引擎</td><td class="c"><span class="pill p0">P0</span></td></tr>
 
   <tr><td class="c">7</td><td>九宫格切图</td><td>朋友圈/小红书九图最常用</td><td>拖一张图 → 3×3 切成 9 张（可调间距/顺序），打包下载</td><td class="c">0.5 天</td><td>前端 Canvas</td><td class="c"><span class="pill p1">P1</span></td></tr>

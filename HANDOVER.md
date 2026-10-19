@@ -48,6 +48,10 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 .venv/Scripts/python.exe scripts/pwa_cover_test.py
 # 期望：PWA 封面有头测试：16/16 通过
 
+# 导出专项（长图 PNG / HTML 自包含 / Markdown / 移动端不溢出）
+.venv/Scripts/python.exe scripts/pwa_export_test.py
+# 期望：PWA 导出专项：8/8 通过
+
 # 线上全量有头 E2E（打到 supersu.ccwu.cc，逐按钮 + 截图）
 .venv/Scripts/python.exe scripts/pwa_online_e2e.py
 # 期望：85 项左右通过，2 项预期 SKIP

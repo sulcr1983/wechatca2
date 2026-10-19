@@ -37,6 +37,12 @@
       <i></i><span id="engine-text">引擎加载中</span>
     </span>
     <button class="cover-btn" id="btn-cover" aria-pressed="false" title="小红书封面 / 公众号封面">小红书</button>
+    <button class="menu-btn" id="btn-export" aria-expanded="false" title="导出与分发">导出 ▾</button>
+    <div class="menu" id="menu-export" hidden>
+      <button data-exp="long">长图 PNG<span class="sub">朋友圈 / 小红书</span></button>
+      <button data-exp="html">HTML 文件<span class="sub">留档 · 交稿</span></button>
+      <button data-exp="md">Markdown<span class="sub">源文件</span></button>
+    </div>
     <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
     <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>

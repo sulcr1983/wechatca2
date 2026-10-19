@@ -140,6 +140,20 @@ a { color: var(--accent); }
 .menu button[disabled] { opacity: .45; cursor: default; }
 .menu button[disabled]:hover { background: none; color: var(--text-soft); }
 
+/* 导出菜单（B1）：条目右侧带用途小字，需要比「更多」菜单宽一点、条目横排 */
+#menu-export { min-width: 214px; }
+#menu-export button[data-exp] { display: flex; align-items: center; gap: 10px; }
+#menu-export .sub { margin-left: auto; font-size: 11.5px; color: var(--text-muted); }
+
+.menu-btn {
+  height: 30px; padding: 0 10px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--bg-raised);
+  color: var(--text-soft); font-size: 13px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: background .15s, color .15s;
+}
+.menu-btn:hover, .menu-btn[aria-expanded="true"] { background: var(--bg-hover); color: var(--text); }
+
 /* ── 主体两栏 ─────────────────────────────────────────────────── */
 .stage {
   height: calc(100% - var(--top-h) - var(--tabs-h));

@@ -550,3 +550,39 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 改 `core/preprocessor.py` → **全部 164 套主题输出会变**（新识别生效处），已跑 164 套渲染审计确认达标。
 - PWA 引擎随构建进 `dist/py/`，且 `py/preprocessor.py` 在 SW 增量清单里（`?h=<sha256>`）→ 用户端可通过 SW 更新拿到新引擎，**BUILD_ID 不变不影响**。
 - 风险：低。规则均要求「连续 ≥2 行、列数一致」等硬条件，误判面窄。
+
+---
+
+## 任务 12：功能扩展方案 B1 · 出口三件套（2026-10-19）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户「执行上面的那个方案」＝ 按 `docs/feature-expansion-plan.html` 的批次推进 |
+| 范围 | B1 三项：#1 长图导出 · #2 导出 HTML 文件 · #5 导出 Markdown（落 PWA） |
+| 完成判据 | 三种导出都拿到真实文件（真下载、内容正确、长图是真 PNG）；移动端不溢出；回归不坏 |
+| 不在范围 | PDF / Word / 九宫格切图 / 图片本地化（后续批次）；本地 Flask 版（AGENTS 2026-10-18 已标记弃用，新功能只落 PWA） |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `pwa/src/export.js` | **新增**：`buildStandaloneHtml` / `exportHtml` / `exportMarkdown` / `exportLongImage`（离屏 iframe 定宽 1080 → modern-screenshot 出图；>20000px 抛可操作错误，不静默出白图） |
+| `pwa/index.html` | 顶栏新增「导出 ▾」按钮 + `#menu-export`（3 项，带用途小字） |
+| `pwa/src/style.css` | `.menu-btn` + `#menu-export` 条目样式 |
+| `pwa/src/app.js` | 绑定导出菜单；`import('./export.js')` 首次点击才动态加载；导出成功/失败均 toast，外链图数量提前告知 |
+| `pwa/public/sw.js` | `SHELL_OPTIONAL` += `./src/export.js`（离线可用） |
+| `pwa/scripts/build.mjs` | `SHELL_FILES` += `src/export.js`；关键文件存在性断言 += `src/export.js` |
+| `scripts/pwa_export_test.py` | **新增**：导出专项有头测试（真实下载 + 校验内容与尺寸 + 移动端不溢出） |
+
+### 验证（真实执行）
+- `scripts/pwa_export_test.py` **8/8**：`out.md` 849 B（含首行）· `out.html` 4134 B（自包含、含正文）· `out.png` 真 PNG **1080×708** / 84 KB · 移动端 390px `scrollWidth=innerWidth` 无横向溢出 · 0 控制台报错
+- 长图目视（`output/export-check/out.png`）：标题 / 正文 / 小节色块 / 列表 / 引用齐全，无截断、无空白
+- 回归：`pwa/scripts/smoke.py` **24/24** · `tests/test_e2e.py` **74/74**
+
+### 回滚点
+- `git revert <本次提交>`；或删 `pwa/src/export.js` + 还原 `pwa/index.html` / `app.js` / `sw.js` / `build.mjs` 的四处清单。
+
+### 影响 / 风险
+- 顶栏多一个按钮（移动端已验证无横向溢出）。
+- 长图上限 20000px：超长文明确报错并建议改用「导出 HTML」，不静默。
+- 外链图只提示数量、不做本地化（那是 B2 #6）；导出 HTML 里的外链图对方网络可能看不到，已在 toast 里说明。
