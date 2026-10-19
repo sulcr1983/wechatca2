@@ -498,3 +498,49 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - dist 增加约 2.4MB（字体）+ 0.6MB（缩略图）+ 0.5MB（模板/截图库）；封面字体按需加载，不影响排版首屏。
 - Wikimedia 以纪实照片为主、中文检索弱（靠场景词映射）；国内网络可能不可达，UI 已明确提示改用上传/纯色。
 - 模板 10 套为 AGPL-3.0 上游资产，本项目整体 AGPL-3.0 且已在 `THIRD_PARTY_NOTICES.md` 声明；若要闭源分发需重新评估。
+
+---
+
+## 任务 11：TXT 格式兼容扩展（方案 B）+ 抽屉缩略图修复（2026-10-19）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户提供自拟的《TXT 自动排版全格式测试文档》，要求「测试模板要用测试文件 + 搜罗更多格式、兼容更多格式」；随后授权「按你的推荐执行」 |
+| 范围 | `core/preprocessor.py` 确定性识别扩展；测试夹具入库；审计脚本断言扩充；`pwa/src/style.css` 一处回归修复 |
+| 完成判据 | 夹具 16 类格式可识别、原文不丢；全量回归绿；164 套渲染审计 164/164 |
+| 不在范围 | Setext 标题、文本清理（pangu/全角）、公式渲染、TSV/CSV、高亮、脚注渲染（理由见 `docs/txt-format-support.md` §5） |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `core/preprocessor.py` | 新增：`_SECTION_MARK_RE` / `_TASK_RE` / `_ADMONITION_ALIAS_RE`+映射 / `_ALERT_RE`+标签 / `_NOTICE_BRACKET_RE` / `_TABLE_SEP_RE` / `_SPACE_SPLIT_RE` + `_pipe_table_rows()` / `_space_table_rows()`；循环内新增 6 处规则；`（1）（2）` 去掉四级标题提升 |
+| `tests/fixtures/txt-format-lab.txt` | **新增**：用户起草的 16 节全格式夹具（15.8KB） |
+| `scripts/theme_stress_audit.py` | 夹具路径改为仓库相对路径（原写死 `E:/personal/Downloads/…`）；断言 34→40（新增 S29–S34）；H01 兼容任务清单改写；S23 认 ☐/☑ |
+| `tests/test_e2e.py` | +10 项格式兼容测试（任务清单 / Alerts / admonition / `~~~` / 竖线表 / 空格表 / 括号编号 / 章节标记 / 方括号提示） |
+| `pwa/src/style.css` | `.d-card` min-height 118 → 140（修缩略图被 flex 压回 82px 的回归） |
+| `AGENTS.md` / `HANDOVER.md` / `docs/testing.md` / `docs/pwa-build-plan.md` / `docs/plan-oss-reference.md` / `docs/test-plan-2026-10-18-abc.md` | 测试计数 65→74、181→190 同步 |
+| `docs/txt-format-support.md` | **新增**：调研清单 + 决策结论 + 实施结果 |
+| `files/TODO.md` / `CLOSURE.md` | 本任务记录 |
+
+### 关键实现坑
+- **表格必须自成一块**：生成表格前要补空行，否则紧贴上一行文字会被 Markdown 并入同一段落 → 表格不成立（实测 `简单的竖线分隔表格（非标准 Markdown）：` 紧跟表格时未渲染）。
+- **竖线表要整表规整**：python-markdown 的 `tables` 扩展要求行首 `|`，只补分隔行不够，必须给表头与**所有数据行**补首尾竖线。
+- **全角竖线 `｜`** 才判章节标记：半角 `|` 会撞 Markdown 表格的数字首列行。
+
+### 验证（真实执行）
+- `tests/test_e2e.py` **74/74**（+10 项）
+- `tests/test_integration.py` 35/35 · `test_api_e2e.py` 29/29 · `test_headed_full_e2e.py` 33/33（0 控制台报错）· `test_headed_userflow.py` 7/7 · `test_headed_wechat_copy.py` 12/12
+- `scripts/theme_stress_audit.py`：结构 **38/40**（2 项为改动前既有失败：§13 箭头行互斥、诗词层级）；渲染 **164/164**
+- `pwa/scripts/smoke.py` 24/24 · `scripts/pwa_cover_test.py` 16/16（含断网生成）
+- 夹具实测：16 节标题全部 `##`；3 张非标表全部渲染成 `<table>`（`<table>`×3 / `<tr>`×14）；复选框 6 项转 `☐`；原文保真仅余 1 行（§13 箭头行既有互斥）
+- 抽屉缩略图：本地 dist 实测 `.d-prev` = **104px**（修复前线上为 82px）
+
+### 回滚点
+- `git revert <本次提交>`（引擎规则、夹具、断言、CSS 一起回滚）；E2E 恢复 65/65。
+- 单点回滚：`tests/fixtures/` 删除、`scripts/theme_stress_audit.py` 的 FIXTURE 路径改回外部绝对路径。
+
+### 影响 / 风险
+- 改 `core/preprocessor.py` → **全部 164 套主题输出会变**（新识别生效处），已跑 164 套渲染审计确认达标。
+- PWA 引擎随构建进 `dist/py/`，且 `py/preprocessor.py` 在 SW 增量清单里（`?h=<sha256>`）→ 用户端可通过 SW 更新拿到新引擎，**BUILD_ID 不变不影响**。
+- 风险：低。规则均要求「连续 ≥2 行、列数一致」等硬条件，误判面窄。

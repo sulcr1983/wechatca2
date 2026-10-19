@@ -299,7 +299,10 @@ body.browsing .drawer-mask { display: none; }
 }
 
 .d-card {
-  display: flex; flex-direction: column; min-height: 118px;
+  /* 2026-10-19 修：缩略图高度 84→104 时未同步抬高卡片，卡片被钉在 118px，
+     flex 把 .d-prev 压回 ~82px（线上实测）。104 + 32(body) = 136 内容高，
+     留 2px 余量 → 140。 */
+  display: flex; flex-direction: column; min-height: 140px;
   border-radius: var(--radius-lg); border: 1px solid var(--border);
   background: var(--bg-raised); overflow: hidden; text-align: left;
   transition: border-color .15s, box-shadow .15s;

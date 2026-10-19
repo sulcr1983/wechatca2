@@ -1,15 +1,15 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-19T05:28:12+08:00",
-  "totalCommits": 119,
+  "generatedAt": "2026-10-19T07:57:52+08:00",
+  "totalCommits": 122,
   "releases": [
     {
       "version": "1.4.0",
       "date": "2026-10-19",
       "title": "小红书封面（PWA）",
       "counts": {
-        "added": 2,
-        "changed": 1,
+        "added": 3,
+        "changed": 3,
         "fixed": 2,
         "other": 1
       },
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "首页体验优化——移动端不遮挡、入口更醒目、空态看示例",
+              "scope": "ui",
+              "hash": "5c6eca3",
+              "date": "2026-10-19T05:28:19+08:00",
+              "breaking": false
+            },
             {
               "text": "小红书封面——12 风格 / 3 尺寸 / 上传与 Wikimedia 搜图",
               "scope": "pwa",
@@ -38,6 +45,20 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "修正交接文档中的 HEAD 记录",
+              "scope": "handover",
+              "hash": "632e71c",
+              "date": "2026-10-19T05:31:12+08:00",
+              "breaking": false
+            },
+            {
+              "text": "首页优化交接文档（含部署失败与接手步骤）",
+              "scope": "handover",
+              "hash": "feb94da",
+              "date": "2026-10-19T05:30:58+08:00",
+              "breaking": false
+            },
             {
               "text": "记录部署流程与 Windows Git Bash 坑 + 窄屏修复归档",
               "scope": "brand",

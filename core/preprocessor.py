@@ -88,6 +88,81 @@ _CMD_RE = re.compile(
 )
 
 
+# ── 2026-10-19 格式兼容扩展（方案 B · txt-format-lab 夹具）─────────────────
+# 章节标记：01｜标题（**全角竖线**，刻意不收半角 | —— 否则会把 Markdown 表格的
+# 数字首列行「1 | 苹果 | 5 元」误判成标题）
+_SECTION_MARK_RE = re.compile(r'^\d{1,2}\s*｜\s*\S')
+# GFM 任务清单：- [ ] / - [x] / - [X]
+_TASK_RE = re.compile(r'^[-*+]\s+\[([ xX])\]\s*(.*)$')
+# admonition 别名（VitePress `::: tip` / Docusaurus `:::note`）→ 复用现有容器
+_ADMONITION_ALIAS_RE = re.compile(
+    r'^:::\s*(tip|note|info|warning|caution|danger|important|details)\b\s*(.*)$'
+)
+_ADMONITION_MAP = {
+    'tip': ('summary', '小贴士'), 'note': ('summary', '提示'),
+    'info': ('summary', '说明'), 'warning': ('summary', '警告'),
+    'caution': ('summary', '注意'), 'danger': ('summary', '危险'),
+    'important': ('summary', '重要'), 'details': ('summary', '详情'),
+}
+# GFM Alerts：> [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION]
+_ALERT_RE = re.compile(r'^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)$')
+_ALERT_LABEL = {'NOTE': '提示', 'TIP': '小贴士', 'IMPORTANT': '重要',
+                'WARNING': '警告', 'CAUTION': '注意风险'}
+# 方括号提示标签：【提示】【注意】…… → 引用块
+# 刻意不含【教程型】【评测型】【清单型】【通知型】【问答型】这类体裁标签（夹具 §12）
+_NOTICE_BRACKET_RE = re.compile(r'^【(提示|注意|警告|风险|说明|备注|重要|小贴士)】')
+# 管道表分隔行（用于判断「已有表头分隔、无需补」）
+_TABLE_SEP_RE = re.compile(r'^\|?\s*:?-{2,}')
+# 空格对齐表：列间以 ≥2 个空白分隔
+_SPACE_SPLIT_RE = re.compile(r'[ \t\u3000]{2,}')
+
+
+def _pipe_table_rows(lines: list, i: int):
+    """连续 ≥2 行含 | 且列数一致 → (规整成首尾带竖线的表格行, 列数)；否则 None。
+
+    为什么必须带首尾竖线：python-markdown 的 tables 扩展要求表头与数据行都以 `|` 开头
+    （`^ *\\|`），「功能 | 难度 | 说明」这类不带首竖线的行不会被识别成表格。
+    """
+    rows, ncol, j = [], None, i
+    while j < len(lines):
+        s = lines[j].strip()
+        if '|' not in s or _TABLE_SEP_RE.match(s):
+            break
+        cells = [c.strip() for c in s.strip('|').split('|')]
+        if len(cells) < 2:
+            break
+        if ncol is None:
+            ncol = len(cells)
+        elif len(cells) != ncol:
+            break
+        rows.append('| ' + ' | '.join(cells) + ' |')
+        j += 1
+    return (rows, ncol) if len(rows) >= 2 and ncol else None
+
+
+def _space_table_rows(lines: list, i: int):
+    """连续 ≥2 行「多空白分列」→ 表格行；否则 None（保守：要求列数一致、无句末标点）"""
+    rows = []
+    ncol = None
+    j = i
+    while j < len(lines):
+        s = lines[j].strip()
+        if not s or '|' in s:
+            break
+        cells = [c.strip() for c in _SPACE_SPLIT_RE.split(s) if c.strip()]
+        if not (2 <= len(cells) <= 6):
+            break
+        if ncol is None:
+            ncol = len(cells)
+        elif len(cells) != ncol:
+            break
+        if re.search(r'[。！？；]$', s):
+            break
+        rows.append(cells)
+        j += 1
+    return rows if len(rows) >= 2 else None
+
+
 def _split_parallel_items(line: str):
     """箭头并列行 → 列表项；至少 3 项、每项都短、项内无逗号，否则不算清单"""
     parts = [p.strip() for p in _ARROW_RE.split(line) if p.strip()]
@@ -226,7 +301,11 @@ def preprocess(text: str, mode: str = 'auto') -> str:
     container_depth = 0
     in_cmd_code = False      # 命令行围栏代码块（2026-10-18）
 
+    skip_rows = 0
     for i, line in enumerate(lines):
+        if skip_rows > 0:
+            skip_rows -= 1
+            continue
         stripped = line.strip()
 
         if not stripped:
@@ -239,7 +318,7 @@ def preprocess(text: str, mode: str = 'auto') -> str:
         # 用户手写的 ``` 围栏：翻转入内/出外。内部一律原样保留（含缩进），
         # 否则 Python 的缩进行会命中下面的「4 空格缩进」规则、被当成新代码块，
         # 导致围栏提前闭合、代码被截成两半（实测：def 与 return 被拆开）。
-        if stripped.startswith('```'):
+        if stripped.startswith(('```', '~~~')):
             if in_code_block:
                 md_lines.append('```')
                 in_code_block = False
@@ -251,11 +330,28 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             md_lines.append(line)
             continue
 
+        # 【2026-10-19】GFM Alerts：> [!NOTE] / [!WARNING] … → 带标签引用块
+        # （引擎无 note 类容器，不新增容器以免改动引擎；映射为带中文标签的引用块）
+        _m_alert = _ALERT_RE.match(stripped)
+        if _m_alert:
+            if in_code_block:
+                md_lines.append('```')
+                in_code_block = False
+            md_lines.append(f'> 【{_ALERT_LABEL[_m_alert.group(1)]}】{_m_alert.group(2).strip()}')
+            continue
+
         # 已含 Markdown 标记的行原样保留（但 \d+\.\s 可能是序号标题，后面单独判断）
         if re.match(r'^(#{1,6}\s|>\s|-\s|\*\s|~~)', stripped):
             if in_code_block:
                 md_lines.append('```')
                 in_code_block = False
+            # 【2026-10-19】GFM 任务清单：- [ ] / - [x] → ☐ / ☑（保留原行首缩进）
+            _m_task = _TASK_RE.match(stripped)
+            if _m_task:
+                _box = '☑' if _m_task.group(1).lower() == 'x' else '☐'
+                _ind = line[:len(line) - len(line.lstrip())]
+                md_lines.append(f'{_ind}- {_box} {_m_task.group(2).strip()}')
+                continue
             # 列表项保留原始行首缩进：嵌套列表的二级缩进是内容的一部分。
             # 原实现用 stripped 抹平缩进，导致嵌套层级丢失（S12 实测 0/6 保留）。
             if re.match(r'^[-*+]\s', stripped):
@@ -275,6 +371,12 @@ def preprocess(text: str, mode: str = 'auto') -> str:
         if in_code_block:
             md_lines.append('```')
             in_code_block = False
+
+        # 【2026-10-19】admonition 别名（::: tip / :::note / :::details …）→ 复用现有容器
+        _m_adm = _ADMONITION_ALIAS_RE.match(stripped)
+        if _m_adm:
+            _adm_typ, _adm_lbl = _ADMONITION_MAP[_m_adm.group(1)]
+            stripped = f':::{_adm_typ}[{_m_adm.group(2).strip() or _adm_lbl}]'
 
         # 围栏容器：开标记进入、内部一律原样保留、收尾标记退出（按深度支持嵌套）
         if _CONTAINER_OPEN_RE.match(stripped):
@@ -301,7 +403,8 @@ def preprocess(text: str, mode: str = 'auto') -> str:
                 continue
 
         # 【2026-10-18】提示 / 警示行 → 引用块（强信号，先于标题判定）
-        if _NOTICE_RE.match(stripped):
+        # 【2026-10-19】扩展：【提示】【注意】【风险】等方括号标签同样按提示块处理
+        if _NOTICE_RE.match(stripped) or _NOTICE_BRACKET_RE.match(stripped):
             md_lines.append(f'> {stripped}')
             continue
 
@@ -321,17 +424,21 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             md_lines.append(f'## {stripped}')
             continue
 
+        # 【2026-10-19】章节标记 01｜标题（全角竖线；刻意不收半角 | 以免撞 Markdown 表格）
+        if _SECTION_MARK_RE.match(stripped):
+            md_lines.append(f'## {stripped}')
+            continue
+
         # 【2026-10-18】数字小节：3.1 / 3.2.1（先于普通序号判定）
         if _NUMBERED_SUB_RE.match(stripped):
             md_lines.append(f'### {stripped}')
             continue
 
-        # 【2026-10-18】括号层级（中文公文标准）：（一）→ 二级；(1) → 四级
+        # 【2026-10-18】括号层级（中文公文标准）：（一）→ 二级
+        # 【2026-10-19】「（1）（2）」不再一律当四级标题：夹具 §04 明确提示这类行
+        # 「看起来像列表，但未必是列表」→ 改为**永不判标题**，保持原文行（渲染层按 <br> 分行）。
         if _PAREN_CN_RE.match(stripped):
             md_lines.append(f'### {stripped}')
-            continue
-        if _PAREN_NUM_RE.match(stripped):
-            md_lines.append(f'#### {stripped}')
             continue
 
         # 【2026-10-18】纯分隔线（整行只由 =/＝/-/— 组成）→ 一律当 <hr>，绝不产出标题。
@@ -416,6 +523,33 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             md_lines.extend(items)
             continue
 
+        # 【2026-10-19】表格兼容 A：无分隔行的竖线表 → 整表规整（补首尾竖线 + 补表头分隔行）
+        # 上一行已含 | 说明正处在表格中（既有 GFM 表的数据行），不重复转换
+        if not (i > 0 and '|' in lines[i - 1]):
+            _pt = _pipe_table_rows(lines, i)
+            if _pt:
+                _prows, _pcol = _pt
+                # 表格必须自成一块：紧贴上一行文字会被 Markdown 当作同一段落，表格不成立
+                if md_lines and md_lines[-1].strip():
+                    md_lines.append('')
+                md_lines.append(_prows[0])
+                md_lines.append('|' + '|'.join(['---'] * _pcol) + '|')
+                md_lines.extend(_prows[1:])
+                skip_rows = len(_prows) - 1
+                continue
+
+        # 【2026-10-19】表格兼容 B：空格/全角空格对齐表（≥2 行、列数一致）→ 管道表
+        _rows = _space_table_rows(lines, i)
+        if _rows:
+            if md_lines and md_lines[-1].strip():
+                md_lines.append('')
+            md_lines.append('| ' + ' | '.join(_rows[0]) + ' |')
+            md_lines.append('|' + '|'.join(['---'] * len(_rows[0])) + '|')
+            for _r in _rows[1:]:
+                md_lines.append('| ' + ' | '.join(_r) + ' |')
+            skip_rows = len(_rows) - 1
+            continue
+
         # 短行标题检测
         # 孤立行：前后有空行或文件边界
         prev_empty = i == 0 or not lines[i - 1].strip()
@@ -434,6 +568,8 @@ def preprocess(text: str, mode: str = 'auto') -> str:
             _heading_ctx
             and len(stripped) <= 22
             and len(stripped) >= 2
+            # 2026-10-19：「（1）（2）」这类括号编号行永不判标题（夹具 §04 明确提示）
+            and not _PAREN_NUM_RE.match(stripped)
             and not stripped.startswith(('\u300c', '\u201c', '\u201d', '——'))
             and not re.search(r'[。！？，、；：\u201c\u201d…\)】》]$', stripped[-1])
             and not has_comma

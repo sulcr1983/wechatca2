@@ -892,6 +892,77 @@ def test_preprocess_prose_stays_prose():
     assert "## 他说了一句话" not in md, md
 
 
+# ── 2026-10-19 格式兼容扩展（方案 B · txt-format-lab 夹具）──
+
+@test("格式兼容: GFM 任务清单 - [ ] / - [x] → ☐ / ☑（原文文字不丢）")
+def test_fmt_task_list():
+    md = _pp("- [ ] 标题无错别字\n- [x] 链接可用\n- [ ] 图片有说明", "conservative")
+    assert "- ☐ 标题无错别字" in md, md
+    assert "- ☑ 链接可用" in md, md
+    assert "- [ ]" not in md and "- [x]" not in md, md
+
+
+@test("格式兼容: GFM Alerts > [!NOTE] / [!WARNING] → 带标签引用块")
+def test_fmt_gfm_alerts():
+    md = _pp("> [!WARNING]\n> 请先备份数据。", "conservative")
+    assert "> 【警告】" in md, md
+    assert "> 请先备份数据。" in md, md
+    md2 = _pp("> [!NOTE]\n> 这是一条提示。", "conservative")
+    assert "> 【提示】" in md2 and "> 这是一条提示。" in md2, md2
+
+
+@test("格式兼容: admonition 别名 ::: tip / :::note → 复用现有容器")
+def test_fmt_admonition_alias():
+    md = _pp("::: tip\n先备份再操作。\n:::", "conservative")
+    assert ":::summary[小贴士]" in md, md
+    assert "先备份再操作。" in md, md
+    md2 = _pp(":::note 注意事项\n不要频繁切换账号。\n:::", "conservative")
+    assert ":::summary[注意事项]" in md2, md2
+
+
+@test("格式兼容: ~~~ 围栏等价于 ``` 代码块")
+def test_fmt_tilde_fence():
+    md = _pp("~~~python\nprint('hi')\n~~~", "conservative")
+    assert "~~~python" in md, md
+    assert "print('hi')" in md, md
+
+
+@test("格式兼容: 无分隔行的竖线表自动补表头分隔行")
+def test_fmt_pipe_table_without_separator():
+    md = _pp("功能 | 难度 | 说明\n解析标题 | 低 | 基础规则\n识别表格 | 中 | 需要判断列边界", "conservative")
+    assert "功能 | 难度 | 说明" in md, md
+    assert "|---|---|---|" in md, md
+    # 已有分隔行的标准表不得重复补
+    md2 = _pp("| A | B |\n|---|---|\n| 1 | 2 |", "conservative")
+    assert md2.count("|---|") <= 1, md2
+
+
+@test("格式兼容: 空格对齐表 → 管道表")
+def test_fmt_space_table():
+    md = _pp("指标        方案 A        方案 B\n耗时        2 秒          5 秒\n成本        低            中", "conservative")
+    assert "| 指标 | 方案 A | 方案 B |" in md, md
+    assert "| 耗时 | 2 秒 | 5 秒 |" in md, md
+
+
+@test("格式兼容: 括号编号（1）（2）不再被判成标题")
+def test_fmt_paren_number_not_heading():
+    md = _pp("（1）中文括号编号\n（2）继续下一项", "conservative")
+    assert "（1）中文括号编号" in md and "（2）继续下一项" in md, md
+    assert "## （1）" not in md and "#### （1）" not in md, md
+
+
+@test("格式兼容: NN｜章节标记 → 二级标题（含带冒号的 06/12）")
+def test_fmt_section_mark():
+    md = _pp("06｜表格：Markdown 表格、对齐和数据\n\n正文内容在这里。", "conservative")
+    assert "## 06｜表格：Markdown 表格、对齐和数据" in md, md
+
+
+@test("格式兼容: 【提示】方括号标签 → 提示块（引用）")
+def test_fmt_bracket_notice():
+    md = _pp("【提示】方括号内容可能是提示、备注，也可能只是普通文字。", "conservative")
+    assert "> 【提示】方括号内容" in md, md
+
+
 
 # ── AI 智能排版：LLM 只出结构决策(JSON)，正文由本地原样套用 ──
 

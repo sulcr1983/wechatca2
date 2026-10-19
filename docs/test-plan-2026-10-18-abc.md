@@ -59,7 +59,7 @@
 
 ```bash
 # 后端 / 单元
-python tests/test_e2e.py                  # 期望 65/65（含新增断言）
+python tests/test_e2e.py                  # 期望 74/74（含新增断言）
 python tests/test_api_e2e.py              # 期望 29/29
 python tests/test_integration.py          # 需先起服务，期望 35/35
 

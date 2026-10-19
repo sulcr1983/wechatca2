@@ -31,7 +31,7 @@ sys.path.insert(0, str(BASE))
 from core.preprocessor import preprocess  # noqa: E402
 from core.format_engine import convert_markdown_to_wechat_html  # noqa: E402
 
-FIXTURE = Path(r"E:/personal/Downloads/SuperSu_AI%E6%8E%92%E7%89%88%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95%E6%96%87%E6%A1%A3.txt")
+FIXTURE = BASE / "tests" / "fixtures" / "txt-format-lab.txt"
 OUT = BASE / "output" / "stress_audit"
 THEMES = BASE / "public" / "themes"
 
@@ -88,7 +88,7 @@ def check(cid: str, section: str, kind: str, desc: str):
 @check("H01", "01", "fidelity", "原文所有非空行都必须能在结果中找到（允许加标记，不允许丢字）")
 def _(md: str, raw: str) -> tuple[bool, str]:
     def norm(s: str) -> str:
-        return re.sub(r"[#>*`\-\s]", "", s)
+        return re.sub(r"[#>*`\-\s|]", "", s)
     md_norm = norm(md)
     missing = []
     for ln in raw.split("\n"):
@@ -96,8 +96,10 @@ def _(md: str, raw: str) -> tuple[bool, str]:
         if not s:
             continue
         # 纯分隔线、围栏标记不参与
-        if re.fullmatch(r"[=＝]{3,}", s) or s.startswith("```"):
+        if re.fullmatch(r"[=＝]{3,}", s) or s.startswith(("```", "~~~")):
             continue
+        # 任务清单由规则转成 ☐/☑（S29 单独断言），比对时先剥掉原复选框标记
+        s = re.sub(r"^[-*+]\s+\[[ xX]\]\s*", "", s)
         probe = norm(s)[:12]
         if probe and probe not in md_norm:
             missing.append(s[:40])
@@ -298,7 +300,7 @@ def _(md: str, raw: str) -> tuple[bool, str]:
 
 @check("S23", "12", "structure", "「【清单型】- [ ] 」任务清单应保留")
 def _(md: str, raw: str) -> tuple[bool, str]:
-    n = count_lines(md, r"^-\s*\[[ x]\]")
+    n = count_lines(md, r"^-\s*(?:\[[ xX]\]|☐|☑)")
     return n >= 6, f"识别 {n}/6"
 
 
@@ -339,6 +341,53 @@ def _(md: str, raw: str) -> tuple[bool, str]:
     as_head = sum(1 for l in lines_of(seg) if re.match(r"^#{1,6}\s*\d+[.、]", l))
     as_list = sum(1 for l in lines_of(seg) if re.match(r"^(?:\d+[.)]|-)\s*(尽量识别|不擅自改写|对不确定|生成网页|粘贴失败|支持简洁)", l))
     return as_list == 6 and as_head == 0, f"列表 {as_list}/6，误判标题 {as_head}"
+
+
+# ── 2026-10-19 格式兼容扩展（方案 B）新增断言 ───────────────────────────────
+@check("S29", "12", "structure", "GFM 任务清单 - [ ] 应转成 ☐ 且原文文字不丢")
+def _(md: str, raw: str) -> tuple[bool, str]:
+    boxes = count_lines(md, r"^-\s*☐\s*\S")
+    left = count_lines(md, r"^-\s*\[[ xX]\]")
+    texts = ("标题无错别字", "原文没有丢失", "链接可用", "图片有说明",
+             "手机上阅读正常", "复制到公众号后再次检查")
+    miss = [t for t in texts if f"☐ {t}" not in md]
+    return boxes >= 6 and left == 0 and not miss, f"☐ {boxes}/6，残留标记 {left}，缺失 {miss}"
+
+
+@check("S30", "01", "structure", "全部「NN｜」章节标记都应成为二级标题（含带冒号的 06/12）")
+def _(md: str, raw: str) -> tuple[bool, str]:
+    total = sum(1 for ln in raw.split("\n") if re.match(r"^\d{1,2}\s*｜\s*\S", ln.strip()))
+    hit = count_lines(md, r"^##\s*\d{1,2}\s*｜\s*\S")
+    return hit == total and total >= 16, f"{hit}/{total}"
+
+
+@check("S31", "04", "structure", "括号编号「（1）（2）」不得被误判为标题")
+def _(md: str, raw: str) -> tuple[bool, str]:
+    bad = count_lines(md, r"^#{1,6}\s*（\d+）")
+    keep = sum(1 for t in ("（1）中文括号编号", "（2）继续下一项") if t in md)
+    return bad == 0 and keep == 2, f"误判标题 {bad}，原文保留 {keep}/2"
+
+
+@check("S32", "06", "structure", "无分隔行的竖线表应自动补表头分隔行（可渲染成表格）")
+def _(md: str, raw: str) -> tuple[bool, str]:
+    seg = md_slice(md, "简单的竖线分隔表格", "## 数据对比")
+    rows = sum(1 for l in lines_of(seg) if "|" in l)
+    seps = sum(1 for l in lines_of(seg) if re.match(r"^\|(-{3}\|)+$", l.strip()))
+    return rows >= 5 and seps == 1, f"表行 {rows}，补的分隔行 {seps}"
+
+
+@check("S33", "06", "structure", "空格对齐表应转成管道表")
+def _(md: str, raw: str) -> tuple[bool, str]:
+    head = has_line(md, r"^\|\s*指标\s*\|\s*方案 A\s*\|\s*方案 B\s*\|$", regex=True)
+    n = count_lines(md, r"^\|\s*(指标|耗时|成本|稳定性)\s*\|")
+    return head and n == 4, f"表头={head}，行 {n}/4"
+
+
+@check("S34", "01", "structure", "方括号提示标签【提示】应识别为提示块（引用）")
+def _(md: str, raw: str) -> tuple[bool, str]:
+    ok = has_line(md, r"^>\s*【提示】方括号内容", regex=True)
+    bad = count_lines(md, r"^#{1,6}\s*【提示】")
+    return ok and bad == 0, f"命中={ok}，误判标题 {bad}"
 
 
 # ── 主题重复度 ──────────────────────────────────────────────────────────────
@@ -528,7 +577,7 @@ def build_report_md(report: dict) -> str:
 
     if "struct" in report:
         s = report["struct"]
-        L.append("## 一、结构识别断言（34 项）")
+        L.append(f"## 一、结构识别断言（{s['total']} 项）")
         L.append(f"**总通过 {s['pass']}/{s['total']}；原文保真 {s['fidelity_pass']}/{s['fidelity_total']}**\n")
         L.append("| 断言 | 章节 | 类别 | 描述 | 结果 | 细节 |")
         L.append("|------|------|------|------|------|------|")

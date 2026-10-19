@@ -53,10 +53,10 @@ node pwa/scripts/build.mjs                 # 构建 → pwa/dist（约 4.3MB，1
 # 期望：85 项左右通过，2 项预期 SKIP
 
 # 本地版回归（确认没把 main 的东西改坏）
-.venv/Scripts/python.exe tests/test_e2e.py          # 65/65
+.venv/Scripts/python.exe tests/test_e2e.py          # 74/74
 .venv/Scripts/python.exe tests/test_api_e2e.py      # 29/29（自起服务，要求 5000 空闲）
 ```
-本地版全量基线：**65 / 35 / 29 / 33 / 7 / 12 = 181 全绿**。
+本地版全量基线：**74 / 35 / 29 / 33 / 7 / 12 = 190 全绿**。
 
 ---
 
