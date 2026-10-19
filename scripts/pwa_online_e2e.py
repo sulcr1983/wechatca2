@@ -182,8 +182,14 @@ def main() -> int:
         page.wait_for_function("document.getElementById('input').value.length > 100", timeout=10000)
         page.wait_for_timeout(1200)
         check("空态看示例可用", input_len(page) > 100, 0, input_len(page), snap(page, "empty-demo"))
-        page.click("#btn-clear"); page.wait_for_timeout(500)
+        page.click("#btn-clear"); page.wait_for_timeout(300)
+        # 等价「空态复制按钮为灰色禁用态」的轮询版：清空后按钮转灰是异步的
+        # （doRender 起来才算数），固定等待会偶发读到旧的朱砂色。
+        end = time.time() + 6.0
         bg = page.eval_on_selector("#btn-copy", "e => getComputedStyle(e).backgroundColor")
+        while time.time() < end and "175, 62, 43" in bg:
+            page.wait_for_timeout(150)
+            bg = page.eval_on_selector("#btn-copy", "e => getComputedStyle(e).backgroundColor")
         check("空态复制按钮为灰色禁用态", "175, 62, 43" not in bg, "", bg)
 
         before = input_len(page)
@@ -215,30 +221,27 @@ def main() -> int:
         cap_metrics = page.eval_on_selector("#style-caps", "e => [e.scrollLeft, e.scrollWidth, e.clientWidth]")
         sl_b = cap_metrics[0]
 
-        def settled_scroll(prev: float, timeout: float = 5.0) -> int:
-            """点箭头后，等平滑滚动真正停下再读 scrollLeft。
-
-            原实现是固定 sleep 900ms —— 冷缓存/首次访问时滚动动画偶尔没走完，
-            会读出「没动」而误判失败（2026-10-19 线上首轮实测偶发过一次：
-            右滚读到 0、左滚却读到 260，两项互成镜像）。
-            与「不用固定 sleep 判优雅降级」是同一条教训。
+        def wait_until(pred, timeout: float = 6.0):
+            """轮询到条件成立再断言 —— 平滑滚动/异步渲染在无头下会被 rAF 节流，
+            只等固定时间是碰运气（2026-10-19 实测：同一套件两次跑，失败项还不一样）。
             """
-            end, changed, last = time.time() + timeout, False, round(prev)
+            end = time.time() + timeout
             while time.time() < end:
-                v = page.eval_on_selector("#style-caps", "e => Math.round(e.scrollLeft)")
-                if v != round(prev):
-                    changed = True
-                if changed and v == last:
-                    return v
-                last = v
-                page.wait_for_timeout(120)
-            return last
+                if pred():
+                    return True
+                page.wait_for_timeout(150)
+            return False
 
         page.click('.style-scroll[data-dir="1"]')
-        sl_a = settled_scroll(sl_b)
+        wait_until(lambda: page.eval_on_selector(
+            "#style-caps", "e => Math.round(e.scrollLeft)") > sl_b)
+        sl_a = page.eval_on_selector("#style-caps", "e => Math.round(e.scrollLeft)")
         check("风格条右滚", sl_a > sl_b, f"{cap_metrics}", f"scrollLeft={sl_a}")
+
         page.click('.style-scroll[data-dir="-1"]')
-        sl_c = settled_scroll(sl_a)
+        wait_until(lambda: page.eval_on_selector(
+            "#style-caps", "e => Math.round(e.scrollLeft)") < sl_a)
+        sl_c = page.eval_on_selector("#style-caps", "e => Math.round(e.scrollLeft)")
         check("风格条左滚", sl_c < sl_a, f"scrollLeft={sl_a}", f"scrollLeft={sl_c}")
 
         page.click("#btn-copy"); page.wait_for_timeout(900)
