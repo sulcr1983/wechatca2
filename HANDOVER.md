@@ -1,7 +1,8 @@
 # HANDOVER — PWA 交接说明
 
-> **最新交接（2026-10-19 首页体验优化）**：先看 [`docs/handover-2026-10-19-ui-polish.md`](docs/handover-2026-10-19-ui-polish.md)。
-> 关键状态：首页优化已提交 `5c6eca3` 并 push，但 Cloudflare 部署失败（wrangler `fetch failed`），**线上仍是 build 119**；接手第一件事是重试部署并跑线上全量有头 E2E。
+> **最新交接（2026-10-19 第二轮：TXT 格式兼容 + 出口三件套）**：先看 [`docs/handover-2026-10-19-txt-format-exports.md`](docs/handover-2026-10-19-txt-format-exports.md)。
+> 关键状态：线上 **build 128**（`version.json` 已核对），HEAD `9828cfc` 已推送；线上有头 E2E **88/88**。
+> 上一份 [`docs/handover-2026-10-19-ui-polish.md`](docs/handover-2026-10-19-ui-polish.md) 的「部署失败 / 线上仍是 build 119」**已作废——重试部署已成功**，其内容仍可看，但 §0 状态过时。
 
 > 写于 2026-10-18 12:15。对象：接手继续做这个 PWA 的人（包括未来的我和别的 agent）。
 > **先读 `docs/pwa-build-plan.md`（施工图）读细节，本文只讲「现在在哪、还差什么、怎么接着做」。**
@@ -11,8 +12,9 @@
 ## 0. 一句话现状
 
 **PWA 已上线**：https://supersu.ccwu.cc（自定义域名）+ https://supersu-pwa.pages.dev，粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**，线上域名有头实测渲染通过（2026-10-18）。
-**没做的**：推送探测、离线包、真机验收（见 §3）。**2026-10-19 首页优化已提交但未部署成功**，详见 `docs/handover-2026-10-19-ui-polish.md`。
+**没做的**：推送探测、离线包、真机验收（见 §3）。~~首页优化已提交但未部署成功~~ → **2026-10-19 第二轮已部署成功，线上 build 128**，详见 `docs/handover-2026-10-19-txt-format-exports.md`。
 **2026-10-19 补**：小红书封面已落地——12 风格（归藏 2 × 3 尺寸 + 模板 10 × 3:4）、纯色/上传/Wikimedia 免 key 搜图、Noto 中文字体子集、断网可生成；有头测试 16/16。
+**2026-10-19 第二轮补**：格式兼容扩展（复选框/章节标记/括号编号/非标表/Alerts/admonition）+ 出口三件套（长图 PNG / HTML / Markdown，有头 8/8）+ 抽屉缩略图修复；方案真源 `docs/feature-expansion-plan.html`（30 项 · 6 批次，B1 已完成）。
 
 ⚠️ 2026-10-18 已完成基线提交（`0332b7f`）+ 部署上线。后续每完成一项仍按：跑 `smoke.py` → 单项提交 → 回 `files/TODO.md` 打勾。
 
@@ -258,7 +260,7 @@ node pwa/scripts/build.mjs
 
 ## 10. 接手后建议的顺序
 
-0. **先处理 2026-10-19 首页优化**：重试 `deploy.sh` → 跑 `scripts/pwa_online_e2e.py` → 详情见 `docs/handover-2026-10-19-ui-polish.md`。
+0. ~~先处理 2026-10-19 首页优化~~ ✅ **已完成并部署**（第二轮）。最新进度与下一步见 `docs/handover-2026-10-19-txt-format-exports.md`；功能扩展按 `docs/feature-expansion-plan.html` 的批次推进（B1 已完成，**下一批 B2：外链图本地化 / 九宫格切图 / 批量导出图片**）。
 1. ~~先提交~~ ✅（0332b7f）→ ~~部署 Cloudflare~~ ✅（supersu.ccwu.cc）→ ~~补「更多」菜单 + 离线验证~~ 见下
 2. **离线验证**（§3.3）→ Chrome DevTools 离线刷新，确认 SW 缓存够用
 3. **补「更多」菜单**（§3.4）→ 推送探测 + AI 配置
@@ -268,4 +270,4 @@ node pwa/scripts/build.mjs
 
 ---
 
-*本文档基于 2026-10-19 的实测状态更新（首页优化已提交未部署）。若与代码冲突，以代码与实测为准，并回来更新本文。*
+*本文档基于 2026-10-19 的实测状态更新（线上 build 128，HEAD `9828cfc`）。若与代码冲突，以代码与实测为准，并回来更新本文。*
