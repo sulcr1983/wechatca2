@@ -390,7 +390,7 @@ def main() -> int:
         page.fill("#cv-author", "阿苏")
 
         page.click('.cv-mode[data-mode="upload"]')
-        page.set_input_files("#cv-file", str(ROOT / "docs" / "brand" / "logo.png"))
+        page.set_input_files("#cv-file", str(ROOT / "docs" / "brand" / "logo-source.png"))
         page.wait_for_selector(".cv-bg-preview img", timeout=15000)
         check("上传底图", page.is_visible(".cv-bg-preview img"), "", page.inner_text(".cv-bg-meta").replace("\n", " | ")[:100],
               snap(page, "cover-upload"))
