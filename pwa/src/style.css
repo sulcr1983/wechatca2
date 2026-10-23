@@ -190,6 +190,17 @@ a { color: var(--accent); }
 .chip-stat b { color: var(--accent); font-weight: 600; }
 
 /* ── 预览 ─────────────────────────────────────────────────────── */
+/* 外链图提示条（方案 B2 · #6）：公众号直贴不认外链/内嵌图，这里如实提示 */
+.img-tip {
+  flex: none; margin: 0 16px 8px; padding: 7px 10px;
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
+  background: var(--bg-raised); color: var(--text-soft);
+  font-size: 12px; line-height: 1.5;
+}
+.img-tip > span { flex: 1; min-width: 0; }
+.img-tip .ghost-btn { flex: none; height: 26px; padding: 0 10px; font-size: 12px; }
+
 .preview-wrap { flex: 1; min-height: 0; padding: 0 16px 6px; display: flex; justify-content: center; overflow: hidden; }
 .phone-shell {
   width: 100%; max-width: 420px; height: 100%;

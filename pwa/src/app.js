@@ -7,6 +7,7 @@
 
 import { createEngine } from './bridge.js';
 import { renderLight } from './light.js';
+import { scanExternalImages, localizeImages, failureSummary } from './images.js';
 
 /* ── 存储键 ─────────────────────────────────────────────────── */
 const LS = {
@@ -48,6 +49,10 @@ let mode = lsGet(LS.mode, 'phone');   // phone | web
 let engine = null;
 let engineReady = null;   // boot 的 Promise：渲染排队等它，但不挡输入
 let lastHtml = '';
+let lastRawHtml = '';              // 引擎原始输出（本地化图片前），用于重试/重抓
+let imgBusy = false;               // 图片本地化进行中，防重复点击
+let lastImgLocalized = 0;          // 本次渲染已内嵌的图片张数
+let lastImgFailed = [];            // 本次本地化失败的 { src, reason }
 let lastMarkdown = '';
 let renderTimer = null;
 let renderSeq = 0;
@@ -137,8 +142,12 @@ async function doRender() {
 
   if (!text.trim()) {
     lastHtml = '';
+    lastRawHtml = '';
     lastMarkdown = '';
+    lastImgLocalized = 0;
+    lastImgFailed = [];
     showEmpty();
+    updateImageTip();
     updateParseBar('');
     $('btn-copy').disabled = true;
     saveDraft(text);
@@ -169,8 +178,12 @@ async function doRender() {
     const out = await engine.render(text);
     if (mySeq !== renderSeq) return;          // 有更新的请求，丢弃本次结果
     lastHtml = out.html;
+    lastRawHtml = out.html;
+    lastImgLocalized = 0;
+    lastImgFailed = [];
     lastMarkdown = out.markdown;
     showPreview(out.html);
+    updateImageTip();
     updateParseBar(out.markdown);
     updateWxTitle(text);
     $('btn-copy').disabled = false;
@@ -211,6 +224,78 @@ function showEmpty() {
   const frame = $('preview');
   frame.style.display = 'none';
   frame.removeAttribute('srcdoc');
+}
+
+/* ── 外链图（方案 B2 · #6）─────────────────────────────────────
+ * 事实：公众号编辑器粘贴富文本只认公众号图床，**拒绝 data: URI**。
+ * 因此这里只承诺「导出 HTML / 长图 / 留档可用」，复制链路如实提示需手动上传。 */
+function updateImageTip() {
+  const el = $('img-tip');
+  const txt = $('img-tip-text');
+  const btn = $('btn-localize');
+  if (!el || !txt || !btn) return;
+
+  const left = scanExternalImages(lastHtml).length;
+  if (left) {
+    el.hidden = false;
+    txt.textContent = lastImgFailed.length
+      ? `仍有 ${left} 张外链图未内嵌：${failureSummary(lastImgFailed)}`
+      : `发现 ${left} 张外链图：公众号直贴不会显示；本地化后可用于导出 / 留档`;
+    btn.hidden = false;
+    btn.disabled = imgBusy;
+    btn.textContent = imgBusy ? '正在抓取…' : (lastImgFailed.length ? '重试剩余' : '本地化图片');
+  } else if (lastImgLocalized) {
+    el.hidden = false;
+    txt.textContent = `已内嵌 ${lastImgLocalized} 张图片（导出 HTML / 长图可用；公众号仍需在素材库手动上传）`;
+    btn.hidden = true;
+    btn.disabled = false;
+  } else {
+    el.hidden = true;
+    btn.hidden = false;
+    btn.disabled = false;
+  }
+}
+
+async function localizeForUser() {
+  if (imgBusy || !lastRawHtml) return;
+  const seq = renderSeq;
+  imgBusy = true;
+  updateImageTip();
+  try {
+    const r = await localizeImages(lastRawHtml);
+    if (seq !== renderSeq) return;              // 抓取期间用户又改了内容
+    lastImgLocalized = r.localized;
+    lastImgFailed = r.failed;
+    if (r.localized) {
+      lastHtml = r.html;
+      showPreview(r.html);
+    }
+    if (!r.failed.length) toast(`已内嵌 ${r.localized} 张图片（可用于导出）`, 'ok');
+    else toast(`已内嵌 ${r.localized}/${r.total} 张；${r.failed.length} 张失败：${failureSummary(r.failed)}`, 'err');
+  } catch (e) {
+    if (seq === renderSeq) toast('图片本地化失败：' + ((e && e.message) || e), 'err');
+  } finally {
+    imgBusy = false;
+    updateImageTip();
+  }
+}
+
+/** 导出前自动内嵌外链图（只对 HTML / 长图有意义；复制链路不做假承诺） */
+async function ensureLocalizedForExport() {
+  const n = scanExternalImages(lastHtml).length;
+  if (!n || !lastRawHtml) return { html: lastHtml, failed: [], localized: 0 };
+  const seq = renderSeq;
+  toast(`正在内嵌 ${n} 张外链图…`);
+  const r = await localizeImages(lastRawHtml);
+  if (seq !== renderSeq) throw new Error('内容刚发生变化，请重新导出');
+  lastImgLocalized = r.localized;
+  lastImgFailed = r.failed;
+  if (r.localized) {
+    lastHtml = r.html;
+    showPreview(r.html);
+  }
+  updateImageTip();
+  return { html: r.html, failed: r.failed, localized: r.localized };
 }
 
 function updateWxTitle(text) {
@@ -448,7 +533,7 @@ async function copyRich() {
         'text/html': new Blob([wrapped], { type: 'text/html' }),
         'text/plain': new Blob([plain], { type: 'text/plain' }),
       })]);
-      toast('已复制，去公众号后台粘贴', 'ok');
+      toastAfterCopy();
       return;
     }
   } catch { /* 落到下一级 */ }
@@ -468,11 +553,20 @@ async function copyRich() {
     const ok = document.execCommand('copy');
     sel.removeAllRanges();
     holder.remove();
-    if (ok) { toast('已复制，去公众号后台粘贴', 'ok'); return; }
+    if (ok) { toastAfterCopy(); return; }
   } catch { /* 落到下一级 */ }
 
   // 三级：明确告诉用户怎么办
   toast('浏览器不让自动复制，请用右键菜单：全选预览 → 复制', 'err');
+}
+
+/** 复制后的如实反馈：公众号只认图床 URL，data URI 与外链都不算「已完成」 */
+function toastAfterCopy() {
+  const left = scanExternalImages(lastHtml).length;
+  const embedded = /data:image\//i.test(lastHtml);
+  if (left) toast(`已复制，但还有 ${left} 张外链图，公众号里不会显示`, 'err');
+  else if (embedded) toast('已复制。公众号不识别内嵌图，正文图请在素材库上传，或用长图导出', 'err');
+  else toast('已复制，去公众号后台粘贴', 'ok');
 }
 
 /* ── AI 工具（纯前端 BYOK：Key 只存本机，不上传） ─────────────── */
@@ -756,6 +850,10 @@ function bindUI() {
     if (act === 'about') openAbout();
   });
 
+  // 外链图本地化（方案 B2 · #6）：只有用户点击才联网抓图
+  const btnLocalize = $('btn-localize');
+  if (btnLocalize) btnLocalize.addEventListener('click', localizeForUser);
+
   // 导出菜单（方案 B1 · 出口三件套）：export.js 首次点击才动态加载（离线时它在 SW 预缓存里）
   const xbtn = $('btn-export');
   const xmenu = $('menu-export');
@@ -783,15 +881,21 @@ function bindUI() {
         const r = X.exportMarkdown(lastMarkdown, title);
         toast(`已导出 Markdown（${kb(r.bytes)}）`, 'ok');
       } else if (kind === 'html') {
-        const r = X.exportHtml(lastHtml, theme, title);
-        // 外链图对方网络可能看不到 —— 提前说清楚，不静默
-        toast(r.externalImages
-          ? `已导出 HTML（${kb(r.bytes)}）· 含 ${r.externalImages} 张外链图，对方可能看不到`
-          : `已导出 HTML（${kb(r.bytes)}）`, 'ok');
+        // 导出前自动内嵌外链图：导出文件/长图不经过公众号过滤，内嵌有效
+        const prep = await ensureLocalizedForExport();
+        const r = X.exportHtml(prep.html, theme, title);
+        toast(prep.failed.length
+          ? `已导出 HTML（${kb(r.bytes)}）· ${prep.failed.length} 张未内嵌：${failureSummary(prep.failed)}`
+          : `已导出 HTML（${kb(r.bytes)}${prep.localized ? '，已内嵌 ' + prep.localized + ' 张图' : ''}）`,
+        prep.failed.length ? 'err' : 'ok');
       } else if (kind === 'long') {
         toast('正在生成长图…');
-        const r = await X.exportLongImage(lastHtml, theme, title);
-        toast(`已导出长图 ${r.width}×${r.height}（${kb(r.bytes)}）`, 'ok');
+        const prep = await ensureLocalizedForExport();
+        const r = await X.exportLongImage(prep.html, theme, title);
+        toast(prep.failed.length
+          ? `已导出长图 ${r.width}×${r.height}（${kb(r.bytes)}）· ${prep.failed.length} 张图未内嵌`
+          : `已导出长图 ${r.width}×${r.height}（${kb(r.bytes)}）`,
+        prep.failed.length ? 'err' : 'ok');
       }
     } catch (err) {
       toast('导出失败：' + ((err && err.message) || err), 'err');

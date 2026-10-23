@@ -586,3 +586,41 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 顶栏多一个按钮（移动端已验证无横向溢出）。
 - 长图上限 20000px：超长文明确报错并建议改用「导出 HTML」，不静默。
 - 外链图只提示数量、不做本地化（那是 B2 #6）；导出 HTML 里的外链图对方网络可能看不到，已在 toast 里说明。
+
+---
+
+## 任务 13：功能扩展方案 B2 · #6 外链图本地化（务实最小版，2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户「按交接文档的 B2 批次开始，先做外链图本地化」 |
+| 关键事实 | 查证确认：公众号编辑器粘贴富文本**只认公众号图床 URL，拒绝 `data:` URI**（腾讯云实践记录 + 微信开放社区）。纯前端无后端，无法替用户上传到公众号图床 |
+| 拍板 | 用户选「务实最小版」：导出链路真内嵌；复制链路如实提示需手动上传，不做假承诺 |
+| 完成判据 | 导出 HTML 里的外链图变成 data URI；抓不到必须给原因并保留原 URL；提示条存在且不误导；回归不坏 |
+| 不在范围 | 微信素材上传 / 图床 / 后端中转；#7 九宫格、#20 批量导出图片；本地 Flask 版 |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `pwa/src/images.js` | **新增**：`scanExternalImages`（按出现次数统计外链图）/ `localizeImages`（DOMParser 替换 src、去 srcset、并发 3、单图 8MB、单次 40 张、超时 12s）/ 失败原因分类 / 会话内成功缓存 |
+| `pwa/src/app.js` | 渲染后扫描并显示 `#img-tip`；点击才联网抓图；导出 HTML/长图前自动内嵌；复制后用 `toastAfterCopy` 如实提示（外链 / 内嵌图公众号都不认） |
+| `pwa/index.html` | 预览区新增 `#img-tip` 提示条 + `#btn-localize` |
+| `pwa/src/style.css` | `.img-tip` 样式（不挤占预览高度、移动端不溢出） |
+| `pwa/public/sw.js` | `SHELL_OPTIONAL` += `./src/images.js` |
+| `pwa/scripts/build.mjs` | `SHELL_FILES` += `src/images.js`；关键文件存在性断言 += `src/images.js` |
+| `scripts/pwa_image_localize_test.py` | **新增**：外链图专项有头测试（同源真图 + 同源 404，确定性、不依赖外网） |
+
+### 验证（真实执行）
+- `scripts/pwa_image_localize_test.py` **11/11**：提示条出现并如实说明 · HTML 导出自动内嵌 `data:image/png;base64` · 失败图保留原 URL · 提示条写明 `HTTP 404` · 重试仍给原因 · 清空/无图时提示条隐藏 · 移动端无横向溢出 · 0 未捕获异常
+- 回归：`scripts/pwa_export_test.py` **8/8** · `pwa/scripts/smoke.py` **24/24**
+- 构建：`node pwa/scripts/build.mjs` 通过（BUILD_ID `9d9ba88e8cfb74dc`，19.35MB，断言全过）
+
+### 回滚点
+- 删 `pwa/src/images.js` + 还原 `pwa/src/app.js` / `index.html` / `style.css` / `sw.js` / `build.mjs`；或 `git revert <本次提交>` 后重跑 `build.mjs`。
+
+### 影响 / 风险
+- 只在用户点击「本地化图片」或执行 HTML/长图导出时联网，不在每次渲染时抓图（隐私与性能）。
+- 单图 8MB / 单次 40 张 / 超时 12s：超限明确写原因，不静默。
+- 公众号直贴仍不会显示内嵌图——这是平台限制，已写进 UI 与交接文档，避免后续误改文案。
+

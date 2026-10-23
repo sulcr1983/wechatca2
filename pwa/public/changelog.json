@@ -1,23 +1,30 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-19T08:37:17+08:00",
-  "totalCommits": 125,
+  "generatedAt": "2026-10-24T01:43:50+08:00",
+  "totalCommits": 128,
   "releases": [
     {
       "version": "1.4.0",
       "date": "2026-10-19",
       "title": "小红书封面（PWA）",
       "counts": {
-        "added": 4,
-        "changed": 4,
+        "added": 5,
+        "changed": 5,
         "fixed": 2,
-        "other": 2
+        "other": 3
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "出口三件套——长图 PNG / HTML 文件 / Markdown 导出（方案 B1）",
+              "scope": "pwa",
+              "hash": "c9e6c9d",
+              "date": "2026-10-19T08:37:35+08:00",
+              "breaking": false
+            },
             {
               "text": "TXT 格式兼容扩展（任务清单/章节标记/括号编号/竖线表/空格表/Alerts/admonition）+ 夹具入库",
               "scope": "preprocess",
@@ -52,6 +59,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "新增第二轮交接（TXT 格式兼容 + 出口三件套），并纠正上一份的过时状态",
+              "scope": "handover",
+              "hash": "cefae73",
+              "date": "2026-10-19T09:51:25+08:00",
+              "breaking": false
+            },
             {
               "text": "功能扩展方案（向 135 / 秀米 / 壹伴 靠近）+ 可点击原型",
               "scope": "plan",
@@ -106,6 +120,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "线上 E2E 固定等待改轮询，彻底修掉偶发假失败",
+              "scope": "pwa",
+              "hash": "9828cfc",
+              "date": "2026-10-19T08:47:49+08:00",
+              "breaking": false
+            },
             {
               "text": "线上 E2E 滚动断言改为「等滚动停下再读」，修偶发假失败",
               "scope": "pwa",

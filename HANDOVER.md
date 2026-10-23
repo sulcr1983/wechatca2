@@ -1,6 +1,9 @@
 # HANDOVER — PWA 交接说明
 
-> **最新交接（2026-10-19 第二轮：TXT 格式兼容 + 出口三件套）**：先看 [`docs/handover-2026-10-19-txt-format-exports.md`](docs/handover-2026-10-19-txt-format-exports.md)。
+> **最新交接（2026-10-24：B2 #6 外链图本地化）**：先看 [`docs/handover-2026-10-24-image-localize.md`](docs/handover-2026-10-24-image-localize.md)。
+> 关键状态：代码与测试已完成，**尚未提交、尚未部署**（线上仍是 build 128）。
+>
+> **上一轮交接（2026-10-19 第二轮：TXT 格式兼容 + 出口三件套）**：[`docs/handover-2026-10-19-txt-format-exports.md`](docs/handover-2026-10-19-txt-format-exports.md)。
 > 关键状态：线上 **build 128**（`version.json` 已核对），HEAD `9828cfc` 已推送；线上有头 E2E **88/88**。
 > 上一份 [`docs/handover-2026-10-19-ui-polish.md`](docs/handover-2026-10-19-ui-polish.md) 的「部署失败 / 线上仍是 build 119」**已作废——重试部署已成功**，其内容仍可看，但 §0 状态过时。
 

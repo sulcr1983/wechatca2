@@ -59,6 +59,7 @@ const SHELL_OPTIONAL = [
   './manifest.webmanifest',
   './src/ai.js',
   './src/export.js',
+  './src/images.js',
   './src/light.js',
   './vendor/marked.min.js',
   './src/update/ui.js',
