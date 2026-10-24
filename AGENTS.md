@@ -101,6 +101,7 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
+python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 31/31（8 族 × 全部色调 83 个 + 164 套逐个应用 + 纯文字反馈 + 移动端）
 python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址加 #upd-demo 可预览）
 python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成

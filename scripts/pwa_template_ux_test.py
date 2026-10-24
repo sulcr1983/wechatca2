@@ -32,10 +32,11 @@ with sync_playwright() as p:
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_function("() => typeof window.__supersuIsIdle === 'function'", timeout=30000)
 
-    # 4) 版本号
+    # 4) 版本号（build.mjs 写的是 build，旧断言读已不存在的 commits —— 2026-10-24 修正）
     ver = page.evaluate("async () => (await (await fetch('./version.json', {cache:'no-store'})).json())")
-    check("版本号由构建自动生成", str(ver.get("version", "")).count(".") == 2 and ver.get("commits", 0) > 0,
-          f"v{ver.get('version')} · {ver.get('commits')} 次提交")
+    build_no = ver.get("build") or ver.get("commits") or 0
+    check("版本号由构建自动生成", str(ver.get("version", "")).count(".") == 2 and build_no > 0,
+          f"v{ver.get('version')} · build {build_no}")
 
     # 3) 模拟底栏已移除
     wxbar = page.locator(".wx-bar").count()
@@ -73,8 +74,10 @@ with sync_playwright() as p:
           f"drawer.left={geo['drawerLeft']} stage.right={geo['stageRight']} 编辑器={geo['editHidden']}")
 
     before = page.evaluate("() => document.querySelector('#style-caps .cap[aria-pressed=\"true\"]')?.dataset.id")
-    cards = page.locator("#drawer-grid .d-card")
-    cards.nth(2).click()
+    # 真实路径：全部视图点族代表卡进族视图 → 点一个色调换色（抽屉应保持打开）
+    page.locator("#drawer-grid .d-family-card").first.click()
+    page.wait_for_timeout(400)
+    page.locator("#drawer-grid .d-tone").nth(1).click()
     page.wait_for_timeout(1200)
     after = page.evaluate("() => document.querySelector('#style-caps .cap[aria-pressed=\"true\"]')?.dataset.id")
     still_open = page.evaluate("() => !document.getElementById('drawer').hidden")

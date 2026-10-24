@@ -367,8 +367,11 @@ function orderedThemes() {
 
 function renderCaps() {
   const box = $('style-caps');
-  const list = orderedThemes().slice(0, 40);
-  box.innerHTML = list.map((t) => `
+  // 当前主题必须始终出现在胶囊条里（否则「正在用哪套」在底部看不出来）
+  const list = orderedThemes();
+  const current = byId.get(activeId);
+  const shown = (current ? [current, ...list.filter((t) => t.id !== activeId)] : list).slice(0, 40);
+  box.innerHTML = shown.map((t) => `
     <button class="cap" data-id="${t.id}" aria-pressed="${t.id === activeId}">
       <span class="cap-sw" style="background:${t.background};--sw2:${t.accent}"></span>
       <span>${escapeHtml(t.name)}</span>
@@ -381,13 +384,18 @@ function pushRecent(id) {
   lsSet(LS.recent, recent.slice(0, RECENT_MAX));
 }
 
-function setActive(id) {
+function setActive(id, announce = false) {
   if (!byId.has(id)) return;
   activeId = id;
   localStorage.setItem(LS.theme, id);
   renderCaps();
   if (!$('drawer').hidden) renderDrawer();
   scheduleRender();
+  // 同族 12 色只改强调色：纯文字文章里预览看不出差别，必须给一条明确反馈
+  if (announce) {
+    const t = byId.get(id);
+    toast(`已切换：${t ? t.name : id}`, 'ok');
+  }
 }
 
 /* ── 抽屉 ───────────────────────────────────────────────────── */
@@ -815,7 +823,7 @@ function bindUI() {
     if (favBtn) { e.stopPropagation(); toggleFav(favBtn.dataset.fav); return; }
     const tone = e.target.closest('.d-tone');
     // 同族换色：不关抽屉，让用户可以连点不同色调逐个对比（与本地版一致）
-    if (tone) { setActive(tone.dataset.id); return; }
+    if (tone) { setActive(tone.dataset.id, true); return; }
     const card = e.target.closest('.d-card');
     if (!card) return;
     if (card.dataset.family) {   // 族代表卡 → 进入该族的折叠视图（不关抽屉）
@@ -825,7 +833,7 @@ function bindUI() {
       return;
     }
     // 选模板不关抽屉：让用户可以连点几个逐个看效果（选风格时预览就在左边）
-    setActive(card.dataset.id);
+    setActive(card.dataset.id, true);
   });
 
   // 更多菜单
