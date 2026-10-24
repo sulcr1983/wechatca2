@@ -605,10 +605,36 @@ async function initAi() {
   const out = $('ai-out');
   if (!sheet || !mask) return;
 
+  // 平台下拉：选项由 ai.js 的 AI_PLATFORMS 渲染（单一真源，加平台只改一处）
+  const selPlatform = $('ai-platform');
+  if (selPlatform && !selPlatform.options.length) {
+    for (const p of ai.AI_PLATFORMS) {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.name;
+      selPlatform.appendChild(o);
+    }
+    const oc = document.createElement('option');
+    oc.value = 'custom';
+    oc.textContent = '自定义（自填地址与模型）';
+    selPlatform.appendChild(oc);
+  }
+
   const open = () => {
     const c = ai.loadConfig();
-    $('ai-base').value = c.baseUrl || '';
-    $('ai-model').value = c.model || '';
+    const hasCfg = !!(c.baseUrl || c.model || c.key);
+    // 按接口地址反查预设；有配置但查不到（含自定义地址）→ 「自定义」；
+    // 完全没配置 → 默认第一个平台，地址/模型预填好，用户只差填 Key
+    const p = ai.presetByBaseUrl(c.baseUrl) || (hasCfg ? null : ai.AI_PLATFORMS[0]);
+    if (p) {
+      selPlatform.value = p.id;
+      $('ai-base').value = c.baseUrl || p.baseUrl;
+      $('ai-model').value = c.model || p.model;
+    } else {
+      selPlatform.value = 'custom';
+      $('ai-base').value = c.baseUrl || '';
+      $('ai-model').value = c.model || '';
+    }
     $('ai-key').value = c.key || '';
     sheet.hidden = false;
     mask.hidden = false;
@@ -620,6 +646,18 @@ async function initAi() {
     key: $('ai-key').value.trim(),
   });
   const say = (msg) => { if (!out) return; out.hidden = false; out.textContent = msg; };
+
+  // 换平台 → 地址/模型按预设重填（之后仍可手改）；「自定义」→ 清空自填
+  selPlatform.addEventListener('change', () => {
+    const p = ai.AI_PLATFORMS.find(x => x.id === selPlatform.value);
+    if (p) {
+      $('ai-base').value = p.baseUrl;
+      $('ai-model').value = p.model;
+    } else {
+      $('ai-base').value = '';
+      $('ai-model').value = '';
+    }
+  });
 
   // AI 能力门控：三项配置齐全 + **测试连接通过** 才把 AI 入口放出来；
   // 没接入时页面完全按本地工作，不出现任何 AI 入口（用户 2026-10-24 的产品规则）。
@@ -638,7 +676,7 @@ async function initAi() {
 
   $('ai-save').addEventListener('click', () => {
     const cfg = readForm();
-    if (!cfg.baseUrl || !cfg.key || !cfg.model) { toast('接口地址、模型、Key 三项都要填', 'err'); return; }
+    if (!cfg.baseUrl || !cfg.key || !cfg.model) { toast('接口地址、模型、Key 三项都要填（选好平台，前两项自动填好）', 'err'); return; }
     ai.saveConfig(cfg);
     refreshAiGate();   // 配置一变，之前的「测试通过」作废，AI 入口收起
     toast('AI 配置已保存在本机，点「测试连接」通过后才会启用 AI 排版');
@@ -654,7 +692,7 @@ async function initAi() {
       ai.markVerified();     // 只有测试成功才落「已验证」
       refreshAiGate();
       say('连接成功：' + (r || 'ok'));
-      toast('AI 连接正常，已启用 AI 排版与 AI 推荐主题');
+      toast('AI 连接正常，已启用 AI 排版');
     } catch (err) {
       refreshAiGate();
       say('连接失败：' + err.message);

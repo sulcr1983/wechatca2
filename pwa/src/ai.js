@@ -8,6 +8,22 @@
 const LS_AI = 'supersu.ai';
 const LS_VERIFIED = 'supersu.ai.verified';   // 「测试连接通过」的凭证（配置一改即失效）
 
+/** 平台预设：选中即填好接口地址 + 默认模型（模型仍可手改，Key 永远自己填）。
+ *  ⚠️ 只收**允许浏览器直连**的平台（CORS 预检通过）；智谱等不能入列，加了也连不上。 */
+export const AI_PLATFORMS = [
+  { id: 'deepseek',    name: 'DeepSeek',            baseUrl: 'https://api.deepseek.com/v1',    model: 'deepseek-chat' },
+  { id: 'moonshot',    name: 'Moonshot 月之暗面',    baseUrl: 'https://api.moonshot.cn/v1',    model: 'moonshot-v1-8k' },
+  { id: 'siliconflow', name: 'SiliconFlow 硅基流动', baseUrl: 'https://api.siliconflow.cn/v1', model: 'Qwen/Qwen2.5-7B-Instruct' },
+  { id: 'openai',      name: 'OpenAI',              baseUrl: 'https://api.openai.com/v1',      model: 'gpt-4o-mini' },
+];
+
+/** 按接口地址反查平台（忽略末尾斜杠）；空地址或查不到返回 null */
+export function presetByBaseUrl(baseUrl) {
+  const u = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (!u) return null;
+  return AI_PLATFORMS.find(p => p.baseUrl.replace(/\/+$/, '') === u) || null;
+}
+
 export function loadConfig() {
   try {
     return JSON.parse(localStorage.getItem(LS_AI) || '{}') || {};
@@ -56,7 +72,7 @@ export function isReady() {
 async function chat(messages, { temperature = 0.4, maxTokens = 1600, json = false } = {}) {
   const c = loadConfig();
   if (!c.baseUrl || !c.key || !c.model) {
-    throw new Error('还没配置 AI：点右上「AI」填接口地址 / 模型 / Key');
+    throw new Error('还没配置 AI：点右上「AI」，选平台、填 Key');
   }
   const url = c.baseUrl.replace(/\/+$/, '') + '/chat/completions';
   const body = { model: c.model, messages, temperature, max_tokens: maxTokens };

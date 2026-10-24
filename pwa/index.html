@@ -63,7 +63,8 @@
     <strong>AI 工具</strong>
     <button class="icon-btn" id="ai-close" aria-label="关闭">✕</button>
   </div>
-  <p class="ai-tip">纯浏览器直连，Key 只存在本机。支持 DeepSeek / Moonshot / SiliconFlow / OpenAI 等兼容接口；智谱等不允许浏览器直连的平台会连不上。</p>
+  <p class="ai-tip">纯浏览器直连，Key 只存在本机。下拉选平台——接口地址和模型自动填好，只需再填 API Key；任意 OpenAI 兼容接口可选「自定义」自填。智谱等不允许浏览器直连的平台会连不上。</p>
+  <label class="ai-field"><span>AI 平台</span><select id="ai-platform" autocomplete="off"></select></label>
   <label class="ai-field"><span>接口地址</span><input id="ai-base" placeholder="https://api.deepseek.com/v1" autocomplete="off" spellcheck="false"></label>
   <label class="ai-field"><span>模型</span><input id="ai-model" placeholder="deepseek-chat" autocomplete="off" spellcheck="false"></label>
   <label class="ai-field"><span>API Key</span><input id="ai-key" type="password" placeholder="sk-..." autocomplete="off"></label>
