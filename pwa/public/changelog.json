@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T20:44:22+08:00",
-  "totalCommits": 169,
+  "generatedAt": "2026-10-24T22:33:43+08:00",
+  "totalCommits": 170,
   "releases": [
     {
       "version": "1.5.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 15,
         "changed": 16,
-        "fixed": 5,
+        "fixed": 6,
         "other": 5
       },
       "groups": [
@@ -247,6 +247,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "tip 段落样式完全失效 —— 预处理器把提示行转成 blockquote 后规则匹配不到",
+              "scope": "engine",
+              "hash": "e3258e5",
+              "date": "2026-10-24T22:13:32+08:00",
+              "breaking": false
+            },
             {
               "text": "族视图去掉横向滚动条 + 铺满全族模板（原来只 1 张代表卡、下面大片空白）",
               "scope": "pwa",
