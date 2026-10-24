@@ -142,6 +142,10 @@ python scripts/pwa_headed_full_e2e.py     # ★ 有头全量 E2E **默认打线�
 python scripts/pwa_layout_compat_test.py  # 版式兼容性矩阵 100/100（10 夹具 × 5 版式 × 2 态 无AI/AI样本），
                                           # 断言：不丢字≥95% / 标签配平 / 无残留 / 非空 / 版式特征；无小标题短文记「降级」不算失败
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
+python scripts/pwa_real_ai_test.py        # ★ **真实 AI 态**有头 17/17（真调 DeepSeek，不打 mock）：
+                                          # 浏览器 BYOK 填真 Key → 测试连接 → AI 排版 → 正文零丢失 → 产物×4 版式×段落色块
+                                          # 读 .env 的 DEEPSEEK_API_KEY（非默认门禁，跑完自动清理浏览器里的 Key）
+                                          # ⚠️ PWA 的 AI 配置在**浏览器 localStorage**，不是服务器 .env（后者属已弃用本地版）
 python scripts/pwa_ai_preset_test.py      # AI 平台预设 21/21（下拉 4 预设+自定义 / 选中自动填地址+模型 / 只填 Key 即通 /
                                           # 模型可手改 / 老配置按地址反查回显 / 门控与 verified 契约不变）
 python scripts/ai_structure_smoke.py --file tests/fixtures/txt-format-lab.txt
