@@ -2322,6 +2322,45 @@ def _split_head_body(section: str) -> tuple[str, str]:
     return m.group(1), m.group(2)
 
 
+def _split_top_blocks(html: str) -> list[tuple[str, bool]]:
+    """按「顶层块级标签」切分 HTML，返回 [(片段, 是否块级元素)]。
+
+    为什么不用正则：`:::stat` 这类容器会生成嵌套 <section>，
+    非贪婪正则 `.*?</section>` 会停在第一个闭合标签上，把嵌套块切碎，
+    导致输出标签不配平（实测 magazine 版式 4 开 3 闭）。
+    这里改用扫描 + 深度计数，只在深度归零处切。
+    """
+    BLOCK_TAGS = {"section", "div", "table", "blockquote", "ul", "ol", "pre", "figure"}
+    tag_re = re.compile(r"<(/?)([a-zA-Z0-9]+)([^>]*)>")
+    pieces: list[tuple[str, bool]] = []
+    i = 0
+    buf_start = 0
+    depth = 0
+    block_start = -1
+    while True:
+        m = tag_re.search(html, i)
+        if not m:
+            break
+        closing, name, attrs = m.group(1), m.group(2).lower(), m.group(3)
+        self_close = attrs.strip().endswith("/")
+        if name in BLOCK_TAGS and not self_close:
+            if closing:
+                depth -= 1
+                if depth <= 0 and block_start >= 0:
+                    depth = 0
+                    pieces.append((html[buf_start:block_start], False))
+                    pieces.append((html[block_start:m.end()], True))
+                    buf_start = m.end()
+                    block_start = -1
+            else:
+                if depth == 0:
+                    block_start = m.start()
+                depth += 1
+        i = m.end()
+    pieces.append((html[buf_start:], False))
+    return pieces
+
+
 def _layout_magazine(html: str, theme: dict) -> str:
     """杂志分栏：首屏大标题 + 细线 + 双栏正文（微信兼容用 table 模拟分栏）。
 
@@ -2361,10 +2400,9 @@ def _layout_magazine(html: str, theme: dict) -> str:
                 out.append(paras[0])
                 body = body.replace(paras[0], "", 1)
 
-        # 按「非段落块」切开，块与块之间的连续段落成对放双栏
-        block_pat = (r"(<(?:section|table|figure|div|blockquote|pre|ul|ol)[^>]*>"
-                     r".*?</(?:section|table|figure|div|blockquote|pre|ul|ol)>)")
-        pieces = re.split(block_pat, body, flags=re.DOTALL)
+        # 按顶层块级元素切开，块之间的连续段落成对放双栏
+        # （用深度感知的分块器，不用正则——嵌套 section 会被正则切碎导致标签不配平）
+        pieces = _split_top_blocks(body)
         buf: list[str] = []
 
         def flush() -> None:
@@ -2379,14 +2417,16 @@ def _layout_magazine(html: str, theme: dict) -> str:
             )
             buf.clear()
 
-        for piece in pieces:
-            if not piece or not piece.strip():
+        for piece, is_block in pieces:
+            if not piece.strip():
                 continue
-            if piece.lstrip().startswith("<p"):
-                buf.extend(re.findall(r"<p[^>]*>.*?</p>", piece, re.DOTALL))
-            else:
+            if is_block:
                 flush()
                 out.append(piece)
+            else:
+                # 纯段落区：逐段收集，凑齐后两栏分
+                buf.extend(re.findall(r"<p[^>]*>.*?</p>", piece, re.DOTALL))
+                # 段落之外残留的（如空文本）直接丢弃——但保真闸门会兜底
         flush()
 
     result = "".join(out)
