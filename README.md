@@ -12,7 +12,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-20B2AA?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev)
 [![Pexels](https://img.shields.io/badge/配图-Pexels%20优先-05A081?style=flat-square&logo=pexels&logoColor=white)](https://www.pexels.com/api/)
-[![Tests](https://img.shields.io/badge/测试-197%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
+[![Tests](https://img.shields.io/badge/测试-341%20项全绿-3ECF8E?style=flat-square)](#-测试矩阵)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](#-license)
 
 <p align="center">
@@ -314,7 +314,7 @@ PEXELS_API_KEY=your-pexels-key
 
 | 套件 | 项数 | 覆盖 |
 |:-----|:----:|:-----|
-| `tests/test_e2e.py` | **65** ✅ | 端到端（无需起服务，Flask test_client） |
+| `tests/test_e2e.py` | **74** ✅ | 端到端（无需起服务，Flask test_client） |
 | `tests/test_integration.py` | **35** ✅ | 前后端联动（需先起服务） |
 | `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务） |
 | `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
@@ -326,9 +326,10 @@ PEXELS_API_KEY=your-pexels-key
 | `scripts/pwa_export_test.py` | **12** ✅ | PWA 导出（长图 PNG / HTML / Markdown / 图片 ZIP；坏图跳过写明原因） |
 | `scripts/pwa_theme_drawer_test.py` | **43** ✅ | 模板库全量审计（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端） |
 | `scripts/pwa_ai_format_test.py` | **27** ✅ | AI 排版（门控 / 四种降级兜底 / 六项结构 / 撤销，全 mock） |
+| `scripts/pwa_ai_preset_test.py` | **21** ✅ | AI 平台预设（4 平台下拉 + 自定义 / 选中自动填地址与模型 / 只填 Key 即连通 / 老配置回显） |
 | `scripts/pwa_release_card_test.py` | **9** ✅ | 更新「发布小票」（版本徽标 `v版本 · b构建号` / 亮点分类 / 查看全部，线上或本地 dist） |
 | `scripts/pwa_auto_update_test.py` | **8** ✅ | 静默自动更新（本地 dist 真 SW：探针发版 → 自动应用 + 右下角「已升级」小提示） |
-| **合计** | **311** | **全绿** |
+| **合计** | **341** | **全绿** |
 
 ```bash
 # 快速自检（无需起服务）

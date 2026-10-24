@@ -103,6 +103,8 @@ python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
 python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 43/43（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端）
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
+python scripts/pwa_ai_preset_test.py      # AI 平台预设 21/21（下拉 4 预设+自定义 / 选中自动填地址+模型 / 只填 Key 即通 /
+                                          # 模型可手改 / 老配置按地址反查回显 / 门控与 verified 契约不变）
 python scripts/ai_structure_smoke.py --file tests/fixtures/txt-format-lab.txt
                                           # 真实 Key 冒烟（读本地 .env，非默认门禁；夹具 100 段，校验正文零丢失）
 python scripts/pwa_release_card_test.py   # 更新「发布小票」9/9（版本徽标 `v版本 · b构建号` / 亮点分类 / 查看全部；
@@ -121,14 +123,15 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 94 项（91 P
 #   BUILD_ID 与数据清单由 build.mjs 注入 sw.js；清单内联（不联网取），SW 被回收后离线重启也不会失效。
 # · AI 是**纯前端 BYOK**：配置存 localStorage `supersu.ai`，直连 OpenAI 兼容接口；
 #   只支持允许浏览器直连的平台（DeepSeek / Moonshot / SiliconFlow / OpenAI），智谱等会 CORS 失败。
+#   **平台预设（2026-10-24 AI-PRESET）**：AI 面板 = 平台下拉（4 预设 + 自定义）→ 选中自动填
+#   接口地址 + 默认模型（模型仍可手改）→ 用户只填 API Key → 测试连接。预设单一真源在
+#   `pwa/src/ai.js` 的 `AI_PLATFORMS`（加平台只改这一处）；打开面板时按已存接口地址反查预设回显
+#   （老配置无 platform 字段也能正确回显；非预设地址回落「自定义」）。
 # · AI 能力门控（2026-10-24）：三项配置齐全 + **「测试连接」通过**（`supersu.ai.verified`，配置一改即失效）
 #   才显形「AI 排版」入口；未接入时页面纯本地、不发任何 AI 请求。「AI 推荐主题」已下线（价值低）。
 #   AI 排版只出结构决策 JSON（title/sections/lists/bold/splits/merges/tables/callouts/hrs/pullquotes），
 #   正文一字不改；未配置/HTTP 失败/非 JSON/空结构 → 本地 preprocess 兜底并说明原因；支持一键撤销。
 #   ⚠️ 真实 Key 只放本地 `.env`（已 gitignore，不进部署产物）；线上仍由用户自己填。
-#   🚧 待改进（`files/TODO.md` AI-PRESET）：配置面板现为「地址/模型/Key」三栏自由输入，
-#   计划改成平台下拉预设（DeepSeek / Moonshot / SiliconFlow / OpenAI 自动填地址 + 默认模型），
-#   用户只选平台 + 填 Key；⚠️ 智谱等不允许浏览器直连的平台不能入列（CORS 必失败）。
 # · 更新（2026-10-24 用户要求：静默自动）：打开 3s 后主动查 → 后台下载 → **自动应用**
 #   （不可见 / 空稿 / 30s 无输入且失焦 → 立即；用户一直在打字也最多等 30s，reload 前先落盘草稿）
 #   → 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 自动消失，点它看更新记录）。

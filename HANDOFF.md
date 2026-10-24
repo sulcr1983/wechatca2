@@ -17,9 +17,10 @@
 ### 0.2 当前线上状态（截至 2026-10-24）
 - 线上 `version.json`：**v1.5.0 · build 151**（`build` = git 提交数，构建时注入）
 - git：HEAD `310061c` 已推送 `origin/main`，工作区干净
-- 最近两类改动（详见 `CLOSURE.md` 任务 20 / 21）：
+- 最近三类改动（详见 `CLOSURE.md` 任务 20 / 21 / 22）：
   - 修「版本号一直一样、看不到更新」：版本 bump + version/build 双判 + 徽标统一 `vX · bN`
   - 更新改「静默自动升级」：检测到即自动应用（空闲立即 / 一直在打字最多等 30s，reload 前落盘草稿）→ 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 消失，点它看更新记录）
+  - **AI 平台预设（2026-10-24）**：AI 面板改平台下拉，选中自动填接口地址 + 默认模型，用户只填 API Key
 - 此前已完成：AI 能力门控 + AI 排版六项、模板库「版式×色调」二维选择、九宫格切图、图片 ZIP、B2 #6 外链图本地化
 
 ### 0.3 本地预览 / 构建 / 部署
@@ -41,15 +42,14 @@ npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
 | 套件 | 结果 |
 |------|------|
 | `tests/test_e2e.py` / `test_integration.py` / `test_api_e2e.py` / `test_headed_full_e2e.py` | 74/74 · 35/35 · 29/29 · 33/33 |
-| `scripts/pwa_theme_drawer_test.py` / `pwa_ai_format_test.py` | 43/43 · 27/27 |
+| `scripts/pwa_theme_drawer_test.py` / `pwa_ai_format_test.py` / `pwa_ai_preset_test.py` | 43/43 · 27/27 · 21/21 |
 | `scripts/pwa_export_test.py` / `pwa_nine_test.py` | 12/12 · 15/15 |
 | `scripts/pwa_cover_test.py` | 15/15（1 SKIP 网络） |
 | `scripts/pwa_release_card_test.py` / `pwa_auto_update_test.py` | 9/9 · 8/8 |
 | `scripts/pwa_online_e2e.py`（线上） | 91/91（3 SKIP） |
 
 ### 0.6 未完成需求（接续优先看 `files/TODO.md`「未完成需求」）
-- **AI 平台预设（2026-10-24 用户提出，未实现）**：AI 面板现在是三个自由输入框（接口地址 / 模型 / Key）。要做成「平台下拉 → 选中自动填接口地址 + 模型名 → 用户只填 API Key」。
-  ⚠️ 只预置**允许浏览器直连**的平台（DeepSeek / Moonshot / SiliconFlow / OpenAI），智谱等会 CORS 失败，不能放进列表。
+- ~~**AI 平台预设**~~ ✅ **2026-10-24 已闭环**（任务 22）：平台下拉（DeepSeek / Moonshot / SiliconFlow / OpenAI + 自定义）→ 选中自动填接口地址 + 默认模型（可手改）→ 只填 API Key；单一真源 `pwa/src/ai.js` 的 `AI_PLATFORMS`；门控 / verified 契约不变；测试 `scripts/pwa_ai_preset_test.py` 21/21
 - D 阶段「自定义主题」：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——仅提出，未批准开工
 - `files/TODO.md` 里 U-7…U-15 等旧待办多属本地版时代，接手时先判断是否仍适用 PWA
 
@@ -62,7 +62,7 @@ npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
 
 ### 0.8 文档地图
 - `AGENTS.md`：工程规则 + PWA 架构要点 + 测试清单（工程唯一真源）
-- `CLOSURE.md`：逐任务收尾记录（任务 20 = 版本号修复；任务 21 = 静默自动升级）
+- `CLOSURE.md`：逐任务收尾记录（任务 20 = 版本号修复；任务 21 = 静默自动升级；任务 22 = AI 平台预设）
 - `files/TODO.md`：已完成 / 待办 / **未完成需求**
 - `README.md`：对外说明 + 测试矩阵（311 项）
 
