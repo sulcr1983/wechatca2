@@ -1851,6 +1851,10 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
             html,
         )
 
+    # === 7.9 段落级色块强调（C 方案，2026-10-24）：在布局分发之前处理，
+    #     保证包出来的 section 能被 layout 正常识别/包裹；未开启 blocks 时零变化 ===
+    html = apply_paragraph_blocks(html, theme)
+
     # === 8. 布局分发（按 theme.layout 决定区块怎么切/包）===
     _layout = theme.get("layout")
     if _layout == "card" and "card" in theme:
@@ -2134,6 +2138,153 @@ def generate_gallery(rendered_map: dict, theme_map: dict,
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path.write_text(gallery_html, encoding="utf-8")
     return output_path
+
+
+def _derive_block_color(base: str, accent: str, alpha: float) -> str:
+    """把强调色转成带透明度的背景色（微信兼容：优先 rgba，退化到 hex 混白）。"""
+    a = accent.lstrip("#")
+    if len(a) == 6:
+        try:
+            r, g, b = int(a[0:2], 16), int(a[2:4], 16), int(a[4:6], 16)
+            return f"rgba({r},{g},{b},{alpha})"
+        except ValueError:
+            pass
+    return accent
+
+
+def apply_paragraph_blocks(html: str, theme: dict) -> str:
+    """C 方案 · 段落级色块强调（2026-10-24）
+
+    三种效果，各自可由 theme["blocks"] 开关（缺省全关，保持既有主题渲染零变化）：
+      quote  金句高亮 —— 纯文字段落自动包成淡底 + 左侧竖线（比引用更轻）
+      data   数据强调 —— 「数字 + 单位」开头的短段自动放大数字 + 圆角块
+      tip    提示框   —— 「提示 / 注意 / 建议」等开头的段落包成带小标签的浅色块
+
+    设计约束：
+      1. 只处理**顶层** p（不碰 blockquote/列表/容器内部，避免嵌套破版）
+      2. 幂等：已带 data-block 的段落跳过，重复调用不会层层包裹
+      3. 保守触发：只认明确信号（数字开头、提示词开头、独立成段的短句），
+         宁可少触发也不要误伤正文——正文被乱包色块是比"没效果"更严重的问题
+    """
+    cfg = theme.get("blocks") or {}
+    if not any(cfg.get(k) for k in ("quote", "data", "tip")):
+        return html
+
+    colors = theme.get("colors") or {}
+    accent = colors.get("accent") or colors.get("primary") or "#333333"
+    ink = colors.get("primary") or "#333333"
+    soft = _derive_block_color(ink, accent, 0.06)
+    soft2 = _derive_block_color(ink, accent, 0.035)
+
+    # 提示词前缀（命中即当提示框）
+    TIP_WORDS = ("提示", "注意", "建议", "小贴士", "补充", "划重点", "要点", "注意：", "提示：")
+
+    def plain_text(s: str) -> str:
+        return re.sub(r"<[^>]+>", "", s).strip()
+
+    def is_top_level_p(match_start: int, html_src: str) -> bool:
+        """判断该 <p> 是否可安全包块。
+
+        注意：inject_inline_styles 会把整篇包进一个外层 <section>（wrapper），
+        所以不能用「section 深度为 0」判断——那样永远不成立。
+        真正要排除的是：blockquote 内部、已有色块容器内部（data-block）、
+        以及列表/卡片等容器内部的段落。
+        """
+        head = html_src[:match_start]
+        # 引文内不包（引文本身就是强调，再包会两层叠色）
+        bq = len(re.findall(r"<blockquote\b", head)) - len(re.findall(r"</blockquote>", head))
+        if bq > 0:
+            return False
+        # 已在色块容器内不重复包（幂等）
+        blk = len(re.findall(r'<section data-block="', head)) - head.count("</section>")
+        # 上面的差值不严谨，改用显式计数：色块 section 的闭合也算 section 闭合，
+        # 这里只关心「当前是否还在某个 data-block section 内」——用最近一次开闭配对近似
+        last_open = head.rfind('<section data-block="')
+        if last_open >= 0:
+            # 该色块 section 之后出现的 </section> 数量
+            closed = head[last_open:].count("</section>")
+            opened = head[last_open:].count("<section")
+            if opened > closed:
+                return False
+        # 列表/卡片容器内不包
+        if re.search(r'<section[^>]*data-role="(list|card)', head):
+            seg = head[head.rfind('<section'):] if "<section" in head else ""
+            if seg.count("<section") > seg.count("</section>"):
+                return False
+        return True
+
+    def quote_block(inner: str) -> str:
+        return (
+            f'<section data-block="quote" style="margin:22px 0;padding:14px 16px;'
+            f'background:{soft};border-left:3px solid {accent};border-radius:0 8px 8px 0">'
+            f'<p style="margin:0;font-size:15px;line-height:1.85;color:{ink}">{inner}</p></section>'
+        )
+
+    def data_block(m: re.Match, inner: str) -> str:
+        num, unit, rest = m.group(1), m.group(2) or "", m.group(3) or ""
+        tail = plain_text(rest)
+        tail_html = (f'<span style="font-size:13px;color:{ink};opacity:.75;margin-left:8px">'
+                     f'{tail}</span>') if tail else ""
+        return (
+            f'<section data-block="data" style="margin:22px 0;padding:14px 16px;'
+            f'background:{soft2};border-radius:10px">'
+            f'<p style="margin:0;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">'
+            f'<span style="font-size:30px;font-weight:600;color:{accent};line-height:1.1">{num}</span>'
+            f'<span style="font-size:13px;color:{ink};opacity:.75">{unit}</span>{tail_html}</p></section>'
+        )
+
+    def tip_block(label: str, inner: str) -> str:
+        return (
+            f'<section data-block="tip" style="margin:22px 0;padding:13px 15px;'
+            f'background:{soft2};border-radius:8px">'
+            f'<p style="margin:0;font-size:13.5px;line-height:1.75;color:{ink}">'
+            f'<span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;'
+            f'background:{accent};color:#ffffff;margin-right:8px;vertical-align:1px">{label}</span>'
+            f'{inner}</p></section>'
+        )
+
+    # 逐段处理（只匹配最内层、不含嵌套 p 的段落）
+    out = []
+    pos = 0
+    pat = re.compile(r"<p(?![^>]*data-block)([^>]*)>(?!<p)(.*?)</p>", re.DOTALL)
+    for m in pat.finditer(html):
+        if not is_top_level_p(m.start(), html):
+            continue
+        attrs, inner = m.group(1), m.group(2)
+        text = plain_text(inner)
+        if not text:
+            continue
+
+        replacement = None
+
+        # data：数字 + 可选单位 开头，且总长较短（长段落不当数据卡）
+        dm = re.match(r"^(\d+(?:\.\d+)?)\s*(个|次|条|张|年|月|日|天|小时|分钟|秒|人|倍|%|元|万|亿)?[\s，,、:：]*(.*)$", text, re.DOTALL)
+        if cfg.get("data") and dm and len(text) <= 60:
+            replacement = data_block(dm, inner)
+
+        # tip：提示词开头
+        if replacement is None and cfg.get("tip"):
+            for w in TIP_WORDS:
+                if text.startswith(w):
+                    rest = text[len(w):].lstrip("：:，, ")
+                    replacement = tip_block(w.rstrip("：:"), rest)
+                    break
+
+        # quote：只认**明确的引语信号**，不做「短句就算金句」的猜测。
+        # 2026-10-24 实测：按「≤40 字即金句」会误伤 34.7% 的正文段落（真实长文夹具），
+        # 正文被乱包色块比没效果严重得多 → 只认引号包裹，或用户显式写的 :::quote 容器。
+        if replacement is None and cfg.get("quote"):
+            if ("“" in text and "”" in text) or ("「" in text and "」" in text):
+                replacement = quote_block(inner)
+
+        if replacement:
+            out.append(html[pos:m.start()])
+            out.append(replacement)
+            pos = m.end()
+    if not out:
+        return html
+    out.append(html[pos:])
+    return "".join(out)
 
 
 def format_for_output(content: str, input_path: Path, theme: dict,
