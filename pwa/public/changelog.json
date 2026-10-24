@@ -1,14 +1,14 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-24T13:06:15+08:00",
-  "totalCommits": 137,
+  "generatedAt": "2026-10-24T13:25:32+08:00",
+  "totalCommits": 138,
   "releases": [
     {
       "version": "1.4.0",
       "date": "2026-10-19",
       "title": "小红书封面（PWA）",
       "counts": {
-        "added": 9,
+        "added": 10,
         "changed": 6,
         "fixed": 4,
         "other": 5
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "模板库版式×色调二维选择器（换版式保留同名色调）",
+              "scope": "pwa",
+              "hash": "e0e821d",
+              "date": "2026-10-24T13:25:19+08:00",
+              "breaking": false
+            },
             {
               "text": "AI 能力门控 + AI 排版六项升级 + 同族色调可见化",
               "scope": "pwa/ai",
