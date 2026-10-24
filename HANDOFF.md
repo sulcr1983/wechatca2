@@ -49,10 +49,11 @@ npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
 | `scripts/pwa_release_card_test.py` / `pwa_auto_update_test.py` | 9/9 · 8/8 |
 | `scripts/pwa_online_e2e.py`（线上） | 91/91（3 SKIP） |
 
-### 0.6 未完成需求（接续优先看 `files/TODO.md`「未完成需求」）
-- ~~**AI 平台预设**~~ ✅ **2026-10-24 已闭环**（任务 22）：平台下拉（DeepSeek / Moonshot / SiliconFlow / OpenAI + 自定义）→ 选中自动填接口地址 + 默认模型（可手改）→ 只填 API Key；单一真源 `pwa/src/ai.js` 的 `AI_PLATFORMS`；门控 / verified 契约不变；测试 `scripts/pwa_ai_preset_test.py` 21/21
-- D 阶段「自定义主题」：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——仅提出，未批准开工
-- `files/TODO.md` 里 U-7…U-15 等旧待办多属本地版时代，接手时先判断是否仍适用 PWA
+### 0.6 未完成需求与任务排期（接续优先看 `files/TODO.md`）
+- **开发任务列表（2026-10-24 排期，用户定序）**：**先文档（DOC-1…5）→ 再测试（TST-1…3）→ 然后再说**（已盘点不排期：THEME-CUSTOM、U-8/U-9 等）。详见 `files/TODO.md` 顶部排期区
+- ~~**AI 平台预设**~~ ✅ **2026-10-24 已闭环**（任务 22）：平台下拉（DeepSeek / Moonshot / SiliconFlow / OpenAI + 自定义）→ 选中自动填接口地址 + 默认模型（可手改）→ 只填 API Key；单一真源 `pwa/src/ai.js` 的 `AI_PLATFORMS`；门控 / verified 契约不变；测试 `scripts/pwa_ai_preset_test.py` 21/21。⏳ **代码已提交未部署**（缺 CF token），部署后按 DOC-4 回写线上验证
+- D 阶段「自定义主题」（THEME-CUSTOM）：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——仅提出，未批准开工
+- U 系列旧待办已逐条对照 PWA 核定（2026-10-24）：U-7 已实现关单；U-12 / U-14 不适用；U-8 / U-9 转 PWA 待办；U-10 / U-11 / U-13 / U-15 低优先。明细见 `files/TODO.md`
 
 ### 0.7 接手必读的坑
 - `pwa/dist/` 是构建产物（gitignore）：线上内容一律由 `node pwa/scripts/build.mjs` 生成，**不要手改 dist**
