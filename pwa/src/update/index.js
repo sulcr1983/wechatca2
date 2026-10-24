@@ -89,6 +89,7 @@ export function createUpdater({ changelog } = {}) {
     try {
       const v = await fetchJSON('./version.json');
       state.running = v.version || '';
+      state.runningBuild = Number(v.build) || 0;
       // 入口按钮文案固定为「更新记录」（版本号放在更新记录面板里展示），
       // 所以这里只负责把按钮亮出来，不再改文案
       if (state.running) el.btn.hidden = false;
@@ -102,7 +103,7 @@ export function createUpdater({ changelog } = {}) {
       state.data = await fetchJSON('./changelog.json');
       if (changelog) {
         changelog.setData(state.data);
-        changelog.setCurrentVersion(state.running);
+        changelog.setCurrentVersion(state.running, state.runningBuild);
       }
     } catch { /* 没有更新记录不影响主功能 */ }
   }
@@ -262,6 +263,7 @@ export function createUpdater({ changelog } = {}) {
     if (!isDismissed()) {
       const since = localStorage.getItem(LS_SEEN) || '';
       const ver = state.remote || state.running || '';
+      const build = state.remoteBuild || state.runningBuild || 0;
       const { items, total, scope } = highlightsSince(since);
       const date = state.data && state.data.generatedAt
         ? String(state.data.generatedAt).slice(0, 10) : '';
@@ -272,7 +274,7 @@ export function createUpdater({ changelog } = {}) {
         // 只有真有待应用的 worker 才给「立即更新」；预览(#upd-demo)或没有 waiting 时不给，
         // 否则用户点了必然失败（弹出「暂时没拉到更新包」）
         canUpdate: Boolean(state.waiting),
-        badge: ver ? 'v' + ver : '新版',
+        badge: ver ? (build ? `v${ver} · b${build}` : 'v' + ver) : '新版',
         date,
         items: items.length ? items : [{ kind: 'opt', label: '优化', text: '界面与排版体验优化' }],
       });
@@ -294,11 +296,18 @@ export function createUpdater({ changelog } = {}) {
     applyUpdate();
   }
 
+  /** 「稍后」的 key：运行版本 + 构建号（同一次运行里构建号不变，视为同一版本） */
+  function dismissKey() {
+    return state.running
+      ? `${state.running}#${state.runningBuild || 0}`
+      : (state.remote ? `${state.remote}#${state.remoteBuild || 0}` : '');
+  }
+
   /** 用户点过「稍后」：本次运行不再提示、也不自动应用（下次版本再来） */
   function isDismissed() {
     let dismissed = '';
     try { dismissed = localStorage.getItem(LS_DISMISSED) || ''; } catch { /* 忽略 */ }
-    const key = state.running || state.remote;
+    const key = dismissKey();
     return !!(dismissed && key && dismissed === key);
   }
 
@@ -307,8 +316,16 @@ export function createUpdater({ changelog } = {}) {
     try {
       const v = await fetchJSON('./version.json');
       state.remote = v.version || '';
-      if (state.remote && state.running && cmpVersion(state.remote, state.running) > 0 && !state.prompted) {
-        showCard(`线上已经是 v${state.remote}（你用的是 v${state.running}）。`, { canUpdate: true });
+      state.remoteBuild = Number(v.build) || 0;
+      // 版本号只在发版时 bump，build（git 提交数）每次部署都变：
+      // 两者任一变大即视为有更新，否则用户永远收不到提示（2026-10-24 用户报障）
+      const sameVer = cmpVersion(state.remote, state.running) === 0;
+      const newer = Boolean(state.remote && state.running)
+        && (cmpVersion(state.remote, state.running) > 0
+          || (sameVer && state.remoteBuild > state.runningBuild));
+      if (newer && !state.prompted) {
+        showCard(`线上 v${state.remote}（构建 ${state.remoteBuild}），你用的是 v${state.running}（构建 ${state.runningBuild}）。`,
+          { canUpdate: true });
       }
     } catch { /* 离线或文件缺失，忽略 */ }
   }
@@ -400,8 +417,8 @@ export function createUpdater({ changelog } = {}) {
     if (el.btn) el.btn.addEventListener('click', () => openChangelog());
     if (el.later) {
       el.later.addEventListener('click', () => {
-        // 与 maybePrompt 用同一个 key（运行版本优先），否则「稍后」记不住
-        const key = state.running || state.remote;
+        // 与 isDismissed 用同一个 key（含构建号），否则「稍后」记不住
+        const key = dismissKey();
         if (key) {
           try { localStorage.setItem(LS_DISMISSED, key); } catch { /* 忽略 */ }
         }

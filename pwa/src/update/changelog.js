@@ -93,6 +93,7 @@ export function createChangelog(options = {}) {
   const state = {
     data: null,
     currentVersion: '',       // 当前运行的版本
+    currentBuild: 0,          // 构建号（git 提交数）：版本号只在发版时变，构建号每次部署都变
     since: '',                // 用户上次看过的版本
     mode: 'browse',           // browse | update
     query: '',
@@ -263,6 +264,15 @@ export function createChangelog(options = {}) {
     if (state.mounted) render();
   }
 
+  /* 版本徽标：`v1.5.0 · b132`。只显示版本号会让每次部署看起来“没变化”
+   *（2026-10-24 用户报障：版本号一直一样）——构建号是 git 提交数，每次部署都会变。 */
+  function renderPill(fallbackVersion) {
+    const v = String(state.currentVersion || fallbackVersion || '').replace(/^v/i, '');
+    const b = Number(state.currentBuild) || 0;
+    els.pill.textContent = v ? `v${v}${b ? ` · b${b}` : ''}` : '';
+    els.pill.hidden = !v;
+  }
+
   function render() {
     const data = state.data || {};
     const releases = Array.isArray(data.releases) ? data.releases.slice() : [];
@@ -288,9 +298,7 @@ export function createChangelog(options = {}) {
     renderChips(types, labels);
 
     /* 版本徽标：优先用 setCurrentVersion 的值，其次 data.version */
-    const current = state.currentVersion || String(data.version || '');
-    els.pill.textContent = current ? `v${current.replace(/^v/i, '')}` : '';
-    els.pill.hidden = !current;
+    renderPill(data.version);
 
     els.foot.textContent = `更新记录由 git 提交自动生成 · 共 ${Number(data.totalCommits) || state.totalEntries} 次提交 · 最后更新 ${fmtTime(data.generatedAt)}`;
 
@@ -506,12 +514,12 @@ export function createChangelog(options = {}) {
     }
   }
 
-  function setCurrentVersion(v) {
+  function setCurrentVersion(v, build) {
     state.currentVersion = v == null ? '' : String(v).replace(/^v/i, '');
+    state.currentBuild = Number(build) || 0;
     if (!state.mounted) return;
 
-    els.pill.textContent = state.currentVersion ? `v${state.currentVersion}` : '';
-    els.pill.hidden = !state.currentVersion;
+    renderPill();
     markCurrent();
   }
 

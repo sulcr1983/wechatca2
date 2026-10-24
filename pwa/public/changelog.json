@@ -1,17 +1,17 @@
 {
-  "version": "1.4.0",
-  "generatedAt": "2026-10-24T13:25:32+08:00",
+  "version": "1.5.0",
+  "generatedAt": "2026-10-24T13:41:29+08:00",
   "totalCommits": 138,
   "releases": [
     {
-      "version": "1.4.0",
-      "date": "2026-10-19",
-      "title": "小红书封面（PWA）",
+      "version": "1.5.0",
+      "date": "2026-10-24",
+      "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
-        "added": 10,
-        "changed": 6,
-        "fixed": 4,
-        "other": 5
+        "added": 5,
+        "changed": 1,
+        "fixed": 2,
+        "other": 2
       },
       "groups": [
         {
@@ -52,7 +52,79 @@
               "hash": "623cb76",
               "date": "2026-10-24T01:45:31+08:00",
               "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "回写 B2 #7 九宫格切图（CLOSURE 任务14 / TODO / AGENTS 测试与架构要点 / README 计数）",
+              "scope": "",
+              "hash": "312da45",
+              "date": "2026-10-24T10:43:26+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "修模板库同族换色点了没反应（toast 反馈 + 底部胶囊始终含当前主题）",
+              "scope": "pwa",
+              "hash": "0f9883c",
+              "date": "2026-10-24T11:50:31+08:00",
+              "breaking": false
             },
+            {
+              "text": "线上 E2E 上传底图夹具改用 docs/brand/logo-source.png（logo.png 已不存在）",
+              "scope": "test",
+              "hash": "2b36dd8",
+              "date": "2026-10-24T02:15:20+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "模板库体验套件对 SW 自动重载自愈（线上刚部署时抽屉会被重置）",
+              "scope": "pwa",
+              "hash": "97aa273",
+              "date": "2026-10-24T11:56:46+08:00",
+              "breaking": false
+            },
+            {
+              "text": "线上 E2E 增加九宫格切图 3 项（切图/ZIP/关闭）",
+              "scope": "pwa",
+              "hash": "5688700",
+              "date": "2026-10-24T10:41:48+08:00",
+              "breaking": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "date": "2026-10-19",
+      "title": "小红书封面（PWA）",
+      "counts": {
+        "added": 5,
+        "changed": 5,
+        "fixed": 2,
+        "other": 3
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
             {
               "text": "出口三件套——长图 PNG / HTML 文件 / Markdown 导出（方案 B1）",
               "scope": "pwa",
@@ -95,13 +167,6 @@
           "label": "调整",
           "items": [
             {
-              "text": "回写 B2 #7 九宫格切图（CLOSURE 任务14 / TODO / AGENTS 测试与架构要点 / README 计数）",
-              "scope": "",
-              "hash": "312da45",
-              "date": "2026-10-24T10:43:26+08:00",
-              "breaking": false
-            },
-            {
               "text": "新增第二轮交接（TXT 格式兼容 + 出口三件套），并纠正上一份的过时状态",
               "scope": "handover",
               "hash": "cefae73",
@@ -143,20 +208,6 @@
           "label": "修复",
           "items": [
             {
-              "text": "修模板库同族换色点了没反应（toast 反馈 + 底部胶囊始终含当前主题）",
-              "scope": "pwa",
-              "hash": "0f9883c",
-              "date": "2026-10-24T11:50:31+08:00",
-              "breaking": false
-            },
-            {
-              "text": "线上 E2E 上传底图夹具改用 docs/brand/logo-source.png（logo.png 已不存在）",
-              "scope": "test",
-              "hash": "2b36dd8",
-              "date": "2026-10-24T02:15:20+08:00",
-              "breaking": false
-            },
-            {
               "text": "草稿在示例/清空/轻量预览时立即落盘 + E2E 断言修正",
               "scope": "pwa",
               "hash": "aded807",
@@ -176,20 +227,6 @@
           "type": "other",
           "label": "其他",
           "items": [
-            {
-              "text": "模板库体验套件对 SW 自动重载自愈（线上刚部署时抽屉会被重置）",
-              "scope": "pwa",
-              "hash": "97aa273",
-              "date": "2026-10-24T11:56:46+08:00",
-              "breaking": false
-            },
-            {
-              "text": "线上 E2E 增加九宫格切图 3 项（切图/ZIP/关闭）",
-              "scope": "pwa",
-              "hash": "5688700",
-              "date": "2026-10-24T10:41:48+08:00",
-              "breaking": false
-            },
             {
               "text": "线上 E2E 固定等待改轮询，彻底修掉偶发假失败",
               "scope": "pwa",

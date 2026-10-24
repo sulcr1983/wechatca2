@@ -4,6 +4,8 @@
 页面地址加 `#upd-demo` 会直接展示更新卡（不影响正常更新流程），
 用它验证：版本徽标 / 日期 / 三条亮点（带分类标签）/ 条数 / 查看全部。
 """
+import os
+import re
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -13,7 +15,8 @@ try:
 except Exception:
     pass
 
-URL = "https://supersu.ccwu.cc/#upd-demo"
+# 默认打线上；本地预览可传 SUPERSU_URL=http://127.0.0.1:8899
+URL = (os.environ.get("SUPERSU_URL") or "https://supersu.ccwu.cc").rstrip("/") + "/#upd-demo"
 results = []
 
 
@@ -43,6 +46,15 @@ with sync_playwright() as p:
     })""")
     print("  卡片内容:", card)
 
+    # 用户报障（2026-10-24）：版本号一直一样。徽标必须同时带语义化版本与构建号，
+    # 构建号 = git 提交数，每次部署都会变，才能看出「这次真更新了」。
+    badge_re = re.compile(r"^v\d+\.\d+\.\d+ · b\d+$")
+    check("版本徽标 = v版本 · b构建号", bool(badge_re.match(card["badge"])), card["badge"])
+
+    ver = page.evaluate("fetch('./version.json', {cache:'no-store'}).then(r => r.json())")
+    check("徽标版本与 version.json 一致", card["badge"].startswith(f"v{ver.get('version')}"),
+          f"{card['badge']} vs {ver}")
+
     check("发布小票有版本徽标", card["badge"].startswith("v"), card["badge"])
     check("列出亮点并带分类标签",
           len(card["items"]) >= 2 and all(t in ("新功能", "优化", "修复") for t in card["tags"]),
@@ -55,6 +67,10 @@ with sync_playwright() as p:
     page.wait_for_timeout(900)
     opened = page.evaluate("() => { const e = document.getElementById('cl-panel'); return !!e && !e.hidden; }")
     check("「查看全部」打开更新记录面板", opened)
+
+    pill = page.evaluate("() => document.getElementById('cl-version-pill')?.textContent || ''")
+    check("更新记录面板徽标带构建号", bool(badge_re.match(pill)), pill)
+
     check("页面无 JS 未捕获异常", not errors, str(errors[:2]))
     browser.close()
 
