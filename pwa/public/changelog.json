@@ -1,14 +1,14 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-24T10:43:51+08:00",
-  "totalCommits": 133,
+  "generatedAt": "2026-10-24T11:13:58+08:00",
+  "totalCommits": 134,
   "releases": [
     {
       "version": "1.4.0",
       "date": "2026-10-19",
       "title": "小红书封面（PWA）",
       "counts": {
-        "added": 7,
+        "added": 8,
         "changed": 6,
         "fixed": 3,
         "other": 4
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "B2 #20 批量导出图片（正文全部图片 → ZIP）",
+              "scope": "pwa",
+              "hash": "8a021c3",
+              "date": "2026-10-24T11:13:45+08:00",
+              "breaking": false
+            },
             {
               "text": "B2 #7 九宫格切图（3x3 切图 + 方形居中裁剪 + 间距/顺序 + ZIP 打包）",
               "scope": "pwa",
