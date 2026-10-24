@@ -882,8 +882,39 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 门控契约未动：平台切换只改表单，`saveConfig` 才清 `supersu.ai.verified`；老用户已存配置打开即正确回显，无迁移成本
 - 线上 E2E 的「保存空 AI 配置有提示」断言依赖 toast 含「三项」——新文案保留该词，线上套件无需改动（待部署后线上复核）
 
+---
 
+## 任务 23：全文档 ↔ 代码一致性审计（2026-10-24）
 
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户要求：审查项目所有文档，识别与当前代码实现不一致/过时的内容，按代码真码更新，并列出差异点与依据 |
+| 方法 | 三个并行审计员分头核对（api/overview/runbook/testing · README/AI_USAGE/claude/HANDOVER · AGENTS 全文），全部结论附文件:行号证据；主控复核关键计数（grep 实数）后才落笔 |
+| 原则 | ① **活文档修到与代码一致**（README/AGENTS/api-reference/overview/runbook/testing/project-conventions/update-handoff/TODO）；② **历史快照/方案稿不改内容、加声明条**（pwa-*/handover-*/design-audit/test-plan 等），防止把已闭环工作重新排期；③ 计数类只信实数，不信文档互引 |
 
+### 改动（按文档）
+| 文档 | 修了什么 |
+|------|----------|
+| `AGENTS.md` | §3 架构树补 `core/browser_utils.py`、`public/vendor|theme-thumbs|screenshot-backgrounds`、整个 `pwa/` 子树、scripts 测试脚本组；§4 抽屉 460→**500px**、`#boot` 40px→自适应、2.5s 注明实测值（门限 15s）、补每小时定时查+version.json 轮询、补 `pwa_image_localize_test.py`/`pwa_offline_diag.py`、留言底栏标注仅 PWA；§5 路由表补 `social/progress`、`pexels-config`；§8/§11 headed_full 32→**33**（两处）；§9/§11 旧入口「未删」→**已删除**（两处） |
+| `README.md` | PWA/本地版混写逐条标注（教程、插入模块、一键推送、Pexels 自动配图、Key 加密存储、一键 3 张、Flask 架构图均标「本地版」）；197/181 两处旧计数→**341**；模板条 164→40 胶囊+抽屉全量；删「配置 AI 后 LLM 精准提取」（代码无此路径）；架构图改 PWA 为主（本地版折进 details）；快速开始 PWA 优先；项目结构树补 `pwa/` 等；测试矩阵加口径注 |
+| `claude.md` | 删内联旧计数（52/32）与不存在文件的引用，改为「以 AGENTS.md §4 实时口径为准」 |
+| `AI_USAGE.md` | 加澄清头：本文件是「Agent 宪法模板」方法论文档，**不是**产品 AI 功能说明，给出产品 AI 文档指针 |
+| `HANDOVER.md` | 顶部加🛑更正条：历史快照，版本/计数/「未完成」清单全部可能过期；点名 7 项已闭环勿再排期；旧「最新交接」指针划线 |
+| `docs/api-reference.md` | 文首加「仅覆盖弃用 Flask 版」声明；`optimize-stream` 标死链路；render 成功响应改 `{html, markdown, request_id, is_optimized}`（无 success 字段）；92→**164** 套；server-ip 局域网→**公网**；cover-image 字节→`image_url`；social/generate 异步轮询→**同步返回** |
+| `docs/overview.md` | 加 PWA 为主提示；「群友免费用（规划）」→已上线；架构图补 PWA 分支；「不复制 core」→构建产物会复制到 `dist/py`；index.html 2100 行→实际 2671（本地版）/203（PWA）；Pyodide 决策「5-10 天可上线」→已上线 |
+| `docs/runbook.md` | §7「发布 PWA：还没做」→**已上线**，重写为构建/部署/发版流程（含凭证现状与回滚）；Python 实测 3.13.12→3.12.1；blcaptain 子项目注明不在仓库；Playwright 参数描述改为如实 |
+| `docs/testing.md` | 补 PWA 15 个专项脚本指针；「三套自起」→四套（e2e 不开端口）；字体断言「必须 rem、写 24px 会挂」→**容错解析 px/rem、断言 ≥16px**；api_e2e 覆盖范围改如实；去掉 `playwright install chromium`（走系统浏览器） |
+| `docs/project-conventions.md` | 分支模型删 `pwa` 分支（现仅 main）；§7 诊断表回填 2026-10-24 进展（task_closure 已归档、旧入口已删、docs 47MB 现状） |
+| `docs/update-handoff.md` | 加 2026-10-24 行为变更条（静默自动升级高于正文）；§3 「用户点立即更新」旧描述标注过时；version 示例 1.3.0→1.5.0 |
+| `files/TODO.md` | 「PWA 施工」进度区（D1–D10 全打⬜但实际已完成）替换为已完成记录+指针 |
+| 8 份历史文档 | `pwa-cloudflare-plan` / `pwa-consistency-and-speed-plan` / `pwa-incremental-update-research` / `test-plan-2026-10-18-abc` / `handoff-stress-audit-2026-10-18` / `design-audit` / `handover-2026-10-19-txt-format-exports` / `handover-2026-10-24-image-localize` 统一加🛑历史声明条；`pwa-build-plan` 标 D1–D10 已完成；`wechat-page-redesign` 状态改「已落地」；`txt-format-support` 状态改「已实施（FMT-1）」 |
 
+### 验证（真实执行）
+- 三个审计员报告全部附文件:行号证据；主控对 6 处关键计数亲自复核（headed_full 33、ai_preset 运行时 21、抽屉 500px、旧入口不存在、字体断言正则、Playwright 参数分布），**审计员 2 处误判被主控纠正**（ai_preset 19 vs 21：文本调用点 19 + 循环放大 3 = 运行时 21，以套件自报为准；testing.md 六套件计数 74/35/29/33/7/12=190 本就正确，不改）
+- 修改仅触及 `*.md`，无代码/配置改动；`git status` 确认无源码文件被碰
+- AGENTS.md §4 测试清单与 README 矩阵逐行核对：23 组计数 21 组原本精确吻合
 
+### 风险 / 说明
+- 历史文档只加声明条不改内容——保住「当时为什么这么做」的决策链，避免用今天的结论污染历史记录
+- README 的 PWA/本地版标注如后续本地版真正删除，可再清一轮（当前保留回退用途，不删）

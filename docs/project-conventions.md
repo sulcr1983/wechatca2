@@ -96,8 +96,10 @@
 
 | 分支 | 用途 | 说明 |
 |---|---|---|
-| `main` | 本地版 + 共享引擎（`core/`） | 稳定分支，随时可跑 |
-| `pwa` | PWA 专属（`pwa/` 目录） | 只加 `pwa/`，不改 `core/`；稳定后合并回 `main` 并删除 |
+| `main` | 唯一分支：PWA（`pwa/`）+ 共享引擎（`core/`）+ 本地版 | 稳定分支，随时可跑；部署即推 `main` |
+
+> 历史：PWA 曾在独立 `pwa` 分支开发，2026-10 已合并回 `main` 并删除该分支——**现在只有 main**，
+> 不要再建 / 切 `pwa` 分支（2026-10-24 审计订正）。
 
 **提交信息格式**
 
@@ -118,17 +120,17 @@ type(scope): 中文摘要（不超过 50 字）
 
 ---
 
-## 七、现状诊断与清理计划（2026-10-18）
+## 七、现状诊断与清理计划（2026-10-18 快照；2026-10-24 审计回填进展）
 
-| # | 问题 | 现状 | 建议 | 风险 | 优先级 |
+| # | 问题 | 快照时现状 | 当前状态（2026-10-24） | 风险 | 优先级 |
 |---|---|---|---|---|---|
-| 1 | `output/` 产物爆炸 | **182MB / 215 文件**（封面渲染 + 审计报告 + 主题评审混放） | 只留最近 7 天；子目录按用途分（`output/covers/` `output/audits/` `output/reviews/`） | 低（可再生） | P0 |
-| 2 | `docs/` 混装 | **43MB / 73 文件**（35 jpg + 15 html + md） | 图片移 `docs/assets/`，原型移 `docs/prototypes/`，只留 `.md` 在根 | 低 | P0 |
-| 3 | 文档职责重叠 | `HANDOFF`(72.8KB) + `CLOSURE`(22KB) + `docs/task_closure_*.md`×4 + `files/TODO` | 4 份 task_closure 内容并入 CLOSURE 后归档 | 低 | P1 |
-| 4 | 废弃死代码 | `launcher.py`(689B)、`start_flask.py`(188B)、`claude.md`(718B) 零引用 | 确认后删除（`claude.md` 先看内容） | 低 | P1 |
-| 5 | `blcaptain-style-skill/` 74MB | vendored（含 node_modules 17MB） | 保持 gitignore；开源时单独说明安装方式 | 中（第三方） | P2 |
-| 6 | `HANDOFF` 过长（72.8KB） | 19 条变更全在一个文件 | 超 100KB 时按半年归档 | 低 | P2 |
-| 7 | 缩略图/字体等生成物 | `public/theme-thumbs` 2.8MB、`public/fonts`（PWA） | 进 Git（部署需要） | 低 | — |
+| 1 | `output/` 产物爆炸 | **182MB / 215 文件** | 部分收敛（任务产物按子目录归置）；仍建议只留最近 7 天 | 低（可再生） | P0 |
+| 2 | `docs/` 混装 | **43MB / 73 文件** | 图片/原型已分子目录（`screenshots/` `ux-audit/` `prototypes/` `pwa-spike/` `brand/`）；`docs/` 现存约 47MB，根下 21 个 `.md` + 2 个报告 html | 低 | P0 |
+| 3 | 文档职责重叠 | `HANDOFF` + `CLOSURE` + `docs/task_closure_*.md`×4 | ✅ 5 份 task_closure 已移入 `docs/archive/`，内容并入 CLOSURE | 低 | 已闭环 |
+| 4 | 废弃死代码 | `launcher.py`、`start_flask.py` 零引用 | ✅ 两文件已删除（2026-10 审计确认零引用后移除） | 低 | 已闭环 |
+| 5 | `blcaptain-style-skill/` 74MB | vendored（含 node_modules） | 保持 gitignore；**不在本仓库**，需单独获取 | 中（第三方） | P2 |
+| 6 | `HANDOFF` 过长 | 72.8KB | 现 83KB：已加「§0 最新交接快照」置顶（旧章节标为历史），**暂未按半年归档** | 低 | P2 |
+| 7 | 缩略图/字体等生成物 | `public/theme-thumbs`、`public/fonts`（PWA） | 进 Git（部署需要）✅ | 低 | — |
 
 **清理执行规则**：
 - 每次清理前先列清单 + 体积 → 用户确认 → 才删（**禁止脚本无提示批量删**）

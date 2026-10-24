@@ -1,5 +1,11 @@
 # 更新模块（Update Module）交接文档
 
+> ⚠️ **2026-10-24 行为变更（高于本文正文）**：更新已改为**静默自动升级**——检测到新版本即自动应用
+> （空闲立即 / 一直在打字最多等 30s，reload 前落盘草稿），完成后只在右下角弹「已升级到 vX · bN」小提示（8s 消失）；
+> 大卡片「发布小票」**只在 `#upd-demo` 预览**。本文 §3 中「由用户点立即更新」的旧描述已过时，
+> 以 `pwa/src/update/index.js` 与 `AGENTS.md` §4 为准（见 CLOSURE 任务 20 / 21）。
+> 自动化验证：`scripts/pwa_release_card_test.py` 9/9 · `scripts/pwa_auto_update_test.py` 8/8。
+
 > 适用范围：本仓库 PWA 的「更新」相关功能（版本检测、Service Worker 更新、右下角更新入口、发布小票、更新记录面板）。
 > 本文档面向**接手该模块的开发者**，讲清：文件在哪、改哪、怎么加新版本、怎么验证、已知坑。
 > 编写于 2026-10-18。抽取工作已提交 `26ba27a`，本文档提交 `2a705d2`。
@@ -23,7 +29,7 @@
 | `pwa/src/update/changelog.js` | 更新记录面板（`#cl-panel`），从 `changelog.json` 渲染。导出 `createChangelog()` | 改记录面板样式/逻辑时 |
 | `pwa/src/update/update.css` | 更新模块**全部**样式（原 `style.css` 里的 `upd-*` 段已搬来） | 改外观时 |
 | `pwa/public/changelog.json` | 更新记录数据源（**由脚本生成，别手改**） | 一般不动 |
-| `pwa/version.json` | 当前版本（**语义化版本**，如 `1.3.0`）。必须与更新记录最新版本**一致** | 发版时改 |
+| `pwa/version.json` | 当前版本（**语义化版本**，现为 `1.5.0`）。必须与更新记录最新版本**一致** | 发版时改 |
 | `pwa/scripts/changelog_milestones.json` | 版本切点（从新到旧，`until` 为**右闭时刻**、精确到秒，支持同一天切多版） | 发版加新版本时加一条 |
 | `pwa/scripts/gen_changelog.py` | 从 git 历史 + milestones 生成 `changelog.json` 和 `CHANGELOG.md`（**构建时自动跑**，见 §5） | 一般不用手动跑 |
 
@@ -53,8 +59,8 @@
 
 1. **Service Worker 更新线索**
    - `sw.js` 不自动 `skipWaiting`，新版本装好后停在 `waiting`，避免用户正打字时突然换资源。
-   - 页面检测到 `waiting` 的 worker → 显示非阻塞提示，由用户点「立即更新」。
-   - 用户确认 → `postMessage({type:'SKIP_WAITING'})` → 新 worker 激活 → `controllerchange` → **只 reload 一次**。
+   - 页面检测到 `waiting` 的 worker → **静默自动应用**（不可见 / 空闲立即；用户一直在打字最多等 `AUTO_APPLY_MS`=30s；reload 前 `flushDraft()` 落盘）→ `controllerchange` → reload → 右下角「已升级」小提示。
+   - （旧行为「用户点立即更新」仅保留在 `#upd-demo` 预览路径；更新失败仍弹卡片写明原因，不静默。）
    - `sw.js` 用 `updateViaCache:'none'` 注册，避免被 HTTP 缓存住导致永远查不到更新。
    - 每小时 + 回到前台时主动 `registration.update()`（5 分钟内不重复打请求）。
 

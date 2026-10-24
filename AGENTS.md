@@ -22,7 +22,7 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 ## 3. 架构速查
 
 ```
-app.py                  Flask 主应用（路由 + SSE + API）
+app.py                  Flask 主应用（路由 + SSE + API）——本地弃用版入口，PWA 不经过它
 core/
   format_engine.py      排版引擎（164 主题，Markdown → 微信 HTML）
   preprocessor.py       纯文本 → Markdown（纯规则零延迟；四模式 conservative/longform/tutorial/auto，⚠️ 尚无 UI 入口待接线）
@@ -31,24 +31,53 @@ core/
   image_gen.py          AI 封面图生成（LLM 关键词 → 文生图 → PIL 叠加）
   token_manager.py      微信 Access Token 管理（线程安全单例）
   wechat_publisher.py   微信公众号 API（素材上传 + 草稿推送）
-  crypto_utils.py       API Key 加密存储
+  crypto_utils.py       API Key 加密存储（仅本地版；PWA 的 Key 在用户浏览器 localStorage）
   blcaptain_bridge.py   BLCaptain 封面引擎适配层（Node.js，9 风格）
   guizang_renderer.py   归藏封面渲染器（Playwright HTML→PNG，data URI 内嵌底图）
+  browser_utils.py      浏览器回退链单真源（系统 Chrome → Edge；launch_browser / open_url）
 scripts/
   build_themes.py           原创主题生成器（设计标尺 → 119 套 su-* 主题 JSON）
   theme_specs.py            原创主题的设计意图规格（47 初代 + 72 六族；新主题在这里加一条）
   build_brand_assets.py     品牌 logo 资产生成器（源图 → UI 徽标 + PWA 5 张安装图标）
+  theme_stress_audit.py     164 套全量渲染审计（标签平衡/无 None/无残渣）
+  ai_structure_smoke.py     AI 结构冒烟（真实 Key，非默认门禁）
+  pwa_*_test.py             PWA 专项有头测试（见 §4 测试清单；15 个）
+  ux_verify_p0/p1/tutorial.py  UX 验收脚本（15/15 · 15/15 · 13/13）
+  run_headed_test.bat       有头套件快捷入口（自起服务，需 5000 空闲）
+  legacy/                   历史审计脚本（audit_e2e / gen_review / output-audit）
 templates/
-  index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）
+  index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）——仅本地弃用版
 public/                 静态资源（原 assets/，由 /assets/* 路由提供）
   brand/                品牌 logo 徽标（**生成物**：`python scripts/build_brand_assets.py`
                         从 docs/brand/logo-source.png 导出，两版共用；勿手改 PNG）
   themes/               164 套排版主题 JSON（45 套早期原创 + 119 套 su-* 原创）
                         ⚠️ su-* 119 套为**生成物**：改 scripts/theme_specs.py 后重跑
                            scripts/build_themes.py 重生成，勿手改 JSON
+  theme-thumbs/         主题缩略图（生成物；PWA 模板库消费）
   cover-templates/      归藏封面模板
   images/               封面库存图（最终兜底）
+  screenshot-backgrounds/  封面截图背景素材
   social-thumb/         模板缩略图
+  vendor/               前端内联依赖（modern-screenshot.js / fflate.min.js，PWA 封面与九宫格用）
+pwa/                    ★ 主产品（PWA 版，线上 supersu.ccwu.cc）
+  index.html            单页外壳（203 行；面板/DOM 由各模块自建）
+  version.json          语义化版本（发版时手动 bump；build 字段由构建注入 = git 提交数）
+  src/
+    app.js              主交互（编辑器/预览/主题抽屉/AI 面板接线）
+    ai.js               AI BYOK：AI_PLATFORMS 平台预设 + 配置存取 + 润色/摘要/结构规划
+    bridge.js           主线程 ↔ Pyodide Worker 桥
+    engine.worker.js    Pyodide 运行时（core/ 引擎副本在 dist/py/）
+    export.js           导出四件套（长图 PNG / HTML / Markdown / 图片 ZIP）
+    images.js           外链图本地化（data URI 内嵌）
+    nine.js             九宫格切图（fflate 按需加载）
+    light.js            轻量即时预览
+    style.css           全部样式（含 .ai-field / 抽屉让位等）
+    cover/              小红书封面（catalog/render/search/index 等，modern-screenshot 单管线）
+    update/             更新模块（index/ui/changelog/update.css；静默自动升级 + 小提示）
+  public/               sw.js（SW + 缓存分层）/ changelog.json（生成物）/ manifest / icons / fonts / runtime/
+  scripts/              build.mjs（构建+断言）/ deploy.sh / gen_changelog.py /
+                       changelog_milestones.json / fetch_fonts.py / make_icons.py / smoke.py
+  dist/                 构建产物（gitignore，勿手改；node pwa/scripts/build.mjs 生成）
 references/             归藏设计系统参考文档
 data/                   运行时数据（配置/账号/历史/bg_cache 图片缓存）
 output/                 封面渲染输出
@@ -99,7 +128,7 @@ python scripts/pwa_incremental_test.py --phase 2          # 换一个文件重�
 python scripts/pwa_s1s3_test.py        # 首屏不阻塞 + AI 面板/润色/排版/摘要（mock 接口）9/9
 python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（输出 output/pwa_payload）
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
-python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
+python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（实测首访约 2.5s 出近似排版；门限 15s）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
 python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 43/43（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端）
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
@@ -112,9 +141,11 @@ python scripts/pwa_release_card_test.py   # 更新「发布小票」9/9（版本
 python scripts/pwa_auto_update_test.py    # 静默自动更新 8/8（本地 dist 真 SW：改写探针 sw.js 触发新版本 →
                                           # 自动应用并刷新、全程无大卡片、右下角「已升级」小提示 8s 消失）
 python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
+python scripts/pwa_image_localize_test.py # PWA 外链图本地化 12/12（渲染后抓取转 data URI；失败必给原因）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
 python scripts/pwa_nine_test.py           # PWA 九宫格切图 15/15（真下载 ZIP 解包读像素：裁剪/顺序/间距/移动端）
 python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 94 项（91 PASS + 3 SKIP）
+python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排查离线可用性用）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）
 # · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
@@ -133,13 +164,14 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 94 项（91 P
 #   正文一字不改；未配置/HTTP 失败/非 JSON/空结构 → 本地 preprocess 兜底并说明原因；支持一键撤销。
 #   ⚠️ 真实 Key 只放本地 `.env`（已 gitignore，不进部署产物）；线上仍由用户自己填。
 # · 更新（2026-10-24 用户要求：静默自动）：打开 3s 后主动查 → 后台下载 → **自动应用**
+#   （另有每小时定时查 + version.json 独立轮询两条线索，见 pwa/src/update/index.js）
 #   （不可见 / 空稿 / 30s 无输入且失焦 → 立即；用户一直在打字也最多等 30s，reload 前先落盘草稿）
 #   → 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 自动消失，点它看更新记录）。
 #   大卡片「发布小票」**只在 `#upd-demo` 预览**，正常流程不需要用户确认。
 #   `?reset-sw` 注销 SW + 清本站缓存并重载（卡住时的自救开关）。
-# · 首屏不阻塞：`#boot` 是底部小条（40px、pointer-events:none），引擎没就绪也能先输入。
-# · 模板库抽屉：打开时 `body.browsing` → 桌面端主区 `padding-right:460px` 让位（不遮挡预览）、
-#   编辑器收起、抽屉 460px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。
+# · 首屏不阻塞：`#boot` 是底部自适应小条（胶囊、pointer-events:none），引擎没就绪也能先输入。
+# · 模板库抽屉：打开时 `body.browsing` → 桌面端主区 `padding-right:500px` 让位（不遮挡预览）、
+#   编辑器收起、抽屉 500px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。
 #   **族视图为「版式 × 色调」二维选择**（2026-10-24）：顶部 8 个版式胶囊切族、**保留同名色调**
 #   （素页·竹青 → 卷宗·竹青；目标族无该色调时回落第一套）；族视图隐藏重复的家族 chip，只留「全部/收藏」。
 # · 版本号规则（2026-10-24 修正）：**语义化版本在 `pwa/version.json` 手动 bump，只发版时改**；
@@ -150,7 +182,7 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 94 项（91 P
 #   否则更新记录里不会出现该版本条目。
 # · 更新卡是「发布小票」：版本徽标 + 日期 + 3 条亮点（按文案自动标 新功能/优化/修复）+ 查看全部；
 #   `#upd-demo` 可随时预览该卡（不影响真实更新流程）。
-# · 预览里已移除「写留言/赞/在看」模拟底栏。
+# · 预览里已移除「写留言/赞/在看」模拟底栏（PWA；Flask 本地版预览仍保留，随弃用不再跟进）。
 # · 品牌 logo：源图 docs/brand/logo-source.png → scripts/build_brand_assets.py → public/brand（UI 徽标）
 #   + pwa/public/icons（5 张安装图标）；构建把 public/brand 拷进 dist/brand，**两版共用同一份资源**。
 #   本地版引 /assets/brand/*，PWA 引 ./brand/*（顶栏 / 启动条 / 更新入口 / 发布小票 / 更新记录头部 / 关于弹窗）。
@@ -209,7 +241,9 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 | GET | `/api/ai-platforms` | 预配置平台列表 |
 | GET | `/api/server-ip` | 服务器公网 IP |
 | POST | `/api/social/generate` | 小红书封面生成 |
+| GET | `/api/social/progress/<task_id>` | 封面生成进度（阶段展示；图在 POST 响应里直接返回） |
 | GET | `/api/social/styles` | 小红书风格列表（含 group） |
+| GET | `/api/pexels-config` | Pexels Key 是否已配置（不返回 Key 本身） |
 | GET | `/api/social/thumbnails` | 模板缩略图列表 |
 | GET | `/api/history` | 推送历史 |
 | GET | `/temp_covers/<filename>` | 临时封面图（AI 标题图） |
@@ -280,7 +314,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 2. python tests/test_integration.py         ← 前后端联动测试
 3. python tests/test_e2e.py                 ← 全量 E2E
 4. python tests/test_api_e2e.py             ← 后端 API 全端点 E2E（29 项）
-5. python tests/test_headed_full_e2e.py     ← 前端有头全按钮 E2E（双页 32 项）
+5. python tests/test_headed_full_e2e.py     ← 前端有头全按钮 E2E（双页 33 项）
 6. 检查 output/ 目录                        ← 验证封面生成
 ```
 
@@ -290,7 +324,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 - 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
 - ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
-- `scripts/start_flask.py` / `launcher.py` 为已废弃旧入口（零引用，见 HANDOFF §7 可记录债务），真实入口是 `app.py` / `start-app.bat`
+- `scripts/start_flask.py` / `launcher.py` 旧入口**已删除**（2026-10 审计确认全仓零引用后移除）；真实入口是 `app.py` / `start-app.bat`
 - `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`
 - 测试用 `app.test_client()` 避免端口冲突
 - SSE 30 秒超时，优化结果 120 秒缓存；⚠️ 后台 LLM 优化（_start_background_optimization）默认已关闭（前端未接入 SSE 消费），见 F2 修复
@@ -371,14 +405,14 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 ### 错误分级
 - 阻断：破坏核心功能 / owner 边界 / 密钥安全 / 数据真相 / 测试门禁 / 用户关键体验。当轮必须收掉。
 - 设计风险：架构漂移、运行面失控，须说明取舍与验收入口。
-- 可记录债务：不影响本轮，须说明原因与后续入口（如 `launcher.py` / `start_flask.py` 旧入口未删，见 HANDOFF §7）。
+- 可记录债务：不影响本轮，须说明原因与后续入口（旧入口类债务应在确认零引用后删除，不留 `_old` 尸体）。
 - 无关优化：不进入本轮，禁借机扩大改造。
 
 ### 验收规则（须给真实证据）
 - 声称完成前必须提供本轮实际运行的命令 / 测试 / 日志 / 截图 / 出图证据。
 - 改动跑 E2E（`test_e2e` 74/74）+ 集成（`test_integration` 35/35）；封面相关须实跑 `/api/social/generate` 三引擎（editorial / swiss / mist）出真实 PNG；PWA 封面改动须跑 `scripts/pwa_cover_test.py`（16 项，含断网生成）；改动封面页交互还须跑 `scripts/pwa_nine_test.py`（15/15）。
 - warning / lint / 测试计数漂移 / 文档索引缺失 / 本轮 TODO 按缺陷处理，除非明确记为非本轮债务。
-- UI 改动须检查真实渲染（`test_headed_full_e2e` 32/32），不只看代码。
+- UI 改动须检查真实渲染（`test_headed_full_e2e` 33/33），不只看代码。
 
 ### Git 边界
 - 禁止 `git add .`；只 stage 本任务相关文件。

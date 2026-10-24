@@ -1,5 +1,7 @@
 # 交接：B2 #6 外链图本地化（2026-10-24）
 
+> 🛑 **2026-10-24 审计声明**：本文为**历史快照/方案稿**，其中的版本号、构建号、「未提交/未部署」等状态**均已过期**。现行状态唯一真源：`HANDOFF.md` §0 + `AGENTS.md` + `CLOSURE.md`。
+
 > 写给下一位接手的人 / AI。**先看 §0 现状与 §1 接手步骤**。
 > 关联：`HANDOVER.md`、`docs/feature-expansion-plan.html`（方案真源）、`CLOSURE.md §13`、`files/TODO.md`（IMG-LOC）、上一份 `docs/handover-2026-10-19-txt-format-exports.md`。
 

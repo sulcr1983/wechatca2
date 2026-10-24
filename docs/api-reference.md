@@ -1,5 +1,9 @@
 # API 速查
 
+> ⚠️ **适用范围（2026-10-24 审计补）**：本文仅覆盖**已弃用的 Flask 本地版**（`app.py`，保留作回退）。
+> **PWA 主产品没有这些路由**——它在浏览器里用 Pyodide 跑同一套 `core/` 引擎，AI 为纯前端 BYOK
+> （见 `README.md` 架构图 / `AGENTS.md` §3）。本地版路由仍可用于回退排故。
+
 全部路由都在 `app.py`（单文件，28 个）。默认 `http://127.0.0.1:5000`。
 
 > 本机开着 Clash 时 curl 必须加 `--noproxy '*'`，否则返回 502。
@@ -11,7 +15,7 @@
 | 1 | GET | `/` | 主页面（单文件 SPA） |
 | 2 | GET | `/api/themes` | 主题列表（含 primary/accent/background 配色） |
 | 3 | POST | `/api/render` | **核心**：纯文本 → Markdown → 公众号 HTML |
-| 4 | GET | `/api/optimize-stream` | SSE，消费后台 LLM 优化结果 |
+| 4 | GET | `/api/optimize-stream` | SSE，消费后台 LLM 优化结果（**已停用**：生产端注释掉，`_opt_store` 永无数据，只会空转 30s 返回 timeout；前端零引用，保留供将来恢复） |
 | 5 | POST | `/api/polish` | AI 润色（整篇改写，需配置 AI） |
 | 6 | POST | `/api/ai-format` | AI 智能排版（AI 只给结构决策，正文原样） |
 | 7 | GET | `/api/accounts` | 公众号账号列表 |
@@ -19,7 +23,7 @@
 | 9 | DELETE | `/api/accounts/<id>` | 删除账号 |
 | 10 | GET | `/api/history` | 推送历史 |
 | 11 | POST | `/api/summary` | AI 生成 80-100 字摘要 |
-| 12 | POST | `/api/cover-image` | 生成公众号封面图（返回图片字节） |
+| 12 | POST | `/api/cover-image` | 生成公众号封面图（落盘 `temp_covers/`，返回 `{success, image_url}`，图片经 `/temp_covers/<file>` 取） |
 | 13 | GET | `/temp_covers/<file>` | 取临时封面图 |
 | 14 | GET | `/output/<path>` | 取输出产物（封面/图片） |
 | 15 | GET | `/assets/<path>` | 取 `public/` 静态资源 |
@@ -35,7 +39,7 @@
 | 25 | POST | `/api/ai-config` | 写 AI 配置 |
 | 26 | POST | `/api/ai-config/test` | 测试 AI 连通性 |
 | 27 | GET | `/api/ai-platforms` | 支持的 AI 平台预设 |
-| 28 | GET | `/api/server-ip` | 本机局域网 IP（给手机访问用） |
+| 28 | GET | `/api/server-ip` | 本机**公网** IP（微信白名单用；手机局域网访问不适用） |
 
 ## 三个必须知道的
 
@@ -48,9 +52,9 @@
 ```
 
 - `skip_preprocess: true` 跳过本地规则预处理，`raw_text` 直接当 Markdown
-- 成功返回 `{success, html, markdown, ...}`；`markdown` 是排版后的中间结果，前端「结构解析条」就消费它
+- 成功返回 `{html, markdown, request_id, is_optimized}`（**无 `success` 字段**；`markdown` 是排版后的中间结果，前端「结构解析条」就消费它）；出错才返回 `{success: false, error}`
 - 主题不存在返回 404 `theme not found: <id>`
-- 主题 id 不要硬编码 `default`——92 套里没有 default，动态取 `/api/themes` 首项
+- 主题 id 不要硬编码 `default`——164 套里没有 default，动态取 `/api/themes` 首项
 
 ### POST /api/social/generate
 
@@ -60,7 +64,7 @@
 { "text": "文案", "style": "editorial", "images": { "xxx": "data:image/png;base64,..." }, "task_id": "可选" }
 ```
 
-异步执行，前端用 `task_id` 轮询 `/api/social/progress/<task_id>`。
+**同步执行**：搜图 + 渲染都在请求线程内跑完，最终 `images` 直接在 POST 响应里返回；`task_id` 轮询 `/api/social/progress/<task_id>` 只用于展示阶段（searching / rendering / done），拿不到图。
 
 ### POST /api/ai-format
 
