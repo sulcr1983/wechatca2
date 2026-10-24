@@ -269,7 +269,17 @@ def main() -> int:
                                      args=["--no-proxy-server", "--window-size=1440,960"])
             ctx = browser.new_context(viewport={"width": 1400, "height": 900})
             page = ctx.new_page()
-            page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+            # 收集真实 JS 错误；排除两类「预期内」的噪音：
+            #  1) 资源加载 4xx/5xx（含 AI 阶段故意 mock 的 500 兜底用例）
+            #  2) favicon 之类静态资源缺失
+            def _on_console(m):
+                if m.type != "error":
+                    return
+                t = m.text or ""
+                if t.startswith("Failed to load resource"):
+                    return
+                errors.append(t)
+            page.on("console", _on_console)
             page.on("pageerror", lambda e: errors.append(str(e)))
 
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
@@ -530,6 +540,148 @@ def main() -> int:
             page.wait_for_timeout(1200)
             check("「恢复」清掉自定义配色",
                   page.evaluate("() => localStorage.getItem('supersu.pwa.custom')") is None, "", "")
+
+            # ── E. AI 态（浏览器端 BYOK，2026-10-24）──────────────────
+            # ⚠️ PWA 是纯静态站，AI 配置在**浏览器 localStorage**（supersu.ai），
+            #    不是服务器 .env / data/ai_config.json（那是已弃用本地 Flask 版的）。
+            #    这里用路由拦截 mock LLM，走真实的「AI 排版」按钮链路，
+            #    验证 AI 结构化产物在 8 种版式 + 段落色块下都兼容。
+            print("\n── E. AI 态（浏览器 BYOK + mock LLM）──")
+            ai_state = {"mode": "ok"}
+            AI_PLAN = {
+                "title": 0,
+                "sections": [{"heading": "出发前的准备", "start": 1, "end": 2},
+                             {"heading": "到了之后", "start": 3, "end": 5}],
+                "lists": [],
+                "bold": [],
+                "splits": [],
+                "merges": [],
+                "tables": [],
+                "callouts": [],
+                "hrs": [],
+                "pullquotes": [],
+            }
+            AI_INPUT = (
+                "周末去海边\n\n"
+                "出发前一晚我还在改稿，心里没底。这一夜我反复删了又写，窗外一直下雨。\n\n"
+                "4 小时 在沙滩上没看一次手机。\n\n"
+                "提示：傍晚风会变凉，带一件外套。\n\n"
+                "下午四点，光从侧面打过来，沙滩是温的。我脱了鞋走了很久。\n\n"
+                "他说：“真正让人疲惫的不是工作，是那些没被允许停下来的时刻。”"
+            )
+
+            def ai_fulfill(route):
+                if ai_state["mode"] == "http500":
+                    route.fulfill(status=500, content_type="application/json",
+                                  body=json.dumps({"error": {"message": "mock 上游故障"}}))
+                    return
+                try:
+                    msgs = json.loads(route.request.post_data or "{}").get("messages", [])
+                except Exception:
+                    msgs = []
+                sys0 = (msgs[0].get("content") or "") if msgs else ""
+                content = (json.dumps(AI_PLAN, ensure_ascii=False)
+                           if "排版结构规划器" in sys0 else "ok")
+                route.fulfill(status=200, content_type="application/json",
+                              body=json.dumps({"choices": [{"message": {"content": content}}]}))
+
+            page.route("**/v1/chat/completions", ai_fulfill)
+            # 在浏览器里配置 BYOK（同源 mock 地址，避开 CORS）
+            page.evaluate("""(base) => localStorage.setItem('supersu.ai', JSON.stringify(
+                {baseUrl: base, model: 'mock', key: 'k'}))""", f"{url}v1")
+            page.reload(wait_until="domcontentloaded")
+            page.wait_for_selector("#btn-themes", timeout=40000)
+            page.fill("#input", AI_INPUT)
+            try:
+                page.wait_for_function(
+                    "() => !document.getElementById('btn-copy').disabled", timeout=90000)
+                ai_engine_ok = True
+            except Exception:
+                ai_engine_ok = False
+            check("AI 态：引擎就绪", ai_engine_ok, "", "")
+
+            if ai_engine_ok:
+                # ⚠️ AI 入口门控要求「配置齐全 + 测试连接通过」（isVerified），
+                #    只写 localStorage 配置不会放出按钮 —— 必须先点一次「测试连接」。
+                page.click("#btn-ai")
+                page.wait_for_timeout(900)
+                if page.locator("#ai-test").count() == 1:
+                    page.click("#ai-test")
+                    page.wait_for_timeout(2500)
+                page.click("#ai-close")
+                page.wait_for_timeout(700)
+                check("AI 态：测试连接通过后入口放出",
+                      page.evaluate("() => document.body.classList.contains('ai-ready')"),
+                      "", "")
+
+                # 点「AI 排版」（按钮在解析条右侧，未配置时不出现；已配置应可见）
+                ai_btn = page.locator("#btn-ai-format-row")
+                check("AI 态：AI 排版按钮可见",
+                      ai_btn.count() == 1 and ai_btn.is_visible(), "",
+                      f"count={ai_btn.count()} visible={ai_btn.is_visible() if ai_btn.count() else '-'}")
+                if ai_btn.count() == 1 and ai_btn.is_visible():
+                    before_ai = page.input_value("#input")
+                    ai_btn.click()
+                    page.wait_for_timeout(4500)
+                    after_ai = page.input_value("#input")
+                    check("AI 态：AI 排版改写了结构", after_ai != before_ai,
+                          f"{len(before_ai)}字", f"{len(after_ai)}字")
+                    # 正文不能丢：抽几个关键片段
+                    flat = after_ai.replace("\n", "").replace(" ", "")
+                    segs = ["出发前一晚我还在改稿", "窗外一直下雨", "沙滩是温的", "真正让人疲惫"]
+                    missing = [s for s in segs if s.replace(" ", "") not in flat]
+                    check("AI 态：正文零丢失", not missing, "", missing[:2] if missing else "全在")
+                    check("AI 态：出现了小节标题", "##" in after_ai or "出发前的准备" in after_ai,
+                          "", "")
+
+                    # AI 产物 × 全部版式
+                    page.wait_for_timeout(1200)
+                    page.click("#btn-themes")
+                    page.wait_for_timeout(400)
+                    ai_lay_ok = {}
+                    for label, key in [("图文节奏", "hasAccentBar"), ("卡片流", "hasCards"),
+                                       ("目录导航", "hasTOC"), ("杂志分栏", "hasTable")]:
+                        page.click(f".dl-chip:has-text('{label}')")
+                        page.wait_for_timeout(1700)
+                        pr = probe(page)
+                        if not pr:
+                            ai_lay_ok[label] = False
+                            continue
+                        ok = bool(pr[key]) and not pr["balance"]
+                        ai_lay_ok[label] = ok
+                        check(f"AI 产物 × 版式「{label}」", ok, "",
+                              f"{key}={pr[key]} 失衡={pr['balance'] or '无'}")
+                    check("AI 产物在 4 种新版式下全部兼容",
+                          all(ai_lay_ok.values()), "", f"{sum(ai_lay_ok.values())}/4")
+
+                    # AI 产物 × 段落色块
+                    page.click(".dl-chip:has-text('默认')")
+                    page.wait_for_timeout(1600)
+                    for key in ("quote", "data", "tip"):
+                        b = page.locator(f"#db-{key}")
+                        if b.count() and not b.is_checked():
+                            b.check()
+                            page.wait_for_timeout(900)
+                    page.wait_for_timeout(1500)
+                    pr_ai = probe(page)
+                    check("AI 产物 × 段落色块生效", bool(pr_ai and pr_ai["blocks"] > 0),
+                          "", (pr_ai or {}).get("blocks", 0))
+                    check("AI 产物标签配平", bool(pr_ai) and not pr_ai["balance"],
+                          "", (pr_ai or {}).get("balance", "") or "配平")
+                    page.click("#btn-drawer-close")
+                    page.wait_for_timeout(300)
+
+                    # AI 失败 → 本地兜底（按钮永远给得出结果）
+                    ai_state["mode"] = "http500"
+                    page.fill("#input", AI_INPUT)
+                    page.wait_for_timeout(1400)
+                    if page.locator("#btn-ai-format-row").count() == 1:
+                        page.click("#btn-ai-format-row")
+                        page.wait_for_timeout(4500)
+                    fallback_text = page.input_value("#input")
+                    check("AI 态：上游失败仍给结果（本地兜底）",
+                          len(fallback_text) > 30, "", f"{len(fallback_text)}字")
+                    ai_state["mode"] = "ok"
 
             page.screenshot(path=str(OUT / "final.png"), full_page=False)
             check("全程无 JS 报错", not errors, "", errors[:1] if errors else "0 报错")

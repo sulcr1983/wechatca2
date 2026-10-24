@@ -387,7 +387,12 @@ def main() -> int:
     for name, raw in fixtures.items():
         for state in ("no-ai", "ai"):
             if state == "ai":
-                # 优先用真实 AI 接口；未配 Key 时用「AI 结构化样本」代表 AI 产物形态
+                # AI 态来源（2026-10-24 补注）：
+                #   PWA 是纯静态站，AI 走**浏览器端 BYOK**（localStorage `supersu.ai`），
+                #   不读服务器 .env / data/ai_config.json（那是已弃用本地 Flask 版的）。
+                #   因此本脚本无法直接调"服务端 AI 接口"；真实链路（含 AI 排版按钮、
+                #   测试连接门控、上游 500 兜底）由 pwa_headed_full_e2e.py 的 E 阶段覆盖。
+                #   这里用 AI 结构化样本代表 AI 产物形态，验证「AI 产物 × 全部版式」的兼容性。
                 md = ai_structure(raw)
                 if md is None:
                     md = AI_STYLE_MD.get(name) or preprocess(raw)
