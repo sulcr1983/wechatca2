@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模板差异化三方案 · 可交互原型</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:#f4f2ee; color:#2c2c2a; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1320px; margin:0 auto; padding:26px 22px 60px; }
+  h1 { font-size:20px; font-weight:500; margin:0 0 6px; }
+  .sub { font-size:13px; color:#888780; margin:0 0 22px; line-height:1.6; }
+  .tabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .tab { padding:9px 16px; border:0.5px solid #d3d1c7; background:#fff; border-radius:8px;
+    cursor:pointer; font-size:13px; color:#5f5e5a; font-family:inherit; transition:all .15s; }
+  .tab:hover { border-color:#b4b2a9; }
+  .tab.on { background:#2c2c2a; color:#fff; border-color:#2c2c2a; }
+  .panel { display:none; } .panel.on { display:block; }
+  .layout { display:grid; grid-template-columns:300px 1fr; gap:22px; align-items:start; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+  .ctrl { background:#fff; border:0.5px solid #d3d1c7; border-radius:12px; padding:15px 16px; }
+  .ctrl h3 { font-size:13px; font-weight:500; margin:0 0 11px; color:#444441; }
+  .opt { display:block; padding:9px 11px; border:0.5px solid #e5e3dc; border-radius:8px;
+    margin-bottom:7px; cursor:pointer; font-size:13px; transition:all .15s; }
+  .opt:hover { border-color:#b4b2a9; background:#fafaf7; }
+  .opt.on { border-color:#2c2c2a; background:#f1efe8; font-weight:500; }
+  .opt small { display:block; font-size:11.5px; color:#888780; margin-top:2px; font-weight:400; }
+  .phone { background:#fff; border-radius:14px; border:0.5px solid #d3d1c7;
+    padding:20px 22px; max-width:600px; margin:0 auto; min-height:500px; }
+  .note { background:#fafaf7; border-left:2px solid #b4b2a9; padding:9px 12px; font-size:12.5px;
+    color:#5f5e5a; line-height:1.7; margin-top:14px; border-radius:0 6px 6px 0; }
+  .badge { display:inline-block; font-size:11px; padding:1px 7px; border-radius:9px;
+    background:#e6f1fb; color:#185fa5; margin-left:7px; font-weight:400; }
+  .sw { display:flex; gap:8px; margin-top:12px; }
+  .sw i { width:26px; height:26px; border-radius:50%; border:1px solid #d3d1c7; cursor:pointer; display:block; }
+  .sw i.on { box-shadow:0 0 0 2px #fff, 0 0 0 4px #2c2c2a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>模板差异化 · 三个方案的实际效果</h1>
+  <p class="sub">同一段文章，切方案看排版变化。左栏点选项，右侧即时渲染。</p>
+
+  <div class="tabs">
+    <button class="tab on" data-panel="a">A · 六族专属版式</button>
+    <button class="tab" data-panel="b">B · 新增版式类型</button>
+    <button class="tab" data-panel="c">C · 色块强调</button>
+  </div>
+
+  <div class="panel on" id="p-a">
+    <div class="layout">
+      <div class="ctrl">
+        <h3>选族 — 现在 164 套只有颜色不同，方案 A 让结构也不同</h3>
+        <label class="opt on" data-a="plain">素页<span class="badge">现状</span><small>纯文字流，无装饰</small></label>
+        <label class="opt" data-a="stamp">钢印<small>粗黑边 + 硬阴影</small></label>
+        <label class="opt" data-a="dossier">卷宗<small>编号标题 + 表格线</small></label>
+        <label class="opt" data-a="letter">信笺<small>细线分隔 + 引语</small></label>
+        <label class="opt" data-a="night">夜航<small>深底浅字</small></label>
+        <label class="opt" data-a="feast">庙会<small>色块标题 + 圆角卡</small></label>
+        <div class="note" id="note-a">素页就是现在多数主题的样子：只有字，没有版式结构。</div>
+      </div>
+      <div class="phone" id="render-a"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-b">
+    <div class="layout">
+      <div class="ctrl">
+        <h3>选版式类型 — 现有 4 种 → 7 种</h3>
+        <label class="opt on" data-b="plain">普通流<span class="badge">现有</span><small>顺序段落</small></label>
+        <label class="opt" data-b="mag">杂志分栏<span class="badge">新</span><small>大标题 + 双栏正文</small></label>
+        <label class="opt" data-b="rhythm">图文节奏<span class="badge">新</span><small>图/文交替，制造停顿</small></label>
+        <label class="opt" data-b="cardflow">卡片流<span class="badge">新</span><small>每段独立卡片</small></label>
+        <label class="opt" data-b="outline">目录导航<span class="badge">新</span><small>顶部小节导航</small></label>
+        <div class="note" id="note-b">这 4 个「新」是真正新增的版式结构，和现有 hero/card/timeline 不重复。</div>
+      </div>
+      <div class="phone" id="render-b"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-c">
+    <div class="layout">
+      <div class="ctrl">
+        <h3>色块强调 — 自动把重点包成色块</h3>
+        <label class="opt on" data-c="quote">金句高亮<small>整句淡底 + 左侧竖线</small></label>
+        <label class="opt" data-c="data">数据强调<small>关键数字放大 + 圆角块</small></label>
+        <label class="opt" data-c="tip">提示框<small>浅色块 + 小标签</small></label>
+        <label class="opt" data-c="all">全部开启<small>三种同时用</small></label>
+        <div class="note" id="note-c">方案 C 不改版式，只在段落层面加视觉停顿，改动最小、最接近爆款排版。</div>
+        <h3 style="margin-top:16px">强调色</h3>
+        <div class="sw" id="sw-c">
+          <i class="on" data-col="#d85a30" style="background:#d85a30"></i>
+          <i data-col="#185fa5" style="background:#185fa5"></i>
+          <i data-col="#0f6e56" style="background:#0f6e56"></i>
+          <i data-col="#993c1d" style="background:#993c1d"></i>
+          <i data-col="#534ab7" style="background:#534ab7"></i>
+        </div>
+      </div>
+      <div class="phone" id="render-c"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ARTICLE = {
+  title: "周末去海边",
+  kicker: "生活随笔",
+  body: [
+    { type:'p', text:"两天的沉默之后，我重新听见了海浪、风声，还有自己。城市里的声音太密，密到让人忘了什么叫安静。" },
+    { type:'h2', text:"出发前的那点犹豫" },
+    { type:'p', text:"行李收了一半又放下，总觉得有事情没做完。后来想明白了：事情永远做不完，但海不会等人。" },
+    { type:'quote', text:"真正让人疲惫的不是工作，是那些没被允许停下来的时刻。" },
+    { type:'h2', text:"到了之后" },
+    { type:'p', text:"下午四点，光从侧面打过来，沙滩是温的。我脱了鞋走了很久，脚底的沙子一层层塌下去。" },
+    { type:'data', num:"4", unit:"小时", text:"在沙滩上待了整整四小时，没看一次手机。" },
+    { type:'p', text:"傍晚的时候风变凉，海的颜色从浅蓝变成深灰。有人在远处放风筝，线绷得很紧。" },
+  ]
+};
+
+const FAMILIES = {
+  plain:   { bg:'#ffffff', ink:'#37352f', ac:'#c0392b', ff:'-apple-system,"PingFang SC",sans-serif' },
+  stamp:   { bg:'#f5f2ea', ink:'#1a1a1a', ac:'#d85a30', ff:'"PingFang SC",sans-serif', hard:true },
+  dossier: { bg:'#ffffff', ink:'#1f2a37', ac:'#185fa5', ff:'"PingFang SC",sans-serif', biz:true },
+  letter:  { bg:'#fbf8f1', ink:'#3b3226', ac:'#8f7650', ff:'"Songti SC",serif', letter:true },
+  night:   { bg:'#101820', ink:'#dfe6ee', ac:'#4aa8d8', ff:'-apple-system,sans-serif', dark:true },
+  feast:   { bg:'#fff8f0', ink:'#2b2119', ac:'#e0662a', ff:'-apple-system,sans-serif', card:true }
+};
+
+function h2(f, txt) {
+  if (f.hard) return `<h2 style="font-size:17px;margin:26px 0 12px;display:inline-block;background:${f.ac};color:#fff;padding:5px 12px;border:2px solid ${f.ink};">${txt}</h2>`;
+  if (f.biz) return `<h2 style="font-size:16px;margin:26px 0 12px;color:${f.ac};border-bottom:2px solid ${f.ac};padding-bottom:5px;">${txt}</h2>`;
+  if (f.letter) return `<h2 style="font-size:17px;margin:26px 0 12px;font-weight:400;color:${f.ink};">— ${txt} —</h2>`;
+  if (f.dark) return `<h2 style="font-size:17px;margin:26px 0 12px;color:${f.ac};">${txt}</h2>`;
+  if (f.card) return `<h2 style="font-size:16px;margin:26px 0 12px;background:${f.ac};color:#fff;padding:6px 14px;border-radius:8px;display:inline-block;">${txt}</h2>`;
+  return `<h2 style="font-size:17px;margin:26px 0 12px;">${txt}</h2>`;
+}
+function p(f, txt) {
+  return `<p style="font-size:15px;line-height:1.85;margin:0 0 18px;color:${f.ink};">${txt}</p>`;
+}
+function quote(f, txt) {
+  if (f.hard) return `<blockquote style="margin:20px 0;padding:12px 14px;background:#fff;border:2px solid ${f.ink};box-shadow:4px 4px 0 ${f.ac};font-size:15px;line-height:1.8;color:${f.ink};">${txt}</blockquote>`;
+  if (f.biz) return `<blockquote style="margin:20px 0;padding:12px 14px;background:#f4f7fa;border-left:3px solid ${f.ac};font-size:14.5px;line-height:1.8;color:${f.ink};">${txt}</blockquote>`;
+  if (f.letter) return `<blockquote style="margin:20px 0;padding:0 0 0 16px;border-left:1px solid ${f.ac};font-size:15px;line-height:1.9;color:${f.ink};font-style:italic;">${txt}</blockquote>`;
+  if (f.dark) return `<blockquote style="margin:20px 0;padding:12px 14px;background:#1b2530;border-left:3px solid ${f.ac};font-size:15px;line-height:1.8;color:${f.ink};">${txt}</blockquote>`;
+  if (f.card) return `<blockquote style="margin:20px 0;padding:14px 16px;background:#ffe9d6;border-radius:10px;font-size:15px;line-height:1.8;color:${f.ink};">${txt}</blockquote>`;
+  return `<blockquote style="margin:20px 0;padding:12px 14px;background:#faf8f4;border-left:3px solid ${f.ac};font-size:15px;line-height:1.8;color:${f.ink};">${txt}</blockquote>`;
+}
+function data(f, num, unit, txt) {
+  if (f.hard) return `<div style="margin:20px 0;padding:14px;border:2px solid ${f.ink};background:#fff;"><span style="font-size:30px;font-weight:700;color:${f.ac};">${num}</span><span style="font-size:13px;margin-left:6px;color:${f.ink};">${unit}</span><p style="font-size:13.5px;margin:8px 0 0;color:${f.ink};">${txt}</p></div>`;
+  if (f.dark) return `<div style="margin:20px 0;padding:14px 16px;background:#1b2530;border-radius:8px;"><span style="font-size:30px;font-weight:600;color:${f.ac};">${num}</span><span style="font-size:13px;margin-left:6px;color:${f.ink};">${unit}</span><p style="font-size:13.5px;margin:8px 0 0;color:${f.ink};">${txt}</p></div>`;
+  return `<div style="margin:20px 0;padding:14px 16px;background:#faf8f4;border-radius:10px;border:1px solid #ece7dd;"><span style="font-size:30px;font-weight:500;color:${f.ac};">${num}</span><span style="font-size:13px;margin-left:6px;color:${f.ink};">${unit}</span><p style="font-size:13.5px;margin:8px 0 0;color:${f.ink};">${txt}</p></div>`;
+}
+
+function renderFamily(key) {
+  const f = FAMILIES[key];
+  const gap = f.hard ? 20 : 0;
+  let html = `<div style="background:${f.bg};padding:${f.dark?'8px 0':'0'};font-family:${f.ff};">`;
+  html += `<div style="font-size:11px;letter-spacing:0.22em;color:${f.ac};margin-bottom:10px;">${ARTICLE.kicker}</div>`;
+  if (f.hard) html += `<h1 style="font-size:28px;line-height:1.25;margin:0 0 18px;color:${f.ink};border-bottom:4px solid ${f.ink};padding-bottom:10px;">${ARTICLE.title}</h1>`;
+  else if (f.biz) html += `<h1 style="font-size:24px;line-height:1.3;margin:0 0 18px;color:${f.ink};text-align:left;">${ARTICLE.title}</h1>`;
+  else if (f.letter) html += `<h1 style="font-size:25px;line-height:1.4;margin:0 0 18px;color:${f.ink};text-align:center;font-weight:400;letter-spacing:0.08em;">${ARTICLE.title}</h1>`;
+  else if (f.dark) html += `<h1 style="font-size:25px;line-height:1.3;margin:0 0 18px;color:${f.ink};">${ARTICLE.title}</h1>`;
+  else if (f.card) html += `<h1 style="font-size:25px;line-height:1.3;margin:0 0 18px;color:${f.ink};background:#ffe9d6;padding:12px 16px;border-radius:12px;">${ARTICLE.title}</h1>`;
+  else html += `<h1 style="font-size:25px;line-height:1.3;margin:0 0 18px;color:${f.ink};">${ARTICLE.title}</h1>`;
+
+  ARTICLE.body.forEach(b => {
+    if (b.type === 'p') html += p(f, b.text);
+    if (b.type === 'h2') html += h2(f, b.text);
+    if (b.type === 'quote') html += quote(f, b.text);
+    if (b.type === 'data') html += data(f, b.num, b.unit, b.text);
+  });
+  html += `</div>`;
+  return html;
+}
+
+const LAYOUTS = {
+  plain: (f) => renderFamily('plain'),
+  mag: (f) => `<div style="font-family:-apple-system,sans-serif;">
+      <div style="font-size:11px;letter-spacing:.2em;color:#c0392b;margin-bottom:8px;">生活随笔</div>
+      <h1 style="font-size:34px;line-height:1.15;margin:0 0 8px;font-weight:500;">周末去海边</h1>
+      <div style="height:1px;background:#2c2c2a;margin:12px 0 18px;"></div>
+      <p style="font-size:13.5px;line-height:1.8;color:#5f5e5a;margin:0 0 16px;font-style:italic;">两天的沉默之后，我重新听见了海浪、风声，还有自己。</p>
+      <div style="column-count:2;column-gap:22px;">
+        <p style="font-size:14px;line-height:1.8;margin:0 0 12px;">城市里的声音太密，密到让人忘了什么叫安静。</p>
+        <p style="font-size:14px;line-height:1.8;margin:0 0 12px;">行李收了一半又放下，总觉得有事情没做完。后来想明白了：事情永远做不完，但海不会等人。</p>
+        <p style="font-size:14px;line-height:1.8;margin:0 0 12px;">下午四点，光从侧面打过来，沙滩是温的。我脱了鞋走了很久，脚底的沙子一层层塌下去。</p>
+      </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #d3d1c7;">
+        <span style="font-size:32px;font-weight:500;color:#c0392b;">4</span>
+        <span style="font-size:12px;color:#5f5e5a;">小时 · 没看一次手机</span>
+      </div>
+    </div>`,
+  rhythm: (f) => `<div style="font-family:-apple-system,sans-serif;">
+      <h1 style="font-size:26px;margin:0 0 16px;">周末去海边</h1>
+      <p style="font-size:15px;line-height:1.85;margin:0 0 20px;">两天的沉默之后，我重新听见了海浪、风声，还有自己。</p>
+      <div style="height:120px;background:#e8e4dc;border-radius:6px;margin:0 0 8px;display:flex;align-items:center;justify-content:center;color:#b4b2a9;font-size:12px;">图片占位 · 视觉停顿</div>
+      <p style="font-size:11.5px;color:#888780;margin:0 0 22px;">海边，下午四点</p>
+      <h2 style="font-size:16px;margin:0 0 10px;color:#c0392b;">出发前的那点犹豫</h2>
+      <p style="font-size:15px;line-height:1.85;margin:0 0 22px;">行李收了一半又放下，总觉得有事情没做完。</p>
+      <div style="height:100px;background:#e8e4dc;border-radius:6px;margin:0 0 22px;display:flex;align-items:center;justify-content:center;color:#b4b2a9;font-size:12px;">图片占位</div>
+      <blockquote style="margin:0 0 22px;padding:12px 14px;background:#faf8f4;border-left:3px solid #c0392b;font-size:15px;line-height:1.8;">真正让人疲惫的不是工作，是那些没被允许停下来的时刻。</blockquote>
+    </div>`,
+  cardflow: (f) => `<div style="font-family:-apple-system,sans-serif;background:#f4f2ee;padding:14px;border-radius:10px;">
+      <h1 style="font-size:24px;margin:0 0 14px;padding:0 4px;">周末去海边</h1>
+      <div style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+        <p style="font-size:14.5px;line-height:1.8;margin:0;">两天的沉默之后，我重新听见了海浪、风声，还有自己。</p></div>
+      <div style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+        <div style="font-size:12px;color:#c0392b;margin-bottom:6px;">01 / 出发前</div>
+        <p style="font-size:14.5px;line-height:1.8;margin:0;">行李收了一半又放下，总觉得有事情没做完。</p></div>
+      <div style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+        <div style="font-size:12px;color:#c0392b;margin-bottom:6px;">02 / 到了之后</div>
+        <p style="font-size:14.5px;line-height:1.8;margin:0;">下午四点，光从侧面打过来，沙滩是温的。</p></div>
+      <div style="background:#fff;border-radius:10px;padding:14px 16px;">
+        <span style="font-size:28px;font-weight:500;color:#c0392b;">4</span>
+        <span style="font-size:12px;color:#5f5e5a;">小时 · 没看一次手机</span></div>
+    </div>`,
+  outline: (f) => `<div style="font-family:-apple-system,sans-serif;">
+      <h1 style="font-size:25px;margin:0 0 14px;">周末去海边</h1>
+      <div style="background:#faf8f4;border-radius:8px;padding:12px 14px;margin-bottom:20px;border:1px solid #ece7dd;">
+        <div style="font-size:11.5px;color:#888780;margin-bottom:7px;">本文目录</div>
+        <div style="font-size:13.5px;line-height:2;color:#37352f;">
+          <div>01　出发前的那点犹豫</div>
+          <div>02　到了之后</div>
+          <div>03　回程路上</div>
+        </div>
+      </div>
+      <p style="font-size:15px;line-height:1.85;margin:0 0 20px;">两天的沉默之后，我重新听见了海浪、风声，还有自己。</p>
+      <h2 style="font-size:16px;margin:0 0 10px;"><span style="color:#c0392b;margin-right:8px;">01</span>出发前的那点犹豫</h2>
+      <p style="font-size:15px;line-height:1.85;margin:0 0 20px;">行李收了一半又放下，总觉得有事情没做完。</p>
+      <h2 style="font-size:16px;margin:0 0 10px;"><span style="color:#c0392b;margin-right:8px;">02</span>到了之后</h2>
+      <p style="font-size:15px;line-height:1.85;margin:0;">下午四点，光从侧面打过来，沙滩是温的。</p>
+    </div>`
+};
+
+let accentC = '#d85a30';
+function renderC(mode) {
+  const showQ = mode === 'quote' || mode === 'all';
+  const showD = mode === 'data' || mode === 'all';
+  const showT = mode === 'tip' || mode === 'all';
+  let h = `<div style="font-family:-apple-system,sans-serif;">
+    <div style="font-size:11px;letter-spacing:.2em;color:${accentC};margin-bottom:8px;">生活随笔</div>
+    <h1 style="font-size:25px;margin:0 0 16px;">周末去海边</h1>
+    <p style="font-size:15px;line-height:1.85;margin:0 0 18px;">两天的沉默之后，我重新听见了海浪、风声，还有自己。城市里的声音太密，密到让人忘了什么叫安静。</p>`;
+
+  if (showQ) h += `<div style="margin:0 0 18px;padding:13px 15px;background:${accentC}12;border-left:3px solid ${accentC};border-radius:0 8px 8px 0;font-size:15px;line-height:1.8;">真正让人疲惫的不是工作，是那些没被允许停下来的时刻。</div>`;
+  else h += `<p style="font-size:15px;line-height:1.85;margin:0 0 18px;">真正让人疲惫的不是工作，是那些没被允许停下来的时刻。</p>`;
+
+  h += `<h2 style="font-size:17px;margin:0 0 10px;">到了之后</h2>
+    <p style="font-size:15px;line-height:1.85;margin:0 0 18px;">下午四点，光从侧面打过来，沙滩是温的。我脱了鞋走了很久。</p>`;
+
+  if (showD) h += `<div style="margin:0 0 18px;padding:14px 16px;background:${accentC}0d;border-radius:10px;display:flex;align-items:baseline;gap:10px;">
+      <span style="font-size:34px;font-weight:500;color:${accentC};line-height:1;">4</span>
+      <span style="font-size:13px;color:#5f5e5a;">小时 · 在沙滩上没看一次手机</span></div>`;
+  else h += `<p style="font-size:15px;line-height:1.85;margin:0 0 18px;">在沙滩上待了整整四小时，没看一次手机。</p>`;
+
+  if (showT) h += `<div style="margin:0;padding:12px 14px;background:#f6f4ef;border-radius:8px;font-size:13.5px;line-height:1.7;">
+      <span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:${accentC};color:#fff;margin-right:8px;">建议</span>
+      傍晚风会变凉，带一件外套。</div>`;
+  h += `</div>`;
+  return h;
+}
+
+const NOTES_A = {
+  plain:'素页：现在多数主题的样子，只有字，没有结构。',
+  stamp:'钢印：粗黑边 + 硬阴影 + 反白色块标题。和素页放在一起，一眼看出不是同一套。',
+  dossier:'卷宗：编号感、表格线、下划线标题。商务文档气质。',
+  letter:'信笺：衬线字、居中标题、细引语线。文艺、慢。',
+  night:'夜航：深底浅字。同一个结构，观感完全不同。',
+  feast:'庙会：色块标题、圆角卡片、暖色块。节庆感。'
+};
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('p-' + t.dataset.panel).classList.add('on');
+  };
+});
+
+function bindGroup(sel, render) {
+  document.querySelectorAll(sel).forEach(el => {
+    el.onclick = () => {
+      document.querySelectorAll(sel).forEach(x => x.classList.remove('on'));
+      el.classList.add('on');
+      render(el);
+    };
+  });
+}
+
+bindGroup('[data-a]', el => {
+  document.getElementById('render-a').innerHTML = renderFamily(el.dataset.a);
+  document.getElementById('note-a').textContent = NOTES_A[el.dataset.a];
+});
+bindGroup('[data-b]', el => {
+  document.getElementById('render-b').innerHTML = LAYOUTS[el.dataset.b]();
+});
+bindGroup('[data-c]', el => {
+  document.getElementById('render-c').innerHTML = renderC(el.dataset.c);
+});
+document.querySelectorAll('#sw-c i').forEach(i => {
+  i.onclick = () => {
+    document.querySelectorAll('#sw-c i').forEach(x => x.classList.remove('on'));
+    i.classList.add('on');
+    accentC = i.dataset.col;
+    const cur = document.querySelector('[data-c].on');
+    document.getElementById('render-c').innerHTML = renderC(cur.dataset.c);
+  };
+});
+
+document.getElementById('render-a').innerHTML = renderFamily('plain');
+document.getElementById('render-b').innerHTML = LAYOUTS.plain();
+document.getElementById('render-c').innerHTML = renderC('quote');
+</script>
+</body>
+</html>
