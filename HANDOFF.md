@@ -2,6 +2,72 @@
 
 ---
 
+## 0. 最新交接快照（2026-10-24，**优先阅读**）
+
+> ⚠️ 本文件 §1–§10 写于 2026-09-23（本地 Flask 时代），部分内容已被 PWA 改造取代。
+> 真源顺序：当前源码/测试 > `AGENTS.md` > 本快照 > 下方旧章节。
+
+### 0.1 当前形态
+- 主产品：**PWA 版** https://supersu.ccwu.cc（Cloudflare Pages 项目 `supersu-pwa`，生产分支 main），源码 `pwa/`
+- 本地 Flask 版（`app.py` + `templates/index.html`）**已弃用、保留作参考/回退**，不再是主链路
+- 引擎两版共用：`core/preprocessor.py` + `core/format_engine.py` + `public/themes/`
+  ⚠️ 改引擎/主题后必须 `node pwa/scripts/build.mjs` 重新构建（拷进 `pwa/dist/py`、`pwa/dist/themes`）
+- 主题 164 套 = 45 经典 + 119 套 `su-*`；`su-*` 是**生成物**，改 `scripts/theme_specs.py` 后重跑 `scripts/build_themes.py`
+
+### 0.2 当前线上状态（截至 2026-10-24）
+- 线上 `version.json`：**v1.5.0 · build 151**（`build` = git 提交数，构建时注入）
+- git：HEAD `310061c` 已推送 `origin/main`，工作区干净
+- 最近两类改动（详见 `CLOSURE.md` 任务 20 / 21）：
+  - 修「版本号一直一样、看不到更新」：版本 bump + version/build 双判 + 徽标统一 `vX · bN`
+  - 更新改「静默自动升级」：检测到即自动应用（空闲立即 / 一直在打字最多等 30s，reload 前落盘草稿）→ 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 消失，点它看更新记录）
+- 此前已完成：AI 能力门控 + AI 排版六项、模板库「版式×色调」二维选择、九宫格切图、图片 ZIP、B2 #6 外链图本地化
+
+### 0.3 本地预览 / 构建 / 部署
+```bash
+node pwa/scripts/build.mjs                          # 构建 dist（不入库，勿手改）
+python -m http.server 8899 --directory pwa/dist     # 本地预览
+# 部署（铁律：已跟踪文件必须干净、HEAD 必须先 push 到 origin/main）
+& "C:\Program Files\Git\bin\bash.exe" pwa/scripts/deploy.sh
+# ⚠️ deploy.sh 需要凭证文件 E:/test/opendoor/.env；该文件缺失时可用环境变量直跑：
+#    $env:CLOUDFLARE_API_TOKEN="<在 Cloudflare 控制台自建的 token>"（勿入库、勿写进文档）
+npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
+```
+
+### 0.4 发版流程（两件事缺一不可）
+1. bump `pwa/version.json` 的语义化版本（只发版时改）；2. 在 `pwa/scripts/changelog_milestones.json` 加一条（`until` 为右闭边界）。
+然后 build → 提交 → push → 部署。
+
+### 0.5 当前测试门禁（2026-10-24 实跑）
+| 套件 | 结果 |
+|------|------|
+| `tests/test_e2e.py` / `test_integration.py` / `test_api_e2e.py` / `test_headed_full_e2e.py` | 74/74 · 35/35 · 29/29 · 33/33 |
+| `scripts/pwa_theme_drawer_test.py` / `pwa_ai_format_test.py` | 43/43 · 27/27 |
+| `scripts/pwa_export_test.py` / `pwa_nine_test.py` | 12/12 · 15/15 |
+| `scripts/pwa_cover_test.py` | 15/15（1 SKIP 网络） |
+| `scripts/pwa_release_card_test.py` / `pwa_auto_update_test.py` | 9/9 · 8/8 |
+| `scripts/pwa_online_e2e.py`（线上） | 91/91（3 SKIP） |
+
+### 0.6 未完成需求（接续优先看 `files/TODO.md`「未完成需求」）
+- **AI 平台预设（2026-10-24 用户提出，未实现）**：AI 面板现在是三个自由输入框（接口地址 / 模型 / Key）。要做成「平台下拉 → 选中自动填接口地址 + 模型名 → 用户只填 API Key」。
+  ⚠️ 只预置**允许浏览器直连**的平台（DeepSeek / Moonshot / SiliconFlow / OpenAI），智谱等会 CORS 失败，不能放进列表。
+- D 阶段「自定义主题」：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——仅提出，未批准开工
+- `files/TODO.md` 里 U-7…U-15 等旧待办多属本地版时代，接手时先判断是否仍适用 PWA
+
+### 0.7 接手必读的坑
+- `pwa/dist/` 是构建产物（gitignore）：线上内容一律由 `node pwa/scripts/build.mjs` 生成，**不要手改 dist**
+- 新增前端模块 / 改 `SHELL_FILES` / `SHELL_OPTIONAL`：`pwa/public/sw.js` 与 `pwa/scripts/build.mjs` 两处清单必须同步，否则离线或更新会缺文件
+- 线上更新是静默自动的：改 `pwa/src/update/*` 后先跑 `python scripts/pwa_auto_update_test.py`（8/8）
+- 真实 AI Key 只放本地 `.env`（已 gitignore），不进部署产物；线上由用户自己填
+- PowerShell 清端口用 `Get-Process python | Stop-Process -Force`，别用 `taskkill //F`（会静默失败）
+
+### 0.8 文档地图
+- `AGENTS.md`：工程规则 + PWA 架构要点 + 测试清单（工程唯一真源）
+- `CLOSURE.md`：逐任务收尾记录（任务 20 = 版本号修复；任务 21 = 静默自动升级）
+- `files/TODO.md`：已完成 / 待办 / **未完成需求**
+- `README.md`：对外说明 + 测试矩阵（311 项）
+
+---
+
 ## 1. 项目快照
 
 - **项目名称**：SuperSu · 公众号排版 + 小红书封面生成工具
@@ -772,24 +838,28 @@ python tests/test_headed_wechat_copy.py
 
 ## 9. 下一步开发建议
 
-### NEXT STEP 1（唯一最优先）
-> 2026-10-18 更新：阶段 0 可行性验证已通过（见变更 23），下一步是 **PWA D1**。
-- **action**：按 `docs/pwa-build-plan.md` 从 D1 开工（pwa/ 骨架 + 设计系统 + manifest + 图标），进度在 `files/TODO.md` 的 PWA-1.1 起
-- **reason**：两个命门（Pyodide 跑引擎 / 浏览器内截图）实测均通过，8-11 人日排期成立
-- **affected files**：`pwa/**`（不改 `core/`、不改 `templates/`）
-- **validation criteria**：`python -m http.server 8080 -d pwa` 打开能看到三段式布局、字体生效、启动遮罩
+### 2026-10-24 现状（取代下方旧建议）
+> PWA 主链路早已落地并上线（见 §0.2），当前没有「待开工的大功能」。接续项按序看 §0.6 与 `files/TODO.md`：
+> 1. **AI-PRESET（先做）**：AI 配置改「平台下拉预设」，用户只选平台 + 填 API Key（未完成需求）
+> 2. D 阶段「自定义主题」：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——需用户批准后开工
+> 3. 旧待办 U-7…U-15 逐条判断是否仍适用 PWA（多数写于本地 Flask 时代）
 
-> 历史（2026-09-23 已过期）：确认用户能看到最新前端并收集反馈 —— 用户早已在使用新前端，本项作废。
+> 历史（2026-10-18 已过期）：PWA D1 开工建议 —— 已完成，不再适用。
 
 ### DO NOT DO
 - 不要碰 docs/prototypes/prototype_full.html 和 docs/prototypes/prototype_ai_simplify.html（已废弃）
-- 不要重构 backend API 结构（约 23 条路由，当前够用）
+- 不要重构 backend API 结构（约 23 条路由，当前够用；PWA 主链路已不走 Flask）
 - 不要添加新功能除非用户明确要求（用户说过"到时再慢慢修"）
-- 不要添加自动缓存清理/版本号（用户按 Ctrl+F5 即可，过度设计）
+- **不要再造第二套版本/更新体系**：`pwa/version.json`（语义化版本）+ `build`（git 提交数）+ 静默自动升级已上线，改它前先读 `AGENTS.md` §4 的版本规则与 `pwa/src/update/*`
 
 ---
 
 ## 10. 风险总结
+
+> 2026-10-24 更新（取代下方旧结论）：PWA 已有**静默自动更新**，不再依赖用户 Ctrl+F5，「看不到新页面」类风险基本消除。
+> 当前实际风险：① 部署依赖 Cloudflare 凭证（`E:/test/opendoor/.env` 缺失时需环境变量 token）；
+> ② PWA 纯前端 BYOK，只支持允许浏览器直连的 AI 平台（智谱等 CORS 失败）；
+> ③ `su-*` 主题与 `pwa/dist` 都是生成物，手改会在下次构建被覆盖。
 
 - **当前最大风险**：用户对前端状态存在认知差距——"看不到新页面"被理解为"代码没改"，实际是浏览器缓存问题。这影响了用户对进度的信任。
 - **哪个模块最不稳定**：**wechat_publisher.py** — 依赖微信公众号白名单和公网 IP，环境要求高，不适用本地开发测试
