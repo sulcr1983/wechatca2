@@ -144,7 +144,8 @@ python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG 
 python scripts/pwa_image_localize_test.py # PWA 外链图本地化 12/12（渲染后抓取转 data URI；失败必给原因）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
 python scripts/pwa_nine_test.py           # PWA 九宫格切图 15/15（真下载 ZIP 解包读像素：裁剪/顺序/间距/移动端）
-python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 94 项（91 PASS + 3 SKIP）
+python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 97 项（91 PASS + 3 SKIP 为 2026-10-24 新增 AI 预设断言前的基线；
+                                          # 新增 3 项：平台下拉/选中自动填只差 Key/切自定义清空——待下次部署后实测回填）
 python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排查离线可用性用）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）

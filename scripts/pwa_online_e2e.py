@@ -325,6 +325,21 @@ def main() -> int:
         page.click("#btn-clear"); page.wait_for_timeout(300)
         page.click("#btn-ai"); page.wait_for_timeout(300)
         check("AI 面板打开", page.is_visible("#ai-sheet"), "hidden", "visible", snap(page, "ai"))
+        # AI 平台预设（2026-10-24 AI-PRESET，TST-1）：下拉 + 选中自动填 + 只差 Key
+        plat_opts = page.eval_on_selector_all("#ai-platform option", "els => els.map(e => e.value)")
+        check("AI 平台下拉含 4 预设 + 自定义",
+              plat_opts == ["deepseek", "moonshot", "siliconflow", "openai", "custom"],
+              str(plat_opts))
+        page.select_option("#ai-platform", "deepseek"); page.wait_for_timeout(200)
+        check("选中平台自动填地址与模型（只差 Key）",
+              page.input_value("#ai-base") == "https://api.deepseek.com/v1"
+              and page.input_value("#ai-model") == "deepseek-chat"
+              and page.input_value("#ai-key") == "",
+              page.input_value("#ai-base") + " | " + page.input_value("#ai-model"))
+        page.select_option("#ai-platform", "custom"); page.wait_for_timeout(200)
+        check("切「自定义」清空自填",
+              page.input_value("#ai-base") == "" and page.input_value("#ai-model") == "",
+              repr(page.input_value("#ai-base")))
         page.click("#ai-save"); page.wait_for_timeout(300)
         check("保存空 AI 配置有提示", "三项" in toast(page), "", toast(page))
         page.click("#ai-test"); page.wait_for_timeout(1800)
