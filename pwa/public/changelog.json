@@ -1,15 +1,15 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T18:35:09+08:00",
-  "totalCommits": 157,
+  "generatedAt": "2026-10-24T18:40:05+08:00",
+  "totalCommits": 159,
   "releases": [
     {
       "version": "1.5.0",
       "date": "2026-10-24",
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
-        "added": 10,
-        "changed": 12,
+        "added": 11,
+        "changed": 13,
         "fixed": 4,
         "other": 3
       },
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "TC-1 自定义配色（最小版：三色取色器 + 实时生效 + 存本机）",
+              "scope": "pwa",
+              "hash": "628949d",
+              "date": "2026-10-24T18:39:26+08:00",
+              "breaking": false
+            },
             {
               "text": "U-9 封面页空态示例成品（PWA 管线真生成 + 点击直选风格）",
               "scope": "pwa",
@@ -94,6 +101,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "TC-1 自定义配色完成（TC-2/TC-3 按不过度设计砍掉）",
+              "scope": "",
+              "hash": "ba025ed",
+              "date": "2026-10-24T18:39:47+08:00",
+              "breaking": false
+            },
             {
               "text": "阶段 1 完成（U-8/U-9 打勾，下一工 阶段 2 TC-1）",
               "scope": "",
