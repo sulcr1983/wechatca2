@@ -594,7 +594,6 @@ function renderFamilyFold(fam, fav) {
   const list = themes.filter((t) => t.family === fam);
   const grid = $('drawer-grid');
   if (!list.length) { grid.innerHTML = '<div class="drawer-empty">没匹配的风格，换个词试试</div>'; return; }
-  const rep = list.find((t) => t.id === activeId) || list[0];
   const famKeys = [...new Set(themes.map((t) => t.family).filter(Boolean))];
   const axis = famKeys.map((f) => `<button class="d-axis${f === fam ? ' active' : ''}"
       data-fam="${f}" type="button" aria-pressed="${f === fam}">${escapeHtml(famLabel(f))}</button>`).join('');
@@ -606,10 +605,11 @@ function renderFamilyFold(fam, fav) {
       <span class="d-tone-name">${escapeHtml(toneName(t))}</span>
     </button>`;
   }).join('');
+  // 族视图：版式条 + 该族全部模板（不再只放 1 张代表卡——下面大片空白、还要横向滚）
   grid.innerHTML = `<div class="d-fold">
     <div class="d-axis-row" role="group" aria-label="版式">${axis}</div>
-    ${drawerCard(rep, fav)}
-    <div class="d-tone-strip">${tones}</div>
+    <div class="d-tone-strip" role="group" aria-label="色调">${tones}</div>
+    <div class="d-grid">${list.map((t) => drawerCard(t, fav)).join('')}</div>
   </div>`;
 }
 function renderDrawer() {

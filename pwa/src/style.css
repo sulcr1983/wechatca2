@@ -367,7 +367,16 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 .d-count { flex: none; font-size: 10px; color: var(--text-muted); }
 .d-fold { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; }
 .d-fold > .d-card { max-width: 200px; }
-.d-tone-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; }
+/* 色点条：自动换行网格（原来 overflow-x:auto，12 个点挤成一条横向滚动条） */
+.d-tone-strip {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 10px 8px; padding: 4px 2px 10px;
+}
+/* 族视图里的模板网格（与抽屉网格同列宽，但不再嵌套滚动容器） */
+.d-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+  gap: 10px; align-content: start;
+}
 .d-tone { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 46px; background: none; border: none; padding: 0; cursor: pointer; }
 .d-tone-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); transition: box-shadow .12s ease; }
 .d-tone:hover .d-tone-dot { border-color: var(--border-hi); }
