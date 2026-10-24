@@ -133,7 +133,12 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（实测首访约 2.5s 出近似排版；门限 15s）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
-python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 43/43（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端）
+python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 59/59（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端 + 版式层 8 选项 + 段落样式 3 开关）
+python scripts/pwa_headed_full_e2e.py     # ★ 有头全量 E2E **默认打线上服务器**（https://supersu.ccwu.cc/）37/37：
+                                          # A 逐套模板 164 套 × 3 类夹具（短/标准/复杂）可渲染/不丢字/标签配平；
+                                          # B 8 种版式功能；C 段落样式三开关；D 全部按钮。--local 才测本地 dist（部署前预检）
+python scripts/pwa_layout_compat_test.py  # 版式兼容性矩阵 100/100（10 夹具 × 5 版式 × 2 态 无AI/AI样本），
+                                          # 断言：不丢字≥95% / 标签配平 / 无残留 / 非空 / 版式特征；无小标题短文记「降级」不算失败
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
 python scripts/pwa_ai_preset_test.py      # AI 平台预设 21/21（下拉 4 预设+自定义 / 选中自动填地址+模型 / 只填 Key 即通 /
                                           # 模型可手改 / 老配置按地址反查回显 / 门控与 verified 契约不变）
