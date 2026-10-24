@@ -29,6 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "pwa" / "dist"
+ONLINE_URL = "https://supersu.ccwu.cc/"
 OUT = ROOT / "output" / "ai-preset"
 sys.path.insert(0, str(ROOT))
 
@@ -66,24 +67,37 @@ def main() -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8098)
+    ap.add_argument("--local", action="store_true",
+                    help="测本地 dist（默认测线上服务器）")
+    ap.add_argument("--url", default="", help="自定义目标地址")
     args = ap.parse_args()
 
-    if not (DIST / "index.html").exists():
-        print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", file=sys.stderr)
-        return 2
-    if port_busy(args.port):
-        print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port", file=sys.stderr)
-        return 2
+    use_local = args.local
+    if use_local:
+        if not (DIST / "index.html").exists():
+            print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", file=sys.stderr)
+            return 2
+        if port_busy(args.port):
+            print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port", file=sys.stderr)
+            return 2
 
     OUT.mkdir(parents=True, exist_ok=True)
-    srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port), functools.partial(_Handler, directory=str(DIST)))
-    srv.daemon_threads = True
-    srv.request_queue_size = 64
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    url = f"http://127.0.0.1:{args.port}/"
+    srv = None
+    if use_local:
+        srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port),
+                                              functools.partial(_Handler, directory=str(DIST)))
+        srv.daemon_threads = True
+        srv.request_queue_size = 64
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{args.port}/"
+        print(f"目标：{url}（本地 dist）")
+    else:
+        url = args.url or ONLINE_URL
+        print(f"目标：{url}（线上服务器）")
 
     from playwright.sync_api import sync_playwright
     from core.browser_utils import launch_browser
+    from core.pwa_test_utils import wait_engine_ready
 
     errors: list[str] = []
 
@@ -119,7 +133,9 @@ def main() -> int:
             page.route("**/v1/chat/completions", fulfill)
 
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_selector("#engine-badge[data-state='ready']", timeout=120000)
+            # 等引擎就绪：必须先有内容（空编辑器永远 loading）；
+            # 线上首访 Pyodide ~40MB，给足 3 分钟
+            wait_engine_ready(page)
 
             def open_ai():
                 if page.is_hidden("#ai-sheet"):
@@ -244,7 +260,8 @@ def main() -> int:
             browser.close()
         except Exception:
             pass
-        srv.shutdown()
+        if srv:
+            srv.shutdown()
 
     passed = sum(1 for _, ok, _ in results if ok)
     total = len(results)

@@ -78,6 +78,7 @@ def main() -> int:
 
     from playwright.sync_api import sync_playwright
     from core.browser_utils import launch_browser
+    from core.pwa_test_utils import wait_engine_ready
 
     page_errors: list[str] = []
     try:
@@ -88,7 +89,8 @@ def main() -> int:
             page.on("pageerror", lambda e: page_errors.append(str(e)))
 
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_selector("#engine-badge[data-state='ready']", timeout=120000)
+            # 等引擎就绪（必须先有内容；线上首访 Pyodide ~40MB，给足超时）
+            wait_engine_ready(page)
 
             ok_img = f"{url}brand/logo-64.png"
             bad_img = f"{url}missing.png"

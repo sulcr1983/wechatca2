@@ -76,6 +76,7 @@ def main() -> int:
 
     from playwright.sync_api import sync_playwright
     from core.browser_utils import launch_browser
+    from core.pwa_test_utils import wait_engine_ready
 
     errors: list[str] = []
     try:
@@ -89,7 +90,8 @@ def main() -> int:
                     if m.type == "error" and not m.text.startswith("Failed to load resource") else None)
 
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_selector("#engine-badge[data-state='ready']", timeout=120000)
+            # 等引擎就绪（必须先有内容；线上首访 Pyodide ~40MB，给足超时）
+            wait_engine_ready(page)
             page.click("#btn-demo")   # 看示例：写入 297 字样例
             page.wait_for_function("() => !document.getElementById('btn-copy').disabled", timeout=60000)
 

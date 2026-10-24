@@ -26,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "pwa" / "dist"
+ONLINE_URL = "https://supersu.ccwu.cc/"
 OUT = ROOT / "output" / "theme-drawer"
 sys.path.insert(0, str(ROOT))
 
@@ -66,28 +67,55 @@ def main() -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8096)
+    ap.add_argument("--local", action="store_true",
+                    help="测本地 dist（默认测线上服务器）")
+    ap.add_argument("--url", default="", help="自定义目标地址")
     args = ap.parse_args()
 
-    if not (DIST / "index.html").exists():
-        print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", file=sys.stderr)
-        return 2
-    if port_busy(args.port):
-        print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port", file=sys.stderr)
-        return 2
+    use_local = args.local
+    if use_local:
+        if not (DIST / "index.html").exists():
+            print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", file=sys.stderr)
+            return 2
+        if port_busy(args.port):
+            print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port", file=sys.stderr)
+            return 2
 
-    index = json.loads((DIST / "themes" / "index.json").read_text(encoding="utf-8"))
+    # 主题清单：本地模式读 dist/index.json；线上模式读源码 public/themes（同一份真源）
+    if use_local:
+        index = json.loads((DIST / "themes" / "index.json").read_text(encoding="utf-8"))
+        name_by_id = {t["id"]: t["name"] for t in index}
+    else:
+        # 线上模式：直接读主题 JSON 拿真实中文名（文件名 stem ≠ 显示名）
+        index = []
+        for f in sorted((ROOT / "public" / "themes").glob("*.json")):
+            if f.stem in ("index", "manifest"):
+                continue
+            try:
+                d = json.loads(f.read_text(encoding="utf-8"))
+            except Exception:
+                d = {}
+            index.append({"id": f.stem, "name": d.get("name") or f.stem})
+        name_by_id = {t["id"]: t["name"] for t in index}
     all_ids = [t["id"] for t in index]
-    name_by_id = {t["id"]: t["name"] for t in index}
 
     OUT.mkdir(parents=True, exist_ok=True)
-    srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port), functools.partial(_Handler, directory=str(DIST)))
-    srv.daemon_threads = True
-    srv.request_queue_size = 64
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    url = f"http://127.0.0.1:{args.port}/"
+    srv = None
+    if use_local:
+        srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port),
+                                              functools.partial(_Handler, directory=str(DIST)))
+        srv.daemon_threads = True
+        srv.request_queue_size = 64
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{args.port}/"
+        print(f"目标：{url}（本地 dist）")
+    else:
+        url = args.url or ONLINE_URL
+        print(f"目标：{url}（线上服务器）")
 
     from playwright.sync_api import sync_playwright
     from core.browser_utils import launch_browser
+    from core.pwa_test_utils import wait_engine_ready
 
     errors: list[str] = []
 
@@ -113,18 +141,40 @@ def main() -> int:
     def style_sig(pg):
         # 2026-10-24：加入节点数与标签名，否则「目录导航」这类只改结构的版式
         # 因为颜色/字体没变而被误判为「无变化」
-        return pg.evaluate("""() => {
+        # 2026-10-25：iframe 重渲染瞬间 contentDocument/body 可能为空 → 返回 ''，
+        #   会让前后两次比对都为空串而误判「无可见变化」。这里改为：空则重试，
+        #   并用「HTML 里出现的颜色值集合」作为主信号（最稳，不依赖 computed style 时机）。
+        sig = pg.evaluate("""() => {
             const d = document.getElementById('preview').contentDocument;
-            if (!d) return '';
+            if (!d || !d.body) return '';
+            const h = d.body.innerHTML || '';
+            if (!h) return '';
+            const colors = (h.match(/#[0-9a-fA-F]{6}/g) || []);
+            const uniq = [...new Set(colors)].sort().join(',');
             const els = [...d.querySelectorAll('*')];
-            const shape = els.length + ':' + els.slice(0, 300).map(e => e.tagName).join(',');
-            const styles = els.slice(0, 500).map(e => {
+            const shape = els.length + ':' + els.slice(0, 200).map(e => e.tagName).join(',');
+            const styles = els.slice(0, 300).map(e => {
                 const s = getComputedStyle(e);
-                return s.color + '/' + s.borderColor + '/' + s.backgroundColor + '/'
-                    + s.boxShadow + '/' + s.fontFamily;
+                return s.color + '/' + s.borderColor + '/' + s.backgroundColor;
             }).join(';');
-            return shape + '|' + styles;
+            return uniq + '|' + shape + '|' + styles;
         }""")
+        if sig:
+            return sig
+        # 空 → 等 iframe 就绪再取一次
+        for _ in range(8):
+            pg.wait_for_timeout(250)
+            sig = pg.evaluate("""() => {
+                const d = document.getElementById('preview').contentDocument;
+                if (!d || !d.body) return '';
+                const h = d.body.innerHTML || '';
+                if (!h) return '';
+                const colors = [...new Set(h.match(/#[0-9a-fA-F]{6}/g) || [])].sort().join(',');
+                return colors || '';
+            }""")
+            if sig:
+                return sig
+        return ''
 
     try:
         with sync_playwright() as p:
@@ -136,7 +186,8 @@ def main() -> int:
                     if m.type == "error" and not m.text.startswith("Failed to load resource") else None)
 
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_selector("#engine-badge[data-state='ready']", timeout=120000)
+            # 等引擎就绪（必须先有内容；线上首访 Pyodide ~40MB，给足超时）
+            wait_engine_ready(page)
             page.fill("#input", RICH)
             page.wait_for_timeout(1100)
             page.click("#btn-themes")
@@ -166,7 +217,13 @@ def main() -> int:
                 fam_visual = True
                 for tid in ids:
                     page.locator(f".d-tone[data-id='{tid}']").click()
-                    page.wait_for_timeout(650)
+                    # 线上 Pyodide 渲染有约 1s 滞后：固定 sleep 会在「上一色」时就采样，
+                    # 导致误判「换色无可见变化」。改为轮询等预览真的变过来（2026-10-25）
+                    for _ in range(16):
+                        page.wait_for_timeout(200)
+                        sig_now = style_sig(page)
+                        if sig_now and sig_now != prev_sig:
+                            break
                     ok_state = active(page) == tid and pressed(page) == tid
                     toast_txt = page.inner_text("#toast")
                     ok_toast = name_by_id.get(tid, tid) in toast_txt
@@ -381,7 +438,8 @@ def main() -> int:
             check("无 JS 控制台报错", not errors, errors[0][:140] if errors else "")
             browser.close()
     finally:
-        srv.shutdown()
+        if srv:
+            srv.shutdown()
 
     passed = sum(1 for _, ok, _ in results if ok)
     total = len(results)

@@ -62,9 +62,11 @@ def main() -> int:
     from core.browser_utils import launch_browser
 
     httpd = serve()
+    _browser = None   # 2026-10-25：提到外层，保证异常时也能关掉（原写法会残留窗口）
     try:
         with sync_playwright() as p:
             browser = launch_browser(p, headless=False, args=["--no-proxy-server", "--window-size=1440,960"])
+            _browser = browser
             page = browser.new_page(viewport={"width": 1440, "height": 960})
             errors = []
             page.on("console", lambda m: errors.append(m.type + ":" + m.text) if m.type == "error" else None)
@@ -189,7 +191,14 @@ def main() -> int:
                 print(f"  （断网阶段另有 {len(offline_errors)} 条网络错误，已归入预期）", flush=True)
 
             browser.close()
+            _browser = None
     finally:
+        # 兜底：正常路径已关则 _browser 为 None；异常路径在这里补关，避免窗口残留
+        if _browser is not None:
+            try:
+                _browser.close()
+            except Exception:
+                pass
         httpd.shutdown()
 
     passed = sum(1 for _, ok, _ in results if ok is True)

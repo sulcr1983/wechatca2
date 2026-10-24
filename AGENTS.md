@@ -111,8 +111,14 @@ python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）�
 python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
 python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
                                   # ⚠️ blcaptain-style-skill 子项目不在仓库时 28/28 + 1 SKIP（环境性，2026-10-24 起）
-python scripts/run_gates.py      # 一键全量门禁跑批（TST-3）：A 无服务段 → B 自起服务段 → C PWA 段，失败即停；
-                                  # --quick 最快核心（约 100s）· --full 追加离线/轻量/线上 6 套；日志落 output/gate-run/
+python scripts/test_all.py       # ★ **一键全测入口**（推荐给日常用）：交互选档位 quick/normal/ui/all，
+                                  # 委托给 run_gates.py（唯一真源），跑完给汇总表；--list 只列档位
+                                  #   quick ~3min / normal ~8min / ui ~20min（含164套模板+8版式+真实AI门控）
+                                  #   all ~35min（含真实 AI 真调 DeepSeek + 离线/线上套件）
+python scripts/run_gates.py      # 一键门禁（**PWA only**）：A PWA 核心 → B 有头UI(--ui) → C 扩展(--full)，失败即停；
+                                  # ⚠️ 已剔除全部本地 Flask 版测试（不再起 127.0.0.1:5000、不再弹多余 Chrome 窗口）；
+                                  # --ui 追加有头 UI 全量（约 20 分钟，打线上）；--full --ui 最全
+                                  # --quick 最快核心 · 日志落 output/gate-run/
 python scripts/clean_output.py    # output/ 清理（U-15）：默认预览保留 7 天内；--days N 改保留期；--apply 才真删。
                                   # 只动 output/ 内部，绝不碰 data/ public/ pwa/dist/
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
