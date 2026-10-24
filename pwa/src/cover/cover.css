@@ -187,6 +187,44 @@
 }
 .cv-lightbox-close:hover { background: rgba(255,255,255,.24); }
 
+/* ── 九宫格切图（B2 #7）── */
+.cv-out-head #cv-nine-pick { align-self: center; margin-left: auto; border: 1px solid var(--border); }
+.cv-nine {
+  position: fixed; inset: 0; z-index: 320; background: rgba(12, 10, 8, .55);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.cv-nine-panel {
+  width: min(460px, 94vw); max-height: 92vh; overflow-y: auto;
+  padding: 16px; border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-xl);
+}
+.cv-nine-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; font-size: 14px; font-weight: 600;
+}
+.cv-nine-x {
+  width: 28px; height: 28px; border-radius: 50%;
+  color: var(--text-soft); background: var(--bg-raised); font-size: 13px;
+}
+.cv-nine-x:hover { background: var(--accent-soft); color: var(--accent); }
+.cv-nine-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+.cv-nine-grid img {
+  width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block;
+  border-radius: 4px; background: var(--bg-raised);
+}
+.cv-nine-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 12.5px; color: var(--text-soft); }
+.cv-nine-row label { width: 64px; flex: none; }
+.cv-nine-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+.cv-nine-row select {
+  flex: 1; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg-raised); color: var(--text); font: inherit; font-size: 12.5px;
+}
+.cv-nine-val { width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+.cv-nine-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.cv-nine-foot .cv-gen { width: auto; height: 36px; padding: 0 16px; font-size: 13px; }
+.cv-nine-status { flex: 1; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+.cv-nine-status.err { color: var(--accent); }
+.cv-nine-tip { margin: 10px 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+
 @media (max-width: 900px) {
   #cover-root { height: auto; overflow-y: auto; }
   .cv-stage { height: auto; display: block; }

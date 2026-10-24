@@ -50,6 +50,16 @@
 | 版权 | Copyright (c) wxm |
 | 用途 | PWA 小红书封面：在浏览器里把 DOM 渲成 PNG（离屏 iframe，不依赖 Playwright） |
 
+### 5. fflate
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `public/vendor/fflate.min.js`（构建后 `dist/vendor/`） |
+| 上游 | https://github.com/101arrowz/fflate |
+| 许可证 | **MIT** |
+| 版权 | Copyright (c) Arjun Barrett |
+| 用途 | PWA 九宫格切图：把 3×3 的 9 张 PNG 打包成一个 ZIP（`store` 级别，纯本地，不联网） |
+
 ---
 
 ## 二、字体（SIL Open Font License 1.1）

@@ -5,6 +5,7 @@
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, COVER_SIZES, styleById } from './catalog.js';
 import { renderCoverBlob } from './render.js';
 import { searchBackground, fetchImageDataUrl, guessQuery } from './search.js';
+import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
 
 const PREFS = 'supersu.cover.prefs.v1';
 const $ = (id) => document.getElementById(id);
@@ -425,12 +426,17 @@ function renderGallery() {
     const label = document.createElement('span');
     label.className = 'cv-card-label';
     label.textContent = `${COVER_SIZES[r.size].hint} · ${styleById(r.style).name}`;
+    const nine = document.createElement('button');
+    nine.type = 'button';
+    nine.className = 'cv-dl';
+    nine.textContent = '九宫格';
+    nine.addEventListener('click', () => openNine(r.url));
     const dl = document.createElement('a');
     dl.className = 'cv-dl';
     dl.href = r.url;
     dl.download = `supersu-cover-${r.style}-${r.size}.png`;
     dl.textContent = '下载';
-    foot.append(label, dl);
+    foot.append(label, nine, dl);
     fig.append(img, foot);
     gal.appendChild(fig);
   }
@@ -445,6 +451,81 @@ function openLightbox(src) {
 function closeLightbox() {
   const lb = $('cv-lightbox');
   if (lb) lb.hidden = true;
+}
+
+/* ── 九宫格切图（B2 #7）── */
+const nineState = { tiles: [], src: null, gap: 6, order: 'row', seq: 0 };
+let nineTimer = null;
+
+function setNineStatus(msg, isErr = false) {
+  const el = $('cv-nine-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('err', !!isErr);
+}
+
+function renderNineGrid() {
+  const grid = $('cv-nine-grid');
+  if (!grid) return;
+  grid.textContent = '';
+  for (const t of nineState.tiles) {
+    const img = document.createElement('img');
+    img.src = t.url;
+    img.alt = `第 ${t.seq} 张`;
+    img.title = `第 ${t.seq} 张 · ${t.name}`;
+    grid.appendChild(img);
+  }
+}
+
+async function regenerateNine() {
+  if (!nineState.src) return;
+  const seq = ++nineState.seq;
+  setNineStatus('正在切图…');
+  try {
+    const r = await splitGrid(nineState.src, { gap: nineState.gap, order: nineState.order });
+    if (seq !== nineState.seq) { releaseTiles(r.tiles); return; }
+    releaseTiles(nineState.tiles);
+    nineState.tiles = r.tiles;
+    renderNineGrid();
+    setNineStatus(`${r.tiles.length} 张 · 每张 ${r.cell}×${r.cell}px（按 ${r.side}×${r.side} 居中裁剪）`);
+  } catch (err) {
+    releaseTiles(nineState.tiles);
+    nineState.tiles = [];
+    renderNineGrid();
+    setNineStatus(String(err.message || err), true);
+  }
+}
+
+function openNine(src) {
+  const box = $('cv-nine');
+  if (!box) return;
+  releaseTiles(nineState.tiles);
+  nineState.tiles = [];
+  nineState.src = src;
+  box.hidden = false;
+  regenerateNine();
+}
+
+function closeNine() {
+  const box = $('cv-nine');
+  if (box) box.hidden = true;
+  nineState.seq += 1;              // 让在途的切图结果作废
+  releaseTiles(nineState.tiles);
+  nineState.tiles = [];
+  nineState.src = null;
+  const grid = $('cv-nine-grid');
+  if (grid) grid.textContent = '';
+  setNineStatus('');
+}
+
+async function downloadNineZip() {
+  if (!nineState.tiles.length) { toast('还没有切好的图', 'err'); return; }
+  try {
+    const r = await zipTiles(nineState.tiles, 'supersu-九宫格');
+    toast(`已下载 ${r.filename}（${Math.round(r.bytes / 1024)} KB）`, 'ok');
+  } catch (err) {
+    toast('打包失败：' + ((err && err.message) || err), 'err');
+  }
 }
 
 /* ── 偏好 ── */
@@ -514,6 +595,8 @@ function mount() {
         <div class="cv-out-head">
           <span class="cv-out-title">封面结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
+          <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
+          <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
@@ -523,6 +606,32 @@ function mount() {
         <p class="cv-tip">手机上生成后长按图片即可保存到相册；桌面端点「下载」。</p>
       </section>
     </main>
+    <div class="cv-nine" id="cv-nine" hidden>
+      <div class="cv-nine-panel" role="dialog" aria-label="九宫格切图">
+        <div class="cv-nine-head">
+          <span>九宫格切图</span>
+          <button class="cv-nine-x" id="cv-nine-x" type="button" aria-label="关闭">✕</button>
+        </div>
+        <div class="cv-nine-grid" id="cv-nine-grid"></div>
+        <div class="cv-nine-row">
+          <label for="cv-nine-gap">切图间距</label>
+          <input id="cv-nine-gap" type="range" min="0" max="20" step="2" value="6">
+          <span class="cv-nine-val" id="cv-nine-gapv">6px</span>
+        </div>
+        <div class="cv-nine-row">
+          <label for="cv-nine-order">顺序</label>
+          <select id="cv-nine-order">
+            <option value="row">逐行（左→右）</option>
+            <option value="snake">蛇形（S 形）</option>
+          </select>
+        </div>
+        <div class="cv-nine-foot">
+          <span class="cv-nine-status" id="cv-nine-status"></span>
+          <button class="cv-gen" id="cv-nine-zip" type="button">下载 9 张（ZIP）</button>
+        </div>
+        <p class="cv-nine-tip">非正方形图片会先居中裁成方形；发朋友圈或小红书时按 nine-01 → nine-09 顺序上传。</p>
+      </div>
+    </div>
     <div class="cv-lightbox" id="cv-lightbox" hidden>
       <button class="cv-lightbox-close" id="cv-lightbox-close" type="button" aria-label="关闭">✕</button>
       <img alt="封面大图">
@@ -556,12 +665,36 @@ function mount() {
   });
   $('cv-lightbox-close').addEventListener('click', closeLightbox);
 
+  // 九宫格切图：封面结果卡入口 + 上传任意图片入口
+  $('cv-nine-pick').addEventListener('click', () => $('cv-nine-file').click());
+  $('cv-nine-file').addEventListener('change', () => {
+    const f = $('cv-nine-file').files && $('cv-nine-file').files[0];
+    $('cv-nine-file').value = '';
+    if (f) openNine(f);
+  });
+  $('cv-nine-x').addEventListener('click', closeNine);
+  $('cv-nine').addEventListener('click', (e) => {
+    if (e.target.id === 'cv-nine') closeNine();
+  });
+  $('cv-nine-gap').addEventListener('input', () => {
+    nineState.gap = Number($('cv-nine-gap').value) || 0;
+    $('cv-nine-gapv').textContent = `${nineState.gap}px`;
+    clearTimeout(nineTimer);
+    nineTimer = setTimeout(regenerateNine, 150);
+  });
+  $('cv-nine-order').addEventListener('change', () => {
+    nineState.order = $('cv-nine-order').value === 'snake' ? 'snake' : 'row';
+    regenerateNine();
+  });
+  $('cv-nine-zip').addEventListener('click', downloadNineZip);
+
   const coverBtn = $('btn-cover');
   if (coverBtn) coverBtn.addEventListener('click', () => {
     if ($('cover-root').hidden) openCover(); else closeCover();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (!$('cv-nine').hidden) { closeNine(); return; }
     if (!$('cv-lightbox').hidden) { closeLightbox(); return; }
     if (!$('cover-root').hidden) closeCover();
   });

@@ -75,6 +75,9 @@ const SHELL_OPTIONAL = [
   './src/cover/search.js',
   './src/cover/cover.css',
   './vendor/modern-screenshot.js',
+  // 九宫格切图（B2 #7）：模块 + ZIP 打包库，首次点击才 import/加载
+  './src/nine.js',
+  './vendor/fflate.min.js',
   './fonts/cover-fonts.css',
   './cover-templates/editorial-dune.html',
   './cover-templates/editorial-forest-ink.html',

@@ -22,7 +22,7 @@ PORT = 8090
 sys.path.insert(0, str(ROOT))
 
 TEXT = "周末去海边，我把手机调成了飞行模式\n两天的沉默之后，我重新听见了海浪、风声，还有自己。"
-UPLOAD = ROOT / "docs" / "brand" / "logo.png"
+UPLOAD = ROOT / "docs" / "brand" / "logo-source.png"
 
 results = []
 
