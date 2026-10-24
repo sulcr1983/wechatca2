@@ -435,6 +435,22 @@ def main() -> int:
         except Exception as e:
             check("下载封面 PNG", False, "", str(e)[:120])
 
+        # 九宫格切图（B2 #7）：生产环境真跑一次，确认模块与 ZIP 库可达
+        try:
+            page.set_input_files("#cv-nine-file", str(ROOT / "docs" / "brand" / "logo-source.png"))
+            page.wait_for_selector("#cv-nine:not([hidden])", timeout=20000)
+            page.wait_for_function(
+                "() => document.querySelectorAll('#cv-nine-grid img').length === 9", timeout=30000)
+            check("九宫格切出 9 张", page.locator("#cv-nine-grid img").count() == 9, "", "9 张")
+            with page.expect_download(timeout=60000) as nine_dl:
+                page.click("#cv-nine-zip")
+            nz = nine_dl.value
+            check("九宫格 ZIP 下载", nz.suggested_filename.endswith(".zip"), "", nz.suggested_filename)
+            page.click("#cv-nine-x"); page.wait_for_timeout(200)
+            check("九宫格弹窗可关闭", page.is_hidden("#cv-nine"), "visible", "hidden")
+        except Exception as e:
+            check("九宫格切图（线上）", False, "", str(e)[:120])
+
         page.click("#btn-cover"); page.wait_for_timeout(500)
         check("返回排版页", page.is_visible("#stage") and page.is_hidden("#cover-root"), "封面", "排版")
         check("返回后按钮变「小红书」", page.inner_text("#btn-cover").strip() == "小红书", "", page.inner_text("#btn-cover"))
