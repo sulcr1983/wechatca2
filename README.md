@@ -467,6 +467,7 @@ wechatca2/
 | [docs/pwa-build-plan.md](docs/pwa-build-plan.md) | **PWA 施工图（历史文档，D1–D10 已全部完成）**：范围、10 条定稿决策、文件级任务、验收表、部署 |
 | [docs/pwa-design.md](docs/pwa-design.md) | PWA 设计存档：路线对比、架构、性能预算、域名研究 |
 | [AGENTS.md](AGENTS.md) | 项目定位、架构速查、工程纪律、验收规则 |
+| [files/TODO.md](files/TODO.md) | 任务清单与开发排期（先文档 → 再测试 → 然后再说） |
 | [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、变更记录 |
 | [CLOSURE.md](CLOSURE.md) | 任务收尾记录（完成项 / 验证 / 回滚点 / 剩余项） |
 | [claude.md](claude.md) | 给 Claude Code 的项目规则入口（`@AGENTS.md` 导入，不重复正文） |

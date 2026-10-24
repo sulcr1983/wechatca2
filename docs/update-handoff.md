@@ -39,17 +39,17 @@
 
 ## 2. 挂载方式（关键，先读这段）
 
-- `pwa/index.html` 里**只有**一行挂载点（第 165 行）：
+- `pwa/index.html` 里**只有**一行挂载点：
   ```html
   <div id="update-root"></div>
   ```
-  以及一行样式引用（第 14 行）：`<link rel="stylesheet" href="./src/update/update.css">`。
-- `pwa/src/app.js`（约 557–558 行）用**动态 import** 拉起模块：
+  以及一行样式引用：`<link rel="stylesheet" href="./src/update/update.css">`。
+- `pwa/src/app.js` 用**动态 import** 拉起模块：
   ```js
   import('./update/changelog.js'),
   import('./update/index.js'),
   ```
-- `index.js` 的 `createUpdater()` **一进来就调 `mountUpdateUI()`**（index.js:39）。**这行必须最先调**——它在取所有 DOM 元素之前把 UI 注入进去。顺序错了，后面 `document.getElementById('btn-update')` 全是 `null`，会直接崩。这是上一轮踩过的坑，已修好，别再挪动顺序。
+- `index.js` 的 `createUpdater()` **一进来就调 `mountUpdateUI()`**。**这行必须最先调**——它在取所有 DOM 元素之前把 UI 注入进去。顺序错了，后面 `document.getElementById('btn-update')` 全是 `null`，会直接崩。这是上一轮踩过的坑，已修好，别再挪动顺序。
 
 ---
 
@@ -71,7 +71,7 @@
 - 取「用户上次看到之后」的更新条目 → 最多 3 条亮点 + 总数。
 - 如果 changelog 版本落后于运行版本、取不到 newer 条目，回退到**最近一批**（scope=`latest`），避免小票永远是占位文案。
 
-**调试预览入口**：地址栏加 `#upd-demo`（`index.js` 约 437 行），会直接弹出「发布小票」用于预览，**不影响正常更新流程**。本地验证必用。
+**调试预览入口**：地址栏加 `#upd-demo`，会直接弹出「发布小票」用于预览，**不影响正常更新流程**。本地验证必用。
 
 ---
 
@@ -137,7 +137,7 @@ cd pwa/dist && python -m http.server 8901 --bind 127.0.0.1
 |---|---|---|---|
 | 1 | `build.mjs` 报 `genie-trash failed` / `EBUSY` 清不了 dist | 本机 node 的 `fs.rm` 被 genie-trash 拦截 | 构建前加 `CODEBUDDY_SAFE_DELETE_ENABLED=0` |
 | 2 | rebuild 报 `EBUSY rmdir pwa/dist` | 有后台 http.server 占着目录 | 先 `kill` 占用 8901（或对应端口）的服务再构建 |
-| 3 | 页面报 `Cannot read properties of null`（更新相关） | `createUpdater` 里 `mountUpdateUI()` 没最先执行 | 保证 `index.js:39` 的 `mountUpdateUI()` 在所有 `getElementById` 之前 |
+| 3 | 页面报 `Cannot read properties of null`（更新相关） | `createUpdater` 里 `mountUpdateUI()` 没最先执行 | 保证 `createUpdater` 里 `mountUpdateUI()` 在所有 `getElementById` 之前 |
 | 4 | 改了更新文案却没生效 | 改的是 `ui.js` 模板但没重新 `mountUpdateUI`，或缓存 | 清 SW / 硬刷新；确认改的是 `pwa/src/update/ui.js`（不是旧 `index.html` 里的内联块） |
 
 ---

@@ -64,9 +64,10 @@ npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
 
 ### 0.8 文档地图
 - `AGENTS.md`：工程规则 + PWA 架构要点 + 测试清单（工程唯一真源）
-- `CLOSURE.md`：逐任务收尾记录（任务 20 = 版本号修复；任务 21 = 静默自动升级；任务 22 = AI 平台预设）
-- `files/TODO.md`：已完成 / 待办 / **未完成需求**
-- `README.md`：对外说明 + 测试矩阵（311 项）
+- `CLOSURE.md`：逐任务收尾记录（任务 20 = 版本号修复；任务 21 = 静默自动升级；任务 22 = AI 平台预设；任务 23 = 全文档一致性审计）
+- `files/TODO.md`：已完成 / 待办 / 未完成需求 + **开发任务列表排期**（2026-10-24：先文档 DOC-1…5 → 再测试 TST-1…3 → 然后再说）
+- `README.md`：对外说明 + 测试矩阵（341 项）
+- 归档规则：本文件超 100KB 时，保留 §0 快照、旧章节按半年移 `docs/archive/HANDOFF-YYYY.md`（2026-10-24 现 83KB，未触发；规则见 `docs/project-conventions.md` §4）
 
 ---
 
