@@ -848,7 +848,8 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 ### 验证
 - `scripts/pwa_auto_update_test.py` **8/8**：改写探针目录 `sw.js` 的 BUILD_ID 模拟发版 → 检测到 waiting → 自动应用并 reload → 全程无大卡片 → 右下角「已升级到 v1.5.0 · bN」→ 点开更新记录 → 9.5s 后消失 → 0 JS 报错
 - 截图：`output/auto-update/01-no-card.png`、`output/auto-update/02-upgraded-toast.png`
-- 线上发布小票 9/9 与线上全量 E2E 在部署后复跑（见下条记录）
+- 部署后线上复核：`version.json` = 1.5.0 / build **151**；发布小票 **9/9**；线上全量 E2E **91/91（3 SKIP）**
+- 提交：`4358172`（改造）+ `fe709e0`（同步更新记录）；部署 6 个变更文件（405 未变）
 
 
 
