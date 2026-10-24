@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T14:46:26+08:00",
-  "totalCommits": 146,
+  "generatedAt": "2026-10-24T16:27:05+08:00",
+  "totalCommits": 147,
   "releases": [
     {
       "version": "1.5.0",
@@ -9,7 +9,7 @@
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
         "added": 7,
-        "changed": 6,
+        "changed": 7,
         "fixed": 3,
         "other": 2
       },
@@ -73,6 +73,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "全文档与代码一致性审计回写（25 个文件）",
+              "scope": "",
+              "hash": "09b37ad",
+              "date": "2026-10-24T16:26:53+08:00",
+              "breaking": false
+            },
             {
               "text": "回写 AI 平台预设（CLOSURE 任务 22 · TODO · AGENTS · HANDOFF · README）",
               "scope": "",
