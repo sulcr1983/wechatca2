@@ -1856,6 +1856,8 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     html = apply_paragraph_blocks(html, theme)
 
     # === 8. 布局分发（按 theme.layout 决定区块怎么切/包）===
+    # 现有三种（card/hero/timeline）保留原实现不动；新版式走 LAYOUT_REGISTRY，
+    # 以后加版式只登记函数，不再往这条 if-else 链堆分支（2026-10-24 B 方案）
     _layout = theme.get("layout")
     if _layout == "card" and "card" in theme:
         html = _wrap_card_sections(html, theme["card"])
@@ -1863,6 +1865,8 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
         html = _wrap_hero_sections(html, theme["hero"], theme)
     elif _layout == "timeline" and "timeline" in theme:
         html = _wrap_timeline_sections(html, theme["timeline"], style_map)
+    elif _layout in LAYOUT_REGISTRY:
+        html = LAYOUT_REGISTRY[_layout](html, theme)
 
     # === 8.1 处理 wrapper（整体背景色，用于 dark/retro 等主题）===
     if "wrapper" in style_map and not skip_wrapper:
@@ -2285,6 +2289,232 @@ def apply_paragraph_blocks(html: str, theme: dict) -> str:
         return html
     out.append(html[pos:])
     return "".join(out)
+
+
+# ── 新版式（B 方案，2026-10-24）────────────────────────────────────────────
+# 设计原则：全部从 theme.colors 派生颜色，不新增配色资产 → 任意主题都能用。
+# 版式只改「区块怎么切/包」，不动字号字距（那是主题的职责）。
+
+
+def _split_by_headings(html: str) -> tuple[str, list]:
+    """按 h1/h2 切块：返回 (导语, [(标题 html, 正文 html), ...])
+
+    导语 = 第一个标题之前的内容（通常是标题本身或开场段）。
+    注意微信不支持 flex 等高阶布局做正文分栏，这里一律用 table/column 的安全写法。
+    """
+    # 找所有 h1/h2 的位置
+    marks = [(m.start(), m.group(0)) for m in re.finditer(r"<h[12][^>]*>", html)]
+    if not marks:
+        return html, []
+    lead = html[:marks[0]]
+    sections = []
+    for i, (pos, _tag) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else len(html)
+        sections.append(html[pos:end])
+    return lead, sections
+
+
+def _split_head_body(section: str) -> tuple[str, str]:
+    """把一节拆成 (标题标签, 其余正文)"""
+    m = re.match(r"(<h[12][^>]*>.*?</h[12]>)(.*)$", section, re.DOTALL)
+    if not m:
+        return "", section
+    return m.group(1), m.group(2)
+
+
+def _layout_magazine(html: str, theme: dict) -> str:
+    """杂志分栏：首屏大标题 + 细线 + 双栏正文（微信兼容用 table 模拟分栏）。
+
+    微信不支持 CSS column-count，只能用 table 两列；窄屏会退化成上下堆叠，
+    所以只把「连续纯文字段落」放进双栏，标题/图片/表格/列表/色块一律整宽。
+
+    ⚠️ 铁律：**绝不丢内容**。分块失败就原样返回，宁可没效果也不能吞字
+    （2026-10-24 第一版曾因复用同一变量丢掉 1821 字，此处已重写并加保真断言）。
+    """
+    colors = theme.get("colors") or {}
+    accent = colors.get("accent") or colors.get("primary") or "#333"
+    ink = colors.get("primary") or "#333"
+
+    marks = [m.start() for m in re.finditer(r"<h[12][^>]*>", html)]
+    if len(marks) < 2:
+        return html  # 只有一节，做分栏没意义
+
+    def plain_len(s: str) -> int:
+        return len(re.sub(r"<[^>]+>", "", s).replace(" ", "").replace("\n", ""))
+
+    lead = html[:marks[0]]
+    sections = [html[marks[i]:(marks[i + 1] if i + 1 < len(marks) else len(html))]
+                for i in range(len(marks))]
+
+    out = [lead]
+    for si, sec in enumerate(sections):
+        m = re.match(r"(<h[12][^>]*>.*?</h[12]>)(.*)$", sec, re.DOTALL)
+        head, body = (m.group(1), m.group(2)) if m else ("", sec)
+        out.append(head)
+
+        if si == 0:
+            # 首屏：紧跟标题的第一段整宽（当导语），标题下加 accent 细线
+            out.append(f'<section style="height:2px;background:{accent};opacity:.5;'
+                       f'margin:2px 0 18px"></section>')
+            paras = re.findall(r"<p[^>]*>.*?</p>", body, re.DOTALL)
+            if paras:
+                out.append(paras[0])
+                body = body.replace(paras[0], "", 1)
+
+        # 按「非段落块」切开，块与块之间的连续段落成对放双栏
+        block_pat = (r"(<(?:section|table|figure|div|blockquote|pre|ul|ol)[^>]*>"
+                     r".*?</(?:section|table|figure|div|blockquote|pre|ul|ol)>)")
+        pieces = re.split(block_pat, body, flags=re.DOTALL)
+        buf: list[str] = []
+
+        def flush() -> None:
+            if not buf:
+                return
+            half = (len(buf) + 1) // 2
+            out.append(
+                '<table style="width:100%;border-collapse:collapse;margin:0 0 20px"><tr>'
+                f'<td style="width:50%;vertical-align:top;padding-right:10px">{"".join(buf[:half])}</td>'
+                f'<td style="width:50%;vertical-align:top;padding-left:10px">{"".join(buf[half:])}</td>'
+                '</tr></table>'
+            )
+            buf.clear()
+
+        for piece in pieces:
+            if not piece or not piece.strip():
+                continue
+            if piece.lstrip().startswith("<p"):
+                buf.extend(re.findall(r"<p[^>]*>.*?</p>", piece, re.DOTALL))
+            else:
+                flush()
+                out.append(piece)
+        flush()
+
+    result = "".join(out)
+    # 保真闸门：字数少了就说明分块出错，直接退回原文（绝不吞字）
+    if plain_len(result) < plain_len(html):
+        return html
+    return result
+
+
+def _plain_len(html: str) -> int:
+    """纯文字长度（去标签/空白），用于保真闸门：宁可没效果也不能吞字。"""
+    return len(re.sub(r"<[^>]+>", "", html).replace(" ", "").replace("\n", ""))
+
+
+def _layout_rhythm(html: str, theme: dict) -> str:
+    """图文节奏：h2 前置强调条 + 段落间距放大，制造阅读停顿。
+
+    公众号里「视觉停顿」靠留白和分隔，不靠插图（插图会破坏原文）。
+    """
+    colors = theme.get("colors") or {}
+    accent = colors.get("accent") or colors.get("primary") or "#333"
+    before = _plain_len(html)
+
+    html = re.sub(
+        r"<h2([^>]*)>",
+        lambda m: (f'<section style="margin:34px 0 12px">'
+                   f'<span style="display:inline-block;width:4px;height:15px;'
+                   f'background:{accent};margin-right:9px;vertical-align:2px"></span>'
+                   f'</section><h2{m.group(1)}>'),
+        html,
+    )
+    html = re.sub(r'(<p[^>]*style="[^"]*?)margin-bottom:[^;"]*', r'\1margin-bottom:26px', html)
+    return html if _plain_len(html) >= before else html
+
+
+def _layout_cardflow(html: str, theme: dict) -> str:
+    """卡片流：每个 h1/h2 小节独立成卡（浅底 + 圆角 + 编号）。
+
+    与现有 card 布局的区别：card 是整篇分卡（带阴影边框、需主题专用配置），
+    cardflow 是轻量分段卡（只靠底色和圆角，任意主题都能用）。
+    """
+    colors = theme.get("colors") or {}
+    accent = colors.get("accent") or colors.get("primary") or "#333"
+    ink = colors.get("primary") or "#333"
+    card_bg = _derive_block_color(ink, accent, 0.05)
+
+    marks = [m.start() for m in re.finditer(r"<h[12][^>]*>", html)]
+    if len(marks) < 2:
+        return html
+    before = _plain_len(html)
+    lead = html[:marks[0]]
+    sections = [html[marks[i]:(marks[i + 1] if i + 1 < len(marks) else len(html))]
+                for i in range(len(marks))]
+
+    out = [lead]
+    for i, sec in enumerate(sections, 1):
+        m = re.match(r"(<h[12][^>]*>.*?</h[12]>)(.*)$", sec, re.DOTALL)
+        head, body = (m.group(1), m.group(2)) if m else ("", sec)
+        num = (f'<span style="display:inline-block;font-size:11px;letter-spacing:.08em;'
+               f'color:{accent};margin-bottom:6px">{i:02d}</span>') if head else ""
+        out.append(f'<section style="margin:0 0 14px;padding:18px 20px;'
+                   f'background:{card_bg};border-radius:12px">{num}{head}{body}</section>')
+    result = "".join(out)
+    return result if _plain_len(result) >= before else html
+
+
+def _layout_outline(html: str, theme: dict) -> str:
+    """目录导航：顶部自动生成小节目录（编号 + 标题），正文 h2 前加对应编号。
+
+    长文刚需。公众号不能做锚点跳转，所以做成「视觉目录」——
+    编号列表与正文编号形成视觉对应。
+    """
+    colors = theme.get("colors") or {}
+    accent = colors.get("accent") or colors.get("primary") or "#333"
+    ink = colors.get("primary") or "#333"
+    soft = _derive_block_color(ink, accent, 0.04)
+
+    marks = [m.start() for m in re.finditer(r"<h[12][^>]*>", html)]
+    if len(marks) < 2:
+        return html
+    before = _plain_len(html)
+    lead = html[:marks[0]]
+    sections = [html[marks[i]:(marks[i + 1] if i + 1 < len(marks) else len(html))]
+                for i in range(len(marks))]
+
+    items = []
+    for sec in sections:
+        m = re.match(r"<h2[^>]*>(.*?)</h2>", sec, re.DOTALL)
+        if m:
+            txt = re.sub(r"<[^>]+>", "", m.group(1)).strip()
+            if txt:
+                items.append(txt)
+    if len(items) < 2:
+        return html
+
+    toc_rows = "".join(
+        f'<p style="margin:0 0 7px;font-size:13.5px;line-height:1.6;color:{ink}">'
+        f'<span style="color:{accent};margin-right:8px;font-weight:600">{i:02d}</span>{t}</p>'
+        for i, t in enumerate(items, 1)
+    )
+    toc = (f'<section style="margin:0 0 26px;padding:16px 18px;background:{soft};'
+           f'border-radius:10px">'
+           f'<p style="margin:0 0 10px;font-size:11.5px;letter-spacing:.1em;color:{accent}">本文目录</p>'
+           f'{toc_rows}</section>')
+
+    out = [lead]
+    idx = 0
+    for sec in sections:
+        if re.match(r"<h2", sec):
+            idx += 1
+            sec = re.sub(
+                r"<h2([^>]*)>",
+                lambda m: (f'<h2{m.group(1)}>'
+                           f'<span style="color:{accent};margin-right:8px">{idx:02d}</span>'),
+                sec, count=1,
+            )
+        out.append(sec)
+    result = "".join(out)
+    return result if _plain_len(result) >= before else html
+
+
+# 版式注册表：新增版式只需在这里登记一个函数，不再往 if-else 链里堆分支
+LAYOUT_REGISTRY = {
+    "magazine": _layout_magazine,
+    "rhythm": _layout_rhythm,
+    "cardflow": _layout_cardflow,
+    "outline": _layout_outline,
+}
 
 
 def format_for_output(content: str, input_path: Path, theme: dict,
