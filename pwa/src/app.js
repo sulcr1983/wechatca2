@@ -16,6 +16,8 @@ const LS = {
   recent: 'supersu.pwa.recent',
   draft: 'supersu.pwa.draft',
   mode: 'supersu.pwa.mode',
+  blocks: 'supersu.pwa.blocks',   // 段落样式本机覆盖（不改仓库主题文件）
+  layout: 'supersu.pwa.layout',   // 版式本机覆盖
 };
 
 const DEFAULT_THEME = 'su-biz-azure';
@@ -204,13 +206,31 @@ async function loadThemeJson(id) {
   if (id === CUSTOM_ID) {
     const base = themeJsonCache.get(customBase) || await loadThemeJson(customBase);
     const out = applyCustomColors(JSON.parse(base));
+    if (customLayout) out.layout = customLayout;
+    if (customBlocks && Object.values(customBlocks).some(Boolean)) out.blocks = customBlocks;
     return JSON.stringify(out);
   }
   const res = await fetch(`./themes/${id}.json`);
   if (!res.ok) throw new Error(`主题 ${id} 读取失败`);
   const txt = await res.text();
-  themeJsonCache.set(id, txt);
-  return txt;
+  const json = JSON.parse(txt);
+
+  // 本机覆盖（版式 / 段落样式）：用户在抽屉里改的，不改仓库里的主题文件
+  const layoutOv = lsGet(LS.layout, {});
+  if (layoutOv[id] !== undefined) {
+    if (layoutOv[id]) json.layout = layoutOv[id];
+    else delete json.layout;
+  }
+  const blocksOv = lsGet(LS.blocks, {});
+  if (blocksOv[id]) {
+    if (Object.values(blocksOv[id]).some(Boolean)) json.blocks = blocksOv[id];
+    else delete json.blocks;
+  }
+  // 新版式（magazine/rhythm/cardflow/outline）不需要主题里的额外配置块，
+  // 但引擎要求 layout 值存在即可；这里确保没有残留的旧配置干扰
+  const out = JSON.stringify(json);
+  themeJsonCache.set(id, out);
+  return out;
 }
 
 /* ── 自定义配色（最小版，2026-10-24）───────────────────────────
@@ -220,6 +240,8 @@ async function loadThemeJson(id) {
 const CUSTOM_ID = '__custom__';
 const LS_CUSTOM = 'supersu.pwa.custom';
 let customBase = '';   // 自定义以哪套主题为底（取当前主题，保证字号/间距等排版不变）
+let customLayout = ''; // 自定义配色时选的版式（B 方案）
+let customBlocks = null; // 自定义配色时的段落样式开关（C 方案）
 
 function customColors() {
   try {
@@ -400,9 +422,17 @@ function themeMeta(id) {
     const base = byId.get(customBase) || themes[0] || {};
     return { id: CUSTOM_ID, name: '自定义配色',
              background: c ? c.bg : base.background, accent: c ? c.accent : base.accent,
-             primary: c ? c.text : base.primary };
+             primary: c ? c.text : base.primary,
+             layout: customLayout || base.layout || '',
+             blocks: customBlocks || {} };
   }
-  return byId.get(id);
+  const t = byId.get(id);
+  if (!t) return t;
+  // 版式 / 段落样式可能被本机覆盖（抽屉里改的），这里返回生效值供 UI 显示
+  const layoutOv = lsGet(LS.layout, {});
+  return { ...t,
+           layout: layoutOv[id] !== undefined ? layoutOv[id] : (t.layout || ''),
+           blocks: effectiveBlocks(id) };
 }
 
 function orderedThemes() {
@@ -478,6 +508,73 @@ function closeDrawer() {
   $('drawer').hidden = true;
   $('drawer-mask').hidden = true;
   document.body.classList.remove('browsing');
+}
+
+/* ── 版式层（B 方案，2026-10-24）──────────────────────────────
+   换版式 = 换结构（不是换颜色）。选中后立刻把当前主题的 layout 换掉并重渲染。
+   版式与色调正交：版式决定「区块怎么切」，色调决定「什么颜色」。 */
+const LAYOUT_OPTIONS = [
+  ['', '默认'],
+  ['rhythm', '图文节奏'],
+  ['cardflow', '卡片流'],
+  ['outline', '目录导航'],
+  ['magazine', '杂志分栏'],
+  ['hero', '首屏'],
+  ['card', '卡片组'],
+  ['timeline', '时间线'],
+];
+
+function layoutOf(t) {
+  return (t && t.layout) || '';
+}
+
+function renderLayouts() {
+  const cur = layoutOf(themeMeta(activeId));
+  $('drawer-layouts').innerHTML =
+    '<span class="dl-label">版式</span>' +
+    LAYOUT_OPTIONS.map(([id, label]) => `
+      <button class="dl-chip${id === cur ? ' on' : ''}" data-layout="${id}"
+              type="button" aria-pressed="${id === cur}">${label}</button>`).join('');
+}
+
+/* ── 段落样式开关（C 方案）────────────────────────────────────
+   这三个开关直接写进主题的 blocks 字段，改完立刻重渲染。 */
+function blocksOf(t) {
+  return (t && t.blocks) || {};
+}
+
+function renderBlockToggles() {
+  const b = blocksOf(themeMeta(activeId));
+  for (const k of ['quote', 'data', 'tip']) {
+    const el = $('db-' + k);
+    if (el) el.checked = !!b[k];
+  }
+}
+
+function setBlockToggle(key, on) {
+  // 自定义配色主题没有主题文件，直接改内存里的 meta
+  const t = themeMeta(activeId);
+  if (!t) return;
+  const next = { ...blocksOf(t), [key]: on };
+  if (activeId === CUSTOM_ID) {
+    customBlocks = next;
+    themeJsonCache.delete(CUSTOM_ID);
+  } else {
+    // 普通主题：把 blocks 覆盖记在本机（不改仓库里的主题文件）
+    const overrides = lsGet(LS.blocks, {});
+    overrides[activeId] = next;
+    lsSet(LS.blocks, overrides);
+    themeJsonCache.delete(activeId);
+  }
+  scheduleRender();
+}
+
+// 读某主题实际生效的 blocks：本机覆盖 > 主题自带
+function effectiveBlocks(id) {
+  if (id === CUSTOM_ID) return customBlocks || {};
+  const overrides = lsGet(LS.blocks, {});
+  if (overrides[id]) return overrides[id];
+  return (byId.get(id) || {}).blocks || {};
 }
 
 function renderFilters() {
@@ -613,6 +710,8 @@ function renderFamilyFold(fam, fav) {
   </div>`;
 }
 function renderDrawer() {
+  renderLayouts();
+  renderBlockToggles();
   const fav = new Set(favList());
   const q = drawerQ.trim().toLowerCase();
   // 搜索优先：全量扁平（跨所有主题，不折叠）
@@ -1037,6 +1136,31 @@ function bindUI() {
   $('btn-drawer-close').addEventListener('click', closeDrawer);
   $('drawer-mask').addEventListener('click', closeDrawer);
   $('drawer-search').addEventListener('input', (e) => { drawerQ = e.target.value; renderDrawer(); });
+
+  /* 版式层（B 方案）：换结构不改颜色；写本机覆盖，不动仓库主题文件 */
+  $('drawer-layouts').addEventListener('click', (e) => {
+    const chip = e.target.closest('.dl-chip');
+    if (!chip) return;
+    const lay = chip.dataset.layout;
+    if (activeId === CUSTOM_ID) {
+      customLayout = lay;
+      themeJsonCache.delete(CUSTOM_ID);
+    } else {
+      const ov = lsGet(LS.layout, {});
+      ov[activeId] = lay;
+      lsSet(LS.layout, ov);
+      themeJsonCache.delete(activeId);
+    }
+    renderLayouts();
+    scheduleRender();
+    toast(lay ? `版式：${chip.textContent}` : '已回到默认版式', 'ok');
+  });
+
+  /* 段落样式开关（C 方案） */
+  ['quote', 'data', 'tip'].forEach((k) => {
+    const el = $('db-' + k);
+    if (el) el.addEventListener('change', () => setBlockToggle(k, el.checked));
+  });
 
   /* 自定义配色（最小版）：改色即生效；「恢复」回到当前底主题 */
   const syncCustomInputs = () => {

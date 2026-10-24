@@ -111,14 +111,19 @@ def main() -> int:
         pg.wait_for_timeout(wait)
 
     def style_sig(pg):
+        # 2026-10-24：加入节点数与标签名，否则「目录导航」这类只改结构的版式
+        # 因为颜色/字体没变而被误判为「无变化」
         return pg.evaluate("""() => {
             const d = document.getElementById('preview').contentDocument;
             if (!d) return '';
-            return [...d.querySelectorAll('*')].slice(0, 500).map(e => {
+            const els = [...d.querySelectorAll('*')];
+            const shape = els.length + ':' + els.slice(0, 300).map(e => e.tagName).join(',');
+            const styles = els.slice(0, 500).map(e => {
                 const s = getComputedStyle(e);
                 return s.color + '/' + s.borderColor + '/' + s.backgroundColor + '/'
                     + s.boxShadow + '/' + s.fontFamily;
             }).join(';');
+            return shape + '|' + styles;
         }""")
 
     try:
@@ -339,6 +344,39 @@ def main() -> int:
             check("「恢复」清掉自定义配色",
                   page.evaluate("() => localStorage.getItem('supersu.pwa.custom')") is None,
                   "")
+
+            # ⑥ 版式层（B 方案）+ 段落样式开关（C 方案），2026-10-24
+            page.click("#btn-themes")
+            page.wait_for_timeout(400)
+            chips = page.locator(".dl-chip")
+            check("版式层有 8 个选项", chips.count() == 8, f"{chips.count()} 个")
+            new_lays = ["图文节奏", "卡片流", "目录导航", "杂志分栏"]
+            check("版式层含 4 种新版式",
+                  all(page.locator(f".dl-chip:has-text('{n}')").count() == 1 for n in new_lays), "")
+            page.click(".dl-chip:has-text('卡片流')")
+            page.wait_for_timeout(1500)
+            check("切「卡片流」版式生效",
+                  page.locator(".dl-chip:has-text('卡片流')").get_attribute("aria-pressed") == "true", "")
+            sig_card = style_sig(page)
+            page.click(".dl-chip:has-text('目录导航')")
+            page.wait_for_timeout(1500)
+            check("切「目录导航」后预览结构变化", style_sig(page) != sig_card, "")
+            check("段落样式有 3 个开关",
+                  page.locator("#drawer-blocks input[type='checkbox']").count() == 3,
+                  f"{page.locator('#drawer-blocks input').count()} 个")
+            page.click("#btn-drawer-close")
+            page.wait_for_timeout(300)
+            page.fill("#input", RICH + '\n\n他说：“真正让人疲惫的不是工作，是那些没被允许停下来的时刻。”\n')
+            page.wait_for_timeout(1300)
+            page.click("#btn-themes")
+            page.wait_for_timeout(400)
+            before_blk = page.evaluate("() => document.getElementById('preview').contentDocument.querySelectorAll('[data-block]').length")
+            page.check("#db-quote")
+            page.wait_for_timeout(1600)
+            after_blk = page.evaluate("() => document.getElementById('preview').contentDocument.querySelectorAll('[data-block]').length")
+            check("开「金句」后正文出现色块", after_blk > before_blk, f"{before_blk} → {after_blk}")
+            check("段落样式已存本机",
+                  bool(page.evaluate("() => localStorage.getItem('supersu.pwa.blocks')")), "")
 
             check("无 JS 控制台报错", not errors, errors[0][:140] if errors else "")
             browser.close()

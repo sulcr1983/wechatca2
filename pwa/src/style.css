@@ -400,6 +400,29 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 .drawer-empty { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13px; }
 .drawer-empty .d-empty-acts { margin-top: 12px; display: flex; gap: 8px; justify-content: center; }
 
+/* 版式层（B 方案）：换结构而不是换颜色 */
+.drawer-layouts {
+  flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 9px 16px; border-bottom: 1px solid var(--border);
+}
+.drawer-layouts .dl-label { font-size: 11.5px; color: var(--text-muted); margin-right: 2px; flex: none; }
+.dl-chip {
+  padding: 4px 11px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--bg-surface); font-size: 11.5px; cursor: pointer;
+  color: var(--text-soft); font-family: inherit;
+}
+.dl-chip:hover { border-color: var(--border-hi); }
+.dl-chip.on { background: var(--text-soft); color: var(--bg-surface); border-color: var(--text-soft); }
+
+/* 段落样式开关（C 方案） */
+.drawer-blocks {
+  flex: none; display: flex; align-items: center; gap: 14px;
+  padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px;
+}
+.drawer-blocks .db-label { color: var(--text-muted); font-size: 11.5px; }
+.drawer-blocks .db-item { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-soft); }
+.drawer-blocks input[type="checkbox"] { margin: 0; cursor: pointer; }
+
 /* 自定义配色条（最小版）：三个原生取色器 */
 .drawer-custom {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;

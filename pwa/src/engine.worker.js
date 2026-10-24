@@ -18,7 +18,17 @@ let pyodide = null;
 let renderFn = null;
 let structureFn = null;    // AI 排版：把结构决策套用到原文（正文一字不改）
 let booting = null;
-let themeWritten = null;   // 已写进 FS 的主题 id，避免重复写
+let themeWritten = null;   // 已写进 FS 的主题指纹（id + 内容哈希），避免重复写
+
+/** 32 位字符串哈希（FNV-1a）：只用来判断「主题内容是否变了」，不做安全用途 */
+function hash32(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16);
+}
 
 const post = (type, payload) => self.postMessage({ type, payload });
 
@@ -38,10 +48,14 @@ self.onmessage = async (e) => {
       await boot();
     } else if (type === 'theme') {
       if (!pyodide) throw new Error('引擎未就绪，无法写入主题');
-      // payload.id 是消息序号（每次不同），去重要用 payload.themeId
-      if (themeWritten !== payload.themeId) {
+      // payload.id 是消息序号（每次不同），去重不能只看 themeId——
+      // 同一个主题 id 的内容可能变（自定义配色、版式覆盖、段落样式开关），
+      // 只比 id 会导致「改了设置但渲染没变」（2026-10-24 实测踩到）。
+      // 改为 id + 内容哈希：内容变了就重写。
+      const fp = payload.themeId + '#' + payload.json.length + '#' + hash32(payload.json);
+      if (themeWritten !== fp) {
         pyodide.FS.writeFile(THEME_PATH, payload.json);
-        themeWritten = payload.themeId;
+        themeWritten = fp;
       }
       post('theme-ready', { id: payload.id });
     } else if (type === 'structure') {

@@ -165,7 +165,16 @@
     <button class="icon-btn" id="btn-drawer-close" aria-label="关闭">×</button>
   </div>
   <div class="drawer-filters" id="drawer-filters"></div>
+  <!-- 版式层（B 方案）：换结构而不是换颜色 -->
+  <div class="drawer-layouts" id="drawer-layouts"></div>
   <div class="drawer-grid" id="drawer-grid"></div>
+  <!-- 段落样式（C 方案）：给当前模板加色块强调 -->
+  <div class="drawer-blocks" id="drawer-blocks">
+    <span class="db-label">段落样式</span>
+    <label class="db-item"><input type="checkbox" id="db-quote"><span>金句</span></label>
+    <label class="db-item"><input type="checkbox" id="db-data"><span>数据</span></label>
+    <label class="db-item"><input type="checkbox" id="db-tip"><span>提示</span></label>
+  </div>
   <!-- 自定义配色（最小版）：三个原生取色器，改完立即生效并存本机 -->
   <div class="drawer-custom" id="drawer-custom">
     <span class="dc-label">自定义配色</span>

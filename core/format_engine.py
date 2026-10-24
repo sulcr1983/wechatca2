@@ -2468,6 +2468,9 @@ def _layout_outline(html: str, theme: dict) -> str:
     if len(marks) < 2:
         return html
     before = _plain_len(html)
+    # 幂等：已生成过目录就不再重复加（避免二次调用时编号叠加、目录重复）
+    if "本文目录" in html:
+        return html
     lead = html[:marks[0]]
     sections = [html[marks[i]:(marks[i + 1] if i + 1 < len(marks) else len(html))]
                 for i in range(len(marks))]
@@ -2504,7 +2507,8 @@ def _layout_outline(html: str, theme: dict) -> str:
                 sec, count=1,
             )
         out.append(sec)
-    result = "".join(out)
+    # 目录插在导语之后、正文之前（此前 toc 定义了却漏拼进 out，导致目录从不出现）
+    result = out[0] + toc + "".join(out[1:])
     return result if _plain_len(result) >= before else html
 
 
