@@ -1,23 +1,30 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-24T11:50:43+08:00",
-  "totalCommits": 135,
+  "generatedAt": "2026-10-24T13:06:15+08:00",
+  "totalCommits": 137,
   "releases": [
     {
       "version": "1.4.0",
       "date": "2026-10-19",
       "title": "小红书封面（PWA）",
       "counts": {
-        "added": 8,
+        "added": 9,
         "changed": 6,
         "fixed": 4,
-        "other": 4
+        "other": 5
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "AI 能力门控 + AI 排版六项升级 + 同族色调可见化",
+              "scope": "pwa/ai",
+              "hash": "3cc4979",
+              "date": "2026-10-24T13:06:01+08:00",
+              "breaking": false
+            },
             {
               "text": "B2 #20 批量导出图片（正文全部图片 → ZIP）",
               "scope": "pwa",
@@ -162,6 +169,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "模板库体验套件对 SW 自动重载自愈（线上刚部署时抽屉会被重置）",
+              "scope": "pwa",
+              "hash": "97aa273",
+              "date": "2026-10-24T11:56:46+08:00",
+              "breaking": false
+            },
             {
               "text": "线上 E2E 增加九宫格切图 3 项（切图/ZIP/关闭）",
               "scope": "pwa",
