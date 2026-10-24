@@ -18,6 +18,7 @@ AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出
 - 回写 B2 #7 九宫格切图（CLOSURE 任务14 / TODO / AGENTS 测试与架构要点 / README 计数） (312da45)
 
 ### 修复
+- 版本号升到 1.5.0 并按 version/构建号双判更新 (2866552)
 - 修模板库同族换色点了没反应（toast 反馈 + 底部胶囊始终含当前主题） (0f9883c)
 - 线上 E2E 上传底图夹具改用 docs/brand/logo-source.png（logo.png 已不存在） (2b36dd8)
 

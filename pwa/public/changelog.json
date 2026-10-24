@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T13:41:29+08:00",
-  "totalCommits": 138,
+  "generatedAt": "2026-10-24T13:43:03+08:00",
+  "totalCommits": 139,
   "releases": [
     {
       "version": "1.5.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 5,
         "changed": 1,
-        "fixed": 2,
+        "fixed": 3,
         "other": 2
       },
       "groups": [
@@ -72,6 +72,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "版本号升到 1.5.0 并按 version/构建号双判更新",
+              "scope": "pwa/update",
+              "hash": "2866552",
+              "date": "2026-10-24T13:42:24+08:00",
+              "breaking": false
+            },
             {
               "text": "修模板库同族换色点了没反应（toast 反馈 + 底部胶囊始终含当前主题）",
               "scope": "pwa",
