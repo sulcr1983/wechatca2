@@ -805,6 +805,29 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 回归：smoke **24/24** · 导出 **12/12** · 九宫格 **15/15** · AI 排版 **27/27**
 - 目视：`output/theme-drawer/drawer-family.png`（chip 降噪、版式条与色调条层次清晰）
 
+## 任务 20：修「版本号一直一样、看不到更新」（2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户报障：「更新这块是不是有问题，为啥一致都是一样的。版本号」 |
+| 根因 | `pwa/version.json` 的语义化版本长期停在 1.4.0（发版从不 bump），而 `checkRemoteVersion` 只比版本号 → 每次部署都判「当前已是最新版本」，更新卡永不出现 |
+| 修法 | ① 版本 bump 到 **1.5.0** 并补 `changelog_milestones.json` 里程碑；② 检测改为 **version 或 build（git 提交数）任一变大即提示**；③ 徽标（发布小票 / 更新记录面板）统一显示 `v1.5.0 · b147`；④「稍后」key 带构建号，与 `isDismissed` 同一口径 |
+| 不在范围 | 冷启动 `LS_SEEN` 仍只记版本号（build-only 部署不弹更新记录面板，由实时轮询的更新卡告知） |
+
+### 改动
+- `pwa/version.json`：1.4.0 → **1.5.0**
+- `pwa/scripts/changelog_milestones.json`：新增 1.5.0 条目（`until` 2026-10-24T23:59:59）
+- `pwa/src/update/index.js`：`state.runningBuild/remoteBuild`；`checkRemoteVersion` 双判；`dismissKey()` 统一「稍后」key；`onReady` 徽标 / 卡片文案带构建号；`setCurrentVersion(running, runningBuild)`
+- `pwa/src/update/changelog.js`：`state.currentBuild` + `renderPill()`；`setCurrentVersion(v, build)`；`render()` 复用 `renderPill`
+- `scripts/pwa_release_card_test.py`：断言 6 → **9**（徽标含构建号 / 与 version.json 一致 / 面板 pill 带构建号）；`SUPERSU_URL` 环境变量支持打本地 dist 做部署前预检
+
+### 验证
+- 本地 dist 预检：发布小票 **9/9**（`v1.5.0 · b146`）
+- 线上 `version.json` = `1.5.0` / build `147`；发布小票 **9/9**（`v1.5.0 · b147`）
+- 线上全量 E2E **91/91（3 SKIP）**
+- 提交：`2866552`（修复）+ `c84975a`（同步更新记录）；部署 5 个变更文件（406 未变）
+
 
 
 

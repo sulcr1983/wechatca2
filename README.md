@@ -326,7 +326,8 @@ PEXELS_API_KEY=your-pexels-key
 | `scripts/pwa_export_test.py` | **12** ✅ | PWA 导出（长图 PNG / HTML / Markdown / 图片 ZIP；坏图跳过写明原因） |
 | `scripts/pwa_theme_drawer_test.py` | **43** ✅ | 模板库全量审计（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端） |
 | `scripts/pwa_ai_format_test.py` | **27** ✅ | AI 排版（门控 / 四种降级兜底 / 六项结构 / 撤销，全 mock） |
-| **合计** | **294** | **全绿** |
+| `scripts/pwa_release_card_test.py` | **9** ✅ | 更新「发布小票」（版本徽标 `v版本 · b构建号` / 亮点分类 / 查看全部，线上或本地 dist） |
+| **合计** | **303** | **全绿** |
 
 ```bash
 # 快速自检（无需起服务）

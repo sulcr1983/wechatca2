@@ -105,11 +105,12 @@ python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 43/43（8 族 
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
 python scripts/ai_structure_smoke.py --file tests/fixtures/txt-format-lab.txt
                                           # 真实 Key 冒烟（读本地 .env，非默认门禁；夹具 100 段，校验正文零丢失）
-python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址加 #upd-demo 可预览）
+python scripts/pwa_release_card_test.py   # 更新「发布小票」9/9（版本徽标 `v版本 · b构建号` / 亮点分类 / 查看全部；
+                                          # #upd-demo 可预览；SUPERSU_URL 可指向本地 dist 做部署前预检）
 python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
 python scripts/pwa_nine_test.py           # PWA 九宫格切图 15/15（真下载 ZIP 解包读像素：裁剪/顺序/间距/移动端）
-python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 90 项（87 PASS + 3 SKIP）
+python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 94 项（91 PASS + 3 SKIP）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）
 # · Pyodide 同源自托管在 pwa/public/runtime/pyodide/0.28.3（5 个文件 12.1MB；CF 单文件上限 25MB）。
@@ -130,7 +131,12 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 90 项（87 P
 #   编辑器收起、抽屉 460px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。
 #   **族视图为「版式 × 色调」二维选择**（2026-10-24）：顶部 8 个版式胶囊切族、**保留同名色调**
 #   （素页·竹青 → 卷宗·竹青；目标族无该色调时回落第一套）；族视图隐藏重复的家族 chip，只留「全部/收藏」。
-# · 版本号由 build.mjs 自动生成 `1.0.<git 提交数>`，写 dist/version.json（不再手写死）。
+# · 版本号规则（2026-10-24 修正）：**语义化版本在 `pwa/version.json` 手动 bump，只发版时改**；
+#   `build` = git 提交数，由 build.mjs 注入 dist/version.json。**更新检测比 version 或 build 任一变大**
+#   （旧实现只比 version → 版本长期不 bump 时永远判「已最新」，用户看不到更新）。
+#   徽标（发布小票 / 更新记录面板）统一显示 `v1.5.0 · b147`。发版两件事缺一不可：
+#   ① bump `pwa/version.json` ② 在 `pwa/scripts/changelog_milestones.json` 加一条（`until` 为右闭边界），
+#   否则更新记录里不会出现该版本条目。
 # · 更新卡是「发布小票」：版本徽标 + 日期 + 3 条亮点（按文案自动标 新功能/优化/修复）+ 查看全部；
 #   `#upd-demo` 可随时预览该卡（不影响真实更新流程）。
 # · 预览里已移除「写留言/赞/在看」模拟底栏。
