@@ -1,16 +1,16 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T17:29:50+08:00",
-  "totalCommits": 151,
+  "generatedAt": "2026-10-24T18:25:44+08:00",
+  "totalCommits": 155,
   "releases": [
     {
       "version": "1.5.0",
       "date": "2026-10-24",
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
-        "added": 7,
-        "changed": 10,
-        "fixed": 3,
+        "added": 9,
+        "changed": 11,
+        "fixed": 4,
         "other": 3
       },
       "groups": [
@@ -18,6 +18,20 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "U-8 模板库搜索空态出口（断言先行，随功能同一 commit）",
+              "scope": "pwa",
+              "hash": "a6a7911",
+              "date": "2026-10-24T18:11:04+08:00",
+              "breaking": false
+            },
+            {
+              "text": "一键全量门禁跑批脚本 run_gates.py（TST-3）",
+              "scope": "test",
+              "hash": "2ae7935",
+              "date": "2026-10-24T17:44:34+08:00",
+              "breaking": false
+            },
             {
               "text": "AI 平台预设下拉——选平台自动填地址+模型，只填 Key",
               "scope": "pwa/ai",
@@ -73,6 +87,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "全量任务总攻排期（阶段 0-4 + backlog）+ 门禁脚本入口同步",
+              "scope": "",
+              "hash": "175fb2a",
+              "date": "2026-10-24T17:46:21+08:00",
+              "breaking": false
+            },
             {
               "text": "回写 AI-PRESET 部署与线上验证（CLOSURE 任务 22 · TODO · AGENTS · HANDOFF）",
               "scope": "",
@@ -149,6 +170,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "api_e2e 修复三处环境相关问题（门禁跑批发现）",
+              "scope": "test",
+              "hash": "a4cfde6",
+              "date": "2026-10-24T17:44:31+08:00",
+              "breaking": false
+            },
             {
               "text": "版本号升到 1.5.0 并按 version/构建号双判更新",
               "scope": "pwa/update",
