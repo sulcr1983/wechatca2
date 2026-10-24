@@ -1,15 +1,15 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T14:05:40+08:00",
-  "totalCommits": 142,
+  "generatedAt": "2026-10-24T14:46:26+08:00",
+  "totalCommits": 146,
   "releases": [
     {
       "version": "1.5.0",
       "date": "2026-10-24",
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
-        "added": 6,
-        "changed": 3,
+        "added": 7,
+        "changed": 6,
         "fixed": 3,
         "other": 2
       },
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "AI 平台预设下拉——选平台自动填地址+模型，只填 Key",
+              "scope": "pwa/ai",
+              "hash": "f2a1c47",
+              "date": "2026-10-24T14:45:57+08:00",
+              "breaking": false
+            },
             {
               "text": "静默自动升级 + 右下角「已升级」小提示",
               "scope": "pwa/update",
@@ -66,6 +73,27 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "回写 AI 平台预设（CLOSURE 任务 22 · TODO · AGENTS · HANDOFF · README）",
+              "scope": "",
+              "hash": "8924e9a",
+              "date": "2026-10-24T14:46:14+08:00",
+              "breaking": false
+            },
+            {
+              "text": "刷新交接快照到 v1.5.0 · b151 + 记录未完成需求 AI-PRESET",
+              "scope": "handoff",
+              "hash": "0d55928",
+              "date": "2026-10-24T14:17:09+08:00",
+              "breaking": false
+            },
+            {
+              "text": "回写静默自动更新的线上验证结果（CLOSURE 任务 21 · TODO）",
+              "scope": "",
+              "hash": "310061c",
+              "date": "2026-10-24T14:12:36+08:00",
+              "breaking": false
+            },
             {
               "text": "补记更新检测的运行/远端版本语义（CLOSURE 任务 20）",
               "scope": "",
