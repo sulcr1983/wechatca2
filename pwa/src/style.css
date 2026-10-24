@@ -389,6 +389,7 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 }
 
 .drawer-empty { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13px; }
+.drawer-empty .d-empty-acts { margin-top: 12px; display: flex; gap: 8px; justify-content: center; }
 
 /* ── 对话框 ───────────────────────────────────────────────────── */
 .dialog-mask { position: fixed; inset: 0; z-index: 60; background: rgba(20, 18, 14, .3); }

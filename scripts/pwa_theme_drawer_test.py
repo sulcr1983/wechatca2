@@ -210,6 +210,32 @@ def main() -> int:
             page.fill("#drawer-search", "")
             page.wait_for_timeout(200)
 
+            # ③b 搜索空态必须有出口（U-8，2026-10-24）：不能是死空白
+            page.fill("#drawer-search", "zzz不存在的主题zzz")
+            page.wait_for_timeout(250)
+            check("搜索无结果时出现空态提示", page.locator(".drawer-empty").count() == 1,
+                  f"{page.locator('.drawer-empty').count()} 个")
+            acts = page.locator(".drawer-empty [data-empty-act]")
+            check("空态提供两个出口（清除搜索/看最近）", acts.count() == 2,
+                  f"{acts.count()} 个")
+            # 出口一：清除搜索 → 回到正常网格
+            page.locator(".drawer-empty [data-empty-act='clear']").click()
+            page.wait_for_timeout(250)
+            check("「清除搜索」回到正常视图",
+                  page.locator(".drawer-empty").count() == 0
+                  and page.locator(".d-card").count() > 0
+                  and page.input_value("#drawer-search") == "",
+                  f"cards={page.locator('.d-card').count()}")
+            # 出口二：看最近使用的 → 离开空态（有最近列表或回落全部视图）
+            page.fill("#drawer-search", "zzz不存在的主题zzz")
+            page.wait_for_timeout(200)
+            page.locator(".drawer-empty [data-empty-act='recent']").click()
+            page.wait_for_timeout(300)
+            check("「看最近使用的」离开空态",
+                  page.locator(".drawer-empty").count() == 0
+                  and page.locator(".d-card").count() > 0,
+                  f"cards={page.locator('.d-card').count()}")
+
             # ④ 纯文字：同族换色必须有 toast 反馈（预览可能无变化，反馈兜底）
             page.click("#btn-drawer-close")
             page.wait_for_timeout(250)

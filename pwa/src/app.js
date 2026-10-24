@@ -484,7 +484,38 @@ function renderFlat(list, fav) {
   const ranked = [...list].sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
   grid.innerHTML = ranked.length
     ? ranked.map((t) => drawerCard(t, fav)).join('')
-    : '<div class="drawer-empty">没匹配的风格，换个词试试</div>';
+    : emptyStateHtml();
+}
+// 空态不能是死空白（U-8，2026-10-24）：按上下文给出口
+function emptyStateHtml() {
+  const q = drawerQ.trim();
+  if (q) {
+    return `<div class="drawer-empty">没匹配「${escapeHtml(q)}」的风格
+      <div class="d-empty-acts">
+        <button class="ghost-btn" type="button" data-empty-act="clear">清除搜索</button>
+        <button class="ghost-btn" type="button" data-empty-act="recent">看最近使用的</button>
+      </div></div>`;
+  }
+  if (drawerFam === 'fav') {
+    return `<div class="drawer-empty">还没有收藏
+      <div class="d-empty-acts">
+        <button class="ghost-btn" type="button" data-empty-act="all">看全部风格</button>
+      </div></div>`;
+  }
+  return '<div class="drawer-empty">没匹配的风格，换个词试试</div>';
+}
+const clearSearch = () => { drawerQ = ''; $('drawer-search').value = ''; };
+// 看最近使用的：有最近 → 平铺最近；没有 → 回落全部视图并说明
+function showRecent() {
+  const ids = recentList().filter((id) => byId.has(id));
+  if (!ids.length) {
+    drawerFam = 'all';
+    renderFilters();
+    renderDrawer();
+    toast('还没有最近使用的主题，先逛逛全部');
+    return;
+  }
+  renderFlat(ids.map((id) => byId.get(id)), new Set(favList()));
 }
 // 「全部」视图按族折叠：每族 1 张代表卡，其余（初代/经典）平铺
 function renderAllFolded(fav) {
@@ -955,6 +986,16 @@ function bindUI() {
     renderDrawer();
   });
   $('drawer-grid').addEventListener('click', (e) => {
+    // 空态出口（U-8）：清除搜索 / 看最近使用的 / 看全部
+    const ea = e.target.closest('[data-empty-act]');
+    if (ea) {
+      const act = ea.dataset.emptyAct;
+      clearSearch();
+      if (act === 'recent') showRecent();
+      else if (act === 'all') { drawerFam = 'all'; renderFilters(); renderDrawer(); }
+      else renderDrawer();
+      return;
+    }
     const favBtn = e.target.closest('.d-fav');
     if (favBtn) { e.stopPropagation(); toggleFav(favBtn.dataset.fav); return; }
     const axis = e.target.closest('.d-axis');
