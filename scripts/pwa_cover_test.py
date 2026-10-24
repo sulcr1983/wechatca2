@@ -82,6 +82,20 @@ def main() -> int:
             check("排版页隐藏", page.is_hidden("#stage"))
             check("按钮变为「排版」", page.inner_text("#btn-cover").strip() == "排版")
 
+            # ── 空态示例成品（U-9，2026-10-24）──
+            samples = page.locator("#cv-samples .cv-sample")
+            check("空态展示 3 张示例成品", samples.count() == 3, f"{samples.count()} 张")
+            check("示例图真实加载（非破图）",
+                  page.evaluate(
+                      "() => [...document.querySelectorAll('#cv-samples img')].every(i => i.naturalWidth > 0)"),
+                  "")
+            # 点示例 → 选中对应风格（editorial 恰为默认风格，不干扰后续尺寸断言）
+            page.locator(".cv-sample[data-style='editorial']").click()
+            page.wait_for_timeout(250)
+            check("点示例选中该风格",
+                  page.locator(".cv-style[data-style='editorial']").get_attribute("aria-pressed") == "true",
+                  "")
+
             # ── 风格与尺寸 ──
             styles = page.locator(".cv-style").count()
             check("12 种风格全部渲染", styles == 12, f"{styles} 个")

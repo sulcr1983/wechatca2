@@ -75,6 +75,10 @@ const SHELL_OPTIONAL = [
   './src/cover/search.js',
   './src/cover/cover.css',
   './vendor/modern-screenshot.js',
+  // 封面页空态示例成品（U-9）：小且常露脸，进预缓存（缺失仅空态无图，不阻断页面）
+  './samples/cover-sample-editorial.jpg',
+  './samples/cover-sample-editorial-dune.jpg',
+  './samples/cover-sample-editorial-midnight-ink.jpg',
   // 九宫格切图（B2 #7）：模块 + ZIP 打包库，首次点击才 import/加载
   './src/nine.js',
   './vendor/fflate.min.js',
@@ -346,6 +350,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 5) 缩略图：稳定缓存 + SWR（主题重生成同名图时能自动更新，不会永久脏读）
+  //    注意：/samples/（封面空态示例）不在此规则内——它们随 shell 版本化预缓存，
+  //    由下方 SHELL_CACHE 兜底命中；若放这里只会查 MEDIA_CACHE（空）反而挡掉预缓存副本
   if (sameOrigin && /\/theme-thumbs\//.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request, MEDIA_CACHE));
     return;

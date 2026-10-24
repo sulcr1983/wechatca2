@@ -50,6 +50,10 @@ const SHELL_FILES = [
   'src/cover/search.js',
   'src/cover/cover.css',
   'vendor/modern-screenshot.js',
+  // 封面页空态示例成品（U-9）：与 sw.js 的 SHELL_OPTIONAL 对应
+  'samples/cover-sample-editorial.jpg',
+  'samples/cover-sample-editorial-dune.jpg',
+  'samples/cover-sample-editorial-midnight-ink.jpg',
   'vendor/fflate.min.js',
   'src/update/changelog.js',
   'src/update/update.css',
@@ -331,6 +335,14 @@ function main() {
     }
   }
   log(`  ✓ 封面模板 ${coverN} 套 + 缩略图 ${coverThumbN} 张`);
+
+  // 封面页空态示例成品（U-9）：由 scripts/gen_cover_samples.py 用 PWA 管线生成
+  const sampleSrc = path.join(PWA, 'public', 'samples');
+  let sampleN = 0;
+  if (fs.existsSync(sampleSrc)) {
+    sampleN = copyDir(sampleSrc, path.join(DIST, 'samples'), { include: /\.jpg$/ });
+  }
+  log(`  ✓ 封面示例图 ${sampleN} 张`);
 
   /* 6.5 版本与更新记录（前端更新检测靠这两个文件） */
   const ver = buildVersion();

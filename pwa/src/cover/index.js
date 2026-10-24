@@ -602,6 +602,17 @@ function mount() {
         <div id="cv-empty" class="cv-empty">
           <b>文案 + 风格 = 封面</b>
           <span>左边写文案、选风格和底图，点「生成封面」。<br>归藏两套一次出 3 个尺寸，10 套模板出 3:4。</span>
+          <div class="cv-samples" id="cv-samples">
+            <span class="cv-samples-label">示例成品 · 点一张直接选该风格</span>
+            <div class="cv-samples-row">
+              <button class="cv-sample" type="button" data-style="editorial"
+                      title="Editorial 杂志风"><img src="./samples/cover-sample-editorial.jpg" alt="Editorial 杂志风示例封面"></button>
+              <button class="cv-sample" type="button" data-style="editorial-dune"
+                      title="沙丘暖纸"><img src="./samples/cover-sample-editorial-dune.jpg" alt="沙丘暖纸示例封面"></button>
+              <button class="cv-sample" type="button" data-style="editorial-midnight-ink"
+                      title="午夜墨金"><img src="./samples/cover-sample-editorial-midnight-ink.jpg" alt="午夜墨金示例封面"></button>
+            </div>
+          </div>
         </div>
         <p class="cv-tip">手机上生成后长按图片即可保存到相册；桌面端点「下载」。</p>
       </section>
@@ -657,6 +668,15 @@ function mount() {
     updateCount();
   });
   $('cv-gen').addEventListener('click', generate);
+  // 空态示例成品（U-9）：点一张 = 选中该风格 + 焦点落文案框，首屏即知道成品长什么样
+  $('cv-samples').addEventListener('click', (e) => {
+    const b = e.target.closest('.cv-sample');
+    if (!b) return;
+    const card = document.querySelector(`.cv-style[data-style='${b.dataset.style}']`);
+    if (card) card.click();
+    $('cv-text').focus();
+    toast('已选好风格，写句文案试试');
+  });
   document.querySelectorAll('.cv-mode').forEach((b) => {
     b.addEventListener('click', () => setMode(b.dataset.mode));
   });
