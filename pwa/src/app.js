@@ -80,7 +80,10 @@ async function main() {
   }
 
   const saved = localStorage.getItem(LS.theme);
-  activeId = (saved && byId.has(saved)) ? saved : (byId.has(DEFAULT_THEME) ? DEFAULT_THEME : themes[0].id);
+  // 自定义配色刷新后也要能恢复（否则关页就丢）
+  activeId = (saved === CUSTOM_ID && customColors()) ? CUSTOM_ID
+    : (saved && byId.has(saved)) ? saved
+    : (byId.has(DEFAULT_THEME) ? DEFAULT_THEME : themes[0].id);
 
   renderCaps();
   updateCharCount();
@@ -197,11 +200,57 @@ async function doRender() {
 }
 
 async function loadThemeJson(id) {
+  // 自定义配色：以当前主题为底，把 styles 里写死的颜色换掉（colors 字段引擎不直接消费）
+  if (id === CUSTOM_ID) {
+    const base = themeJsonCache.get(customBase) || await loadThemeJson(customBase);
+    const out = applyCustomColors(JSON.parse(base));
+    return JSON.stringify(out);
+  }
   const res = await fetch(`./themes/${id}.json`);
   if (!res.ok) throw new Error(`主题 ${id} 读取失败`);
   const txt = await res.text();
   themeJsonCache.set(id, txt);
   return txt;
+}
+
+/* ── 自定义配色（最小版，2026-10-24）───────────────────────────
+   只做三件事：三个颜色 → 套到底色/正文/强调 → 存本机。
+   实现要点：主题 JSON 的 styles 里颜色是写死的 hex（不引用 colors），
+   所以必须遍历 styles 把命中旧色的值替换掉，否则只改 colors 看不到变化。 */
+const CUSTOM_ID = '__custom__';
+const LS_CUSTOM = 'supersu.pwa.custom';
+let customBase = '';   // 自定义以哪套主题为底（取当前主题，保证字号/间距等排版不变）
+
+function customColors() {
+  try {
+    const v = JSON.parse(localStorage.getItem(LS_CUSTOM) || 'null');
+    return (v && v.bg && v.text && v.accent) ? v : null;
+  } catch { return null; }
+}
+
+// 把 theme.colors 的三个主色映射进 styles 的每个颜色值
+function applyCustomColors(theme) {
+  const c = customColors();
+  if (!c) return theme;
+  const old = theme.colors || {};
+  const map = new Map();
+  const norm = (s) => String(s || '').toUpperCase();
+  if (old.background) map.set(norm(old.background), c.bg);
+  if (old.primary) map.set(norm(old.primary), c.text);
+  if (old.accent) map.set(norm(old.accent), c.accent);
+  const walk = (obj) => {
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string') {
+        const hit = map.get(norm(v));
+        if (hit) obj[k] = hit;
+      } else if (v && typeof v === 'object') walk(v);
+    }
+  };
+  if (theme.styles) walk(theme.styles);
+  theme.colors = { ...old, background: c.bg, primary: c.text, accent: c.accent };
+  theme.name = '自定义配色';
+  return theme;
 }
 
 function showPreview(html) {
@@ -344,6 +393,18 @@ function updateCharCount() {
 function favList() { return lsGet(LS.fav, []); }
 function recentList() { return lsGet(LS.recent, []); }
 
+// 主题元信息：普通主题查索引；自定义配色是虚拟主题（不在 164 套索引里）
+function themeMeta(id) {
+  if (id === CUSTOM_ID) {
+    const c = customColors();
+    const base = byId.get(customBase) || themes[0] || {};
+    return { id: CUSTOM_ID, name: '自定义配色',
+             background: c ? c.bg : base.background, accent: c ? c.accent : base.accent,
+             primary: c ? c.text : base.primary };
+  }
+  return byId.get(id);
+}
+
 function orderedThemes() {
   const fav = new Set(favList());
   const recent = recentList();
@@ -370,7 +431,7 @@ function renderCaps() {
   const box = $('style-caps');
   // 当前主题必须始终出现在胶囊条里（否则「正在用哪套」在底部看不出来）
   const list = orderedThemes();
-  const current = byId.get(activeId);
+  const current = themeMeta(activeId);
   const shown = (current ? [current, ...list.filter((t) => t.id !== activeId)] : list).slice(0, 40);
   box.innerHTML = shown.map((t) => `
     <button class="cap" data-id="${t.id}" aria-pressed="${t.id === activeId}">
@@ -386,7 +447,7 @@ function pushRecent(id) {
 }
 
 function setActive(id, announce = false) {
-  if (!byId.has(id)) return;
+  if (id !== CUSTOM_ID && !byId.has(id)) return;
   activeId = id;
   localStorage.setItem(LS.theme, id);
   renderCaps();
@@ -394,7 +455,7 @@ function setActive(id, announce = false) {
   scheduleRender();
   // 同族 12 色只改强调色：纯文字文章里预览看不出差别，必须给一条明确反馈
   if (announce) {
-    const t = byId.get(id);
+    const t = themeMeta(id);
     toast(`已切换：${t ? t.name : id}`, 'ok');
   }
 }
@@ -976,6 +1037,39 @@ function bindUI() {
   $('btn-drawer-close').addEventListener('click', closeDrawer);
   $('drawer-mask').addEventListener('click', closeDrawer);
   $('drawer-search').addEventListener('input', (e) => { drawerQ = e.target.value; renderDrawer(); });
+
+  /* 自定义配色（最小版）：改色即生效；「恢复」回到当前底主题 */
+  const syncCustomInputs = () => {
+    const base = byId.get(customBase) || themes[0] || {};
+    const c = customColors() || { bg: base.background, text: base.primary, accent: base.accent };
+    if ($('dc-bg')) $('dc-bg').value = c.bg || '#ffffff';
+    if ($('dc-text')) $('dc-text').value = c.text || '#333333';
+    if ($('dc-accent')) $('dc-accent').value = c.accent || '#888888';
+  };
+  const onColor = () => {
+    const v = { bg: $('dc-bg').value, text: $('dc-text').value, accent: $('dc-accent').value };
+    // 首次使用：以当前主题为底（保住字号/间距），之后一直沿用
+    if (!customBase || !byId.has(customBase)) {
+      customBase = byId.has(activeId) ? activeId : themes[0].id;
+    }
+    localStorage.setItem(LS_CUSTOM, JSON.stringify(v));
+    themeJsonCache.delete(CUSTOM_ID);   // 配色变了，缓存要失效
+    setActive(CUSTOM_ID);
+  };
+  ['dc-bg', 'dc-text', 'dc-accent'].forEach((id) => {
+    if ($(id)) $(id).addEventListener('input', onColor);
+  });
+  if ($('dc-reset')) {
+    $('dc-reset').addEventListener('click', () => {
+      localStorage.removeItem(LS_CUSTOM);
+      themeJsonCache.delete(CUSTOM_ID);
+      customBase = '';
+      const back = byId.has(DEFAULT_THEME) ? DEFAULT_THEME : themes[0].id;
+      setActive(back, true);
+      syncCustomInputs();
+    });
+  }
+  syncCustomInputs();
   $('drawer-filters').addEventListener('click', (e) => {
     const chip = e.target.closest('.fchip');
     if (!chip) return;

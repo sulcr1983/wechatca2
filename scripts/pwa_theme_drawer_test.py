@@ -306,6 +306,40 @@ def main() -> int:
             check("移动端族视图无横向溢出", sw <= iw, f"scrollWidth={sw}/{iw}")
 
             page.screenshot(path=str(OUT / "drawer-family.png"))
+
+            # ⑤ 自定义配色（最小版，2026-10-24）：改色必须真的改变渲染 + 存本机
+            page.click("#btn-drawer-close")
+            page.wait_for_timeout(250)
+            page.fill("#input", RICH)
+            page.wait_for_timeout(900)
+            page.click("#btn-themes")
+            page.wait_for_timeout(350)
+            check("抽屉底部有三个取色器",
+                  page.locator("#drawer-custom input[type='color']").count() == 3,
+                  f"{page.locator('#drawer-custom input[type=color]').count()} 个")
+            sig_before = style_sig(page)
+            # 背景改成醒目色（原生 input 用 JS 赋值 + 触发 input 事件）
+            page.evaluate("""() => {
+                const el = document.getElementById('dc-bg');
+                el.value = '#101820'; el.dispatchEvent(new Event('input', {bubbles: true}));
+            }""")
+            page.wait_for_timeout(1200)
+            sig_after = style_sig(page)
+            check("改底色立即改变渲染", sig_before != sig_after,
+                  "变化" if sig_before != sig_after else "无变化")
+            check("自定义配色已存本机",
+                  bool(page.evaluate("() => localStorage.getItem('supersu.pwa.custom')")),
+                  page.evaluate("() => localStorage.getItem('supersu.pwa.custom')") or "")
+            check("胶囊条显示「自定义配色」",
+                  "自定义配色" in page.inner_text("#style-caps"),
+                  page.inner_text("#style-caps")[:40])
+            # 恢复：回到默认主题，自定义配置清掉
+            page.click("#dc-reset")
+            page.wait_for_timeout(900)
+            check("「恢复」清掉自定义配色",
+                  page.evaluate("() => localStorage.getItem('supersu.pwa.custom')") is None,
+                  "")
+
             check("无 JS 控制台报错", not errors, errors[0][:140] if errors else "")
             browser.close()
     finally:
