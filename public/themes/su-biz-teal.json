@@ -290,5 +290,11 @@
       "color": "#1E2A38",
       "line_height": "1.8"
     }
+  },
+  "layout": "outline",
+  "blocks": {
+    "quote": false,
+    "data": true,
+    "tip": true
   }
 }

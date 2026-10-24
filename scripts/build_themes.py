@@ -421,6 +421,33 @@ FAMILIES = {
                   patch=_patch_feast),
 }
 
+# 族 → 专属版式（A 方案，2026-10-24）
+# 目的：让「换族」不只是换颜色，而是换结构。对应关系取自各族的性格：
+#   stamp  钢印 —— cardflow 卡片流：粗野风配硬边分块，每节独立成卡
+#   minimal 素页 —— rhythm 图文节奏：极简不装饰，只靠留白制造呼吸
+#   biz    卷宗 —— outline 目录导航：商务长文最需要结构感与目录
+#   letter 信笺 —— magazine 杂志分栏：衬线 + 双栏，最像纸媒内页
+#   night  夜航 —— cardflow 卡片流：深底上用浅色卡片分块，层次最清楚
+#   feast  庙会 —— rhythm 图文节奏：节庆感靠标题强调条 + 宽松间距
+FAMILY_LAYOUT = {
+    "stamp": "cardflow",
+    "minimal": "rhythm",
+    "biz": "outline",
+    "letter": "magazine",
+    "night": "cardflow",
+    "feast": "rhythm",
+}
+
+# 族 → 段落色块默认开关（C 方案）：哪些族默认开启哪种强调
+FAMILY_BLOCKS = {
+    "stamp": {"quote": True, "data": True, "tip": True},
+    "minimal": {"quote": False, "data": True, "tip": False},
+    "biz": {"quote": False, "data": True, "tip": True},
+    "letter": {"quote": True, "data": False, "tip": False},
+    "night": {"quote": True, "data": True, "tip": True},
+    "feast": {"quote": True, "data": True, "tip": True},
+}
+
 
 def _apply_family(patch_fn, styles: dict, ctx: dict):
     """把族级技法补丁合并进统一装配出的 styles（元素级覆盖，未列出的键保持原样）"""
@@ -607,6 +634,9 @@ def build_theme(spec: dict) -> dict:
     }
 
     layout = spec.get("layout")
+    # 族级默认版式（A 方案）：spec 显式指定优先，其次族默认
+    if not layout and fam:
+        layout = FAMILY_LAYOUT.get(spec.get("family"))
     if layout == "card":
         theme["layout"] = "card"
         theme["card"] = {
@@ -645,6 +675,16 @@ def build_theme(spec: dict) -> dict:
             "heading_color": ink,
             "line_color": accent,
         }
+    elif layout in ("magazine", "rhythm", "cardflow", "outline"):
+        # 新版式（B 方案）：引擎按 theme.colors 派生全部颜色，这里只登记 id
+        theme["layout"] = layout
+
+    # 段落色块开关（C 方案）：族级默认，spec 可覆盖
+    blocks = spec.get("blocks")
+    if blocks is None and fam:
+        blocks = FAMILY_BLOCKS.get(spec.get("family"))
+    if blocks and any(blocks.values()):
+        theme["blocks"] = dict(blocks)
 
     return theme
 

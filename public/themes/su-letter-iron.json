@@ -288,5 +288,11 @@
       "color": "#3A342C",
       "line_height": "1.8"
     }
+  },
+  "layout": "magazine",
+  "blocks": {
+    "quote": true,
+    "data": false,
+    "tip": false
   }
 }
