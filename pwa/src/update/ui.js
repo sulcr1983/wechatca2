@@ -25,6 +25,12 @@ const TEMPLATE = `
       <button class="primary-btn" id="upd-now">立即更新</button>
     </div>
   </div>
+
+  <!-- 升级完成的小提示：正常流程自动更新后只弹这个（不打断、不需点按钮） -->
+  <button class="upd-done" id="upd-done" type="button" hidden title="查看更新记录">
+    <span class="upd-done-ico" aria-hidden="true">✓</span>
+    <span id="upd-done-text">已升级</span>
+  </button>
 `;
 
 /** 把更新 UI 挂到页面（幂等，重复调用不会重复插入） */

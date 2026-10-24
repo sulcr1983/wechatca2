@@ -828,6 +828,28 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 线上全量 E2E **91/91（3 SKIP）**
 - 提交：`2866552`（修复）+ `c84975a`（同步更新记录）；部署 5 个变更文件（406 未变）
 
+## 任务 21：更新改为「静默自动升级 + 右下角小提示」（2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户纠正：「更新应该是检查到后台有更新就自动更新，然后右下角小弹窗告诉已经升级更新了」 |
+| 旧行为 | SW 装好新版本后弹「发布小票」大卡片，用户必须点「立即更新」；自动应用只在严格空闲（空稿 / 30s 无输入且失焦）时发生 |
+| 新行为 | 检测到 waiting → **静默自动应用**（不可见 / 空闲立即；用户一直在打字也最多等 `AUTO_APPLY_MS`=30s）→ reload → 右下角小提示「已升级到 vX · bN」，8s 自动消失，点它打开更新记录 |
+| 保留 | ① 大卡片「发布小票」只在 `#upd-demo` 预览（测试与演示用）；② 多标签协调（其他标签升级 → 本页也弹同款小提示）；③ 更新失败仍弹卡片写明原因（不静默）；④ reload 前 `flushDraft()` 落盘，内容不丢 |
+
+### 改动
+- `pwa/src/update/index.js`：`onReady` 正常模式不再 `showCard`，改走 `tryAutoApply`（新增 `AUTO_APPLY_MS` 上限与 `state.applying` 防重入）；`checkRemoteVersion` 发现新版不再弹卡，改 `reg.update()` 触发下载；`controllerchange` reload 前写 `supersu.pwa.upgradedAt`；新增 `showDone()` / `showUpgradedIfAny()`；`reconcileSeenVersion` 不再自动摊开更新面板；「稍后」在 `#upd-demo` 下不落盘（避免挡住真正的自动更新）
+- `pwa/src/update/ui.js`：新增 `#upd-done` 小提示（右下角胶囊，`type=button`）
+- `pwa/src/update/update.css`：`.upd-done` 样式（8s 自动消失由 JS 控制）
+- `pwa/public/sw.js`：文件头注释同步（不再要求用户点按钮）
+- `scripts/pwa_auto_update_test.py`：新增 8 项（本地 dist + 真 SW）
+
+### 验证
+- `scripts/pwa_auto_update_test.py` **8/8**：改写探针目录 `sw.js` 的 BUILD_ID 模拟发版 → 检测到 waiting → 自动应用并 reload → 全程无大卡片 → 右下角「已升级到 v1.5.0 · bN」→ 点开更新记录 → 9.5s 后消失 → 0 JS 报错
+- 截图：`output/auto-update/01-no-card.png`、`output/auto-update/02-upgraded-toast.png`
+- 线上发布小票 9/9 与线上全量 E2E 在部署后复跑（见下条记录）
+
 
 
 

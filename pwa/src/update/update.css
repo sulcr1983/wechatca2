@@ -58,6 +58,24 @@
 .upd-tag.fix { background: rgba(175, 62, 43, .12); color: var(--accent); }
 .upd-tag.opt { background: rgba(26, 127, 55, .12); color: #1a7f37; }
 
+/* 升级完成小提示（右下角，自动消失） */
+.upd-done {
+  position: fixed; right: 16px; bottom: calc(58px + var(--tabs-h));
+  z-index: 72;
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: calc(100vw - 32px);
+  height: 30px; padding: 0 12px;
+  border-radius: 99px;
+  background: #2F4A3B; color: #F7F4EE;
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-xl);
+  font-size: 12px; letter-spacing: .01em;
+  cursor: pointer;
+  animation: upd-in .22s ease;
+}
+.upd-done:hover { border-color: rgba(247, 244, 238, .35); }
+.upd-done-ico { font-size: 11px; opacity: .9; }
+
 /* 抽屉打开时让位，避免浮在风格卡片上 */
 body.browsing .upd-btn { display: none; }
 

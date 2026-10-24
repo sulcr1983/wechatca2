@@ -21,7 +21,7 @@
  *   • 导航请求 → NetworkFirst（3.5s 超时），失败回退 index.html，再失败回退内联离线页
  *   • version.json / changelog.json → 完全放行（更新检测必须读到网络真值）
  *   • 其他同源 GET → StaleWhileRevalidate（写 SHELL 缓存）
- *   • 不自动 skipWaiting：由页面提示用户点「立即更新」后发 SKIP_WAITING
+ *   • 不自动 skipWaiting：由页面在空闲 / 检测到更新 30s 后自动发 SKIP_WAITING（静默更新）
  *   • critical shell 缺失 → install 直接失败（旧 SW 继续服务，避免装半套白屏）
  */
 

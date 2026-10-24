@@ -2,26 +2,31 @@
  *
  * 用的是业界成熟做法（Workbox 官方文档 / web.dev 的 PWA 更新指南同一套）：
  *   1. sw.js 里**不**自动 skipWaiting —— 新版本装好后停在 waiting，
- *      否则会在用户正打字时突然换掉资源，甚至半新半旧。
- *   2. 页面检测到 waiting 的 worker → 显示非阻塞提示，由用户点「立即更新」。
- *   3. 用户确认后 postMessage({type:'SKIP_WAITING'}) → 新 worker 激活 →
- *      controllerchange → 只 reload 一次。
+ *      否则可能半新半旧；由页面在合适的时机发 SKIP_WAITING 再激活。
+ *   2. 页面检测到 waiting 的 worker → **静默自动应用**（2026-10-24 用户要求）：
+ *      页面不可见 / 编辑器空闲 → 立即应用；用户一直在打字也最多等 30s。
+ *      应用前先落盘草稿，reload 后内容不丢。
+ *   3. 升级完成后只在右下角弹小提示「已升级到 vX · bN」，8 秒自动消失；
+ *      点它才打开完整更新记录 —— **不再用大卡片要求用户点「立即更新」**。
  *   4. sw.js 用 updateViaCache:'none' 注册，避免被 HTTP 缓存住导致永远查不到更新。
  *   5. 每小时 + 回到前台时主动 registration.update()，不靠用户刷新。
  *
  * 另一条独立线索：静态版本文件 version.json（no-store）比对。
  * 为什么两条都要：SW 更新能保证资源一致，但「更新说明」需要知道版本号；
- * 而且用户如果一直不关标签页，靠 version.json 轮询也能发现远端已发新版。
+ * 而且用户如果一直不关标签页，靠 version.json 轮询也能发现远端已发新版
+ * —— 发现后同样不弹卡片，直接 reg.update() 让 SW 下载、装好即自动应用。
  */
 
 import { mountUpdateUI } from './ui.js';
 
 const LS_SEEN = 'supersu.pwa.seenVersion';
 const LS_DISMISSED = 'supersu.pwa.dismissedVersion';
+const LS_UPGRADED = 'supersu.pwa.upgradedAt';   // 升级完成的时间戳：reload 后用它弹右下角「已升级」小提示
 const CHECK_MS = 60 * 60 * 1000;      // 每小时查一次
 const VISIBLE_CHECK_MS = 5 * 60 * 1000; // 回到前台也查，但 5 分钟内不重复打请求
-const IDLE_POLL_MS = 10 * 1000;        // 有待应用更新时，每 10s 看一次用户是否空闲
-const RELOAD_FLAG = 'supersu.pwa.reloading';
+const IDLE_POLL_MS = 5 * 1000;         // 有待应用更新时，每 5s 看一次能不能应用
+const AUTO_APPLY_MS = 30 * 1000;       // 检测到更新后最多等 30s：用户一直在打字也应用（草稿已落盘）
+const DONE_MS = 8000;                  // 「已升级」小提示自动消失
 const TAB_ID = Math.random().toString(36).slice(2);
 
 /* SemVer 比较：只看主.次.修订，忽略预发布后缀（个人项目用不上） */
@@ -49,6 +54,8 @@ export function createUpdater({ changelog } = {}) {
     later: document.getElementById('upd-later'),
     all: document.getElementById('upd-all'),
     now: document.getElementById('upd-now'),
+    done: document.getElementById('upd-done'),
+    doneText: document.getElementById('upd-done-text'),
   };
 
   const state = {
@@ -57,7 +64,9 @@ export function createUpdater({ changelog } = {}) {
     data: null,
     reg: null,
     waiting: null,
-    prompted: false,
+    detectedAt: 0,       // 发现更新的时刻：超过 AUTO_APPLY_MS 就不再等空闲
+    applying: false,     // 防止自动应用被重复触发
+    doneTimer: 0,
     skipReload: false,   // 别的标签正在接管时，本标签不跟着刷（避免多标签齐刷）
   };
 
@@ -72,7 +81,7 @@ export function createUpdater({ changelog } = {}) {
         state.skipReload = true;
         hideCard();
       } else if (d.type === 'APPLIED') {
-        showCard('已在其他标签页更新，下次打开本页生效', { canUpdate: false });
+        showDone('其他标签页已升级，下次打开本页生效');
       }
     };
   }
@@ -108,17 +117,10 @@ export function createUpdater({ changelog } = {}) {
     } catch { /* 没有更新记录不影响主功能 */ }
   }
 
-  /* ── 冷启动：上次看到的版本 vs 当前运行版本 ──────────────── */
+  /* ── 冷启动：记录「这次看到的版本」─────────────────────── */
   function reconcileSeenVersion() {
-    let seen = '';
-    try { seen = localStorage.getItem(LS_SEEN) || ''; } catch { /* 隐私模式 */ }
-
-    if (seen && cmpVersion(state.running, seen) > 0) {
-      // 资源已经是新版（硬刷新 / 刚更新过）→ 直接把「上次到这次」的变化摊开给用户看
-      try { localStorage.setItem(RELOAD_FLAG, '1'); } catch { /* 忽略 */ }
-      setTimeout(() => openChangelog({ since: seen, mode: 'update' }), 900);
-    }
-    // 离线启动时 running 为空：别用空串覆盖 seen，否则 changelog 基线丢失
+    // 只记录基线，**不再自动摊开更新面板**：升级完成由右下角「已升级」小提示告知
+    //（2026-10-24 用户要求：后台检查到更新就静默自动更新，完成后小弹窗告知）
     if (state.running) remember(state.running);
   }
 
@@ -189,7 +191,6 @@ export function createUpdater({ changelog } = {}) {
     el.now.hidden = !canUpdate;
     el.card.hidden = false;
     el.dot.hidden = false;
-    state.prompted = true;
   }
 
   function hideCard() {
@@ -252,47 +253,60 @@ export function createUpdater({ changelog } = {}) {
       if (state.skipReload) return;
       if (reloading) return;
       reloading = true;
+      // 记下「刚升级完」：新页面加载后据此弹右下角小提示（10 分钟内有效）
+      try { localStorage.setItem(LS_UPGRADED, String(Date.now())); } catch { /* 忽略 */ }
       if (bc) bc.postMessage({ type: 'APPLIED', tab: TAB_ID });
       location.reload();
     });
   }
 
-  /* ── 更新就绪：不弹大卡片，安静地「下载好 + 空闲时自动应用」 ── */
+  /* ── 更新就绪：不弹卡片、不要点击 —— 直接自动应用 ──────────── */
   function onReady() {
     if (el.dot) el.dot.hidden = false;
-    if (!isDismissed()) {
-      const since = localStorage.getItem(LS_SEEN) || '';
-      const ver = state.remote || state.running || '';
-      const build = state.remoteBuild || state.runningBuild || 0;
-      const { items, total, scope } = highlightsSince(since);
-      const date = state.data && state.data.generatedAt
-        ? String(state.data.generatedAt).slice(0, 10) : '';
-      const title = total > 0
-        ? (scope === 'latest' ? `最近 ${total} 条更新，已下载完成` : `本次共 ${total} 条更新，已下载完成`)
-        : '界面与排版体验优化，已下载完成';
-      showCard(title, {
-        // 只有真有待应用的 worker 才给「立即更新」；预览(#upd-demo)或没有 waiting 时不给，
-        // 否则用户点了必然失败（弹出「暂时没拉到更新包」）
-        canUpdate: Boolean(state.waiting),
-        badge: ver ? (build ? `v${ver} · b${build}` : 'v' + ver) : '新版',
-        date,
-        items: items.length ? items : [{ kind: 'opt', label: '优化', text: '界面与排版体验优化' }],
-      });
-    }
+    if (!state.detectedAt) state.detectedAt = Date.now();
+
+    // 预览入口（#upd-demo）：只展示「发布小票」，不自动更新
+    if (location.hash === '#upd-demo') { showReadyCard(); return; }
+
+    // 正常流程：新版本已装好 → 空闲立即应用；用户一直在打字也最多等 AUTO_APPLY_MS
     tryAutoApply();
   }
 
+  /** 「发布小票」（仅 #upd-demo 预览用；正常流程只弹右下角小提示） */
+  function showReadyCard() {
+    if (isDismissed()) return;
+    const since = (() => {
+      try { return localStorage.getItem(LS_SEEN) || ''; } catch { return ''; }
+    })();
+    const ver = state.remote || state.running || '';
+    const build = state.remoteBuild || state.runningBuild || 0;
+    const { items, total, scope } = highlightsSince(since);
+    const date = state.data && state.data.generatedAt
+      ? String(state.data.generatedAt).slice(0, 10) : '';
+    const title = total > 0
+      ? (scope === 'latest' ? `最近 ${total} 条更新，已下载完成` : `本次共 ${total} 条更新，已下载完成`)
+      : '界面与排版体验优化，已下载完成';
+    showCard(title, {
+      // 只有真有待应用的 worker 才给「立即更新」；预览时没有 waiting 就不给
+      canUpdate: Boolean(state.waiting),
+      badge: ver ? (build ? `v${ver} · b${build}` : 'v' + ver) : '新版',
+      date,
+      items: items.length ? items : [{ kind: 'opt', label: '优化', text: '界面与排版体验优化' }],
+    });
+  }
+
   /**
-   * 空闲才自动应用：
-   *   · 页面不可见（切走了）→ 最安全
+   * 自动应用更新（用户要求：不点按钮、静默升级）：
+   *   · 页面不可见（切走了）→ 立即应用，最安全
    *   · 或 编辑器为空 / 30 秒没动过且焦点不在输入框（app.js 的 __supersuIsIdle）
-   * 绝不因为「有更新」就打断正在写字的人。
+   *   · 或 已经等了 AUTO_APPLY_MS → 直接应用（草稿在 reload 前已落盘，不丢内容）
    */
   function tryAutoApply() {
-    if (!state.waiting || isDismissed()) return;
+    if (!state.waiting || isDismissed() || state.applying) return;
     const idle = document.visibilityState === 'hidden'
       || (typeof window.__supersuIsIdle === 'function' && window.__supersuIsIdle());
-    if (!idle) return;
+    const waited = state.detectedAt && Date.now() - state.detectedAt >= AUTO_APPLY_MS;
+    if (!idle && !waited) return;
     applyUpdate();
   }
 
@@ -323,9 +337,10 @@ export function createUpdater({ changelog } = {}) {
       const newer = Boolean(state.remote && state.running)
         && (cmpVersion(state.remote, state.running) > 0
           || (sameVer && state.remoteBuild > state.runningBuild));
-      if (newer && !state.prompted) {
-        showCard(`线上 v${state.remote}（构建 ${state.remoteBuild}），你用的是 v${state.running}（构建 ${state.runningBuild}）。`,
-          { canUpdate: true });
+      if (!newer) return;
+      // 不弹卡片、不等用户确认：直接让 SW 去下载新 shell；装好后 onReady → 自动应用
+      if (state.reg) {
+        try { await state.reg.update(); } catch { /* 离线/被限流，下一轮再试 */ }
       }
     } catch { /* 离线或文件缺失，忽略 */ }
   }
@@ -340,6 +355,8 @@ export function createUpdater({ changelog } = {}) {
 
   /* ── 应用更新 ─────────────────────────────────────────── */
   async function applyUpdate() {
+    if (state.applying) return;
+    state.applying = true;
     el.now.disabled = true;
     el.now.textContent = '更新中…';
 
@@ -347,6 +364,7 @@ export function createUpdater({ changelog } = {}) {
     // 兜底：15 秒还没等到 controllerchange 就恢复按钮，避免永远卡在「更新中…」
     const resetTimer = setTimeout(() => {
       if (handedOff) return;
+      state.applying = false;
       el.now.disabled = false;
       el.now.textContent = '立即更新';
       showCard('更新好像没成功，请刷新页面后再试一次。', { canUpdate: false });
@@ -396,7 +414,10 @@ export function createUpdater({ changelog } = {}) {
       el.now.textContent = '立即更新';
       showCard('当前已是最新版本。', { canUpdate: false });
     } finally {
-      if (!handedOff) clearTimeout(resetTimer);
+      if (!handedOff) {
+        clearTimeout(resetTimer);
+        state.applying = false;   // 没交棒就允许下次再试（交棒后页面即将 reload，不用复位）
+      }
     }
   }
 
@@ -417,16 +438,50 @@ export function createUpdater({ changelog } = {}) {
     if (el.btn) el.btn.addEventListener('click', () => openChangelog());
     if (el.later) {
       el.later.addEventListener('click', () => {
-        // 与 isDismissed 用同一个 key（含构建号），否则「稍后」记不住
-        const key = dismissKey();
-        if (key) {
-          try { localStorage.setItem(LS_DISMISSED, key); } catch { /* 忽略 */ }
+        // #upd-demo 只是预览：不落「稍后」，否则会挡住真正的自动更新
+        if (location.hash !== '#upd-demo') {
+          // 与 isDismissed 用同一个 key（含构建号），否则「稍后」记不住
+          const key = dismissKey();
+          if (key) {
+            try { localStorage.setItem(LS_DISMISSED, key); } catch { /* 忽略 */ }
+          }
         }
         hideCard();
       });
     }
     if (el.now) el.now.addEventListener('click', applyUpdate);
     if (el.all) el.all.addEventListener('click', () => openChangelog());
+    if (el.done) {
+      el.done.addEventListener('click', () => {
+        el.done.hidden = true;
+        openChangelog();   // 点小提示 → 看这次更新了什么
+      });
+    }
+  }
+
+  /* ── 升级完成小提示（右下角，自动消失）────────────────── */
+  function showDone(text) {
+    if (!el.done) return;
+    if (el.doneText) el.doneText.textContent = text;
+    el.done.hidden = false;
+    window.clearTimeout(state.doneTimer);
+    state.doneTimer = window.setTimeout(() => { el.done.hidden = true; }, DONE_MS);
+  }
+
+  function showUpgradedIfAny() {
+    let at = 0;
+    try {
+      at = Number(localStorage.getItem(LS_UPGRADED) || 0) || 0;
+      if (at) localStorage.removeItem(LS_UPGRADED);
+    } catch { /* 隐私模式 */ }
+    // 只认刚发生（10 分钟内）的升级；更早的标记视为过期，不打扰
+    if (!at || Date.now() - at > 10 * 60 * 1000) return;
+    if (!el.done || !state.running) return;
+
+    const build = state.runningBuild || 0;
+    const text = build ? `已升级到 v${state.running} · b${build}` : `已升级到 v${state.running}`;
+    // 等首屏稳定后再弹，避免和启动动画抢眼
+    setTimeout(() => showDone(text), 700);
   }
 
   /* ── 启动 ─────────────────────────────────────────────── */
@@ -449,15 +504,12 @@ export function createUpdater({ changelog } = {}) {
     reconcileSeenVersion();
     initSW();
     checkRemoteVersion();
+    showUpgradedIfAny();
 
     // 预览入口：地址加 #upd-demo 直接展示「发布小票」（不影响正常更新流程）
     if (location.hash === '#upd-demo') {
       setTimeout(() => { onReady(); }, 800);
     }
-    // 回到前台时清掉「刚更新完」标志，避免下次再弹
-    try {
-      if (localStorage.getItem(RELOAD_FLAG)) localStorage.removeItem(RELOAD_FLAG);
-    } catch { /* 忽略 */ }
   }
 
   return { start, openChangelog, applyUpdate, get version() { return state.running; } };
