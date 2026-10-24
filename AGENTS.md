@@ -449,12 +449,12 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - 生成耗时大头 ＝ 联网搜图（`core/image_search.py` timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
 - **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 164 套主题人工打标签分类 / 非技术用户可用性类验收。
-- **实施纪律**：一次一项 → 改完即测（`test_e2e` 74/74 ＋ `test_integration` 35/35；UI 改动加 `test_headed_full_e2e` **33/33**；封面须实跑三引擎出真实 PNG）→ 单项 commit → 回 `files/TODO.md` 打勾。截图基线见 `docs/ux-audit/shots/`（⚠️ 验收脚本每次运行都会重写其中 10 张，跑测后工作区会变脏）。
+- **实施纪律**：一次一项 → 改完即验（`scripts/run_gates.py`；UI 改动含 `test_headed_full_e2e` **33/33**）→ 单项 commit → 回 `files/TODO.md` 打勾。验收截图基线见 `docs/ux-audit/shots/`（改前基线入库）；`shots/after/` 是 `ux_verify_p0/p1` 每次运行自动重写的产物，**已 gitignore 不入库**（2026-10-24 清理，省 30MB）。
 - **验收脚本计数（2026-09-25 订正）**：`ux_verify_p0` **15/15** · `ux_verify_p1` **15/15** · `ux_verify_tutorial` **13/13**。⚠️ 此前记为「15+13+13」已失效——教程弹窗（后加的产品行为）会遮罩挡住 p0/p1 的点击，两脚本已同步加弹窗关闭处理。
 - **实施状态（2026-09-25）**：第一批 U-1…U-6、第二批 U-7…U-11、U-2 真自适应、Pexels 配图与开源教程均已完成（`a4c869e`/`ef5b241`/`48eacf1` 及后续提交）；⚠️ 其中 U-7 的「悬停即试看」已于 **2026-09-26 按用户要求移除**——模板切换改为**仅点击触发**（悬停误触即切换体验不佳）；
   回归全绿（52/52 · 35/35 · 29/29 · 33/33 · 验收脚本 15+15+13）。
 - **高级排版落地（2026-09-25，本批）**：激活 13 套 `layout:hero` + 1 套 `layout:timeline` 死配置；新增 4 个模块容器；模块样式改为跟随主题；前端加「插入模块」下拉；**色带可见性修复**（13 套 hero 主题的色带从肉眼看不出提到明显可见，见 §10）。回归 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错），另有有头浏览器目视验收（深色首屏 / 大序号 / 插入模块 / 交替色带 均已确认）。
   - 参考来源与版权：参照 `iniwap/AIWriteX`（**Apache-2.0 + NOTICE 附加限制：未经书面授权禁止分发本项目或其衍生作品**）的成品效果做**纯灵感派生**，未复制其 HTML/CSS/SVG 素材或文案；其 `knowledge/templates/*.html` 是 LLM 成品稿，与本项目「Markdown→结构化 HTML + 主题 JSON 控样式」的架构不同，不可直接搬。
   - **版权已了结（2026-09-25）**：原先 47 套主题的上游仓库**无 LICENSE（= 保留所有权利）**，本项目开源即分发、存在真实风险。现已全部重写为 `su-*` 原创：命名/描述自拟、配色与排版数值由 `scripts/build_themes.py` 的设计系统推导、`source` 字段全清、旧前缀归零，旧主题文件与旧适配脚本一并删除。
-  历史记录：第一批 U-1…U-6 **已完成并回归绿**（提交 `a4c869e`）—— `test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` 33/33（0 控制台报错）· `scripts/ux_verify_p0.py` 15/15；封面三引擎实跑出图（改后对照 `docs/ux-audit/shots/after/`）。
+  历史记录：第一批 U-1…U-6 **已完成并回归绿**（提交 `a4c869e`）—— `test_e2e` 52/52 · `test_integration` 35/35 · `test_api_e2e` 29/29 · `test_headed_full_e2e` 33/33（0 控制台报错）· `scripts/ux_verify_p0.py` 15/15；封面三引擎实跑出图（`docs/ux-audit/shots/after/` 已不入库，跑 `ux_verify` 会重新生成）。
   - 落点提示：`fitty` 注入在 `core/guizang_renderer.py`（渲染前 add_script_tag）；BLCaptain 侧因 CLI 无脚本注入口，改为在 `core/blcaptain_bridge.py::_normalize_cover_text` **打断引擎的“前两行拼标题”**（实测有效）。

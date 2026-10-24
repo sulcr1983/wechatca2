@@ -65,3 +65,6 @@ pwa/node_modules/
 
 # wrangler 本地状态/日志缓存
 .wrangler/
+
+# 验收脚本自动重写产物（ux_verify_p0/p1 每次运行覆盖，不入库）
+docs/ux-audit/shots/after/
