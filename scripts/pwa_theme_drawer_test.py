@@ -108,7 +108,8 @@ def main() -> int:
             if (!d) return '';
             return [...d.querySelectorAll('*')].slice(0, 500).map(e => {
                 const s = getComputedStyle(e);
-                return s.color + '/' + s.borderColor + '/' + s.backgroundColor + '/' + s.fontFamily;
+                return s.color + '/' + s.borderColor + '/' + s.backgroundColor + '/'
+                    + s.boxShadow + '/' + s.fontFamily;
             }).join(';');
         }""")
 
@@ -216,6 +217,22 @@ def main() -> int:
             check("纯文字换色有明确反馈（toast）",
                   name_by_id[t2] in page.inner_text("#toast") and page.is_visible("#toast"),
                   page.inner_text("#toast")[:40])
+
+            # ④b 纯文字：每族换色必须真的改变预览（色调可见化，2026-10-24）
+            for fam, expected in FAMILIES.items():
+                if expected < 2:
+                    continue
+                page.click(f"#drawer-filters .fchip[data-fam='{fam}']")
+                page.wait_for_timeout(300)
+                ids = tone_ids(page)
+                page.locator(f".d-tone[data-id='{ids[0]}']").click()
+                page.wait_for_timeout(800)
+                s1 = style_sig(page)
+                page.locator(f".d-tone[data-id='{ids[1]}']").click()
+                page.wait_for_timeout(800)
+                s2 = style_sig(page)
+                check(f"纯文字下 {fam} 换色可见", s1 != s2,
+                      f"{ids[0]} → {ids[1]}")
 
             # ⑤ 移动端：族视图色点条不把页面撑出横向滚动
             m = ctx.new_page()

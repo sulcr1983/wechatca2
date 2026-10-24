@@ -6,6 +6,7 @@
  */
 
 const LS_AI = 'supersu.ai';
+const LS_VERIFIED = 'supersu.ai.verified';   // 「测试连接通过」的凭证（配置一改即失效）
 
 export function loadConfig() {
   try {
@@ -18,11 +19,34 @@ export function loadConfig() {
 export function saveConfig(cfg) {
   try {
     localStorage.setItem(LS_AI, JSON.stringify(cfg));
+    localStorage.removeItem(LS_VERIFIED);   // 配置变了就要求重新测试
     return true;
   } catch {
     return false;
   }
 }
+
+/** 测试连接成功后落一个「已验证」标记（只在地址+模型匹配时有效） */
+export function markVerified() {
+  const c = loadConfig();
+  try {
+    localStorage.setItem(LS_VERIFIED, JSON.stringify(
+      { baseUrl: c.baseUrl || '', model: c.model || '', ts: Date.now() }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** AI 入口是否该出现：三项配置齐全 + 当前配置**测试通过过** */
+export function isVerified() {
+  const c = loadConfig();
+  if (!c.baseUrl || !c.key || !c.model) return false;
+  let v = {};
+  try { v = JSON.parse(localStorage.getItem(LS_VERIFIED) || '{}') || {}; } catch { v = {}; }
+  return v.baseUrl === c.baseUrl && v.model === c.model;
+}
+
 
 export function isReady() {
   const c = loadConfig();
@@ -49,12 +73,13 @@ async function chat(messages, { temperature = 0.4, maxTokens = 1600, json = fals
     throw new Error('连不上接口（可能是浏览器 CORS 限制，或地址写错）');
   }
   if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
+    let detail = '';
     try {
       const d = await res.json();
-      msg = (d.error && d.error.message) || d.message || msg;
+      detail = (d.error && d.error.message) || d.message || '';
     } catch { /* 非 JSON 错误体 */ }
-    throw new Error(msg);
+    // 状态码必须出现：上游只回笼统 message 时，用户仍能看出是 500 还是 401
+    throw new Error(`HTTP ${res.status}` + (detail ? '：' + detail : ''));
   }
   const data = await res.json();
   const out = data && data.choices && data.choices[0] && data.choices[0].message;
@@ -67,10 +92,26 @@ const POLISH_SYS =
 const SUMMARY_SYS =
   '你是中文编辑。用 60-110 字概括用户给的文章，突出结论与关键信息，不要分点、不要加标题。';
 
-const PLAN_SYS = `你是排版结构规划器。输入是中文文章（每段前有 [序号]）。
-只输出 JSON（不要任何解释），格式：
-{"title": 段落号, "sections": [{"heading": "小节标题", "start": 段号, "end": 段号}], "lists": [{"start": 段号, "end": 段号}], "bold": [{"p": 段号, "words": ["原文中逐字存在的词"]}]}
-段号从 0 开始。title 选最像文章大标题的一段；sections 要覆盖正文段落；lists 只圈真正的并列项；bold 的 words 必须在原文里逐字存在。`;
+const PLAN_SYS = `你是中文公众号排版结构规划器。输入是中文文章（每段前有 [序号]）。
+你只做「结构决策」，**不许改写、删减、添加正文文字**（sections.heading 例外，它是新起的小节标题）。
+只输出 JSON（不要任何解释），字段全部可选，没把握就不要输出：
+{"title": 段号,
+ "sections": [{"heading": "新起的小节标题", "start": 段号, "end": 段号}],
+ "lists": [{"start": 段号, "end": 段号}],
+ "bold": [{"p": 段号, "words": ["原文中逐字存在的词"]}],
+ "splits": [{"p": 段号, "cuts": ["该段里逐字存在、且只出现一次的句首片段"]}],
+ "merges": [{"from": 段号, "to": 段号}],
+ "tables": [{"start": 段号, "end": 段号, "delim": "："}],
+ "callouts": [{"start": 段号, "end": 段号, "type": "summary|cta|quote", "title": "短标题"}],
+ "hrs": [{"after": 段号}],
+ "pullquotes": [{"p": 段号, "text": "原文中逐字存在的整句"}]}
+
+规则：
+- 段号从 0 开始；title 选最像文章大标题的一段。
+- cuts / text / words 必须逐字来自原文，找不到就别写（引擎会忽略非法项）。
+- splits 只用来拆过长的段落（超过 4 行）；merges 只合过碎的短句。
+- tables 只用于「标签：值」型的并列段落，delim 默认「：」。
+- callouts 只包结论 / 警告 / 行动建议；hrs 只放在话题转折处；pullquotes 最多 2 条。`;
 
 export async function polish(text) {
   const out = await chat(
@@ -94,7 +135,7 @@ export async function planStructure(text) {
   const numbered = paras.map((p, i) => `[${i}] ${p}`).join('\n');
   const raw = await chat(
     [{ role: 'system', content: PLAN_SYS }, { role: 'user', content: numbered }],
-    { temperature: 0.1, maxTokens: 1200, json: true }
+    { temperature: 0.1, maxTokens: 1800, json: true }
   );
   const cleaned = String(raw).replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   try {

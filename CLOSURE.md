@@ -728,6 +728,62 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - toast 每次选模板都会出现 2.6s（快速连点在原位置刷新文案，不遮挡抽屉）。
 - 同族只差强调色是既有主题设计：纯文字文章仍看不到预览变化，靠 toast + 底部胶囊 + 色点选中态提供反馈；若要更明显，需改主题设计（另立需求）。
 
+---
+
+## 任务 17：同族色调「可见化」（2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户报障「点了素页之后，下面可选的颜色部分就没变化了」；量化确认同族 12 套只差 accent，纯文字文章预览零变化 |
+| 方案 | 只改**强调色落点**（不改字号/字体/间距体系）：素页 / 卷宗 / 信笺 三族的 h1 增加 2px 强调色下划线；钢印（h1 阴影）、夜航（h1 字色）、庙会（h1 底色）、首屏（主色/正文色）本已可见，不动 |
+| 完成判据 | 纯文字文章下换色也必须有可见差异；其余 83 套 su-\* 与经典 45 套零改动 |
+| 不在范围 | 重排族主题配色设计；B 阶段「版式×色调」二维选择器 |
+
+### 改动
+- `scripts/build_themes.py`：`_patch_minimal` / `_patch_biz` / `_patch_letter` 的 h1 下划线改用本族 accent；写文件显式 `newline="\n"`（避免 Windows CRLF 造成 119 套假改动）
+- 重生成 119 套：**仅 36 套变化**（biz 12 换色 + minimal/letter 各 12 加下划线），变化键仅 `styles.h1.border_bottom` / `styles.h1.padding_bottom`
+- `scripts/pwa_theme_drawer_test.py`：新增「纯文字下 7 个族换色可见」断言（含 box-shadow 参与快照）
+
+### 验证
+- 逐键 diff：36/119 变化，非 su-\* **零改动**
+- `scripts/theme_stress_audit.py`：渲染 **164/164**；结构 38/40（两条为已知刻意不修项）
+- `scripts/pwa_theme_drawer_test.py`：**38/38**（83/83 色调可切换 · 164/164 模板可应用 · 纯文字换色可见）
+- 目视：`output/theme-review/tone-visibility/` 三族两色截图
+
+---
+
+## 任务 18：AI 能力门控 + AI 排版六项升级（2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户产品规则：没接 AI 就纯本地；**测试连接通过**后才出现 AI 能力，且优先走 AI；并纠正「AI 一律不用」的定位为「AI 能增幅就用」 |
+| AI 定位 | 默认不依赖；用户显式触发；只出结构决策、不改正文；失败必回退本地并说明原因 |
+| 完成判据 | 未就绪时页面无任何 AI 入口、不发请求；测试通过后解析条出现「AI 排版」；AI 能一次完成拆段/合段/列表/表格/提示框/分隔线/金句/小节；可一键撤销；失败兜底 |
+| 已下线 | **AI 推荐主题**（用户判定价值低：等于让人翻抽屉） |
+
+### 改动
+| 文件 | 改动 |
+|------|------|
+| `pwa/src/ai.js` | `markVerified` / `isVerified`（配置改动即失效）；`PLAN_SYS` 扩到 9 类结构决策并写明「不许改写正文」；HTTP 错误带状态码 |
+| `pwa/src/app.js` | AI 入口门控（`body.ai-ready` + 解析条「AI 排版」）；AI 排版降级契约（未配置/失败/非 JSON/空结构 → 本地 `preprocess` + 原因）；结构统计 toast；一键撤销 |
+| `pwa/index.html` | 解析条加 `#ai-format-row`（默认隐藏）；AI 面板加 `#ai-undo`；删除抽屉 AI 推荐区 |
+| `pwa/src/style.css` | `.ai-inline` / `.parse-body` / ai-ready 状态；删除推荐区样式 |
+| `core/preprocessor.py` | `apply_structure` 扩 6 类：splits / merges / tables（逐行切列，支持竖线表多列）/ callouts / hrs / pullquotes；表格内非表格行原样保留（修「引导致丢字」）；AI 标注列表但原文无符号时按句号切分 |
+| `scripts/pwa_ai_format_test.py` | **新增** 27 项（mock）：降级 4 种 · 门控 · 六项结构 · 撤销 · 配置失效 |
+| `scripts/ai_structure_smoke.py` | **新增**：真实 DeepSeek Key 冒烟（直接从 `pwa/src/ai.js` 抽 PLAN_SYS，避免提示词双真源；支持 `--file` 夹具 / `--dump`） |
+
+### 验证（真实执行）
+- `scripts/pwa_ai_format_test.py` **27/27**
+- `scripts/ai_structure_smoke.py --file tests/fixtures/txt-format-lab.txt`（真实 Key，8369 字符 / 100 段）：AI 输出 sections 16 · lists 10 · bold 3 · splits 1 · merges 1 · tables 2 · callouts 4 · hrs 15 · pullquotes 2；**丢失原文行 0**
+- 回归：`test_e2e` **74/74** · 渲染 **164/164** · smoke **24/24** · 导出 **12/12** · 九宫格 **15/15** · 模板库 **38/38**
+
+### 风险 / 说明
+- `.env`（DeepSeek Key）仅本地测试，已 gitignore，**不进部署产物**；线上仍是用户 BYOK。
+- AI 只能「插标记/切句/切列/复制金句」，不改写、不删字；越界段号、找不到的片段一律忽略。
+
+
 
 
 

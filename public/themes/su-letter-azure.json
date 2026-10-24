@@ -25,7 +25,9 @@
       "letter_spacing": "0.30em",
       "margin_top": "8px",
       "margin_bottom": "24px",
-      "padding": "0"
+      "padding": "0",
+      "border_bottom": "2px solid #467A9B",
+      "padding_bottom": "10px"
     },
     "h2": {
       "font_size": "18px",

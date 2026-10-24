@@ -659,9 +659,16 @@ def apply_structure(paragraphs: list, plan: dict) -> str:
     plan = {"title": 段号,
             "sections": [{"heading": str, "start": 段号, "end": 段号}],
             "lists":    [{"start": 段号, "end": 段号}],
-            "bold":     [{"p": 段号, "words": [原文中已有的词]}]}
+            "bold":     [{"p": 段号, "words": [原文中已有的词]}],
+            # 2026-10-24 AI 排版升级（六项，内容保真）：
+            "splits":    [{"p": 段号, "cuts": [原文中逐字存在的句首片段]}],
+            "merges":    [{"from": 段号, "to": 段号}],
+            "tables":    [{"start": 段号, "end": 段号, "delim": "："}],
+            "callouts":  [{"start": 段号, "end": 段号, "type": "summary|cta|quote", "title": str}],
+            "hrs":       [{"after": 段号}],
+            "pullquotes":[{"p": 段号, "text": 原文中逐字存在的句子}]}
 
-    LLM 输出属系统边界：越界段号 / 区间重叠 / 词不在原文中，一律忽略该项，不报错、不丢正文。
+    LLM 输出属系统边界：越界段号 / 区间重叠 / 片段不在原文中，一律忽略该项，不报错、不丢正文。
     """
     n = len(paragraphs)
     if n == 0:
@@ -671,6 +678,12 @@ def apply_structure(paragraphs: list, plan: dict) -> str:
         if isinstance(value, bool) or not isinstance(value, int):
             return None
         return value if 0 <= value < n else None
+
+    def _span(item):
+        start, end = _idx(item.get("start")), _idx(item.get("end"))
+        if start is None or end is None or end < start:
+            return None
+        return start, end
 
     title_idx = _idx(plan.get("title"))
     if title_idx is None:
@@ -713,30 +726,243 @@ def apply_structure(paragraphs: list, plan: dict) -> str:
             if isinstance(word, str) and 1 < len(word) <= 20 and word in paragraphs[p]:
                 bold_map.setdefault(p, []).append(word)
 
-    parts = []
+    # ── 合段：只允许连续普通段（不碰标题 / 小节 / 列表），区间不得重叠 ──
+    merge_skip = set()
+    merged = {}
+    merged_words = {}
+    claimed = set()
+    for item in plan.get("merges") or []:
+        if not isinstance(item, dict):
+            continue
+        start, end = _idx(item.get("from")), _idx(item.get("to"))
+        if start is None or end is None or end <= start:
+            continue
+        rng = set(range(start, end + 1))
+        if (title_idx in rng or any(i in headings for i in rng)
+                or rng & list_idx or rng & claimed):
+            continue
+        merged[start] = "".join(paragraphs[start:end + 1]).strip()
+        for j in range(start, end + 1):
+            merged_words.setdefault(start, []).extend(bold_map.get(j, []))
+        merge_skip.update(range(start + 1, end + 1))
+        claimed.update(rng)
+
+    # ── 拆段：cuts 必须是该段里唯一出现的片段，找不到就忽略 ──
+    split_pos = {}
+    for item in plan.get("splits") or []:
+        if not isinstance(item, dict):
+            continue
+        p = _idx(item.get("p"))
+        cuts = item.get("cuts")
+        if p is None or p == title_idx or p in list_idx or p in merge_skip or not isinstance(cuts, list):
+            continue
+        base = merged.get(p, paragraphs[p])
+        pos = set()
+        for cut in cuts:
+            if not isinstance(cut, str) or len(cut) < 3 or base.count(cut) != 1:
+                continue
+            at = base.find(cut)
+            if at > 0:
+                pos.add(at)
+        if pos:
+            split_pos[p] = sorted(pos)
+
+    # ── 表格：逐行切列（内容原样搬进单元格），非表格行留在原位，绝不吞字 ──
+    table_for = {}
+    table_rows = {}
+    table_leftover = {}
+    table_delim = {}
+    for item in plan.get("tables") or []:
+        if not isinstance(item, dict):
+            continue
+        span = _span(item)
+        if not span:
+            continue
+        start, end = span
+        delim = (str(item.get("delim") or "：").strip() or "：")[:3]
+        rows, owners, leftover = [], [], {}
+        for i in range(start, end + 1):
+            # 小节标题行也可以转表格（标题块先插入，表格只替换正文段）
+            if i in merge_skip or i == title_idx:
+                continue
+            para = merged.get(i, paragraphs[i])
+            got, rest = [], []
+            for line in para.split("\n"):
+                if delim in line:
+                    cells = [c.strip() for c in line.split(delim)]
+                    if len(cells) >= 2 and all(cells):
+                        got.append(cells)
+                        continue
+                if line.strip():
+                    rest.append(line.strip())
+            if got:
+                rows.extend(got)
+                owners.append(i)
+                if rest:
+                    leftover[i] = "\n".join(rest)
+        if rows:
+            table_rows[start] = rows
+            table_leftover[start] = leftover
+            table_delim[start] = delim
+            for i in owners:
+                table_for[i] = start
+
+    # ── 提示框：区间不重叠，类型收敛到引擎支持的三种 ──
+    callouts = []
+    last_callout_end = -1
+    for item in plan.get("callouts") or []:
+        if not isinstance(item, dict):
+            continue
+        span = _span(item)
+        if not span:
+            continue
+        start, end = span
+        if start <= last_callout_end:
+            continue
+        kind = str(item.get("type") or "summary").strip().lower()
+        if kind not in ("summary", "cta", "quote"):
+            kind = "summary"
+        callouts.append((start, end, kind, str(item.get("title") or "").strip()[:24]))
+        last_callout_end = end
+    callout_of = {}
+    for start, end, kind, title in callouts:
+        for i in range(start, end + 1):
+            callout_of[i] = (kind, title)
+
+    # ── 分隔线 / 金句 ──
+    hrs = set()
+    for item in plan.get("hrs") or []:
+        if isinstance(item, dict):
+            at = _idx(item.get("after"))
+            if at is not None:
+                # 表格成员段没有独立块，落点归到表格起始段
+                hrs.add(table_for.get(at, at))
+
+    pull = {}
+    for item in plan.get("pullquotes") or []:
+        if not isinstance(item, dict):
+            continue
+        p = _idx(item.get("p"))
+        text = str(item.get("text") or "").strip()
+        if p is None or len(text) < 4 or text not in merged.get(p, paragraphs[p]):
+            continue
+        pull.setdefault(p, [])
+        if text not in pull[p]:
+            pull[p].append(text)
+
+    def _split_at(text, positions):
+        if not positions:
+            return [text]
+        out, prev = [], 0
+        for at in positions:
+            piece = text[prev:at].strip()
+            if piece:
+                out.append(piece)
+            prev = at
+        tail = text[prev:].strip()
+        if tail:
+            out.append(tail)
+        return out or [text]
+
+    def _table_md(rows, delim):
+        cols = max(len(r) for r in rows)
+        if cols < 2:
+            return ""
+        if delim == "|" and len(rows) >= 2:
+            head, body = rows[0], rows[1:]     # 竖线表：首行天然是表头
+        else:
+            head, body = ["项目", "内容"] + [f"列{i + 1}" for i in range(2, cols)], rows
+
+        def line(cells):
+            return "| " + " | ".join((list(cells) + [""] * cols)[:cols]) + " |"
+
+        out = [line(head), "| " + " | ".join(["---"] * cols) + " |"]
+        out += [line(r) for r in body]
+        return "\n".join(out)
+
+    blocks = []   # [(原段号, 文本, 类型)]
     for i, para in enumerate(paragraphs):
-        body = para
-        for word in bold_map.get(i, []):
-            body = body.replace(word, f'**{word}**', 1)
+        if i in merge_skip:
+            continue
+        body = merged.get(i, para)
+        for word in (merged_words.get(i) or bold_map.get(i, [])):
+            body = body.replace(word, f"**{word}**", 1)
         if i in headings:
-            parts.append(f'## {headings[i]}')
+            blocks.append((i, f"## {headings[i]}", "heading"))
         if i == title_idx:
             first, _, rest = body.partition('\n')
-            parts.append(f'# {first.strip()}')
+            blocks.append((i, f"# {first.strip()}", "title"))
             if rest.strip():
-                parts.append(rest.strip())
-        elif i in list_idx:
+                blocks.append((i, rest.strip(), "body"))
+            continue
+        if i in table_for:
+            owner = table_for[i]
+            left = table_leftover.get(owner, {}).get(i)
+            if left:
+                blocks.append((i, left, "body"))   # 引导句等非表格行原样保留（在表格前）
+            if owner == i:
+                blocks.append((i, _table_md(table_rows[i], table_delim.get(i, "：")), "table"))
+            continue
+        if i in list_idx:
             lines = _to_list_items(para)
+            if not lines and list_idx:
+                # AI 标注了列表但原文没有项目符号：按句号/分号切成分行（只切不改字）
+                pieces = [p.strip() for p in re.split(r'(?<=[。；;])', para) if p.strip()]
+                if len(pieces) >= 2 and all(len(p) >= 4 for p in pieces):
+                    lines = [f"- {p}" for p in pieces]
             if lines:
                 for word in bold_map.get(i, []):
                     for k, line in enumerate(lines):
                         if word in line:
-                            lines[k] = line.replace(word, f'**{word}**', 1)
+                            lines[k] = line.replace(word, f"**{word}**", 1)
                             break
-                parts.append('\n'.join(lines))
+                blocks.append((i, "\n".join(lines), "list"))
             else:
-                parts.append(body)
-        else:
-            parts.append(body)
+                blocks.append((i, body, "list"))
+            continue
+        for piece in _split_at(body, split_pos.get(i)):
+            blocks.append((i, piece, "body"))
 
-    return '\n\n'.join(parts)
+    # 金句块插在该段之前（原文保留，只做「金句卡」重复展示，不改写）；小节标题仍排最前
+    if pull:
+        expanded = []
+        done = set()
+        for idx, text, kind in blocks:
+            if idx in pull and idx not in done and kind != "heading":
+                for q in pull[idx]:
+                    expanded.append((idx, f"> {q}", "pull"))
+                done.add(idx)
+            expanded.append((idx, text, kind))
+            if idx in pull and idx not in done and kind == "heading":
+                for q in pull[idx]:
+                    expanded.append((idx, f"> {q}", "pull"))
+                done.add(idx)
+        blocks = expanded
+
+    # 提示框：包住区间内正文块（小节标题 / 金句留在框外）
+    if callouts:
+        wrapped = []
+        opened = None
+        for idx, text, kind in blocks:
+            here = callout_of.get(idx)
+            if opened is not None and here != opened:
+                wrapped.append((idx, ":::", "close"))
+                opened = None
+            if here is not None and kind not in ("heading", "title", "pull") and opened is None:
+                kind_name, title = here
+                wrapped.append((idx, f":::{kind_name}" + (f"[{title}]" if title else ""), "open"))
+                opened = here
+            wrapped.append((idx, text, kind))
+        if opened is not None and wrapped:
+            wrapped.append((wrapped[-1][0], ":::", "close"))
+        blocks = wrapped
+
+    # 分隔线插在该段最后一个块之后
+    out = []
+    for pos, (idx, text, _kind) in enumerate(blocks):
+        out.append(text)
+        nxt = blocks[pos + 1][0] if pos + 1 < len(blocks) else None
+        if idx in hrs and nxt != idx and text != "---":
+            out.append("---")
+
+    return '\n\n'.join([b for b in out if b != ""])

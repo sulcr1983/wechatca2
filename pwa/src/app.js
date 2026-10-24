@@ -307,7 +307,8 @@ function updateWxTitle(text) {
 
 /* ── 解析条 ─────────────────────────────────────────────────── */
 function updateParseBar(markdown) {
-  const bar = $('parse-bar');
+  // 只重绘识别结果容器，避免把同排的「AI 排版」按钮一起冲掉（2026-10-24 实测踩到）
+  const bar = $('parse-body') || $('parse-bar');
   if (!markdown.trim()) {
     bar.innerHTML = '<span class="parse-hint">粘贴后自动识别结构</span>';
     return;
@@ -608,6 +609,16 @@ async function initAi() {
   });
   const say = (msg) => { if (!out) return; out.hidden = false; out.textContent = msg; };
 
+  // AI 能力门控：三项配置齐全 + **测试连接通过** 才把 AI 入口放出来；
+  // 没接入时页面完全按本地工作，不出现任何 AI 入口（用户 2026-10-24 的产品规则）。
+  const refreshAiGate = () => {
+    const on = !!ai.isVerified();
+    document.body.classList.toggle('ai-ready', on);
+    const row = $('btn-ai-format-row');
+    if (row) row.hidden = !on;
+  };
+  refreshAiGate();
+
   const btnAi = $('btn-ai');
   if (btnAi) btnAi.addEventListener('click', open);
   $('ai-close').addEventListener('click', close);
@@ -617,7 +628,8 @@ async function initAi() {
     const cfg = readForm();
     if (!cfg.baseUrl || !cfg.key || !cfg.model) { toast('接口地址、模型、Key 三项都要填', 'err'); return; }
     ai.saveConfig(cfg);
-    toast('AI 配置已保存在本机');
+    refreshAiGate();   // 配置一变，之前的「测试通过」作废，AI 入口收起
+    toast('AI 配置已保存在本机，点「测试连接」通过后才会启用 AI 排版');
   });
 
   $('ai-test').addEventListener('click', async (e) => {
@@ -627,9 +639,12 @@ async function initAi() {
     try {
       ai.saveConfig(readForm());
       const r = await ai.testConnection();
+      ai.markVerified();     // 只有测试成功才落「已验证」
+      refreshAiGate();
       say('连接成功：' + (r || 'ok'));
-      toast('AI 连接正常');
+      toast('AI 连接正常，已启用 AI 排版与 AI 推荐主题');
     } catch (err) {
+      refreshAiGate();
       say('连接失败：' + err.message);
       toast('AI 连接失败：' + err.message, 'err');
     } finally {
@@ -665,17 +680,86 @@ async function initAi() {
     toast('润色完成');
   }));
 
-  $('ai-format').addEventListener('click', (e) => run(e.currentTarget, '排版', async (text) => {
+  const runAiFormat = (btn) => run(btn, '排版', async (text) => {
     if (!engine || !engine.isReady()) throw new Error('引擎还没就绪，稍等几秒再试');
-    const plan = await ai.planStructure(text);
-    const res = await engine.applyStructure(text, plan);
-    if (!res || !res.markdown) throw new Error('结构套用失败');
-    $('input').value = res.markdown;
-    saveDraft(res.markdown);
+    // 与本地版 /api/ai-format 同一降级契约：AI 不可用 / 失败 / 结构不可解析 → 本地规则兜底，
+    // 按钮永远给得出结果，且必须说明为什么没用上 AI（不静默）。
+    let plan = null;
+    let reason = '';
+    try {
+      plan = await ai.planStructure(text);
+      const usable = plan && (Number.isInteger(plan.title)
+        || (Array.isArray(plan.sections) && plan.sections.length)
+        || (Array.isArray(plan.lists) && plan.lists.length)
+        || (Array.isArray(plan.bold) && plan.bold.length));
+      if (!usable) {
+        reason = 'AI 返回的结构为空或格式不对';
+        plan = null;
+      }
+    } catch (err) {
+      reason = (err && err.message) || String(err);
+    }
+
+    if (plan) {
+      try {
+        const res = await engine.applyStructure(text, plan);
+        if (res && res.markdown) {
+          aiUndoText = text;          // 撤销回到排版前
+          syncUndo();
+          $('input').value = res.markdown;
+          saveDraft(res.markdown);
+          scheduleRender();
+          const counts = [
+            ['拆段', plan.splits], ['合段', plan.merges], ['表格', plan.tables],
+            ['提示框', plan.callouts], ['分隔线', plan.hrs], ['金句', plan.pullquotes],
+            ['小节', plan.sections], ['列表', plan.lists],
+          ].filter(([, v]) => Array.isArray(v) && v.length)
+            .map(([k, v]) => `${k} ${v.length}`).join(' · ') || '结构微调';
+          say(`已按 AI 结构重排：${counts}（正文一个字没改）`);
+          toast(`智能排版完成：${counts}`);
+          return;
+        }
+        reason = 'AI 结构套用失败';
+      } catch (err) {
+        reason = (err && err.message) || String(err);
+      }
+    }
+
+    const local = await engine.render(text);
+    if (!local || !local.markdown) throw new Error('本地排版也失败了，请刷新重试');
+    aiUndoText = text;
+    syncUndo();
+    $('input').value = local.markdown;
+    saveDraft(local.markdown);
     scheduleRender();
-    say('已按 AI 结构重排（正文一个字没改）');
-    toast('智能排版完成');
-  }));
+    say('AI 未生效（' + reason + '），已用本地规则排版');
+    toast('已用本地规则排版：' + reason, 'err');
+  });
+
+  // 入口一：AI 面板里的「智能排版」；入口二：解析条上的常驻「AI 排版」（仅 AI 就绪时显形）
+  $('ai-format').addEventListener('click', (e) => runAiFormat(e.currentTarget));
+  const rowFmt = $('btn-ai-format-row');
+  if (rowFmt) rowFmt.addEventListener('click', () => runAiFormat(rowFmt));
+
+  // 撤销：AI 排版 / 本地兜底都会重写编辑器，必须能一键回到排版前
+  let aiUndoText = null;
+  const syncUndo = () => {
+    const b = $('ai-undo');
+    if (b) b.hidden = !aiUndoText;
+  };
+  const undoBtn = $('ai-undo');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', () => {
+      if (!aiUndoText) return;
+      $('input').value = aiUndoText;
+      saveDraft(aiUndoText);
+      scheduleRender();
+      aiUndoText = null;
+      syncUndo();
+      say('已撤销到排版前');
+      toast('已撤销 AI 排版');
+    });
+  }
 
   $('ai-summary').addEventListener('click', (e) => run(e.currentTarget, '摘要', async (text) => {
     const s = await ai.summarize(text);

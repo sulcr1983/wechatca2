@@ -225,7 +225,9 @@ def _patch_minimal(c):
     ink, accent = c["ink"], c["accent"]
     return {
         "h1": {"font_size": "24px", "font_weight": "600", "color": ink,
-               "letter_spacing": "0.30em", "margin_bottom": "26px"},
+               "letter_spacing": "0.30em", "margin_bottom": "26px",
+               # 色调可见化（2026-10-24）：纯文字文章也必须能看出换色
+               "border_bottom": f"2px solid {accent}", "padding_bottom": "10px"},
         "h2": {"font_weight": "600", "color": ink, "letter_spacing": "0.18em",
                "border_bottom": f"1px solid {mix(c['bg'], ink, 0.14)}",
                "padding_bottom": "10px"},
@@ -257,7 +259,8 @@ def _patch_biz(c):
     ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
     return {
         "h1": {"text_align": "left", "color": ink, "letter_spacing": "0.06em",
-               "border_bottom": f"2px solid {ink}", "padding_bottom": "12px",
+               # 色调可见化（2026-10-24）：下划线由墨色改为本族强调色
+               "border_bottom": f"2px solid {accent}", "padding_bottom": "12px",
                "margin_bottom": "26px"},
         "h2": {"display": "inline-block", "background": accent, "color": "#FFFFFF",
                "padding": "6px 16px", "border_radius": "3px",
@@ -288,7 +291,9 @@ def _patch_letter(c):
     ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
     return {
         "h1": {"font_size": "24px", "font_weight": "600", "letter_spacing": "0.30em",
-               "margin_bottom": "24px"},
+               "margin_bottom": "24px",
+               # 色调可见化（2026-10-24）：纯文字文章靠标题下划线体现本族强调色
+               "border_bottom": f"2px solid {accent}", "padding_bottom": "10px"},
         "h2": {"color": ink, "font_weight": "700", "letter_spacing": "0.12em",
                "border_left": f"3px solid {tint(accent, 0.65)}", "padding_left": "12px"},
         "h3": {"color": mix(accent, ink, 0.25), "font_weight": "700"},
@@ -673,7 +678,8 @@ def main():
         if args.dry_run:
             print(f"  将写出 {out.name}  「{theme['name']}」  layout={theme.get('layout', '-')}")
         else:
-            out.write_text(json.dumps(theme, ensure_ascii=False, indent=2), encoding="utf-8")
+            # 显式 LF：仓库里主题 JSON 是 LF，Windows 默认 CRLF 会让 119 套全变「假改动」
+            out.write_text(json.dumps(theme, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
 
     print(f"\n{'预演' if args.dry_run else '生成'}完成：{len(built)} 套"
           f"（其中覆盖同 id 主题 {len(overwritten)} 套）")

@@ -75,6 +75,7 @@
   <div class="ai-row">
     <button class="ai-btn" id="ai-polish">润色正文</button>
     <button class="ai-btn ghost" id="ai-format">智能排版</button>
+    <button class="ai-btn ghost" id="ai-undo" type="button" hidden>撤销 AI 排版</button>
     <button class="ai-btn ghost" id="ai-summary">生成摘要</button>
   </div>
   <div class="ai-out" id="ai-out" hidden></div>
@@ -101,7 +102,11 @@
 
 也可以直接写 Markdown。"></textarea>
     <div class="parse-bar" id="parse-bar">
-      <span class="parse-hint">粘贴后自动识别结构</span>
+      <div class="parse-body" id="parse-body">
+        <span class="parse-hint">粘贴后自动识别结构</span>
+      </div>
+      <button class="ai-inline" id="btn-ai-format-row" type="button" hidden
+              title="AI 结构识别：只加标题/列表/加粗标记，正文不改">AI 排版</button>
     </div>
   </section>
 

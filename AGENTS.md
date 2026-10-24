@@ -101,7 +101,10 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
-python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 31/31（8 族 × 全部色调 83 个 + 164 套逐个应用 + 纯文字反馈 + 移动端）
+python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 38/38（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 移动端）
+python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
+python scripts/ai_structure_smoke.py --file tests/fixtures/txt-format-lab.txt
+                                          # 真实 Key 冒烟（读本地 .env，非默认门禁；夹具 100 段，校验正文零丢失）
 python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址加 #upd-demo 可预览）
 python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
@@ -115,6 +118,11 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 90 项（87 P
 #   BUILD_ID 与数据清单由 build.mjs 注入 sw.js；清单内联（不联网取），SW 被回收后离线重启也不会失效。
 # · AI 是**纯前端 BYOK**：配置存 localStorage `supersu.ai`，直连 OpenAI 兼容接口；
 #   只支持允许浏览器直连的平台（DeepSeek / Moonshot / SiliconFlow / OpenAI），智谱等会 CORS 失败。
+# · AI 能力门控（2026-10-24）：三项配置齐全 + **「测试连接」通过**（`supersu.ai.verified`，配置一改即失效）
+#   才显形「AI 排版」入口；未接入时页面纯本地、不发任何 AI 请求。「AI 推荐主题」已下线（价值低）。
+#   AI 排版只出结构决策 JSON（title/sections/lists/bold/splits/merges/tables/callouts/hrs/pullquotes），
+#   正文一字不改；未配置/HTTP 失败/非 JSON/空结构 → 本地 preprocess 兜底并说明原因；支持一键撤销。
+#   ⚠️ 真实 Key 只放本地 `.env`（已 gitignore，不进部署产物）；线上仍由用户自己填。
 # · 更新：打开 3s 后主动查 → 后台下载 → 空闲（不可见/空稿/30s 无输入且失焦）自动应用；
 #   `?reset-sw` 注销 SW + 清本站缓存并重载（卡住时的自救开关）。
 # · 首屏不阻塞：`#boot` 是底部小条（40px、pointer-events:none），引擎没就绪也能先输入。
@@ -308,6 +316,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
   - **生成链路**：`scripts/theme_specs.py`（设计意图：底色/墨色/强调色/字体气质 + 排版原型 + 布局；六族 72 套只声明「族 × 色调」组合）→ `scripts/build_themes.py`（字号标尺 / 间距 / 圆角 / 描边 / 列表 / 代码块 / 暗色适配 / 族级技法补丁全部由本项目设计系统推导）→ `public/themes/su-*.json`。
   - ⚠️ **改主题方式**：改 `theme_specs.py` 后重跑 `python scripts/build_themes.py`（会覆盖同 id 生成物），**勿手改 su-\*.json**。色带底色直接复用引擎 `_resolve_band_bg`，保证与兜底逻辑一致。
   - ⚠️ **写样式值的坑**：主题 JSON 的值**只放值、不带键名**——`build_style_string` 会自动把 `border_left` 拼成 `border-left:`，值里再带一次前缀会拼出 `border-left:border-left:4px solid …`，浏览器判非法整条丢弃（静默失效）。生成器已按此约束写成 `border_left` + `padding_left` 两个键。
+  - **色调可见化（2026-10-24）**：素页/卷宗/信笺三族的 h1 增加 2px 本族强调色下划线（其余族本已通过阴影/字色/底色体现色调）。重生成仅 36 套变化、只动 `styles.h1.border_bottom` / `styles.h1.padding_bottom`；写文件必须显式 `newline="\n"`，否则 Windows CRLF 会让 119 套全部变成假改动。
 - **六族 · 十二色新增（2026-10-13）**：主题 92 → **164 套**，新增 6 套族级风格系统 × 12 色调 = 72 套（钢印·新粗野 / 素页·极简 / 卷宗·商务 / 信笺·文艺 / 夜航·科技 / 庙会·节庆）。
   - **链路**：族级技法补丁与颜色推导都在 `build_themes.py` 的 `FAMILIES` / `FAMILY_TONES`（accent = 色调色相 × 族级饱和·明度基线，HSL 推导；暗底族同表 `dark=True`）；`theme_specs.py` 末尾只声明「族 × 色调」组合与命名/描述。
   - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
