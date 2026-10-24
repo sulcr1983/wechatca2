@@ -38,6 +38,8 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "output" / "e2e-headed"
 sys.path.insert(0, str(ROOT))
 
+ONLINE_URL = "https://supersu.ccwu.cc/"
+
 results: list[dict] = []
 shot_no = 0
 
@@ -211,16 +213,21 @@ def main() -> int:
         pass
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--url", default="")
+    ap.add_argument("--url", default=ONLINE_URL,
+                    help=f"测试目标，默认线上 {ONLINE_URL}；本地传 --local")
     ap.add_argument("--port", type=int, default=8091)
     ap.add_argument("--quick", action="store_true", help="只抽 20 套模板")
+    ap.add_argument("--local", action="store_true", help="改测本地 dist（部署前预检用）")
     args = ap.parse_args()
 
     dist = ROOT / "pwa" / "dist"
     srv = None
-    if args.url:
+    if args.local:
+        url = ""
+    else:
         url = args.url
-        print(f"目标：{url}（线上）")
+    if url:
+        print(f"目标：{url}（线上服务器）")
     else:
         if not (dist / "index.html").exists():
             print("ERROR: pwa/dist 不存在，先 node pwa/scripts/build.mjs", file=sys.stderr)
@@ -243,9 +250,13 @@ def main() -> int:
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True, exist_ok=True)
 
-    # 主题清单（从 dist 的 index.json 读，与实际页面一致）
-    idx = json.loads((dist / "themes" / "index.json").read_text(encoding="utf-8"))
-    all_ids = [t["id"] for t in idx]
+    # 主题清单：本地目标读 dist/index.json；线上目标读源码 public/themes（同一份真源）
+    if url:
+        all_ids = sorted(p.stem for p in (ROOT / "public" / "themes").glob("*.json")
+                         if p.stem not in ("index", "manifest"))
+    else:
+        idx = json.loads((dist / "themes" / "index.json").read_text(encoding="utf-8"))
+        all_ids = [t["id"] for t in idx]
     print(f"模板：{len(all_ids)} 套")
 
     from playwright.sync_api import sync_playwright
