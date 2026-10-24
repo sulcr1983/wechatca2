@@ -51,6 +51,13 @@ def check(name, ok, detail=""):
     print(f"[{'PASS' if ok else 'FAIL'}] {name}" + (f" — {detail}" if detail else ""))
 
 
+def skip(name, reason=""):
+    """环境性跳过（不计失败）：如第三方子项目不在仓库、网络不可达。
+    与 FAIL 的区别：SKIP 必须有明确原因，且退出码不算失败。"""
+    results.append((name, None, reason))
+    print(f"[SKIP] {name}" + (f" — {reason}" if reason else ""))
+
+
 def wait_server(timeout=45):
     t0 = time.time()
     while time.time() - t0 < timeout:
@@ -171,16 +178,24 @@ def run():
         check("GET /api/social/thumbnails 返回缩略图列表", ok, f"status={st} count={len(j) if isinstance(j,list) else '?'}")
 
         # ---- 6. 小红书生成（归藏）----
-        st, j = jpost("/api/social/generate", {"text": "周末去海边旅行放空，拍一组氛围感照片", "style": "editorial"})
+        # ⚠️ 超时给 120s：沙箱/离线环境下 Wikimedia 搜图先耗 15s 超时再降级本地，
+        # 加渲染全程约 51s（2026-10-24 实测），40s 默认值会把正常响应误判为超时
+        st, j = jpost("/api/social/generate", {"text": "周末去海边旅行放空，拍一组氛围感照片", "style": "editorial"}, timeout=120)
         ok = st == 200 and isinstance(j, dict) and j.get("images") and len(j["images"]) > 0 and j.get("background")
-        detail = f"status={st} engine={j.get('engine')} imgs={len(j.get('images',[])) if isinstance(j,dict) else 0} bg={j.get('background',{}).get('source') if isinstance(j,dict) else ''}"
+        detail = f"status={st} engine={j.get('engine') if isinstance(j,dict) else '?'} imgs={len(j.get('images',[])) if isinstance(j,dict) else 0} bg={j.get('background',{}).get('source') if isinstance(j,dict) else ''}"
         check("POST /api/social/generate 归藏引擎出图+自动搜底图", ok, detail)
 
         # ---- 7. 小红书生成（BLCaptain）----
-        st, j = jpost("/api/social/generate", {"text": "今天来一杯手冲咖啡，享受慢生活", "style": "sp-mist"})
-        ok = st == 200 and isinstance(j, dict) and j.get("images") and len(j["images"]) > 0
-        detail = f"status={st} engine={j.get('engine')} imgs={len(j.get('images',[])) if isinstance(j,dict) else 0}"
-        check("POST /api/social/generate BLCaptain 引擎出图", ok, detail)
+        # ⚠️ blcaptain-style-skill 是 vendored 子项目、不在本仓库（需单独获取，见 runbook）；
+        # 不在时 Node 桥会空等数分钟——环境性 SKIP，有子项目的机器上照常跑满 29 项
+        if not os.path.isdir(os.path.join(ROOT, "blcaptain-style-skill")):
+            skip("POST /api/social/generate BLCaptain 引擎出图",
+                 "blcaptain-style-skill 子项目不在仓库（需单独获取），本机无 Node 桥")
+        else:
+            st, j = jpost("/api/social/generate", {"text": "今天来一杯手冲咖啡，享受慢生活", "style": "sp-mist"}, timeout=120)
+            ok = st == 200 and isinstance(j, dict) and j.get("images") and len(j["images"]) > 0
+            detail = f"status={st} engine={j.get('engine') if isinstance(j,dict) else '?'} imgs={len(j.get('images',[])) if isinstance(j,dict) else 0}"
+            check("POST /api/social/generate BLCaptain 引擎出图", ok, detail)
 
         # ---- 8. 小红书生成（空文案 → 400）----
         st, j = jpost("/api/social/generate", {"text": ""})
@@ -314,10 +329,14 @@ def run():
 
     print("\n" + "=" * 56)
     passed = sum(1 for _, ok, _ in results if ok)
+    skipped = sum(1 for _, ok, _ in results if ok is None)
     total = len(results)
-    print(f"后端 API 全端点 E2E：{passed}/{total} 通过")
+    line = f"后端 API 全端点 E2E：{passed}/{total - skipped} 通过"
+    if skipped:
+        line += f"（{skipped} SKIP：环境缺依赖，非失败）"
+    print(line)
     print("=" * 56)
-    return 0 if passed == total else 1
+    return 0 if passed + skipped == total else 1
 
 
 if __name__ == "__main__":
