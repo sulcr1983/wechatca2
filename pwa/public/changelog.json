@@ -1,7 +1,7 @@
 {
   "version": "1.4.0",
-  "generatedAt": "2026-10-24T11:13:58+08:00",
-  "totalCommits": 134,
+  "generatedAt": "2026-10-24T11:50:43+08:00",
+  "totalCommits": 135,
   "releases": [
     {
       "version": "1.4.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 8,
         "changed": 6,
-        "fixed": 3,
+        "fixed": 4,
         "other": 4
       },
       "groups": [
@@ -128,6 +128,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "修模板库同族换色点了没反应（toast 反馈 + 底部胶囊始终含当前主题）",
+              "scope": "pwa",
+              "hash": "0f9883c",
+              "date": "2026-10-24T11:50:31+08:00",
+              "breaking": false
+            },
             {
               "text": "线上 E2E 上传底图夹具改用 docs/brand/logo-source.png（logo.png 已不存在）",
               "scope": "test",
