@@ -113,6 +113,8 @@ python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 
                                   # ⚠️ blcaptain-style-skill 子项目不在仓库时 28/28 + 1 SKIP（环境性，2026-10-24 起）
 python scripts/run_gates.py      # 一键全量门禁跑批（TST-3）：A 无服务段 → B 自起服务段 → C PWA 段，失败即停；
                                   # --quick 最快核心（约 100s）· --full 追加离线/轻量/线上 6 套；日志落 output/gate-run/
+python scripts/clean_output.py    # output/ 清理（U-15）：默认预览保留 7 天内；--days N 改保留期；--apply 才真删。
+                                  # 只动 output/ 内部，绝不碰 data/ public/ pwa/dist/
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
                                       # 快捷入口：scripts/run_headed_test.bat（自起服务，需 5000 空闲）
 python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
