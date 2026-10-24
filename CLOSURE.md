@@ -664,4 +664,38 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - `fflate` 用 `store`（level 0）：PNG 已压缩，再 deflate 只增耗时。
 - 切图为纯 Canvas 本地处理，图片不出浏览器；ZIP 命名固定 `nine-01..09.png`，方便按序上传。
 
+---
+
+## 任务 15：功能扩展方案 B2 · #20 批量导出图片（2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户「继续开发 #20 批量导出图片」 |
+| 方案原文 | 文章里多张图想单独取出来 → 把正文所有图（含外链已本地化的）打包成 zip（P1，前端） |
+| 完成判据 | 正文全部图（data URI / 同源 / 外链）都进 ZIP；坏图跳过并写明原因；无图给明确提示；移动端不坏 |
+| 不在范围 | 小红书封面结果批量打包（已有逐张下载 + 九宫格）、后端参与、图片压缩转码 |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `pwa/src/export.js` | 新增 `exportImages`：DOMParser 收集 `<img>`（按出现顺序去重）→ data URI 直解 / 相对与 http 走 fetch → 8MB 单图、60MB 总量、60 张上限、并发 3 → fflate `store` 级打包 `img-01..` |
+| `pwa/src/app.js` | 导出菜单新增 `images` 分支：先 `ensureLocalizedForExport` 抓外链再打包；失败按 URL 去重；toast 如实报「已导出 N 张；M 张跳过：原因」；顺带修 `updateWxTitle` 带 Markdown 标记（`# 标题` → 文件名出现 `#`） |
+| `pwa/index.html` | 导出菜单加「图片 ZIP · 正文全部图片」 |
+| `scripts/pwa_export_test.py` | 断言 8 → **12**：菜单 4 项 · 无图明确提示 · ZIP 真下载 · 内含 `img-01.png` 真 PNG · 跳过项写明 HTTP 404；控制台断言改为只滤「刻意 404」的网络日志 |
+| `scripts/pwa_online_e2e.py` | 线上加 1 项：导出菜单 4 项含图片 ZIP |
+
+### 验证（真实执行）
+- `scripts/pwa_export_test.py` **12/12**：md/html/长图三项不回归 · 菜单 4 项 · 无图提示「正文里没有图片，先插入一张再导出」· `批量图片测试-20261024.zip` 4575B · 内含 `img-01.png`（4457B 真 PNG）· 坏图跳过写明 `HTTP 404` · 移动端 390px 不溢出 · 0 JS 报错
+- 回归：`scripts/pwa_image_localize_test.py` **11/11** · `scripts/pwa_nine_test.py` **15/15** · `scripts/pwa_cover_test.py` **15/15（1 SKIP）** · `pwa/scripts/smoke.py` **24/24**
+
+### 回滚点
+- 还原 `export.js` / `app.js` / `index.html` 三处；fflate 已在 #7 引入，无需回退依赖。
+
+### 影响 / 风险
+- 导出前会自动抓外链图（与 HTML/长图导出一致），只在用户点菜单时联网。
+- 坏图不静默：ZIP 里只放取到的图，toast 写明跳过张数与原因。
+- 上限（60 张 / 单图 8MB / 累计 60MB）超限明确写原因，不悄悄丢图。
+
+
 

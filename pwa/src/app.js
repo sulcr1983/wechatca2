@@ -300,7 +300,9 @@ async function ensureLocalizedForExport() {
 
 function updateWxTitle(text) {
   const first = text.split('\n').map((l) => l.trim()).find(Boolean) || '未命名';
-  $('wx-title').textContent = first.slice(0, 24);
+  // 去掉 Markdown 标记：# 标题 / > 引用 / - 列表，导出文件名不该带符号
+  const clean = first.replace(/^#{1,6}\s*/, '').replace(/^>\s*/, '').replace(/^[-*+]\s+/, '').trim();
+  $('wx-title').textContent = (clean || '未命名').slice(0, 24);
 }
 
 /* ── 解析条 ─────────────────────────────────────────────────── */
@@ -896,6 +898,22 @@ function bindUI() {
           ? `已导出长图 ${r.width}×${r.height}（${kb(r.bytes)}）· ${prep.failed.length} 张图未内嵌`
           : `已导出长图 ${r.width}×${r.height}（${kb(r.bytes)}）`,
         prep.failed.length ? 'err' : 'ok');
+      } else if (kind === 'images') {
+        // 批量导出图片（B2 #20）：正文全部图片打成一个 ZIP
+        toast('正在打包正文图片…');
+        const prep = await ensureLocalizedForExport();
+        const r = await X.exportImages(prep.html, title);
+        // 同一张坏图会在「本地化」和「打包」各失败一次，按 URL 去重，别把 1 张报成 2 张
+        const seen = new Set();
+        const fails = prep.failed.concat(r.skipped || []).filter((f) => {
+          if (seen.has(f.src)) return false;
+          seen.add(f.src);
+          return true;
+        });
+        toast(fails.length
+          ? `已导出 ${r.count} 张图片；${fails.length} 张跳过：${failureSummary(fails)}`
+          : `已导出 ${r.count} 张图片（${kb(r.bytes)}）`,
+        fails.length ? 'err' : 'ok');
       }
     } catch (err) {
       toast('导出失败：' + ((err && err.message) || err), 'err');

@@ -204,6 +204,13 @@ def main() -> int:
         check("解析条显示结构", ("大标题" in parse or "小节" in parse), "", parse.replace("\n", " ")[:120])
         check("复制按钮启用", page.is_enabled("#btn-copy"), "disabled", "enabled")
 
+        # 导出菜单含「图片 ZIP」（B2 #20）：只验入口与项数，真下载在本地导出专项里跑
+        page.click("#btn-export"); page.wait_for_timeout(250)
+        exp_items = page.locator("#menu-export button[data-exp]").count()
+        has_zip = page.locator("#menu-export button[data-exp='images']").count() == 1
+        check("导出菜单 4 项（含图片 ZIP）", exp_items == 4 and has_zip, "", f"{exp_items} 项")
+        page.keyboard.press("Escape"); page.wait_for_timeout(150)
+
         b = page.inner_text("#btn-mode"); cls_b = page.eval_on_selector("#preview-wrap", "e => e.className")
         page.click("#btn-mode"); page.wait_for_timeout(200)
         a = page.inner_text("#btn-mode"); cls_a = page.eval_on_selector("#preview-wrap", "e => e.className")

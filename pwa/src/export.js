@@ -151,3 +151,150 @@ export async function exportLongImage(html, theme, title) {
     iframe.remove();
   }
 }
+
+/* ── 批量导出图片（B2 #20）：正文所有图 → ZIP ─────────────────────
+ * 正文图可能是三种来源：data URI（已本地化）、同源相对路径、仍存活的外链。
+ * 外链通常已被 ensureLocalizedForExport 抓成 data URI；抓失败的按「跳过 + 原因」如实上报，
+ * 绝不静默丢图。ZIP 用 vendor fflate（与九宫格同一套，store 级）。 */
+
+const IMG_MAX = 60;
+const IMG_MAX_BYTES = 8 * 1024 * 1024;
+const IMG_MAX_TOTAL = 60 * 1024 * 1024;
+const IMG_CONCURRENCY = 3;
+
+const MIME_EXT = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg',
+  'image/bmp': 'bmp',
+  'image/avif': 'avif',
+};
+
+let zipPromise = null;
+
+function loadZip() {
+  if (window.fflate) return Promise.resolve(window.fflate);
+  if (!zipPromise) {
+    zipPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = `${BASE}vendor/fflate.min.js`;
+      s.onload = () => (window.fflate
+        ? resolve(window.fflate)
+        : reject(new Error('打包库加载后未暴露 fflate')));
+      s.onerror = () => reject(new Error('打包库加载失败（vendor/fflate.min.js）'));
+      document.head.appendChild(s);
+    });
+  }
+  return zipPromise;
+}
+
+function bytesText(n) {
+  return n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+}
+
+function dataUriToBlob(src) {
+  const m = /^data:([^;,]*)(;base64)?,([\s\S]*)$/i.exec(src);
+  if (!m) throw new Error('内嵌图格式无法解析');
+  const type = m[1] || 'application/octet-stream';
+  const isB64 = !!m[2];
+  const raw = isB64 ? atob(m[3].replace(/\s/g, '')) : decodeURIComponent(m[3]);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+  return new Blob([bytes], { type });
+}
+
+async function srcToBlob(src) {
+  if (/^data:/i.test(src)) {
+    const blob = dataUriToBlob(src);
+    if (!blob.type.startsWith('image/')) throw new Error(`不是图片（${blob.type || '未知类型'}）`);
+    return blob;
+  }
+  const res = await fetch(src, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+  if (!res.ok) {
+    throw new Error(`下载失败（HTTP ${res.status}${res.status === 403 ? '，可能防盗链' : ''}）`);
+  }
+  const type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (!type.startsWith('image/')) throw new Error(`返回的不是图片（${type || '无 Content-Type'}）`);
+  const blob = await res.blob();
+  if (blob.size > IMG_MAX_BYTES) throw new Error(`图片过大（${bytesText(blob.size)}，上限 8 MB）`);
+  return blob;
+}
+
+function extFor(blob, src) {
+  if (MIME_EXT[blob.type]) return MIME_EXT[blob.type];
+  const tail = String(src).split('?')[0].split('.').pop().toLowerCase();
+  return /^(png|jpe?g|gif|webp|svg|bmp|avif)$/.test(tail) ? (tail === 'jpeg' ? 'jpg' : tail) : 'png';
+}
+
+/** 简易并发池（与 images.js 同策略，这边独立一份避免跨模块耦合） */
+async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  async function worker() {
+    while (i < items.length) {
+      const k = i++;
+      out[k] = await fn(items[k], k);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+/**
+ * 把正文里的图片全部打成一个 ZIP。
+ * @returns {Promise<{filename:string,count:number,bytes:number,skipped:{src:string,reason:string}[]}>}
+ * 正文没有图 / 所有图都失败 → 抛可操作错误（不静默）。
+ */
+export async function exportImages(html, title) {
+  if (!html) throw new Error('还没有排版结果，先写点内容');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const srcs = [];
+  for (const el of Array.from(doc.body.querySelectorAll('img'))) {
+    const s = (el.getAttribute('src') || '').trim();
+    if (s && !srcs.includes(s)) srcs.push(s);
+  }
+  if (!srcs.length) throw new Error('正文里没有图片，先插入一张再导出');
+
+  const over = srcs.length > IMG_MAX ? srcs.slice(IMG_MAX) : [];
+  const target = srcs.slice(0, IMG_MAX);
+  const skipped = over.map((src) => ({ src, reason: `超过单次 ${IMG_MAX} 张上限，未处理` }));
+
+  const settled = await mapLimit(target, IMG_CONCURRENCY, async (src) => {
+    try {
+      return { src, blob: await srcToBlob(src) };
+    } catch (e) {
+      return { src, error: (e && e.message) || String(e) };
+    }
+  });
+
+  const files = [];
+  let total = 0;
+  for (const r of settled) {
+    if (!r.blob) { skipped.push({ src: r.src, reason: r.error }); continue; }
+    if (total + r.blob.size > IMG_MAX_TOTAL) {
+      skipped.push({ src: r.src, reason: `累计超过 ${bytesText(IMG_MAX_TOTAL)} 上限，未打包` });
+      continue;
+    }
+    total += r.blob.size;
+    const seq = files.length + 1;
+    files.push({ name: `img-${String(seq).padStart(2, '0')}.${extFor(r.blob, r.src)}`, blob: r.blob });
+  }
+  if (!files.length) {
+    const why = skipped[0] ? `：${skipped[0].reason}` : '';
+    throw new Error(`正文里的图片都没能取到${why}`);
+  }
+
+  const lib = await loadZip();
+  const entries = {};
+  for (const f of files) entries[f.name] = new Uint8Array(await f.blob.arrayBuffer());
+  const zipped = lib.zipSync(entries, { level: 0 });
+  if (!zipped || !zipped.length) throw new Error('打包结果为空（fflate 未返回数据）');
+
+  const blob = new Blob([zipped], { type: 'application/zip' });
+  const name = fileName(title || '正文图片', 'zip');
+  download(blob, name);
+  return { filename: name, count: files.length, bytes: blob.size, skipped };
+}

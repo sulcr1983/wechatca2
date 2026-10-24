@@ -84,7 +84,9 @@ def main() -> int:
             ctx = browser.new_context(viewport={"width": 1360, "height": 900}, accept_downloads=True)
             page = ctx.new_page()
             page.on("pageerror", lambda e: errors.append(str(e)))
-            page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+            # 网络层 404 是「坏图」用例故意造的，浏览器会记一条 console error；只滤这一种，JS 异常照旧算失败
+            page.on("console", lambda m: errors.append(m.text)
+                    if m.type == "error" and not m.text.startswith("Failed to load resource") else None)
 
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
             page.wait_for_selector("#engine-badge[data-state='ready']", timeout=120000)
@@ -95,7 +97,7 @@ def main() -> int:
             page.click("#btn-export")
             page.wait_for_timeout(250)
             items = page.locator("#menu-export button[data-exp]").count()
-            check("导出菜单有 3 项", items == 3, f"{items} 项")
+            check("导出菜单有 4 项", items == 4, f"{items} 项")
             page.keyboard.press("Escape")
             page.wait_for_timeout(150)
             check("Esc 关闭导出菜单", page.is_hidden("#menu-export"))
@@ -133,6 +135,45 @@ def main() -> int:
             check("长图是真 PNG 且定宽 1080",
                   is_png and w == 1080 and 200 < hgt < 20000,
                   f"{png_name} · {len(raw) // 1024} KB · {w}x{hgt}")
+
+            # ④ 批量导出图片（B2 #20）：无图 → 明确提示；有图 → ZIP 内真实图片
+            page.click("#btn-export")
+            page.wait_for_timeout(220)
+            page.click("button[data-exp='images']")
+            page.wait_for_function(
+                "() => document.getElementById('toast').textContent.includes('没有图片')", timeout=20000)
+            check("无图时明确提示", "正文里没有图片" in page.inner_text("#toast"),
+                  page.inner_text("#toast")[:80])
+
+            good = f"{url}brand/logo-64.png"
+            bad = f"{url}missing.png"
+            page.fill("#input", f"# 批量图片测试\n\n![好图]({good})\n\n![坏图]({bad})\n\n正文。\n")
+            page.wait_for_function(
+                "() => !document.getElementById('img-tip').hidden", timeout=60000)
+
+            with page.expect_download(timeout=120000) as di_img:
+                page.click("#btn-export")
+                page.wait_for_timeout(220)
+                page.click("button[data-exp='images']")
+            z = di_img.value
+            zpath = OUT / "images.zip"
+            z.save_as(str(zpath))
+            check("图片 ZIP 下载成功", zpath.stat().st_size > 100 and z.suggested_filename.endswith(".zip"),
+                  f"{z.suggested_filename} · {zpath.stat().st_size} B")
+
+            import zipfile
+
+            with zipfile.ZipFile(zpath) as zf:
+                names = zf.namelist()
+                raw = zf.read(names[0]) if names else b""
+            check("ZIP 内含取到的图（失败图被跳过）",
+                  len(names) == 1 and names[0] == "img-01.png" and raw[:8] == b"\x89PNG\r\n\x1a\n",
+                  f"{names} · {len(raw)} B")
+
+            page.wait_for_function(
+                "() => document.getElementById('toast').textContent.includes('跳过')", timeout=20000)
+            t = page.inner_text("#toast")
+            check("跳过的图说明原因", "404" in t and "跳过" in t, t[:100])
 
             # 移动端：多一个顶栏按钮后不能出现横向溢出
             m = ctx.new_page()

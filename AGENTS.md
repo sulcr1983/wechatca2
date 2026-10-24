@@ -102,7 +102,7 @@ python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就�
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
 python scripts/pwa_release_card_test.py   # 更新「发布小票」6/6（地址加 #upd-demo 可预览）
-python scripts/pwa_export_test.py         # PWA 导出有头 8/8（长图 PNG / HTML 自包含 / Markdown / 移动端不溢出）
+python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
 python scripts/pwa_nine_test.py           # PWA 九宫格切图 15/15（真下载 ZIP 解包读像素：裁剪/顺序/间距/移动端）
 python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 90 项（87 PASS + 3 SKIP）
@@ -139,6 +139,9 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 90 项（87 P
 # · 九宫格切图（2026-10-24，B2 #7）：`pwa/src/nine.js` 纯 Canvas 3×3 切图（方形居中裁剪、
 #   间距 0–20px、逐行/蛇形），ZIP 用 `public/vendor/fflate.min.js`（MIT，store 级，首次下载才注入）。
 #   入口：封面结果卡「九宫格」按钮 + 封面页头「九宫格切图」上传；输出固定 `nine-01..09.png`。
+# · 批量导出图片（2026-10-24，B2 #20）：导出菜单「图片 ZIP」→ `exportImages`（export.js）收集正文全部
+#   `<img>`（data URI 直解 / 相对与 http 先经 ensureLocalizedForExport）→ fflate 打包 `img-01..`。
+#   坏图跳过并在 toast 写明原因（按 URL 去重），无图直接报错；上限 60 张 / 单图 8MB / 累计 60MB。
 # ⚠️ 三个“自起服务”套件（api_e2e / headed_full_e2e / headed_wechat_copy）跑前会预检端口 5000：
 #    若已被你自己的 app.py 占用，直接 ABORT（退出码 2）——否则会连到旧进程用陈旧代码假通过。
 # ⚠️ 反过来更危险：如果你自己的 app.py 是**改动前**起的，它会一直占着 5000，套件也会连到旧代码。
