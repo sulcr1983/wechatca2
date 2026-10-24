@@ -15,8 +15,8 @@
 - 主题 164 套 = 45 经典 + 119 套 `su-*`；`su-*` 是**生成物**，改 `scripts/theme_specs.py` 后重跑 `scripts/build_themes.py`
 
 ### 0.2 当前线上状态（截至 2026-10-24）
-- 线上 `version.json`：**v1.5.0 · build 151**（`build` = git 提交数，构建时注入）
-- git：HEAD `310061c` 已推送 `origin/main`，工作区干净
+- 线上 `version.json`：**v1.5.0 · build 162**（`build` = git 提交数，构建时注入）
+- git：HEAD `f85f6d8` 已推送 `origin/main`，工作区干净
 - 最近四类改动（详见 `CLOSURE.md` 任务 20 / 21 / 22 / 23）：
   - 修「版本号一直一样、看不到更新」：版本 bump + version/build 双判 + 徽标统一 `vX · bN`
   - 更新改「静默自动升级」：检测到即自动应用（空闲立即 / 一直在打字最多等 30s，reload 前落盘草稿）→ 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 消失，点它看更新记录）
@@ -30,9 +30,11 @@ node pwa/scripts/build.mjs                          # 构建 dist（不入库，
 python -m http.server 8899 --directory pwa/dist     # 本地预览
 # 部署（铁律：已跟踪文件必须干净、HEAD 必须先 push 到 origin/main）
 & "C:\Program Files\Git\bin\bash.exe" pwa/scripts/deploy.sh
-# ⚠️ deploy.sh 需要凭证文件 E:/test/opendoor/.env；该文件缺失时可用环境变量直跑：
-#    $env:CLOUDFLARE_API_TOKEN="<在 Cloudflare 控制台自建的 token>"（勿入库、勿写进文档）
-npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
+# ⚠️ deploy.sh 需要凭证文件 E:/test/opendoor/.env；本机实测**可用设备码 OAuth 替代**（2026-10-24）：
+#    npx --yes wrangler@latest login --device     # 打印 URL + 设备码，浏览器批准即落凭证（5 分钟窗口，不经 localhost）
+#    npx --yes wrangler@latest pages deploy pwa/dist --project-name=supersu-pwa --branch=main
+#    （localhost 回调式 wrangler login 在沙箱里两次超时；Clash 无辜：系统代理默认绕过名单含 localhost，
+#      51759 是沙箱出口代理而非 Clash，Clash Verge 是 7897）
 ```
 
 ### 0.4 发版流程（两件事缺一不可）
@@ -51,7 +53,7 @@ npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main
 
 ### 0.6 未完成需求与任务排期（接续优先看 `files/TODO.md`）
 - **开发任务列表（2026-10-24 排期，用户定序）**：**先文档（DOC-1…5）→ 再测试（TST-1…3）→ 然后再说**（已盘点不排期：THEME-CUSTOM、U-8/U-9 等）。详见 `files/TODO.md` 顶部排期区
-- ~~**AI 平台预设**~~ ✅ **2026-10-24 已闭环**（任务 22）：平台下拉（DeepSeek / Moonshot / SiliconFlow / OpenAI + 自定义）→ 选中自动填接口地址 + 默认模型（可手改）→ 只填 API Key；单一真源 `pwa/src/ai.js` 的 `AI_PLATFORMS`；门控 / verified 契约不变；测试 `scripts/pwa_ai_preset_test.py` 21/21。⏳ **代码已提交未部署**（缺 CF token），部署后按 DOC-4 回写线上验证
+- ~~**AI 平台预设**~~ ✅ **2026-10-24 已闭环并部署**（任务 22，线上 build 162）：平台下拉（DeepSeek / Moonshot / SiliconFlow / OpenAI + 自定义）→ 选中自动填接口地址 + 默认模型（可手改）→ 只填 API Key；单一真源 `pwa/src/ai.js` 的 `AI_PLATFORMS`；门控 / verified 契约不变；测试 `scripts/pwa_ai_preset_test.py` 21/21 · 线上 E2E 3 条预设断言全绿
 - D 阶段「自定义主题」（THEME-CUSTOM）：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——仅提出，未批准开工
 - U 系列旧待办已逐条对照 PWA 核定（2026-10-24）：U-7 已实现关单；U-12 / U-14 不适用；U-8 / U-9 转 PWA 待办；U-10 / U-11 / U-13 / U-15 低优先。明细见 `files/TODO.md`
 

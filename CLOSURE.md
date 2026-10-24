@@ -877,6 +877,13 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 回归：`scripts/pwa_ai_format_test.py` **27/27** · `scripts/pwa_s1s3_test.py` **9/9**（面板打开/保存/润色/排版/摘要/关闭链路不变）
 - `node pwa/scripts/build.mjs` 构建通过（断言全过）；截图 `output/ai-preset/ai-preset.png`
 
+### 线上验证（2026-10-24 部署后实测）
+- 部署方式：`wrangler login --device`（设备码 OAuth）→ `npx wrangler pages deploy pwa/dist --project-name=supersu-pwa --branch=main`（7 个变更文件；铁律手动核过：树干净 + HEAD 已推送）
+- 线上 `version.json` = **1.5.0 / build 162**（部署前为 build 151）
+- `scripts/pwa_release_card_test.py`（线上）**9/9**，徽标 `v1.5.0 · b162`
+- `scripts/pwa_online_e2e.py`（线上全量）**94 PASS + 3 SKIP（共 97 项）**：新增的 3 条预设断言全绿（report.json 实锤：`AI 平台下拉含 4 预设 + 自定义` / `选中平台自动填地址与模型（只差 Key）` / `切「自定义」清空自填`）
+- 提交：`f2a1c47`（功能）+ `8924e9a`（文档）+ `8bc2825`（同步更新记录）+ `f85f6d8`（部署前 changelog 同步）+ `eeea88c`（线上断言）
+
 ### 风险 / 说明
 - 默认模型名是各平台长期稳定款（deepseek-chat / moonshot-v1-8k / Qwen/Qwen2.5-7B-Instruct / gpt-4o-mini），**模型框永远可手改**，预设只省事不设限
 - 门控契约未动：平台切换只改表单，`saveConfig` 才清 `supersu.ai.verified`；老用户已存配置打开即正确回显，无迁移成本
