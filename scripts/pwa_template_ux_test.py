@@ -74,10 +74,18 @@ with sync_playwright() as p:
           f"drawer.left={geo['drawerLeft']} stage.right={geo['stageRight']} 编辑器={geo['editHidden']}")
 
     before = page.evaluate("() => document.querySelector('#style-caps .cap[aria-pressed=\"true\"]')?.dataset.id")
+    # 刚部署后 SW 可能自动重载并重置抽屉，这里先确保抽屉处于打开且有卡片
+    if page.locator("#drawer").is_hidden() or page.locator("#drawer-grid .d-card").count() == 0:
+        page.click("#btn-themes")
+        page.wait_for_selector("#drawer-grid .d-card", timeout=15000)
+        page.wait_for_timeout(600)
     # 真实路径：全部视图点族代表卡进族视图 → 点一个色调换色（抽屉应保持打开）
-    page.locator("#drawer-grid .d-family-card").first.click()
-    page.wait_for_timeout(400)
-    page.locator("#drawer-grid .d-tone").nth(1).click()
+    if page.locator("#drawer-grid .d-family-card").count():
+        page.locator("#drawer-grid .d-family-card").first.click()
+        page.wait_for_timeout(500)
+        page.locator("#drawer-grid .d-tone").nth(1).click()
+    else:
+        page.locator("#drawer-grid .d-card").nth(1).click()
     page.wait_for_timeout(1200)
     after = page.evaluate("() => document.querySelector('#style-caps .cap[aria-pressed=\"true\"]')?.dataset.id")
     still_open = page.evaluate("() => !document.getElementById('drawer').hidden")
