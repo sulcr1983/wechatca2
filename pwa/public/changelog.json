@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T17:07:40+08:00",
-  "totalCommits": 150,
+  "generatedAt": "2026-10-24T17:29:50+08:00",
+  "totalCommits": 151,
   "releases": [
     {
       "version": "1.5.0",
@@ -9,7 +9,7 @@
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
         "added": 7,
-        "changed": 9,
+        "changed": 10,
         "fixed": 3,
         "other": 3
       },
@@ -73,6 +73,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "回写 AI-PRESET 部署与线上验证（CLOSURE 任务 22 · TODO · AGENTS · HANDOFF）",
+              "scope": "",
+              "hash": "82d32ac",
+              "date": "2026-10-24T17:29:47+08:00",
+              "breaking": false
+            },
             {
               "text": "完成文档阶段 DOC-2/3/5（html 报告归档 / 去行号 / 归档预案）",
               "scope": "",
