@@ -2180,8 +2180,11 @@ def apply_paragraph_blocks(html: str, theme: dict) -> str:
     soft = _derive_block_color(ink, accent, 0.06)
     soft2 = _derive_block_color(ink, accent, 0.035)
 
-    # 提示词前缀（命中即当提示框）
-    TIP_WORDS = ("提示", "注意", "建议", "小贴士", "补充", "划重点", "要点", "注意：", "提示：")
+    # 提示词前缀（命中即当提示框）。
+    # 注意：预处理器会把「提示：xxx」「【提示】xxx」统一转成 blockquote，
+    # 所以这条规则必须同时认「纯词开头」和「带方括号」两种形态（2026-10-24）
+    TIP_WORDS = ("提示", "注意", "建议", "小贴士", "补充", "划重点", "要点",
+                 "【提示】", "【注意】", "【建议】", "【备注】", "【说明】")
 
     def plain_text(s: str) -> str:
         return re.sub(r"<[^>]+>", "", s).strip()
@@ -2252,13 +2255,32 @@ def apply_paragraph_blocks(html: str, theme: dict) -> str:
     pos = 0
     pat = re.compile(r"<p(?![^>]*data-block)([^>]*)>(?!<p)(.*?)</p>", re.DOTALL)
     for m in pat.finditer(html):
-        if not is_top_level_p(m.start(), html):
-            continue
-        attrs, inner = m.group(1), m.group(2)
-        text = plain_text(inner)
+        text = plain_text(m.group(2))
         if not text:
             continue
 
+        # 引文内的「提示行」单独处理：预处理会把「提示：xxx」转成 blockquote，
+        # 这类段落不在顶层，但恰恰最该变成提示框（2026-10-24 实测 tip 开关完全失效）。
+        in_quote = not is_top_level_p(m.start(), html)
+        if in_quote and cfg.get("tip"):
+            for w in TIP_WORDS:
+                if text.startswith(w):
+                    inner = m.group(2)
+                    rest = plain_text(inner)[len(w):].lstrip("：:，, ")
+                    # 连外层 blockquote 一起替换（否则会留下空的引用框）
+                    bq_start = html.rfind("<blockquote", 0, m.start())
+                    bq_end = html.find("</blockquote>", m.end())
+                    if bq_start >= 0 and bq_end >= 0:
+                        bq_end += len("</blockquote>")
+                        out.append(html[pos:bq_start])
+                        out.append(tip_block(w.rstrip("：:"), rest))
+                        pos = bq_end
+                    break
+            continue
+        if in_quote:
+            continue
+
+        attrs, inner = m.group(1), m.group(2)
         replacement = None
 
         # data：数字 + 可选单位 开头，且总长较短（长段落不当数据卡）
