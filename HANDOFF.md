@@ -52,7 +52,7 @@ python -m http.server 8899 --directory pwa/dist     # 本地预览
 | `scripts/pwa_online_e2e.py`（线上） | 91/91（3 SKIP） |
 
 ### 0.6 未完成需求与任务排期（接续优先看 `files/TODO.md`）
-- **开发任务列表（2026-10-24 排期，用户定序）**：**先文档（DOC-1…5）→ 再测试（TST-1…3）→ 然后再说**（已盘点不排期：THEME-CUSTOM、U-8/U-9 等）。详见 `files/TODO.md` 顶部排期区
+- **开发任务列表（2026-10-24 总攻排期，用户令：完成全部任务）**：阶段 0 文档+测试基础设施 ✅（含 TST-3 一键门禁 `scripts/run_gates.py`）→ 阶段 1 小体验缺口（U-8/U-9，断言先行）→ 阶段 2 THEME-CUSTOM 自定义主题（TC-1…4）→ 阶段 3 搜图与封面路线图（U-10/ROAD-1/ROAD-2）→ 阶段 4 打磨与债务；💡 探索项需先预研后立项。明细与验收见 `files/TODO.md` 排期区
 - ~~**AI 平台预设**~~ ✅ **2026-10-24 已闭环并部署**（任务 22，线上 build 162）：平台下拉（DeepSeek / Moonshot / SiliconFlow / OpenAI + 自定义）→ 选中自动填接口地址 + 默认模型（可手改）→ 只填 API Key；单一真源 `pwa/src/ai.js` 的 `AI_PLATFORMS`；门控 / verified 契约不变；测试 `scripts/pwa_ai_preset_test.py` 21/21 · 线上 E2E 3 条预设断言全绿
 - D 阶段「自定义主题」（THEME-CUSTOM）：滑杆调色 + 存本地 + 导出 JSON（+ AI 配色建议）——仅提出，未批准开工
 - U 系列旧待办已逐条对照 PWA 核定（2026-10-24）：U-7 已实现关单；U-12 / U-14 不适用；U-8 / U-9 转 PWA 待办；U-10 / U-11 / U-13 / U-15 低优先。明细见 `files/TODO.md`

@@ -354,7 +354,7 @@ PEXELS_API_KEY=your-pexels-key
 |:-----|:----:|:-----|
 | `tests/test_e2e.py` | **74** ✅ | 端到端（无需起服务，Flask test_client） |
 | `tests/test_integration.py` | **35** ✅ | 前后端联动（需先起服务） |
-| `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务） |
+| `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务；⚠️ blcaptain 子项目缺失时 28+1 SKIP） |
 | `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
 | `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
 | `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
@@ -374,6 +374,9 @@ PEXELS_API_KEY=your-pexels-key
 ```bash
 # 快速自检（无需起服务）
 python tests/test_e2e.py
+
+# 一键门禁跑批（按序跑 14 个门禁套件，失败即停；--quick 约 100s，--full 含线上）
+python scripts/run_gates.py
 
 # 有头全按钮（浏览器用系统 Chrome，脚本自起/自停服务）
 python tests/test_headed_full_e2e.py
