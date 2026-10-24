@@ -402,6 +402,7 @@ function setActive(id, announce = false) {
 /* ── 抽屉 ───────────────────────────────────────────────────── */
 let drawerFam = 'all';
 let drawerQ = '';
+let drawerTone = '';   // 二维选择器：记住当前色调，跨版式迁移（素页·竹青 → 卷宗·竹青）
 
 function openDrawer() {
   $('drawer').hidden = false;
@@ -420,7 +421,10 @@ function closeDrawer() {
 
 function renderFilters() {
   const fams = [...new Set(themes.map((t) => t.family).filter(Boolean))];
-  const chips = [['all', '全部'], ['fav', '收藏']].concat(fams.map((f) => [f, FAMS[f] || f]));
+  // 族视图里家族 chip 与上方「版式」条重复，只保留「全部 / 收藏」；切族交给版式条
+  const inFamily = drawerFam !== 'all' && drawerFam !== 'fav';
+  const chips = [['all', '全部'], ['fav', '收藏']]
+    .concat(inFamily ? [] : fams.map((f) => [f, FAMS[f] || f]));
   $('drawer-filters').innerHTML = chips.map(([k, label]) => `
     <button class="fchip" data-fam="${k}" aria-pressed="${drawerFam === k}">${label}</button>`).join('');
 }
@@ -492,12 +496,16 @@ function renderAllFolded(fav) {
   const ranked = [...classic].sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
   $('drawer-grid').innerHTML = reps + ranked.map((t) => drawerCard(t, fav)).join('');
 }
-// 族视图：1 张代表卡 + 一条横向色调色点（点色点换色，不关抽屉）
+// 族视图：版式 × 色调二维选择（2026-10-24）
+// 版式条只列有色调可选的族；换版式时**保留同名色调**（素页·竹青 → 卷宗·竹青）。
 function renderFamilyFold(fam, fav) {
   const list = themes.filter((t) => t.family === fam);
   const grid = $('drawer-grid');
   if (!list.length) { grid.innerHTML = '<div class="drawer-empty">没匹配的风格，换个词试试</div>'; return; }
   const rep = list.find((t) => t.id === activeId) || list[0];
+  const famKeys = [...new Set(themes.map((t) => t.family).filter(Boolean))];
+  const axis = famKeys.map((f) => `<button class="d-axis${f === fam ? ' active' : ''}"
+      data-fam="${f}" type="button" aria-pressed="${f === fam}">${escapeHtml(famLabel(f))}</button>`).join('');
   const tones = list.map((t) => {
     const col = t.accent || t.primary || '#888';
     const on = t.id === activeId;
@@ -506,7 +514,11 @@ function renderFamilyFold(fam, fav) {
       <span class="d-tone-name">${escapeHtml(toneName(t))}</span>
     </button>`;
   }).join('');
-  grid.innerHTML = `<div class="d-fold">${drawerCard(rep, fav)}<div class="d-tone-strip">${tones}</div></div>`;
+  grid.innerHTML = `<div class="d-fold">
+    <div class="d-axis-row" role="group" aria-label="版式">${axis}</div>
+    ${drawerCard(rep, fav)}
+    <div class="d-tone-strip">${tones}</div>
+  </div>`;
 }
 function renderDrawer() {
   const fav = new Set(favList());
@@ -899,19 +911,45 @@ function bindUI() {
     const chip = e.target.closest('.fchip');
     if (!chip) return;
     drawerFam = chip.dataset.fam;
+    const cur = byId.get(activeId);
+    drawerTone = (cur && cur.family === drawerFam) ? toneName(cur) : '';
     renderFilters();
     renderDrawer();
   });
   $('drawer-grid').addEventListener('click', (e) => {
     const favBtn = e.target.closest('.d-fav');
     if (favBtn) { e.stopPropagation(); toggleFav(favBtn.dataset.fav); return; }
+    const axis = e.target.closest('.d-axis');
+    // 二维选择器：换版式时优先保留同名色调；目标族没有该色调就落到它第一套
+    if (axis) {
+      const fam = axis.dataset.fam;
+      const list = themes.filter((t) => t.family === fam);
+      const pick = (drawerTone && list.find((t) => toneName(t) === drawerTone)) || list[0];
+      drawerFam = fam;
+      if (pick) {
+        drawerTone = toneName(pick);
+        setActive(pick.id, true);
+        renderFilters();
+      } else {
+        renderFilters();
+        renderDrawer();
+      }
+      return;
+    }
     const tone = e.target.closest('.d-tone');
     // 同族换色：不关抽屉，让用户可以连点不同色调逐个对比（与本地版一致）
-    if (tone) { setActive(tone.dataset.id, true); return; }
+    if (tone) {
+      const t = byId.get(tone.dataset.id);
+      drawerTone = t ? toneName(t) : drawerTone;
+      setActive(tone.dataset.id, true);
+      return;
+    }
     const card = e.target.closest('.d-card');
     if (!card) return;
     if (card.dataset.family) {   // 族代表卡 → 进入该族的折叠视图（不关抽屉）
       drawerFam = card.dataset.family;
+      const cur = byId.get(activeId);
+      drawerTone = (cur && cur.family === drawerFam) ? toneName(cur) : '';
       renderFilters();
       renderDrawer();
       return;

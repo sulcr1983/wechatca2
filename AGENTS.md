@@ -101,7 +101,7 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（首访 2.5s 出近似排版）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
-python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 38/38（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 移动端）
+python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 43/43（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端）
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
 python scripts/ai_structure_smoke.py --file tests/fixtures/txt-format-lab.txt
                                           # 真实 Key 冒烟（读本地 .env，非默认门禁；夹具 100 段，校验正文零丢失）
@@ -128,6 +128,8 @@ python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 90 项（87 P
 # · 首屏不阻塞：`#boot` 是底部小条（40px、pointer-events:none），引擎没就绪也能先输入。
 # · 模板库抽屉：打开时 `body.browsing` → 桌面端主区 `padding-right:460px` 让位（不遮挡预览）、
 #   编辑器收起、抽屉 460px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。
+#   **族视图为「版式 × 色调」二维选择**（2026-10-24）：顶部 8 个版式胶囊切族、**保留同名色调**
+#   （素页·竹青 → 卷宗·竹青；目标族无该色调时回落第一套）；族视图隐藏重复的家族 chip，只留「全部/收藏」。
 # · 版本号由 build.mjs 自动生成 `1.0.<git 提交数>`，写 dist/version.json（不再手写死）。
 # · 更新卡是「发布小票」：版本徽标 + 日期 + 3 条亮点（按文案自动标 新功能/优化/修复）+ 查看全部；
 #   `#upd-demo` 可随时预览该卡（不影响真实更新流程）。

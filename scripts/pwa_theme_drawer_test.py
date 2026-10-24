@@ -102,6 +102,14 @@ def main() -> int:
     def tone_ids(pg):
         return pg.evaluate("() => [...document.querySelectorAll('.d-tone')].map(e => e.dataset.id)")
 
+    def enter_family(pg, fam, wait=320):
+        """族视图里家族 chip 会隐藏（切族交给版式条），测试先回到「全部」再用 chip 进入"""
+        if pg.locator(f"#drawer-filters .fchip[data-fam='{fam}']").count() == 0:
+            pg.click("#drawer-filters .fchip[data-fam='all']")
+            pg.wait_for_timeout(250)
+        pg.click(f"#drawer-filters .fchip[data-fam='{fam}']")
+        pg.wait_for_timeout(wait)
+
     def style_sig(pg):
         return pg.evaluate("""() => {
             const d = document.getElementById('preview').contentDocument;
@@ -137,16 +145,16 @@ def main() -> int:
             check("全部视图有 8 张族代表卡", reps == 8, f"{reps} 张")
             page.locator(".d-family-card").first.click()
             page.wait_for_timeout(350)
-            fam_now = page.locator('.fchip[aria-pressed="true"]').get_attribute("data-fam")
-            check("点族代表卡进入该族视图", fam_now not in ("all", "fav") and page.locator(".d-tone").count() > 0,
-                  f"chip={fam_now}")
+            # 族视图里家族 chip 会隐藏，当前族由「版式」条的选中态表示
+            fam_now = page.locator('.d-axis[aria-pressed="true"]').get_attribute("data-fam")
+            check("点族代表卡进入该族视图", fam_now not in (None, "all", "fav")
+                  and page.locator(".d-tone").count() > 0, f"版式={fam_now}")
 
             # ② 8 个家族逐一：点数 → 状态 / 胶囊 / toast / 富文本预览差异
             applied = 0
             no_visual = []
             for fam, expected in FAMILIES.items():
-                page.click(f"#drawer-filters .fchip[data-fam='{fam}']")
-                page.wait_for_timeout(320)
+                enter_family(page, fam, 320)
                 ids = tone_ids(page)
                 check(f"{fam} 族色点数 {expected}", len(ids) == expected, f"{len(ids)} 个")
                 prev_sig = style_sig(page)
@@ -209,8 +217,7 @@ def main() -> int:
             page.wait_for_timeout(1000)
             page.click("#btn-themes")
             page.wait_for_timeout(300)
-            page.click("#drawer-filters .fchip[data-fam='minimal']")
-            page.wait_for_timeout(300)
+            enter_family(page, 'minimal', 300)
             t2 = tone_ids(page)[2]
             page.locator(f".d-tone[data-id='{t2}']").click()
             page.wait_for_timeout(500)
@@ -222,8 +229,7 @@ def main() -> int:
             for fam, expected in FAMILIES.items():
                 if expected < 2:
                     continue
-                page.click(f"#drawer-filters .fchip[data-fam='{fam}']")
-                page.wait_for_timeout(300)
+                enter_family(page, fam, 300)
                 ids = tone_ids(page)
                 page.locator(f".d-tone[data-id='{ids[0]}']").click()
                 page.wait_for_timeout(800)
@@ -233,6 +239,30 @@ def main() -> int:
                 s2 = style_sig(page)
                 check(f"纯文字下 {fam} 换色可见", s1 != s2,
                       f"{ids[0]} → {ids[1]}")
+
+            # ④c 版式 × 色调二维选择器（2026-10-24）：换版式保留同名色调
+            enter_family(page, 'minimal', 320)
+            axes = page.locator(".d-axis").count()
+            check("族视图出现版式条（8 个）", axes == 8, f"{axes} 个")
+            page.locator(".d-tone[data-id='su-minimal-bamboo']").click()
+            page.wait_for_timeout(650)
+            page.click(".d-axis[data-fam='biz']")
+            page.wait_for_timeout(750)
+            check("换版式保留色调（素页·竹青 → 卷宗·竹青）", active(page) == "su-biz-bamboo",
+                  f"{active(page)}")
+            page.click(".d-axis[data-fam='letter']")
+            page.wait_for_timeout(750)
+            check("继续换版式仍保留竹青", active(page) == "su-letter-bamboo", f"{active(page)}")
+            page.locator(".d-tone[data-id='su-letter-blush']").click()
+            page.wait_for_timeout(650)
+            page.click(".d-axis[data-fam='night']")
+            page.wait_for_timeout(750)
+            check("换色后再换版式（夜航·粉黛）", active(page) == "su-night-blush", f"{active(page)}")
+            page.click(".d-axis[data-fam='dusk']")
+            page.wait_for_timeout(750)
+            dusk_id = active(page) or ""
+            check("目标族无同名色调时回落且不报错", dusk_id.startswith("su-dusk-"),
+                  f"{dusk_id} · axis={page.locator('.d-axis[aria-pressed=\"true\"]').get_attribute('data-fam')}")
 
             # ⑤ 移动端：族视图色点条不把页面撑出横向滚动
             m = ctx.new_page()
