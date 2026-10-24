@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T16:27:05+08:00",
-  "totalCommits": 147,
+  "generatedAt": "2026-10-24T17:07:40+08:00",
+  "totalCommits": 150,
   "releases": [
     {
       "version": "1.5.0",
@@ -9,9 +9,9 @@
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
         "added": 7,
-        "changed": 7,
+        "changed": 9,
         "fixed": 3,
-        "other": 2
+        "other": 3
       },
       "groups": [
         {
@@ -73,6 +73,20 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "完成文档阶段 DOC-2/3/5（html 报告归档 / 去行号 / 归档预案）",
+              "scope": "",
+              "hash": "e523bc9",
+              "date": "2026-10-24T16:43:08+08:00",
+              "breaking": false
+            },
+            {
+              "text": "开发任务列表排期（先文档 → 再测试 → 然后再说）+ U 系列逐条核定",
+              "scope": "",
+              "hash": "8fdf529",
+              "date": "2026-10-24T16:36:30+08:00",
+              "breaking": false
+            },
             {
               "text": "全文档与代码一致性审计回写（25 个文件）",
               "scope": "",
@@ -155,6 +169,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "线上 E2E 增 AI 平台预设 3 断言（TST-1 代码部分）",
+              "scope": "pwa",
+              "hash": "eeea88c",
+              "date": "2026-10-24T16:47:17+08:00",
+              "breaking": false
+            },
             {
               "text": "模板库体验套件对 SW 自动重载自愈（线上刚部署时抽屉会被重置）",
               "scope": "pwa",
