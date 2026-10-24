@@ -624,3 +624,44 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 - 单图 8MB / 单次 40 张 / 超时 12s：超限明确写原因，不静默。
 - 公众号直贴仍不会显示内嵌图——这是平台限制，已写进 UI 与交接文档，避免后续误改文案。
 
+---
+
+## 任务 14：功能扩展方案 B2 · #7 九宫格切图（2026-10-24）
+
+### 任务边界
+| 项 | 内容 |
+|----|------|
+| 触发 | 用户「继续开 B2 #7 九宫格切图」 |
+| 拍板（用户选择） | 入口＝封面结果卡 + 上传入口；交付＝ZIP 一次下载；非正方形＝方形居中裁剪；间距 0–20px；顺序＝逐行（默认）+ 蛇形 |
+| 完成判据 | 真出 9 张真 PNG、裁剪不变形、顺序可切换、ZIP 可下载且内容正确；移动端不溢出；离线可用；回归不坏 |
+| 不在范围 | 批量导出图片（#20）、PDF/Word/二维码（B3）、后端参与 |
+
+### 改动文件
+| 文件 | 改动 |
+|------|------|
+| `pwa/src/nine.js` | **新增**：`splitGrid`（方形居中裁剪 + 3×3 + 间距/顺序）/ `releaseTiles` / `zipTiles`（fflate store 级 ZIP，文件名 `nine-01..09.png`）；失败一律抛可读原因 |
+| `pwa/src/cover/index.js` | 结果卡新增「九宫格」按钮；页头新增「九宫格切图」上传入口（`#cv-nine-pick` / `#cv-nine-file`）；切图弹窗（3×3 预览、间距滑杆、顺序下拉、ZIP 下载、状态条、Esc/背景关闭） |
+| `pwa/src/cover/cover.css` | `.cv-nine*` 弹窗样式（`min(460px, 94vw)`，移动端不溢出） |
+| `public/vendor/fflate.min.js` | **新增**：fflate 0.8.2 UMD（MIT，32.6KB，本地 vendor，离线可用） |
+| `pwa/public/sw.js` | `SHELL_OPTIONAL` += `./src/nine.js`、`./vendor/fflate.min.js` |
+| `pwa/scripts/build.mjs` | `SHELL_FILES` 与关键文件断言 += 两个新文件 |
+| `THIRD_PARTY_NOTICES.md` | 登记 fflate（MIT） |
+| `scripts/pwa_nine_test.py` | **新增**：专项有头测试（真下载 ZIP、解包读像素验证顺序与裁剪） |
+| `scripts/pwa_cover_test.py` | 修失效夹具 `logo.png` → `logo-source.png`（「上传底图」不再 SKIP） |
+| `scripts/pwa_online_e2e.py` | 线上 E2E 增加九宫格 3 项（切图 / ZIP / 关闭） |
+
+### 验证（真实执行）
+- `scripts/pwa_nine_test.py` **15/15**：入口可见 · 9 张预览 · 状态条尺寸 · ZIP 含 nine-01..09 · 间距 6 → 296×296 · 逐行 nine-04 = 第二行第 1 格 · 蛇形 nine-04 = 第二行第 3 格 / nine-06 = 第二行第 1 格 · 间距 0 → 300×300 · 1200×800 → 266×266 且左右品红边被裁掉 · 关闭收起并清空 · 移动端 390px 不溢出（panel 20–370）· 0 控制台报错
+- 回归：`scripts/pwa_cover_test.py` **15/15（1 SKIP：Wikimedia 网络）** · `scripts/pwa_export_test.py` **8/8** · `pwa/scripts/smoke.py` **24/24**
+- 线上：部署后 `scripts/pwa_online_e2e.py` **90/90（3 SKIP）**，`version.json` build **134**
+- 构建：`node pwa/scripts/build.mjs` 通过（19.39MB，断言全过）
+
+### 回滚点
+- 删 `pwa/src/nine.js` + 还原 `cover/index.js` / `cover.css` / `sw.js` / `build.mjs`；或 `git revert <本次提交>` 后重跑 `build.mjs`。
+
+### 影响 / 风险
+- ZIP 库按需注入（首次点「下载 9 张」才加载 `vendor/fflate.min.js`），不占首屏；已进 SW 预缓存，离线可用。
+- `fflate` 用 `store`（level 0）：PNG 已压缩，再 deflate 只增耗时。
+- 切图为纯 Canvas 本地处理，图片不出浏览器；ZIP 命名固定 `nine-01..09.png`，方便按序上传。
+
+

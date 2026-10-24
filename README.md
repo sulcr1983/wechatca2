@@ -322,7 +322,8 @@ PEXELS_API_KEY=your-pexels-key
 | `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
 | `tests/test_headed_pm_audit.py` | **69/74** | 产品经理视角有头全流程审计（16 类场景语料 + 逐元素覆盖；失败项即审计发现的问题，退出码 1） |
 | `scripts/pwa_cover_test.py` | **16** ✅ | PWA 封面有头（12 风格 / 3 尺寸 / 上传 / Wikimedia 搜图 / 断网生成） |
-| **合计** | **197** | **全绿** |
+| `scripts/pwa_nine_test.py` | **15** ✅ | PWA 九宫格切图（真下载 ZIP 解包读像素：居中裁剪 / 顺序 / 间距 / 移动端） |
+| **合计** | **212** | **全绿** |
 
 ```bash
 # 快速自检（无需起服务）
