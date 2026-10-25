@@ -8,19 +8,30 @@ cd "$(dirname "$0")/../.."   # 仓库根 E:/test/wechatca2
 ENV_FILE="${CLOUDFLARE_ENV_FILE:-/e/test/opendoor/.env}"
 PROJECT="supersu-pwa"
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "ERROR: 找不到凭证文件 $ENV_FILE" >&2
-  exit 1
+# 凭证来源（2026-10-25 改）：两种方式任选其一，不再强制 .env
+#   ① 显式凭证文件（CLOUDFLARE_ENV_FILE 指定，或默认 /e/test/opendoor/.env）
+#   ② wrangler 登录态（npx wrangler whoami 能看到账号即可）
+# 原实现强制要求 ①，但 opendoor/.env 已不存在，而 wrangler 明明已登录，
+# 导致「明明有登录态却部署不了」。现在 ① 存在就用 ①，否则走 ②。
+if [[ -f "$ENV_FILE" ]]; then
+  # 只把两个变量导出到本进程环境，不回显
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+  : "${CLOUDFLARE_ACCOUNT_ID:?ERROR: $ENV_FILE 缺少 CLOUDFLARE_ACCOUNT_ID}"
+  : "${CLOUDFLARE_API_TOKEN:?ERROR: $ENV_FILE 缺少 CLOUDFLARE_API_TOKEN}"
+  echo "==> 使用凭证文件 $ENV_FILE"
+else
+  if ! npx --yes wrangler@latest whoami >/dev/null 2>&1; then
+    echo "ERROR: 既没有凭证文件 $ENV_FILE，wrangler 也没登录。" >&2
+    echo "       解决（二选一）：" >&2
+    echo "         a) npx wrangler login" >&2
+    echo "         b) 建 $ENV_FILE 写入 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN" >&2
+    exit 1
+  fi
+  echo "==> 无凭证文件，使用 wrangler 登录态"
 fi
-
-# 只把两个变量导出到本进程环境，不回显
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
-
-: "${CLOUDFLARE_ACCOUNT_ID:?ERROR: .env 缺少 CLOUDFLARE_ACCOUNT_ID}"
-: "${CLOUDFLARE_API_TOKEN:?ERROR: .env 缺少 CLOUDFLARE_API_TOKEN}"
 
 # ── 铁律（2026-10-18）：部署到服务器的一律先同步 git ─────────────────────
 # 线上内容必须与仓库可对齐、可回滚：已跟踪文件必须干净，且 HEAD 必须已推送到 origin/main
@@ -48,7 +59,9 @@ if [[ ! -f pwa/dist/index.html ]]; then
 fi
 
 # 凭证防打印：所有 wrangler 输出过一道脱敏（token 绝不外泄）
-redact() { sed "s/${CLOUDFLARE_API_TOKEN}/***REDACTED***/g"; }
+# 凭证防打印：所有 wrangler 输出过一道脱敏（token 绝不外泄）
+# ⚠️ set -u 下未定义变量会报错，这里给空默认值（走登录态时没有 API_TOKEN）
+redact() { sed "s/${CLOUDFLARE_API_TOKEN:-__NO_TOKEN__}/***REDACTED***/g"; }
 
 # wrangler 4.x：项目不存在时直接 deploy 会报错，需先 create（已存在则忽略错误继续）
 echo "==> 确保 Pages 项目存在"
