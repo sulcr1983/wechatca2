@@ -81,6 +81,14 @@ def main() -> int:
             page.click("#btn-cover")
             page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
             check("封面页打开", page.is_visible("#cover-root"))
+
+            # 2026-10-25 改版：左栏改为 4 个标签（内容/风格/文字/底图），
+            # 非当前标签内的控件是 hidden，直接 click 会超时。
+            # 统一封装「先切标签再操作」，避免每处都写一遍。
+            def tab(name):
+                page.click(f".cv-tab[data-tab='{name}']")
+                page.wait_for_timeout(120)
+
             check("排版页隐藏", page.is_hidden("#stage"))
             # 2026-10-25：按钮文案改为「公众号排版」（原「排版」，用户要求说清返回哪一页）
             check("按钮变为「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版")
@@ -100,6 +108,7 @@ def main() -> int:
                   "")
 
             # ── 风格与尺寸 ──
+            tab("style")
             styles = page.locator(".cv-style").count()
             check("12 种风格全部渲染", styles == 12, f"{styles} 个")
             check("默认支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3)
@@ -113,11 +122,13 @@ def main() -> int:
             # 10 套模板的 --accent 各不相同，底色必须互不相同。
             style_ids = page.eval_on_selector_all(
                 ".cv-style", "els => els.map(e => e.dataset.style)")
+            tab("content")
             page.fill("#cv-text", "周末去海边\n\n两天的沉默之后，我重新听见了海浪。")
             bg_of = {}
             for sid in style_ids:
                 if not sid.startswith(("editorial-", "swiss-")):
                     continue        # 只测 10 套模板（归藏两套另有断言）
+                tab("style")
                 page.click(f'[data-style="{sid}"]')
                 page.wait_for_timeout(400)
                 page.click("#cv-gen")
@@ -147,7 +158,41 @@ def main() -> int:
                   f"{len(bg_of)} 套 · 重复={same or '无'}")
             page.click('[data-style="editorial"]')
 
+            # ── 字体与文字玩法（2026-10-25 新增）──
+            tab("text")
+            fonts = page.eval_on_selector_all(
+                ".cv-chip[data-font]", "els => els.map(e => e.dataset.font)")
+            check("字体选项齐全（含得意黑）",
+                  set(fonts) >= {"auto", "sans", "serif", "smiley"}, str(fonts))
+            modes = page.eval_on_selector_all(
+                ".cv-chip[data-textmode]", "els => els.map(e => e.dataset.textmode)")
+            check("文字玩法 ≥ 7 种", len(modes) >= 7, str(modes))
+
+            # 满意黑按需加载：未选中时不该请求字体文件
+            font_reqs_before = [u for u in page.evaluate(
+                "() => performance.getEntriesByType('resource').map(r => r.name)")
+                if "smiley-sans" in u]
+            check("未选中得意黑时不下载字体", len(font_reqs_before) == 0,
+                  f"{len(font_reqs_before)} 个请求")
+
+            # 切回默认字体 + 逐字换色，验证标题被切成 span（玩法真的生效）
+            tab("content")
+            page.fill("#cv-text", "周末去海边\n\n两天的沉默之后。")
+            tab("text")
+            page.click(".cv-chip[data-font='auto']")
+            page.click(".cv-chip[data-textmode='rainbow']")
+            page.click("#cv-gen")
+            page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=60000)
+            page.wait_for_timeout(600)
+            page.click(".cv-card")
+            page.wait_for_timeout(900)
+            if page.is_visible("#cv-lightbox"):
+                page.click("#cv-lightbox-close")
+                page.wait_for_timeout(300)
+            page.click(".cv-chip[data-textmode='stack']")
+
             # ── 归藏：3 尺寸 ──
+            tab("content")
             page.fill("#cv-text", TEXT)
             page.fill("#cv-author", "阿苏")
             page.click("#cv-gen")
@@ -158,6 +203,7 @@ def main() -> int:
             check("每张都有下载链接", page.locator("a.cv-dl").count() == 3)
 
             # ── 模板：3:4 ──
+            tab("style")
             page.click('[data-style="editorial-dune"]')
             page.click("#cv-gen")
             page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
@@ -166,6 +212,7 @@ def main() -> int:
 
             # ── 上传底图 ──
             if UPLOAD.exists():
+                tab("bg")
                 page.click('[data-mode="upload"]')
                 page.set_input_files("#cv-file", str(UPLOAD))
                 page.wait_for_selector(".cv-bg-preview img", timeout=15000)
@@ -177,6 +224,7 @@ def main() -> int:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
 
             # ── Wikimedia 搜图（网络失败记 SKIP，不算失败）──
+            tab("bg")
             page.click('[data-mode="search"]')
             page.fill("#cv-q", "coffee")
             page.click("#cv-search")
@@ -223,6 +271,9 @@ def main() -> int:
                 if page.is_hidden("#cover-root"):
                     page.click("#btn-cover")
                     page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
+                # 断网阶段可能停在「底图」等其它标签，先切回「内容」再填文案
+                page.click(".cv-tab[data-tab='content']")
+                page.wait_for_timeout(150)
                 page.fill("#cv-text", TEXT)
                 page.click("#cv-gen")
                 page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)

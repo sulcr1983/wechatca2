@@ -164,26 +164,187 @@ async function request(query, limit) {
   return items.slice(0, limit);
 }
 
+/* ── 多图源支持（2026-10-25）─────────────────────────────────────────────
+ *
+ * 背景：原来只有 Wikimedia Commons，实测**国内直连必超时**（HTTP 000），
+ * 等于功能废掉。实测三家主流图库的图片 CDN 国内都能直连：
+ *   images.pexels.com 0.69s / cdn.pixabay.com 1.02s / images.unsplash.com 0.23s
+ * 所以改成「Pexels → Pixabay → Wikimedia」逐级降级。
+ *
+ * 授权（都不需要署名，可商用）：
+ *   Pexels License   https://www.pexels.com/license/
+ *   Pixabay License  https://pixabay.com/service/license-summary/
+ *   Wikimedia       逐张不同 CC 协议（仅作兜底）
+ *
+ * Key 存浏览器本地（BYOK，与 AI 功能同模式），不上传服务端。
+ */
+
+const STOCK_KEY = 'supersu.cover.stock.v1';
+const PEXELS_API = 'https://api.pexels.com/v1/search';
+const PIXABAY_API = 'https://pixabay.com/api/';
+
+/** 读取图库 key。返回 { pexels, pixabay }，缺省为空串。 */
+export function getStockKeys() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STOCK_KEY) || '{}') || {};
+    return { pexels: String(d.pexels || ''), pixabay: String(d.pixabay || '') };
+  } catch {
+    return { pexels: '', pixabay: '' };
+  }
+}
+
+/** 保存图库 key（只存本机）。 */
+export function setStockKeys({ pexels = '', pixabay = '' } = {}) {
+  try {
+    localStorage.setItem(STOCK_KEY, JSON.stringify({
+      pexels: String(pexels).trim(), pixabay: String(pixabay).trim(),
+    }));
+  } catch { /* 隐私模式忽略 */ }
+}
+
+/** 当前哪些源可用（用于 UI 提示）。 */
+export function availableProviders() {
+  const k = getStockKeys();
+  const out = [];
+  if (k.pexels) out.push('pexels');
+  if (k.pixabay) out.push('pixabay');
+  out.push('wikimedia');     // 免 key 兜底
+  return out;
+}
+
+async function fetchJson(url, { headers = {}, timeout = REQ_TIMEOUT } = {}) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, mode: 'cors', headers });
+    if (!res.ok) throw new SearchError(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Pexels 搜索。原生支持中文 query，竖图优先。 */
+async function searchPexels(q, limit, key) {
+  const params = new URLSearchParams({
+    query: q, per_page: String(Math.max(limit, 12)), orientation: 'portrait',
+  });
+  const data = await fetchJson(`${PEXELS_API}?${params}`, { headers: { Authorization: key } });
+  const photos = Array.isArray(data?.photos) ? data.photos : [];
+  return photos.map((ph) => ({
+    id: `px-${ph.id}`,
+    title: ph.alt || q,
+    url: ph.src?.original || ph.src?.large2x || ph.src?.large || '',
+    thumb: ph.src?.medium || ph.src?.small || ph.src?.tiny || '',
+    width: ph.width || 0,
+    height: ph.height || 0,
+    author: ph.photographer || '',
+    license: 'Pexels License',
+    licenseUrl: 'https://www.pexels.com/license/',
+    pageUrl: ph.url || '',
+    provider: 'pexels',
+  })).filter((it) => it.url && it.width >= 600);
+}
+
+/** Pixabay 搜索。素材量更大，且含插画（image_type=photo 只取照片）。 */
+async function searchPixabay(q, limit, key) {
+  const params = new URLSearchParams({
+    key, q, per_page: String(Math.max(limit, 12)),
+    image_type: 'photo', orientation: 'vertical', safesearch: 'true',
+  });
+  const data = await fetchJson(`${PIXABAY_API}?${params}`);
+  const hits = Array.isArray(data?.hits) ? data.hits : [];
+  return hits.map((h) => ({
+    id: `pb-${h.id}`,
+    title: h.tags || q,
+    url: h.largeImageURL || h.webformatURL || '',
+    thumb: h.webformatURL || h.previewURL || '',
+    width: h.imageWidth || 0,
+    height: h.imageHeight || 0,
+    author: h.user || '',
+    license: 'Pixabay License',
+    licenseUrl: 'https://pixabay.com/service/license-summary/',
+    pageUrl: h.pageURL || '',
+    provider: 'pixabay',
+  })).filter((it) => it.url && it.width >= 600);
+}
+
+/** 逐级降级搜索：Pexels → Pixabay → Wikimedia（免 key 兜底）。 */
+async function searchMultiProvider(q, limit) {
+  const keys = getStockKeys();
+  const tried = [];
+  if (keys.pexels) {
+    try {
+      const items = await searchPexels(q, limit, keys.pexels);
+      if (items.length) return { items, provider: 'pexels' };
+      tried.push('Pexels 无结果');
+    } catch (e) {
+      tried.push(`Pexels 失败：${e.message || e}`);
+    }
+  } else {
+    tried.push('Pexels 未配置 Key');
+  }
+  if (keys.pixabay) {
+    try {
+      const items = await searchPixabay(q, limit, keys.pixabay);
+      if (items.length) return { items, provider: 'pixabay' };
+      tried.push('Pixabay 无结果');
+    } catch (e) {
+      tried.push(`Pixabay 失败：${e.message || e}`);
+    }
+  } else {
+    tried.push('Pixabay 未配置 Key');
+  }
+  // 兜底：Wikimedia（免 key，但国内常不可达）
+  try {
+    const items = await request(q, limit);
+    if (items.length) return { items, provider: 'wikimedia' };
+    tried.push('Wikimedia 无结果');
+  } catch (e) {
+    tried.push(`Wikimedia 不可达`);
+  }
+  const err = new SearchError(
+    '没找到底图。' + (keys.pexels || keys.pixabay
+      ? '换个关键词试试，或改用上传。'
+      : '建议先在图库设置里填 Pexels / Pixabay 的免费 Key（点「怎么获取」看教程）。'),
+  );
+  err.detail = tried;
+  throw err;
+}
+
 /** 搜底图。返回 { query, translated, from, items }；失败抛 SearchError。 */
 export async function searchBackground(input, { limit = 6 } = {}) {
   const guess = guessQuery(input);
   const q = guess.query;
-  if (!q) return { query: '', translated: false, from: '', items: [] };
+  if (!q) return { query: '', translated: false, from: '', items: [], provider: '' };
 
   const cache = readCache();
   const hit = cache[q];
   if (hit && Date.now() - hit.t < CACHE_TTL && Array.isArray(hit.items)) {
-    return { ...guess, items: hit.items };
+    return { ...guess, items: hit.items, provider: hit.provider || '' };
   }
 
-  let items = await request(q, limit);
-  // 映射后的英文没结果时，退回原文再试一次（中文标题可能命中 Commons 描述）
-  if (!items.length && input && q !== input.trim()) {
-    items = await request(input.trim().slice(0, 60), limit);
+  // 2026-10-25：改为多源降级（Pexels → Pixabay → Wikimedia）。
+  // Pexels/Pixabay 原生支持中文，不再需要先把中文映射成英文再搜。
+  let items = [];
+  let provider = '';
+  try {
+    const r = await searchMultiProvider(q, limit);
+    items = r.items;
+    provider = r.provider;
+  } catch (e) {
+    // 英文映射词没命中时，退回原文再试一次（中文词对 Pixabay 的 tags 常有效）
+    if (input && q !== input.trim()) {
+      const r2 = await searchMultiProvider(input.trim().slice(0, 60), limit);
+      items = r2.items;
+      provider = r2.provider;
+    } else {
+      throw e;
+    }
   }
-  cache[q] = { t: Date.now(), items };
+  cache[q] = { t: Date.now(), items, provider };
   writeCache(cache);
-  return { ...guess, items };
+  return { ...guess, items, provider };
 }
 
 /** 把远程图片转成 data URL（避免截图时跨域图片被污染）。 */

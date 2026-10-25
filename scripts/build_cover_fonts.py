@@ -140,6 +140,13 @@ def main() -> None:
                 f"src:url(./cover/{slug}-{weight}.woff2) format('woff2');"
                 "}"
             )
+
+    # ── 可选字体：故意不写进本文件（按需加载）─────────────────────────
+    # 得意黑 Smiley Sans v2.0.1：atelierAnchor 出品，SIL OFL 1.1，WOFF2 1.1MB。
+    # ⚠️ 不写进 cover-fonts.css：它是**可选**字体，写进来会让所有用户进封面页就
+    #    下载 1.1MB（2026-10-25 苏哥指出应该选中才加载）。
+    #    实际由 pwa/src/cover/textmode.js 在「选中得意黑」时按需注入 @font-face。
+    # 授权全文 pwa/public/fonts/cover/OFL-smiley-sans.txt 随包分发（OFL 义务）。
     (ROOT / "pwa" / "public" / "fonts" / "cover-fonts.css").write_text("\n".join(css) + "\n", encoding="utf-8")
     print("CSS → pwa/public/fonts/cover-fonts.css")
     total = sum(p.stat().st_size for p in OUT_DIR.glob("*.woff2"))

@@ -72,9 +72,12 @@
 | **Playfair Display** | Copyright 2017 The Playfair Display Project Authors | 封面模板标题（归藏模板使用） |
 | **Noto Serif SC** | Copyright 2014-2021 Adobe | 封面中文字体子集（GB2312 一级 + ASCII，随包分发） |
 | **Inter** | Copyright 2016 The Inter Project Authors | 封面模板正文 |
+| **得意黑 Smiley Sans** | Copyright (c) 2022--2024, atelierAnchor \<https://atelier-anchor.com\>, with Reserved Font Name \<Smiley\> and \<得意黑\> | 小红书标题图可选标题字体（v2.0.1，WOFF2 1.1MB，**按需加载**：用户选中才下载） |
 
-**OFL-1.1 义务摘要**：允许自由使用、修改、分发（含打包进产品）；须保留版权声明与本许可文本；不得单独售卖字体本身；修改后不得使用保留字体名（Noto 的 RFN 为 "Source"）；不得用作者名/字体名为产品背书。
-**许可全文**：https://openfontlicense.org/open-font-license-official-text/ · 本地副本见 `pwa/public/fonts/OFL.txt` 与 `pwa/public/fonts/cover/OFL-noto-*.txt`。
+**OFL-1.1 义务摘要**：允许自由使用、修改、分发（含打包进产品）；须保留版权声明与本许可文本；不得单独售卖字体本身；修改后不得使用保留字体名（Noto 的 RFN 为 "Source"；得意黑的 RFN 为 "Smiley" 与 "得意黑"）；不得用作者名/字体名为产品背书。
+**许可全文**：https://openfontlicense.org/open-font-license-official-text/ · 本地副本见 `pwa/public/fonts/OFL.txt`、`pwa/public/fonts/cover/OFL-noto-*.txt` 与 `pwa/public/fonts/cover/OFL-smiley-sans.txt`。
+
+> **得意黑说明**（2026-10-25 加入）：本项目只**引用**该字体做标题渲染，未修改字形，因此可继续使用原名（符合 OFL 的 RFN 条款）。字体文件不参与首屏预缓存，仅当用户在小红书页「文字 → 字体」中选中「得意黑」时才注入 `@font-face` 并按需下载。
 
 ---
 

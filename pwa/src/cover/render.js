@@ -4,6 +4,7 @@
 
 import { COVER_SIZES, GUIZANG_STYLES, styleById } from './catalog.js';
 import { buildGuizangHtml, prepareTemplateHtml } from './templates.js';
+import { applyTextStyle } from './textmode.js';
 
 const BASE = new URL('../../', import.meta.url).href;
 const WAIT_READY_MS = 15000;
@@ -37,14 +38,21 @@ async function loadTemplate(id) {
 }
 
 /** 返回最终 HTML（不渲染），供预览或调试。 */
-export async function buildCoverHtml({ style, size = 'xhs', title, lead = '', author = '', image = '' }) {
+export async function buildCoverHtml({ style, size = 'xhs', title, lead = '', author = '', image = '', textMode = 'stack', font = 'auto' }) {
   const meta = styleById(style);
   const realSize = meta.sizes.includes(size) ? size : meta.sizes[0];
   const opts = { title, lead, author, image, baseUrl: BASE };
+  let html;
   if (GUIZANG_STYLES.some((s) => s.id === style)) {
-    return { html: buildGuizangHtml({ style, size: realSize, ...opts }), size: realSize, meta };
+    html = buildGuizangHtml({ style, size: realSize, ...opts });
+  } else {
+    html = prepareTemplateHtml(await loadTemplate(style), opts);
   }
-  return { html: prepareTemplateHtml(await loadTemplate(style), opts), size: realSize, meta };
+  // 字体 + 文字玩法（2026-10-25）：在模板产物之上做一层纯 CSS/逐字 span 处理，
+  // 不改模板结构，默认 'stack'/'auto' 时行为与之前完全一致（回归安全）。
+  // baseUrl 用于可选字体（得意黑）的绝对 URL —— srcdoc 里相对路径无效。
+  html = applyTextStyle(html, { mode: textMode, font, title, baseUrl: BASE });
+  return { html, size: realSize, meta };
 }
 
 function waitReady(win, timeout = WAIT_READY_MS) {
@@ -77,6 +85,11 @@ export async function renderCoverBlob(opts) {
       iframe.srcdoc = html;
     });
     await waitReady(iframe.contentWindow);
+    // 等字体真正就绪（2026-10-25）：可选字体（得意黑）是按需注入的，
+    // 若不等 fonts.ready，截图可能拍到「字体还没下完 → 用回退字体」的画面。
+    try {
+      await iframe.contentWindow.document.fonts.ready;
+    } catch { /* 老浏览器没有 fonts.ready，忽略 */ }
     // 再等一帧，确保 fitty 的 font-size 已写回
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const node = iframe.contentDocument.getElementById('xhs-cover');

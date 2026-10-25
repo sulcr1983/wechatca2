@@ -84,7 +84,66 @@
     <button class="ai-btn ghost" id="ai-summary">生成摘要</button>
   </div>
   <div class="ai-out" id="ai-out" hidden></div>
+
+  <!-- 图库素材 Key（小红书标题图的联网底图，2026-10-25 新增）
+       Pexels / Pixabay 免费 key，存本机 localStorage，不上传。 -->
+  <div class="ai-sep"></div>
+  <div class="stock-head">
+    <strong>图库素材 <span class="stock-sub">· 小红书底图用</span></strong>
+    <button class="stock-help" id="stock-help" type="button">怎么获取？</button>
+  </div>
+  <p class="ai-tip stock-tip">用于「联网搜图」。两家都免费、可商用、免署名，Key 只存本机。至少填一个即可，留空则只用免 Key 的 Wikimedia（国内常连不上）。</p>
+  <label class="ai-field"><span>Pexels Key</span><input id="stock-pexels" placeholder="粘贴 Pexels API Key" autocomplete="off" spellcheck="false"></label>
+  <label class="ai-field"><span>Pixabay Key</span><input id="stock-pixabay" placeholder="粘贴 Pixabay API Key" autocomplete="off" spellcheck="false"></label>
+  <div class="ai-row">
+    <button class="ai-btn" id="stock-save">保存图库 Key</button>
+    <span class="stock-state" id="stock-state"></span>
+  </div>
 </aside>
+
+<!-- 图库 Key 申请教程（点击「怎么获取？」弹出） -->
+<div class="tut-mask" id="tut-mask" hidden></div>
+<div class="tut-sheet" id="tut-sheet" hidden role="dialog" aria-label="图库 Key 获取教程">
+  <div class="ai-head">
+    <strong>免费图库 Key 怎么拿</strong>
+    <button class="icon-btn" id="tut-close" aria-label="关闭">✕</button>
+  </div>
+  <p class="ai-tip">两家都是<strong>注册即给 Key、不用信用卡、可商用免署名</strong>。任选一家填上就能用，两家都填效果最好（一家没结果自动换另一家）。</p>
+
+  <div class="tut-block">
+    <div class="tut-title">① Pexels（推荐 · 支持中文搜索）</div>
+    <ol class="tut-steps">
+      <li>打开 <a href="https://www.pexels.com/api/" target="_blank" rel="noopener noreferrer">pexels.com/api</a></li>
+      <li>点 <b>Get Started</b>，用邮箱注册（免费）</li>
+      <li>填一下用途（随便写，如「personal blog covers」）</li>
+      <li>进入 <b>Your API Key</b> 页面，复制那串 Key</li>
+      <li>粘贴到左侧「Pexels Key」，点保存</li>
+    </ol>
+    <p class="tut-note">额度：200 次/小时、20000 次/月，个人用完全够。</p>
+  </div>
+
+  <div class="tut-block">
+    <div class="tut-title">② Pixabay（备选 · 素材更多）</div>
+    <ol class="tut-steps">
+      <li>打开 <a href="https://pixabay.com/accounts/register/" target="_blank" rel="noopener noreferrer">pixabay.com 注册页</a>注册</li>
+      <li>登录后打开 <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener noreferrer">pixabay.com/api/docs</a></li>
+      <li>页面上方 <b>Your API key</b> 就是（一串数字）</li>
+      <li>粘贴到左侧「Pixabay Key」，点保存</li>
+    </ol>
+    <p class="tut-note">额度：约 100 次/分钟，够用。</p>
+  </div>
+
+  <div class="tut-block">
+    <div class="tut-title">版权说明（放心用）</div>
+    <p class="tut-note">
+      Pexels License / Pixabay License 都允许<strong>免费商用、无需署名</strong>，
+      可以放心用在公众号和小红书。<br>
+      唯一注意：不要把「未修改的原图」直接当素材站转售。
+    </p>
+  </div>
+
+  <p class="ai-tip">填完关掉这个窗口，回小红书页的「底图 → 联网搜图」就能用了。</p>
+</div>
 
 <!-- ── 主体 ───────────────────────────────────────────────────── -->
 <main class="stage" id="stage" data-tab="edit">

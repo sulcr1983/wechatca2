@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-25T17:38:34+08:00",
-  "totalCommits": 193,
+  "generatedAt": "2026-10-25T18:19:06+08:00",
+  "totalCommits": 195,
   "releases": [
     {
       "version": "1.6.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 1,
         "fixed": 9,
-        "other": 8
+        "other": 10
       },
       "groups": [
         {
@@ -99,6 +99,20 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（模板配色修复 b215 已部署）",
+              "scope": "",
+              "hash": "bc0e611",
+              "date": "2026-10-25T17:42:01+08:00",
+              "breaking": false
+            },
+            {
+              "text": "构建产物同步（字色算法）",
+              "scope": "",
+              "hash": "2e7ceb2",
+              "date": "2026-10-25T17:38:39+08:00",
+              "breaking": false
+            },
             {
               "text": "构建产物同步（模板配色修复）",
               "scope": "",

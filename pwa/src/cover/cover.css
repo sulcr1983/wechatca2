@@ -242,3 +242,39 @@
   .cv-style-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cv-gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 }
+
+/* ── 左侧标签栏（2026-10-25 改版）─────────────────────────────────
+   加了「字体 / 文字玩法 / 图库配置」后，原来 5 个 section 纵向堆叠会让
+   左栏变成一条长滚动带。改为 4 个标签，每个标签只放一组设置，一屏看全。 */
+.cv-tabs {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  margin: -4px 0 14px; padding: 3px;
+  background: var(--bg-hover); border-radius: 8px;
+}
+.cv-tab {
+  height: 30px; border-radius: 6px; font-size: 12.5px;
+  color: var(--text-muted); font-weight: 500;
+  transition: background .15s, color .15s;
+}
+.cv-tab:hover { color: var(--text); }
+.cv-tab.on {
+  background: var(--bg-raised); color: var(--text); font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.cv-tabpane[hidden] { display: none; }
+
+/* 字体 / 玩法 选项（横向小胶囊） */
+.cv-chip-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.cv-chip {
+  height: 30px; padding: 0 12px; border-radius: 99px;
+  font-size: 12.5px; color: var(--text-soft);
+  border: 1px solid var(--border); background: var(--bg-raised);
+  white-space: nowrap; transition: all .15s;
+}
+.cv-chip:hover { border-color: var(--accent); color: var(--accent); }
+.cv-chip[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-weight: 600;
+}

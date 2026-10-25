@@ -886,6 +886,68 @@ async function initAi() {
     toast('AI 配置已保存在本机，点「测试连接」通过后才会启用 AI 排版');
   });
 
+  /* ── 图库素材 Key（2026-10-25）：与 AI 同面板，同样只存本机 ──
+     这里直接读写 localStorage，**不 import cover/search.js**：
+     app.js 是主应用启动链，多一个顶层依赖就多一个离线启动失败的风险
+     （实测会打断「断网仍可用」这条既有能力）。storage key 与
+     cover/search.js 的 STOCK_KEY 保持一致。 */
+  const STOCK_KEY = 'supersu.cover.stock.v1';
+  const getStockKeys = () => {
+    try {
+      const d = JSON.parse(localStorage.getItem(STOCK_KEY) || '{}') || {};
+      return { pexels: String(d.pexels || ''), pixabay: String(d.pixabay || '') };
+    } catch { return { pexels: '', pixabay: '' }; }
+  };
+  const setStockKeys = ({ pexels = '', pixabay = '' } = {}) => {
+    try {
+      localStorage.setItem(STOCK_KEY, JSON.stringify({
+        pexels: String(pexels).trim(), pixabay: String(pixabay).trim(),
+      }));
+    } catch { /* 隐私模式忽略 */ }
+  };
+  const refreshStockState = () => {
+    const k = getStockKeys();
+    const parts = [];
+    if (k.pexels) parts.push('Pexels ✓');
+    if (k.pixabay) parts.push('Pixabay ✓');
+    const el = $('stock-state');
+    if (el) el.textContent = parts.length ? `已配置：${parts.join(' · ')}` : '未配置（只能用免 Key 图源）';
+  };
+  const loadStock = () => {
+    const k = getStockKeys();
+    if ($('stock-pexels')) $('stock-pexels').value = k.pexels;
+    if ($('stock-pixabay')) $('stock-pixabay').value = k.pixabay;
+    refreshStockState();
+  };
+  const openTut = () => {
+    if ($('tut-sheet')) $('tut-sheet').hidden = false;
+    if ($('tut-mask')) $('tut-mask').hidden = false;
+  };
+  const closeTut = () => {
+    if ($('tut-sheet')) $('tut-sheet').hidden = true;
+    if ($('tut-mask')) $('tut-mask').hidden = true;
+  };
+  $('stock-save')?.addEventListener('click', () => {
+    setStockKeys({
+      pexels: $('stock-pexels')?.value || '',
+      pixabay: $('stock-pixabay')?.value || '',
+    });
+    refreshStockState();
+    toast('图库 Key 已保存在本机');
+  });
+  $('stock-help')?.addEventListener('click', openTut);
+  $('tut-close')?.addEventListener('click', closeTut);
+  $('tut-mask')?.addEventListener('click', closeTut);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('tut-sheet') && !$('tut-sheet').hidden) closeTut();
+  });
+  // 打开 AI 面板时顺带带出图库 Key（同一面板两块配置）
+  const _openAiSheet = open;
+  // 用事件委托兜住：AI 面板的 open 是内部闭包，直接在按钮上追加一次加载
+  document.getElementById('btn-ai')?.addEventListener('click', loadStock);
+  loadStock();
+  void _openAiSheet;
+
   $('ai-test').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;

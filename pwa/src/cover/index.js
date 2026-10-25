@@ -4,6 +4,7 @@
 
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, COVER_SIZES, styleById } from './catalog.js';
 import { renderCoverBlob } from './render.js';
+import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { searchBackground, fetchImageDataUrl, guessQuery } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
 
@@ -14,6 +15,9 @@ const state = {
   style: 'editorial',
   size: 'xhs',
   mode: 'color',          // color | upload | search
+  tab: 'content',         // content | style | text | bg（左侧标签）
+  font: 'auto',           // TEXT_FONTS 的 id
+  textMode: 'stack',      // TEXT_MODES 的 id
   image: '',              // data URL
   imageMeta: null,        // {title, author, license, pageUrl} | {title, author:'本地上传'}
   candidates: [],
@@ -98,6 +102,98 @@ function selectStyle(id) {
   savePrefs();
   renderStyles();
   renderSizes();
+}
+
+/* ── 左侧标签（2026-10-25 改版）──
+   原来 5 个 section 纵排，加字体/玩法/图库后太长。改成 4 个标签，
+   每组设置一屏可见；当前标签存进 prefs，下次进来还在同一页。 */
+function selectTab(id) {
+  if (!['content', 'style', 'text', 'bg'].includes(id)) return;
+  state.tab = id;
+  document.querySelectorAll('.cv-tab').forEach((b) => {
+    const on = b.dataset.tab === id;
+    b.setAttribute('aria-selected', String(on));
+    b.classList.toggle('on', on);
+  });
+  document.querySelectorAll('.cv-tabpane').forEach((p) => {
+    p.hidden = p.dataset.pane !== id;
+  });
+  savePrefs();
+}
+
+function renderFonts() {
+  const box = $('cv-fonts');
+  if (!box) return;
+  box.textContent = '';
+  for (const f of TEXT_FONTS) {
+    const b = document.createElement('button');
+    b.className = 'cv-chip';
+    b.type = 'button';
+    b.dataset.font = f.id;
+    b.title = f.desc;
+    b.setAttribute('aria-pressed', String(state.font === f.id));
+    b.textContent = f.name;
+    // 可选字体（得意黑）：不在这里用该字体渲染按钮自身，
+    // 否则「一进页面就为了渲染按钮而下 1.1MB」，违背按需加载初衷。
+    b.addEventListener('click', () => selectFont(f.id));
+    box.appendChild(b);
+  }
+  const hint = $('cv-font-hint');
+  if (hint) {
+    const cur = TEXT_FONTS.find((f) => f.id === state.font);
+    hint.textContent = cur && cur.optional ? `${cur.desc} · 首次使用会下载约 1.1MB` : (cur?.desc || '');
+  }
+}
+
+function selectFont(id) {
+  if (!TEXT_FONTS.some((f) => f.id === id)) return;
+  state.font = id;
+  savePrefs();
+  renderFonts();
+  // 选中可选字体时先预热一次，让用户点「生成」时不用等下载
+  const meta = TEXT_FONTS.find((f) => f.id === id);
+  if (meta && meta.optional) {
+    const url = new URL(meta.file, new URL('../../', import.meta.url).href).href;
+    // ⚠️ 预热必须用 meta.family（'Smiley Sans'），不是中文显示名 —— 用错名字
+    //    等于预热了一个不存在的字体，白下一次（2026-10-25 修正）。
+    const fam = (meta.family || '').replace(/^['"]|['"]$/g, '');
+    if (fam && document.fonts && document.fonts.load) {
+      document.fonts.load(`1em "${fam}"`).catch(() => {});
+    }
+    // 主文档里不一定用到该字体，用 FontFace 显式拉一次写进缓存（失败不阻断）
+    try {
+      const ff = new FontFace(fam, `url(${url})`, { style: 'normal' });
+      ff.load().then((f) => document.fonts.add(f)).catch(() => {});
+    } catch { /* 老浏览器忽略 */ }
+  }
+}
+
+function renderTextModes() {
+  const box = $('cv-textmodes');
+  if (!box) return;
+  box.textContent = '';
+  for (const m of TEXT_MODES) {
+    const b = document.createElement('button');
+    b.className = 'cv-chip';
+    b.type = 'button';
+    b.dataset.textmode = m.id;
+    b.title = m.desc;
+    b.setAttribute('aria-pressed', String(state.textMode === m.id));
+    b.textContent = m.name;
+    b.addEventListener('click', () => {
+      state.textMode = m.id;
+      savePrefs();
+      renderTextModes();
+      const hint = $('cv-textmode-hint');
+      if (hint) hint.textContent = m.desc;
+    });
+    box.appendChild(b);
+  }
+  const hint = $('cv-textmode-hint');
+  if (hint) {
+    const cur = TEXT_MODES.find((m) => m.id === state.textMode);
+    hint.textContent = cur?.desc || '';
+  }
 }
 
 function renderStyles() {
@@ -389,6 +485,7 @@ async function generate() {
       setStatus(`正在生成 ${COVER_SIZES[size].label}…`);
       const r = await renderCoverBlob({
         style: state.style, size, title, lead, author, image: state.image,
+        textMode: state.textMode, font: state.font,
       });
       const url = URL.createObjectURL(r.blob);
       state.results.push({ ...r, url });
@@ -533,6 +630,7 @@ function savePrefs() {
   try {
     localStorage.setItem(PREFS, JSON.stringify({
       style: state.style, size: state.size, mode: state.mode,
+      tab: state.tab, font: state.font, textMode: state.textMode,
       author: $('cv-author')?.value || '',
     }));
   } catch { /* 隐私模式不阻断 */ }
@@ -544,6 +642,9 @@ function loadPrefs() {
     if (p.style && styleById(p.style)) state.style = p.style;
     if (p.size && COVER_SIZES[p.size]) state.size = p.size;
     if (['color', 'upload', 'search'].includes(p.mode)) state.mode = p.mode;
+    if (['content', 'style', 'text', 'bg'].includes(p.tab)) state.tab = p.tab;
+    if (TEXT_FONTS.some((f) => f.id === p.font)) state.font = p.font;
+    if (TEXT_MODES.some((m) => m.id === p.textMode)) state.textMode = p.textMode;
     if (p.author && $('cv-author')) $('cv-author').value = p.author;
   } catch { /* 忽略损坏的偏好 */ }
 }
@@ -561,33 +662,62 @@ function mount() {
   root.innerHTML = `
     <main class="cv-stage">
       <aside class="cv-panel">
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">文案</span><button class="cv-mini-btn" id="cv-use-main" type="button">用正文</button></div>
-          <textarea class="cv-text" id="cv-text" maxlength="500" placeholder="第一行作大标题，接下来两行作引语。&#10;&#10;也可以点右上「用正文」带入排版页的内容。"></textarea>
-          <span class="cv-count" id="cv-count">0 / 500</span>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">署名（可选）</span></div>
-          <input class="cv-field" id="cv-author" maxlength="20" placeholder="例如：阿苏" autocomplete="off">
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">风格</span><span class="cv-hint" id="cv-style-hint"></span></div>
-          <div id="cv-styles"></div>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span></div>
-          <div class="cv-size-row" id="cv-sizes"></div>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
-          <div class="cv-modes" id="cv-modes">
-            <button class="cv-mode" type="button" data-mode="color">纯色</button>
-            <button class="cv-mode" type="button" data-mode="upload">上传</button>
-            <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
-          </div>
-          <div class="cv-bg-body" id="cv-bg-body"></div>
-          <div id="cv-bg-preview"></div>
-        </section>
+        <!-- 标签栏（2026-10-25 改版）：原来 5 个 section 纵向堆叠，加了字体/玩法/图库
+             配置后左侧会变得很长、要一直滚。改成 4 个标签，一屏只看一组设置。 -->
+        <div class="cv-tabs" id="cv-tabs" role="tablist">
+          <button class="cv-tab" type="button" data-tab="content" role="tab">内容</button>
+          <button class="cv-tab" type="button" data-tab="style" role="tab">风格</button>
+          <button class="cv-tab" type="button" data-tab="text" role="tab">文字</button>
+          <button class="cv-tab" type="button" data-tab="bg" role="tab">底图</button>
+        </div>
+
+        <div class="cv-tabpane" data-pane="content">
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">文案</span><button class="cv-mini-btn" id="cv-use-main" type="button">用正文</button></div>
+            <textarea class="cv-text" id="cv-text" maxlength="500" placeholder="第一行作大标题，接下来两行作引语。&#10;&#10;也可以点右上「用正文」带入排版页的内容。"></textarea>
+            <span class="cv-count" id="cv-count">0 / 500</span>
+          </section>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">署名（可选）</span></div>
+            <input class="cv-field" id="cv-author" maxlength="20" placeholder="例如：阿苏" autocomplete="off">
+          </section>
+        </div>
+
+        <div class="cv-tabpane" data-pane="style" hidden>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">风格</span><span class="cv-hint" id="cv-style-hint"></span></div>
+            <div id="cv-styles"></div>
+          </section>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span></div>
+            <div class="cv-size-row" id="cv-sizes"></div>
+          </section>
+        </div>
+
+        <div class="cv-tabpane" data-pane="text" hidden>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">字体</span><span class="cv-hint" id="cv-font-hint"></span></div>
+            <div class="cv-chip-row" id="cv-fonts"></div>
+          </section>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">文字玩法</span><span class="cv-hint" id="cv-textmode-hint"></span></div>
+            <div class="cv-chip-row cv-mode-row" id="cv-textmodes"></div>
+          </section>
+        </div>
+
+        <div class="cv-tabpane" data-pane="bg" hidden>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
+            <div class="cv-modes" id="cv-modes">
+              <button class="cv-mode" type="button" data-mode="color">纯色</button>
+              <button class="cv-mode" type="button" data-mode="upload">上传</button>
+              <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
+            </div>
+            <div class="cv-bg-body" id="cv-bg-body"></div>
+            <div id="cv-bg-preview"></div>
+          </section>
+        </div>
+
         <button class="cv-gen" id="cv-gen" type="button">生成标题图</button>
         <div class="cv-status" id="cv-status"></div>
       </aside>
@@ -652,7 +782,13 @@ function mount() {
   loadPrefs();
   renderStyles();
   renderSizes();
+  renderFonts();
+  renderTextModes();
   renderBg();
+  selectTab(state.tab);
+  document.querySelectorAll('.cv-tab').forEach((b) => {
+    b.addEventListener('click', () => selectTab(b.dataset.tab));
+  });
   updateCount();
   if ($('cv-author')) $('cv-author').addEventListener('input', savePrefs);
   $('cv-text').addEventListener('input', updateCount);
