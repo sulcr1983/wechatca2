@@ -52,6 +52,47 @@ body:not(.has-img) .content { min-height: 100%; }
 body:not(.has-img) .inner-content,
 body:not(.has-img) .content { justify-content: center; }
 body:not(.has-img) .grow { display: none !important; }
+
+/* ── 纯色模式补底色（2026-10-25 修）─────────────────────────────
+   10 套模板原本全部靠 cover-img（真实照片）撑满画布，并且文字是白色
+   （只有 body.has-img 时才会变白，靠深色遮罩保证可读）。
+   纯色模式下底图被移除 → 只剩 .inner-content 的 rgba(0,0,0,.08) 淡灰，
+   10 套模板看起来**完全一样**（都是灰白板），用户以为「点了没反应」。
+
+   修法：无底图时用模板自己的 --accent（克莱因蓝/柠檬绿/柠檬黄/安全橙…）
+   做整版底色，文字转为 --paper（浅色），标题用 --accent-on。
+   这样每套模板的配色差异立刻可见，且不依赖任何图片。 */
+body:not(.has-img) .poster {
+  background: var(--accent) !important;
+}
+body:not(.has-img) .inner-content {
+  background: transparent !important;
+  border-radius: 0;
+}
+/* 文字：亮底 → 用浅色字（accent-on）；同时去掉底图模式的白色规则
+   ⚠️ editorial 系列模板没有定义 --accent-on，而它们的 --accent 是深色
+   （#111 墨黑 / #2e6b4f 森林绿 / #315d93 靛蓝），必须用白字。
+   这里用 --accent-on 优先、缺失时回落 #fff，覆盖两类模板。 */
+body:not(.has-img) .h-display,
+body:not(.has-img) .h-statement,
+body:not(.has-img) .square-title,
+body:not(.has-img) .wide-title,
+body:not(.has-img) .lead,
+body:not(.has-img) .kicker,
+body:not(.has-img) .t-cat,
+body:not(.has-img) .t-meta,
+body:not(.has-img) .issue-row,
+body:not(.has-img) .chrome-min,
+body:not(.has-img) .chrome-min span {
+  color: var(--accent-on, #ffffff) !important;
+  text-shadow: none !important;
+}
+body:not(.has-img) .hr-accent {
+  background: var(--accent-on, #ffffff) !important;
+  opacity: .7;
+}
+/* 模板里的装饰网格/点阵在纯色底上会脏，去掉 */
+body:not(.has-img) .dot-mat { display: none !important; }
 `;
 
 function fitScript() {

@@ -107,6 +107,46 @@ def main() -> int:
             check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1)
             page.click('[data-style="editorial"]')
 
+            # ── 每种风格必须生成「视觉上不同」的图（2026-10-25 补）──
+            # 之前只断言「有 12 个按钮」，漏掉了「10 套模板纯色模式下全变灰白板」的
+            # 真实 bug（用户反馈「生成图片都是一样的」）。这里逐个生成并比对底色，
+            # 10 套模板的 --accent 各不相同，底色必须互不相同。
+            style_ids = page.eval_on_selector_all(
+                ".cv-style", "els => els.map(e => e.dataset.style)")
+            page.fill("#cv-text", "周末去海边\n\n两天的沉默之后，我重新听见了海浪。")
+            bg_of = {}
+            for sid in style_ids:
+                if not sid.startswith(("editorial-", "swiss-")):
+                    continue        # 只测 10 套模板（归藏两套另有断言）
+                page.click(f'[data-style="{sid}"]')
+                page.wait_for_timeout(400)
+                page.click("#cv-gen")
+                try:
+                    page.wait_for_function(
+                        "document.querySelectorAll('.cv-card').length === 1", timeout=60000)
+                    page.wait_for_function(
+                        "document.querySelector('.cv-card img').naturalWidth > 0", timeout=20000)
+                    rgb = page.evaluate("""() => {
+                        const img = document.querySelector('.cv-card img');
+                        const cv = document.createElement('canvas');
+                        cv.width = 8; cv.height = 8;
+                        const ctx = cv.getContext('2d');
+                        ctx.drawImage(img, 0, 0, 8, 8);
+                        const d = ctx.getImageData(2, 2, 1, 1).data;
+                        return `${d[0]},${d[1]},${d[2]}`;
+                    }""")
+                    bg_of[sid] = rgb
+                except Exception as e:
+                    bg_of[sid] = f"ERR:{type(e).__name__}"
+            dup = {}
+            for sid, rgb in bg_of.items():
+                dup.setdefault(rgb, []).append(sid)
+            same = {k: v for k, v in dup.items() if len(v) > 1}
+            check("10 套模板底色互不相同（不再是灰白板）",
+                  not same and len(bg_of) == 10,
+                  f"{len(bg_of)} 套 · 重复={same or '无'}")
+            page.click('[data-style="editorial"]')
+
             # ── 归藏：3 尺寸 ──
             page.fill("#cv-text", TEXT)
             page.fill("#cv-author", "阿苏")
