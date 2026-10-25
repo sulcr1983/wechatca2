@@ -62,6 +62,8 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("nine",           [PY, "scripts/pwa_nine_test.py"],          "九宫格切图 15", "local"),
     ("cover",          [PY, "scripts/pwa_cover_test.py"],         "封面 18（1 SKIP 网络）", "local"),
     ("layout_compat",  [PY, "scripts/pwa_layout_compat_test.py"], "版式兼容矩阵 100", "in-process"),
+    ("doc_sync",       [PY, "scripts/doc_sync_check.py"],
+                       "文档一致性（数字与实际对齐）", "in-process"),
     ("clean_output",   [PY, "scripts/clean_output.py", "--days", "7"],
                        "output 清理预检（只预览不删）", "in-process"),
 ]

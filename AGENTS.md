@@ -1,5 +1,14 @@
 # AGENTS.md — SuperSu 个人工具项目规则
 
+## 0. 状态真源（先看这里）
+
+> 📊 **当前版本号 / 构建号 / 测试结果 / 门禁套件清单 → 一律看 [`STATE.md`](STATE.md)。**
+>
+> `STATE.md` 由 `python scripts/gen_state.py` 从真实数据源生成（version.json / dist / git / 门禁日志），
+> **禁止手改**。本文件与 README / HANDOFF 等**只允许指向它，不允许自己写具体数字**。
+>
+> 校验：`python scripts/doc_sync_check.py`（文档数字与实际不一致会直接报错）。
+
 ## 1. 项目定位
 
 SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
@@ -117,6 +126,14 @@ python scripts/test_all.py       # ★ **一键全测入口**（推荐给日常�
                                   #   all ~35min（+扩展套件 + 线上层）
 python scripts/preflight.py      # ★ **前置检查**（门禁第 0 步，也可单独跑）：dist 是否包含最近一次代码改动（阻断）
                                   # + 工作区是否脏（--deploy 才阻断）+ 线上版本对齐（--online）
+python scripts/release.py        # ★ **一键发版**（10 步串联）：前置检查 → 升版本 → 生成更新记录 → 构建
+                                  # → 本地层门禁 → 提交生成物 → preflight --deploy → 推送 → 部署 → 线上验证
+                                  # ⚠️ 先跑 --dry-run 演练；--no-deploy 只提交推送不部署
+python scripts/gen_state.py      # 生成 **STATE.md**（单一状态源）：版本/构建号/git/线上版本/测试结果，
+                                  # 全部从真实数据源采集；--check 只校验是否过期
+python scripts/doc_sync_check.py # 文档一致性校验：活文档禁手写具体数字（须指向 STATE.md）+ 历史快照须带过期声明
+python scripts/install_git_hooks.py  # 安装 pre-push 钩子：推送前查换行符漂移 / 构建产物误入 / 文档不一致
+                                  # （不查「工作区脏」，那条交给 deploy.sh 与 preflight --deploy）
 python scripts/run_gates.py      # 一键门禁（**PWA only**），分层执行、失败即停：
                                   #   0 前置检查 → 1 本地层（默认：本地 dist / 进程内源码，断网可跑）
                                   #   → 2 线上层（--online，部署后打 https://supersu.ccwu.cc/）

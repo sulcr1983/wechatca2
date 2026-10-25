@@ -171,9 +171,16 @@
   <!-- 段落样式（C 方案）：给当前模板加色块强调 -->
   <div class="drawer-blocks" id="drawer-blocks">
     <span class="db-label">段落样式</span>
-    <label class="db-item"><input type="checkbox" id="db-quote"><span>金句</span></label>
-    <label class="db-item"><input type="checkbox" id="db-data"><span>数据</span></label>
-    <label class="db-item"><input type="checkbox" id="db-tip"><span>提示</span></label>
+    <label class="db-item" title="自动识别带引号的句子，做成强调块">
+      <input type="checkbox" id="db-quote"><span>金句<em class="db-hint">含引号的句子</em></span>
+    </label>
+    <label class="db-item" title="自动识别含数字+单位的段落，做成数据块">
+      <input type="checkbox" id="db-data"><span>数据<em class="db-hint">含数字+单位</em></span>
+    </label>
+    <label class="db-item" title="自动识别「提示/注意/建议」开头的段落，做成提示框">
+      <input type="checkbox" id="db-tip"><span>提示<em class="db-hint">提示：/注意：开头</em></span>
+    </label>
+    <span class="db-note">按段落内容自动识别，不是每篇都会触发</span>
   </div>
   <!-- 自定义配色（最小版）：三个原生取色器，改完立即生效并存本机 -->
   <div class="drawer-custom" id="drawer-custom">

@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-25T01:50:51+08:00",
-  "totalCommits": 176,
+  "generatedAt": "2026-10-25T12:07:56+08:00",
+  "totalCommits": 177,
   "releases": [
     {
       "version": "1.5.0",
@@ -11,7 +11,7 @@
         "added": 15,
         "changed": 17,
         "fixed": 7,
-        "other": 9
+        "other": 10
       },
       "groups": [
         {
@@ -309,6 +309,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "复核他人审计（§八）+ 补修 3 处「诊断出却没修」的文档错误",
+              "scope": "",
+              "hash": "119d2b5",
+              "date": "2026-10-25T11:31:50+08:00",
+              "breaking": false
+            },
             {
               "text": "新增真实 AI 态有头测试（真调 DeepSeek），线上 17/17 全通过",
               "scope": "",

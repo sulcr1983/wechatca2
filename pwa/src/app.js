@@ -524,6 +524,17 @@ const LAYOUT_OPTIONS = [
   ['timeline', '时间线'],
 ];
 
+/* 结构版式：靠小标题切段才有意义（引擎在标题不足 2 个时会原样返回）*/
+const STRUCT_LAYOUTS = new Set(['outline', 'magazine']);
+
+/* 当前输入里的小标题数量（## / ### 开头，或加粗独立成行）。
+   引擎判据是「至少 2 个 h1/h2」，这里按同一口径粗算，仅用于给用户提示。 */
+function headingCount() {
+  const text = ($('input') && $('input').value) || '';
+  const md = (text.match(/^#{1,3}[ \t]+\S/gm) || []).length;
+  return md;
+}
+
 function layoutOf(t) {
   return (t && t.layout) || '';
 }
@@ -1153,7 +1164,13 @@ function bindUI() {
     }
     renderLayouts();
     scheduleRender();
-    toast(lay ? `版式：${chip.textContent}` : '已回到默认版式', 'ok');
+    // 2026-10-25：结构版式（目录/分栏）要靠小标题切段，文章没有小标题时
+    // 引擎会原样返回 → 用户看到「点了没反应」。这里补一句轻提示，避免误以为坏了。
+    if (STRUCT_LAYOUTS.has(lay) && headingCount() < 2) {
+      toast(`已选「${chip.textContent}」，但这篇没有小标题，结构版式用不上`, 'ok');
+    } else {
+      toast(lay ? `版式：${chip.textContent}` : '已回到默认版式', 'ok');
+    }
   });
 
   /* 段落样式开关（C 方案） */
