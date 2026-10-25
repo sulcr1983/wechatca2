@@ -72,21 +72,7 @@ const SHELL_FILES = [
 ];
 
 /* ── 文件操作 ─────────────────────────────────────────────────── */
-/* 2026-10-25：原来直接 fs.rmSync(p, {recursive:true})，在带 safe-delete 钩子的
-   环境（如 IDE/CI 的 node shim）里会被「批量删除保护」拦下 → build 失败。
-   这里改成自己逐层遍历、逐个 unlink/rmdir：语义相同，但不触发批量删除检测。 */
-function rmrf(p) {
-  let st;
-  try { st = fs.lstatSync(p); } catch { return; }   // 不存在就算了
-  if (!st.isDirectory()) {
-    try { fs.unlinkSync(p); } catch { /* 忽略 */ }
-    return;
-  }
-  for (const ent of fs.readdirSync(p, { withFileTypes: true })) {
-    rmrf(path.join(p, ent.name));
-  }
-  try { fs.rmdirSync(p); } catch { /* 忽略 */ }
-}
+function rmrf(p) { fs.rmSync(p, { recursive: true, force: true }); }
 
 function mkdirp(p) { fs.mkdirSync(p, { recursive: true }); }
 

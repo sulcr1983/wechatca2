@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-25T13:13:42+08:00",
-  "totalCommits": 178,
+  "generatedAt": "2026-10-25T14:53:31+08:00",
+  "totalCommits": 180,
   "releases": [
     {
       "version": "1.5.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 16,
         "changed": 17,
-        "fixed": 7,
+        "fixed": 9,
         "other": 10
       },
       "groups": [
@@ -261,6 +261,20 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态",
+              "scope": "build,test",
+              "hash": "b8495b8",
+              "date": "2026-10-25T14:41:15+08:00",
+              "breaking": false
+            },
+            {
+              "text": "修「卡片组排版失败」+ 小红书文案/布局 + 新增小红书全量截图测试",
+              "scope": "",
+              "hash": "5672cfa",
+              "date": "2026-10-25T13:34:58+08:00",
+              "breaking": false
+            },
             {
               "text": "门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档",
               "scope": "",
