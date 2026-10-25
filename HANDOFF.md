@@ -14,9 +14,15 @@
   ⚠️ 改引擎/主题后必须 `node pwa/scripts/build.mjs` 重新构建（拷进 `pwa/dist/py`、`pwa/dist/themes`）
 - 主题 164 套 = 45 经典 + 119 套 `su-*`；`su-*` 是**生成物**，改 `scripts/theme_specs.py` 后重跑 `scripts/build_themes.py`
 
-### 0.2 当前线上状态（截至 2026-10-24）
-- 线上 `version.json`：**v1.5.0 · build 162**（`build` = git 提交数，构建时注入）
-- git：HEAD `f85f6d8` 已推送 `origin/main`，工作区干净
+### 0.2 当前线上状态（截至 2026-10-25）
+
+> ⚠️ **本快照已过期**（2026-10-24 版）。**最新交接请看 `HANDOFF-2026-10-25.md`**。
+> 下表仅记录当时状态，勿作为现状依据。
+
+- 线上 `version.json`：**v1.5.0 · build 190**（2026-10-25 实测）
+- 本地 `pwa/dist`：**build 197**（比线上多 7 个提交，**尚未部署**）
+- git：HEAD 已推送 `origin/main`
+- ⚠️ 门禁已改造（2026-10-25）：默认测**本地 dist / 进程内**，`--online` 才打线上；详见 `HANDOFF-2026-10-25.md` §八
 - 最近四类改动（详见 `CLOSURE.md` 任务 20 / 21 / 22 / 23）：
   - 修「版本号一直一样、看不到更新」：版本 bump + version/build 双判 + 徽标统一 `vX · bN`
   - 更新改「静默自动升级」：检测到即自动应用（空闲立即 / 一直在打字最多等 30s，reload 前落盘草稿）→ 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 消失，点它看更新记录）

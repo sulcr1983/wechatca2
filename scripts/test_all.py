@@ -39,28 +39,29 @@ TIERS = {
     "quick": {
         "args": ["--quick"],
         "mins": "约 3 分钟",
-        "what": "e2e(74) + api_e2e(29) + AI 预设(21) + AI 排版(27)",
-        "skip": "有头 UI / 模板全量 / 真实 AI / 线上套件",
+        "what": "前置检查 + AI 预设(21) + AI 排版(27) + 版式矩阵(100)（测本地 dist）",
+        "skip": "模板全量 / 有头 UI / 真实 AI / 线上套件",
     },
     "normal": {
         "args": [],
-        "mins": "约 8 分钟",
-        "what": "quick 全部 + 有头全按钮(33) + 复制推送(12) + 前后端联动(35) + 模板库(59)\n"
-                "        + 导出/九宫格/封面/自动更新/发布小票 + **版式兼容矩阵(100)** + output 清理预检",
-        "skip": "有头 UI 全量（164 套模板逐套）/ 真实 AI / 离线与线上套件",
+        "mins": "约 6 分钟",
+        "what": "quick 全部 + 模板库全量(59) + 导出(12) + 九宫格(15) + 封面(16) + output 预检\n"
+                "        —— 全部测**本地 dist / 进程内源码**，断网可跑，结果与当前工作区一一对应",
+        "skip": "有头 UI 全量 / 真实 AI / 线上套件（需要时用 ui / all）",
     },
     "ui": {
         "args": ["--ui"],
         "mins": "约 20 分钟",
         "what": "normal 全部 + **有头 UI 全量(51)**：164 套模板 × 3 类夹具 + 8 种版式\n"
-                "        + 3 个段落样式开关 + 全部按钮 + AI mock 态（打线上服务器）",
-        "skip": "真实 AI（需真 Key，用 all 档）/ 离线与轻量套件",
+                "        + 3 个段落样式开关 + 全部按钮 + AI mock 态\n"
+                "        + **真实 AI(17)**（真调 DeepSeek，需 .env 有 Key）",
+        "skip": "线上层（部署后单独跑 --online）",
     },
     "all": {
-        "args": ["--full", "--ui"],
+        "args": ["--full", "--ui", "--online"],
         "mins": "约 35 分钟",
-        "what": "ui 全部 + **真实 AI(17)**（真调 DeepSeek）+ 断网可用性 + 首屏不阻塞\n"
-                "        + 轻量预览 + 模板体验 + 外链图本地化 + 线上全量(97)",
+        "what": "ui 全部 + 扩展套件（自动更新 / 断网 / 首屏 / 轻量预览 / 模板体验 / 外链图）\n"
+                "        + **线上层**（发布小票 9 + 线上全量 97，打 https://supersu.ccwu.cc/）",
         "skip": "无（这是最全档）",
     },
 }
@@ -94,7 +95,7 @@ def show_list() -> None:
             print(("           不跑：" if i == 0 else "               ") + line.strip())
         print()
     print("真实 AI 需要 .env 里的 DEEPSEEK_API_KEY："
-          + ("✅ 已配置" if has_ai_key() else "❌ 未配置（all 档的真实 AI 会失败）"))
+          + ("✅ 已配置" if has_ai_key() else "❌ 未配置（ui / all 档的真实 AI 会失败）"))
 
 
 def pick() -> str:
@@ -133,9 +134,9 @@ def main() -> int:
     print(f"不跑：{t['skip']}")
     print(f"{'=' * 62}")
 
-    if tier == "all" and not has_ai_key():
+    if tier in ("ui", "all") and not has_ai_key():
         print("\n⚠️  .env 里没有 DEEPSEEK_API_KEY —— 真实 AI 那项会失败。")
-        print("    要么先配置 Key，要么改用 ui 档（不含真实 AI）。")
+        print("    要么先配置 Key，要么改用 normal 档（不含真实 AI）。")
         if not args.yes:
             print("\n继续？(y/N) ", end="")
             try:
@@ -164,7 +165,7 @@ def main() -> int:
         print("\n失败排查建议：")
         print("  1. 看 output/gate-run/ 最新日志里标 FAIL 的那段")
         print("  2. 单独重跑该套件（日志里会打印完整命令）")
-        print("  3. 若是有头 UI 失败，先确认网络能开 https://supersu.ccwu.cc/")
+        print("  3. 若是有头 UI（ui 档）失败，先确认系统 Chrome 可用、端口 809x 未被占用")
     print(f"{'=' * 62}")
     return rc
 

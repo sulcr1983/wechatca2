@@ -109,8 +109,18 @@ def run():
             context = browser.new_context(viewport={"width": 1440, "height": 900})
             context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE)
             page = context.new_page()
-            page.on("console", lambda m: console_errors.append(m.text)
-                    if m.type == "error" else None)
+
+            # 只收「真 JS 错误」：排除资源加载 4xx/5xx。
+            # 本套件会故意点 AI 功能（未配置 Key 时后端返回 500），
+            # 那是**预期内**的业务降级，不是 JS 异常（2026-10-25 修）
+            def _on_console(m):
+                if m.type != "error":
+                    return
+                t = m.text or ""
+                if t.startswith("Failed to load resource"):
+                    return
+                console_errors.append(t)
+            page.on("console", _on_console)
             page.on("pageerror", lambda e: console_errors.append(f"PAGEERROR: {e}"))
 
             def close_modals():

@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-24T22:33:57+08:00",
-  "totalCommits": 170,
+  "generatedAt": "2026-10-25T01:50:51+08:00",
+  "totalCommits": 176,
   "releases": [
     {
       "version": "1.5.0",
@@ -9,9 +9,9 @@
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
         "added": 15,
-        "changed": 16,
-        "fixed": 6,
-        "other": 5
+        "changed": 17,
+        "fixed": 7,
+        "other": 9
       },
       "groups": [
         {
@@ -129,6 +129,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "AGENTS 测试清单同步有头 E2E（默认线上 37/37）+ 兼容性矩阵（100/100）",
+              "scope": "",
+              "hash": "f238574",
+              "date": "2026-10-24T22:54:35+08:00",
+              "breaking": false
+            },
             {
               "text": "A+B+C 版式改造 PM 测评报告",
               "scope": "",
@@ -248,6 +255,13 @@
           "label": "修复",
           "items": [
             {
+              "text": "门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档",
+              "scope": "",
+              "hash": "f37b725",
+              "date": "2026-10-25T01:40:36+08:00",
+              "breaking": false
+            },
+            {
               "text": "tip 段落样式完全失效 —— 预处理器把提示行转成 blockquote 后规则匹配不到",
               "scope": "engine",
               "hash": "e3258e5",
@@ -295,6 +309,34 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "新增真实 AI 态有头测试（真调 DeepSeek），线上 17/17 全通过",
+              "scope": "",
+              "hash": "1e00d29",
+              "date": "2026-10-24T23:51:51+08:00",
+              "breaking": false
+            },
+            {
+              "text": "有头 E2E 补 AI 态（浏览器 BYOK + mock LLM），线上 51/51 全通过",
+              "scope": "",
+              "hash": "9c01b37",
+              "date": "2026-10-24T23:47:23+08:00",
+              "breaking": false
+            },
+            {
+              "text": "收尾核定未完成项 + output 清理机制（U-15）+ 文档代码统一",
+              "scope": "",
+              "hash": "6069df8",
+              "date": "2026-10-24T23:05:20+08:00",
+              "breaking": false
+            },
+            {
+              "text": "有头 E2E 默认打线上服务器（--local 才测本地 dist）",
+              "scope": "",
+              "hash": "e12904b",
+              "date": "2026-10-24T22:53:50+08:00",
+              "breaking": false
+            },
             {
               "text": "双态夹具兼容性测试（100/100）+ 修 magazine 嵌套块切碎 bug",
               "scope": "",

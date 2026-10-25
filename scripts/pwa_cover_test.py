@@ -185,7 +185,13 @@ def main() -> int:
                 page.context.set_offline(False)
 
             offline_errors = errors[before_offline_errors:]
-            real_errors = [e for e in errors if "Failed to fetch" not in e and "net::ERR_INTERNET_DISCONNECTED" not in e]
+            # 「断网」用例自己会制造网络错误（Playwright set_offline 在本地 dist 下
+            # 报的是 504 (Offline)，不是 ERR_INTERNET_DISCONNECTED）——这三类属预期，不算 JS 异常。
+            # ⚠️ 只放行这三条精确特征，不放行全部 Failed to load resource（真 404 仍要红）。
+            real_errors = [e for e in errors
+                           if "Failed to fetch" not in e
+                           and "net::ERR_INTERNET_DISCONNECTED" not in e
+                           and "504 (Offline)" not in e]
             check("无 JS 控制台报错", not real_errors, "; ".join(real_errors[:3]))
             if offline_errors:
                 print(f"  （断网阶段另有 {len(offline_errors)} 条网络错误，已归入预期）", flush=True)

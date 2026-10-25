@@ -113,12 +113,17 @@ python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 
                                   # ⚠️ blcaptain-style-skill 子项目不在仓库时 28/28 + 1 SKIP（环境性，2026-10-24 起）
 python scripts/test_all.py       # ★ **一键全测入口**（推荐给日常用）：交互选档位 quick/normal/ui/all，
                                   # 委托给 run_gates.py（唯一真源），跑完给汇总表；--list 只列档位
-                                  #   quick ~3min / normal ~8min / ui ~20min（含164套模板+8版式+真实AI门控）
-                                  #   all ~35min（含真实 AI 真调 DeepSeek + 离线/线上套件）
-python scripts/run_gates.py      # 一键门禁（**PWA only**）：A PWA 核心 → B 有头UI(--ui) → C 扩展(--full)，失败即停；
+                                  #   quick ~3min / normal ~6min（本地层）/ ui ~20min（+164套模板+8版式+真实AI）
+                                  #   all ~35min（+扩展套件 + 线上层）
+python scripts/preflight.py      # ★ **前置检查**（门禁第 0 步，也可单独跑）：dist 是否包含最近一次代码改动（阻断）
+                                  # + 工作区是否脏（--deploy 才阻断）+ 线上版本对齐（--online）
+python scripts/run_gates.py      # 一键门禁（**PWA only**），分层执行、失败即停：
+                                  #   0 前置检查 → 1 本地层（默认：本地 dist / 进程内源码，断网可跑）
+                                  #   → 2 线上层（--online，部署后打 https://supersu.ccwu.cc/）
+                                  #   → 3 有头层（--ui，约 20 分钟，用本地 dist）→ 4 扩展层（--full）
                                   # ⚠️ 已剔除全部本地 Flask 版测试（不再起 127.0.0.1:5000、不再弹多余 Chrome 窗口）；
-                                  # --ui 追加有头 UI 全量（约 20 分钟，打线上）；--full --ui 最全
-                                  # --quick 最快核心 · 日志落 output/gate-run/
+                                  # --quick 最快核心 · 汇总表带 target 列（local / in-process / online）
+                                  # · 日志落 output/gate-run/
 python scripts/clean_output.py    # output/ 清理（U-15）：默认预览保留 7 天内；--days N 改保留期；--apply 才真删。
                                   # 只动 output/ 内部，绝不碰 data/ public/ pwa/dist/
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
@@ -142,9 +147,10 @@ python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就�
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（实测首访约 2.5s 出近似排版；门限 15s）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
 python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 59/59（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端 + 版式层 8 选项 + 段落样式 3 开关）
-python scripts/pwa_headed_full_e2e.py     # ★ 有头全量 E2E **默认打线上服务器**（https://supersu.ccwu.cc/）37/37：
+python scripts/pwa_headed_full_e2e.py     # ★ 有头全量 E2E **51/51**：
                                           # A 逐套模板 164 套 × 3 类夹具（短/标准/复杂）可渲染/不丢字/标签配平；
-                                          # B 8 种版式功能；C 段落样式三开关；D 全部按钮。--local 才测本地 dist（部署前预检）
+                                          # B 8 种版式功能；C 段落样式三开关；D 全部按钮；E AI 态（mock）。
+                                          # 默认测**线上**；`--local` 测本地 dist（门禁 --ui 用的就是本地）
 python scripts/pwa_layout_compat_test.py  # 版式兼容性矩阵 100/100（10 夹具 × 5 版式 × 2 态 无AI/AI样本），
                                           # 断言：不丢字≥95% / 标签配平 / 无残留 / 非空 / 版式特征；无小标题短文记「降级」不算失败
 python scripts/pwa_ai_format_test.py      # AI 排版 27/27（门控 / 四种降级兜底 / 六项结构 / 撤销 / 配置失效，全 mock 不联网）
