@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-25T15:28:39+08:00",
-  "totalCommits": 185,
+  "generatedAt": "2026-10-25T15:59:19+08:00",
+  "totalCommits": 186,
   "releases": [
     {
       "version": "1.5.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 16,
         "changed": 17,
-        "fixed": 11,
+        "fixed": 12,
         "other": 13
       },
       "groups": [
@@ -261,6 +261,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "修杂志分栏不生效 + hero/timeline 在 151/163 套主题上无效",
+              "scope": "layout",
+              "hash": "e9b2e59",
+              "date": "2026-10-25T15:58:18+08:00",
+              "breaking": false
+            },
             {
               "text": "支持 wrangler 登录态（不再强制要求 opendoor/.env）",
               "scope": "deploy",

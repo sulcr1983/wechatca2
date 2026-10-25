@@ -45,6 +45,7 @@ AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出
 - 回写 B2 #7 九宫格切图（CLOSURE 任务14 / TODO / AGENTS 测试与架构要点 / README 计数） (312da45)
 
 ### 修复
+- 修杂志分栏不生效 + hero/timeline 在 151/163 套主题上无效 (e9b2e59)
 - 支持 wrangler 登录态（不再强制要求 opendoor/.env） (34a38bf)
 - 调用侧去掉 node shim 环境变量（正确修法，不改业务代码） (c3877a7)
 - build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态 (b8495b8)
