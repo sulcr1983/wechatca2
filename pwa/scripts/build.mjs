@@ -10,7 +10,7 @@
 
 import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
-import { execSync, execFileSync } from 'node:child_process';
+import { execSync, execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -388,6 +388,20 @@ function main() {
 
   const total = dirSize(DIST);
   log(`\n完成：${(total / 1024 / 1024).toFixed(2)}MB，用时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+
+  /* 9. 同步 STATE.md（2026-10-25）
+     每次 build 都会改 dist/version.json 的 build 号 → STATE.md 必然过期。
+     这里自动重生成，省得每次 build 完还要手动跑一遍（否则门禁 doc_sync 会红）。 */
+  try {
+    const py = process.platform === 'win32'
+      ? path.join(ROOT, '.venv', 'Scripts', 'python.exe')
+      : path.join(ROOT, '.venv', 'bin', 'python');
+    if (fs.existsSync(py) && fs.existsSync(path.join(ROOT, 'scripts', 'gen_state.py'))) {
+      const r = spawnSync(py, ['scripts/gen_state.py', '--no-online'], { cwd: ROOT, encoding: 'utf8' });
+      if (r.status === 0) log('  · STATE.md 已同步');
+      else log('  ! STATE.md 同步失败（可手动跑 python scripts/gen_state.py）');
+    }
+  } catch { /* 同步失败不阻断构建 */ }
 }
 
 function dirSize(dir) {

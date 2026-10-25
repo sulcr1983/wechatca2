@@ -130,6 +130,25 @@ a { color: var(--accent); }
 }
 .icon-btn:hover { background: var(--bg-hover); color: var(--text); }
 
+/* 关闭按钮加大（2026-10-25）：30×30 太难点，用户反馈「关闭按钮太小」。
+   面板/抽屉/弹窗的关闭按钮统一 40×40 + 圆底 + hover 变红，一眼能看见、好点。
+   覆盖：AI 面板、模板抽屉、关于弹窗、更新记录面板。 */
+#ai-close, #btn-drawer-close, #btn-about-close, #cl-close {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  flex: none;
+}
+#ai-close:hover, #btn-drawer-close:hover, #btn-about-close:hover, #cl-close:hover {
+  background: rgba(175, 62, 43, .12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .menu {
   position: absolute; top: 38px; right: 0; min-width: 158px; padding: 5px;
   background: var(--bg-raised); border: 1px solid var(--border);
@@ -416,22 +435,27 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 
 /* 段落样式开关（C 方案） */
 .drawer-blocks {
-  flex: none; display: flex; align-items: center; gap: 14px;
+  flex: none; display: flex; align-items: center; gap: 10px 14px;
+  flex-wrap: wrap;            /* 加触发条件小字后会超宽，必须允许换行（2026-10-25） */
   padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px;
 }
-.drawer-blocks .db-label { color: var(--text-muted); font-size: 11.5px; }
-.drawer-blocks .db-item { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-soft); }
-.drawer-blocks input[type="checkbox"] { margin: 0; cursor: pointer; }
+.drawer-blocks .db-label { color: var(--text-muted); font-size: 11.5px; flex: none; }
+.drawer-blocks .db-item {
+  display: flex; align-items: center; gap: 5px; cursor: pointer;
+  color: var(--text-soft); flex: none; white-space: nowrap;
+}
+.drawer-blocks input[type="checkbox"] { margin: 0; cursor: pointer; flex: none; }
 
 /* 触发条件小字（2026-10-25）：这三个开关是按内容自动识别的，不是每篇都触发。
-   不给说明时用户开了没反应会以为坏了，所以每个开关后挂一句灰字。 */
+   不给说明时用户开了没反应会以为坏了，所以每个开关后挂一句灰字。
+   ⚠️ 必须 white-space:nowrap —— 抽屉窄，允许折行会把字挤成竖排（实测踩过）。 */
 .drawer-blocks .db-hint {
   font-style: normal; font-size: 11px; color: var(--text-muted);
-  opacity: .75; margin-left: 4px;
+  opacity: .75; margin-left: 4px; white-space: nowrap;
 }
 .drawer-blocks .db-note {
   flex-basis: 100%; font-size: 11px; color: var(--text-muted);
-  opacity: .7; margin-top: 2px;
+  opacity: .7; margin-top: 2px; white-space: nowrap;
 }
 
 /* 自定义配色条（最小版）：三个原生取色器 */
@@ -493,12 +517,24 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
   .style-bar { padding: 0 10px; }
   .brand-sub { display: none; }
   .brand-tail { display: none; }   /* 窄屏顶栏挤，系统名只留 SuperSu */
+  /* 窄屏按钮文案缩短：8 个字会挤爆顶栏（实测被截成「小红拼」）。
+     用 data-short 切换，完整文案仍在 title 提示里。 */
+  .cover-btn { font-size: 12px; padding: 0 9px; height: 28px; }
+  .cover-btn[data-short]:not([aria-pressed="true"]) {
+    font-size: 0;               /* 隐藏原文字 */
+  }
+  .cover-btn[data-short]:not([aria-pressed="true"])::after {
+    content: attr(data-short);
+    font-size: 12px;
+  }
   .tabs {
     display: grid; grid-template-columns: 1fr 1fr; height: var(--tabs-h);
     background: var(--bg-raised); border-top: 1px solid var(--border);
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 25;
   }
   .icon-btn { width: 32px; height: 32px; }
+  /* 关闭按钮在窄屏也保持 40×40（上一条会把所有 .icon-btn 压到 32，这里拉回来） */
+  #ai-close, #btn-drawer-close, #btn-about-close, #cl-close { width: 40px; height: 40px; }
   .tabs button { color: var(--text-muted); font-size: 12.5px; }
   .tabs button[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
 }

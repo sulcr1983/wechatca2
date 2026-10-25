@@ -82,7 +82,8 @@ def main() -> int:
             page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
             check("封面页打开", page.is_visible("#cover-root"))
             check("排版页隐藏", page.is_hidden("#stage"))
-            check("按钮变为「排版」", page.inner_text("#btn-cover").strip() == "排版")
+            # 2026-10-25：按钮文案改为「公众号排版」（原「排版」，用户要求说清返回哪一页）
+            check("按钮变为「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版")
 
             # ── 空态示例成品（U-9，2026-10-24）──
             samples = page.locator("#cv-samples .cv-sample")

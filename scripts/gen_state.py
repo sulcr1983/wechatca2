@@ -254,8 +254,10 @@ def main() -> int:
             print("⛔ STATE.md 不存在 —— 先跑 python scripts/gen_state.py")
             return 1
         old = STATE.read_text(encoding="utf-8")
-        # 只比对关键数据行，忽略生成时间戳
-        keys = ("| 版本号", "| 本地 dist 构建号", "| 线上构建号", "| 主题数")
+        # ⚠️ 只比对**本地可确定**的字段（版本号 / 本地 dist 构建号 / 主题数）。
+        #    线上构建号**故意不比对**：build.mjs 生成 STATE 时用 --no-online（不联网），
+        #    而校验时可能联网，两边必然不同 —— 比它只会造成永远红的假警报（2026-10-25 实测）。
+        keys = ("| 版本号", "| 本地 dist 构建号", "| 主题数")
         diff = [k for k in keys
                 if (k in old) != (k in content)
                 or _line_of(old, k) != _line_of(content, k)]

@@ -146,7 +146,7 @@ export function createChangelog(options = {}) {
     pill.hidden = true;
     titleWrap.append(title, pill);
 
-    const closeBtn = el('button', null, '✕');
+    const closeBtn = el('button', 'icon-btn close-lg', '✕');
     closeBtn.id = 'cl-close';
     closeBtn.type = 'button';
     closeBtn.setAttribute('aria-label', '关闭更新记录');

@@ -1,14 +1,14 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-25T12:07:56+08:00",
-  "totalCommits": 177,
+  "generatedAt": "2026-10-25T13:13:42+08:00",
+  "totalCommits": 178,
   "releases": [
     {
       "version": "1.5.0",
       "date": "2026-10-24",
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "counts": {
-        "added": 15,
+        "added": 16,
         "changed": 17,
         "fixed": 7,
         "other": 10
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "四步收口 —— 一键发版 / 两个体验修复 / 单一状态源 / pre-push 钩子",
+              "scope": "",
+              "hash": "6087dd8",
+              "date": "2026-10-25T12:27:10+08:00",
+              "breaking": false
+            },
             {
               "text": "抽屉加版式层 + 段落样式开关，修 worker 主题缓存只比 id 的 bug",
               "scope": "pwa",

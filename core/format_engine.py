@@ -1393,16 +1393,30 @@ def _inject_container_styles(html: str, theme: dict) -> str:
     return html
 
 
-def _wrap_card_sections(html: str, card_cfg: dict) -> str:
-    """把 HTML 按 h1/h2 切分成卡片 section。card_cfg 来自主题 JSON 的 'card' 字段。"""
+def _wrap_card_sections(html: str, card_cfg: dict, theme: dict | None = None) -> str:
+    """把 HTML 按 h1/h2 切分成卡片 section。card_cfg 来自主题 JSON 的 'card' 字段。
+
+    ⚠️ 2026-10-25 修：原来全部用 card_cfg["xxx"] 直接下标，主题没有 'card' 字段
+    （74 套默认版式主题都没有）时点「卡片组」直接 KeyError → 界面报「排版失败」。
+    现在缺字段一律回落到主题配色推导出的默认值，任何主题都能用卡片组。
+    """
+    theme = theme or {}
+    colors = theme.get("colors") or {}
+    accent = colors.get("accent") or theme.get("accent") or "#333333"
+    bg = colors.get("bg") or theme.get("background") or "#ffffff"
+
+    def pick(key: str, default: str) -> str:
+        v = card_cfg.get(key)
+        return v if v else default
+
     card_style = (
         f'max-width:800px;width:100%;padding:25px;box-sizing:border-box;'
-        f'background-color:{card_cfg["card_bg"]};'
-        f'background-image:{card_cfg["card_texture"]};'
-        f'background-size:{card_cfg["card_texture_size"]};'
-        f'border:{card_cfg["card_border"]};'
-        f'box-shadow:{card_cfg["card_shadow"]};'
-        f'border-radius:{card_cfg["card_radius"]}'
+        f'background-color:{pick("card_bg", bg)};'
+        f'background-image:{pick("card_texture", "none")};'
+        f'background-size:{pick("card_texture_size", "auto")};'
+        f'border:{pick("card_border", f"1px solid {accent}22")};'
+        f'box-shadow:{pick("card_shadow", "0 2px 12px rgba(0,0,0,0.06)")};'
+        f'border-radius:{pick("card_radius", "12px")}'
     )
 
     # 用 h1 和 h2 作为分割点（保留 h 标签在新段的开头）
@@ -1859,8 +1873,10 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     # 现有三种（card/hero/timeline）保留原实现不动；新版式走 LAYOUT_REGISTRY，
     # 以后加版式只登记函数，不再往这条 if-else 链堆分支（2026-10-24 B 方案）
     _layout = theme.get("layout")
-    if _layout == "card" and "card" in theme:
-        html = _wrap_card_sections(html, theme["card"])
+    if _layout == "card":
+        # 2026-10-25：不再要求主题必须有 'card' 字段 —— 缺字段时用默认卡片样式，
+        # 否则 74 套默认版式主题点「卡片组」会直接 KeyError → 界面「排版失败」
+        html = _wrap_card_sections(html, theme.get("card") or {}, theme)
     elif _layout == "hero" and "hero" in theme:
         html = _wrap_hero_sections(html, theme["hero"], theme)
     elif _layout == "timeline" and "timeline" in theme:
@@ -1872,7 +1888,11 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     if "wrapper" in style_map and not skip_wrapper:
         if theme.get("layout") == "card":
             # 卡片主题：wrapper 用 flex 列布局 + 卡片间距
-            card_bg = theme["card"]["bg"]
+            # 2026-10-25：同样不能直接下标（主题可能没有 card 字段）
+            _card_cfg = theme.get("card") or {}
+            card_bg = (_card_cfg.get("bg")
+                       or (theme.get("colors") or {}).get("bg")
+                       or theme.get("background") or "#ffffff")
             wrapper_s = f'padding:40px 10px;background-color:{card_bg};display:flex;flex-direction:column;align-items:center;gap:40px'
             html = f'<section style="{wrapper_s}">{html}</section>'
         else:

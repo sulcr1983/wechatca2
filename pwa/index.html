@@ -30,13 +30,17 @@
   <div class="top-left">
     <img class="brand-mark" src="./brand/logo-64.png" alt="">
     <span class="brand">SuperSu<span class="brand-tail">公众号编辑器</span></span>
+    <!-- 小红书标题图生成：放在系统名称右侧（不是最右边），文案说清它做什么。
+         窄屏用 data-short 显示短文案，避免 8 个字挤爆顶栏（2026-10-25） -->
+    <button class="cover-btn" id="btn-cover" aria-pressed="false"
+            data-short="标题图"
+            title="生成小红书标题图（3 种尺寸）">小红书标题图生成</button>
     <span class="brand-sub">本地排版 · 数据不出浏览器</span>
   </div>
   <div class="top-right">
     <span class="engine-badge" id="engine-badge" data-state="loading">
       <i></i><span id="engine-text">引擎加载中</span>
     </span>
-    <button class="cover-btn" id="btn-cover" aria-pressed="false" title="小红书封面 / 公众号封面">小红书</button>
     <button class="menu-btn" id="btn-export" aria-expanded="false" title="导出与分发">导出 ▾</button>
     <div class="menu" id="menu-export" hidden>
       <button data-exp="long">长图 PNG<span class="sub">朋友圈 / 小红书</span></button>

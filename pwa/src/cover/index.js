@@ -72,7 +72,7 @@ function openCover() {
   $('tabs').hidden = true;
   document.body.classList.add('cover-open');
   const btn = $('btn-cover');
-  if (btn) { btn.textContent = '排版'; btn.setAttribute('aria-pressed', 'true'); }
+  if (btn) { btn.textContent = '公众号排版'; btn.setAttribute('aria-pressed', 'true'); }
   if (!$('cv-text').value.trim()) {
     const main = $('input').value.trim();
     if (main) { $('cv-text').value = main.slice(0, 500); updateCount(); }
@@ -86,7 +86,7 @@ function closeCover() {
   $('tabs').hidden = false;
   document.body.classList.remove('cover-open');
   const btn = $('btn-cover');
-  if (btn) { btn.textContent = '小红书'; btn.setAttribute('aria-pressed', 'false'); }
+  if (btn) { btn.textContent = '小红书标题图生成'; btn.setAttribute('aria-pressed', 'false'); }
 }
 
 /* ── 风格 / 尺寸 ── */
@@ -395,7 +395,7 @@ async function generate() {
       renderGallery();
     }
     setStatus(`完成：${state.results.length} 张`);
-    toast('封面已生成', 'ok');
+    toast('标题图已生成', 'ok');
   } catch (err) {
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
@@ -588,20 +588,20 @@ function mount() {
           <div class="cv-bg-body" id="cv-bg-body"></div>
           <div id="cv-bg-preview"></div>
         </section>
-        <button class="cv-gen" id="cv-gen" type="button">生成封面</button>
+        <button class="cv-gen" id="cv-gen" type="button">生成标题图</button>
         <div class="cv-status" id="cv-status"></div>
       </aside>
       <section class="cv-output">
         <div class="cv-out-head">
-          <span class="cv-out-title">封面结果</span>
+          <span class="cv-out-title">标题图结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
           <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
           <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
-          <b>文案 + 风格 = 封面</b>
-          <span>左边写文案、选风格和底图，点「生成封面」。<br>归藏两套一次出 3 个尺寸，10 套模板出 3:4。</span>
+          <b>文案 + 风格 = 标题图</b>
+          <span>左边写文案、选风格和底图，点「生成标题图」。<br>归藏两套一次出 3 个尺寸，模板套出 3:4。</span>
           <div class="cv-samples" id="cv-samples">
             <span class="cv-samples-label">示例成品 · 点一张直接选该风格</span>
             <div class="cv-samples-row">
