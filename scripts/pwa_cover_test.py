@@ -154,6 +154,14 @@ def main() -> int:
                 check("Wikimedia 搜图可选作底图并生成", True, f"{cands} 个候选")
             except Exception as e:
                 skip("Wikimedia 搜图", f"网络不可达或超时：{str(e)[:80]}")
+                # 2026-10-25 修：搜图超时后页面可能停在「搜索中」状态（按钮禁用 / 遮罩），
+                # 导致后面「窄屏封面页可用」偶发失败（实测 release 门禁里踩到）。
+                # 这里主动恢复：切回纯色模式，确保 #cv-gen 可用。
+                try:
+                    page.click('[data-mode="color"]', timeout=5000)
+                    page.wait_for_timeout(500)
+                except Exception:
+                    pass
 
             page.eval_on_selector(".cv-panel", "el => el.scrollTop = 0")
             page.screenshot(path=str(OUT / "pwa-cover-test.png"))

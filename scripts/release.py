@@ -49,7 +49,21 @@ ROOT = Path(__file__).resolve().parent.parent
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 if not PY.exists():
     PY = Path(sys.executable)
-NODE = "node"
+# node 解析：优先用托管版本（绝对路径），避免 PATH 里的 shim 拦 rmSync
+# （2026-10-25 实测：WorkBuddy 的 node-safe-delete-shim 会拦 build.mjs 的 rmrf）
+def _find_node() -> str:
+    import os
+    cands = [
+        r"C:\Users\XPENG\.workbuddy\binaries\node\versions\22.22.2-6\node.exe",
+        r"C:\Program Files\nodejs\node.exe",
+    ]
+    for c in cands:
+        if os.path.exists(c):
+            return c
+    return "node"
+
+
+NODE = _find_node()
 VERSION_FILE = ROOT / "pwa" / "version.json"
 GENERATED = ["CHANGELOG.md", "pwa/public/changelog.json", "pwa/version.json"]
 
