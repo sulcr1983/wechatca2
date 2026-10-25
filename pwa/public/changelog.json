@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-25T19:58:47+08:00",
-  "totalCommits": 204,
+  "generatedAt": "2026-10-25T20:16:43+08:00",
+  "totalCommits": 205,
   "releases": [
     {
       "version": "1.6.0",
@@ -9,7 +9,7 @@
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
         "added": 2,
-        "fixed": 11,
+        "fixed": 12,
         "other": 16
       },
       "groups": [
@@ -37,6 +37,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "10 套模板色块与真实配色对齐 + 纯色模式改回纸底墨字 + 缩略图重生成",
+              "scope": "cover",
+              "hash": "2e72a39",
+              "date": "2026-10-25T20:06:22+08:00",
+              "breaking": false
+            },
             {
               "text": "归藏配色按原版规范校正 + AI 排版提示词按论文重写",
               "scope": "cover,ai",

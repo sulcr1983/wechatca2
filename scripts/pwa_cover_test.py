@@ -137,23 +137,35 @@ def main() -> int:
                         "document.querySelectorAll('.cv-card').length === 1", timeout=60000)
                     page.wait_for_function(
                         "document.querySelector('.cv-card img').naturalWidth > 0", timeout=20000)
-                    rgb = page.evaluate("""() => {
+                    # 2026-10-25 改：不再只看底色。规范里 4 套 Swiss 共用同一个
+                    # 纸色 #fafaf8，只靠强调色区分 → 底assert「底色互不相同」会误报。
+                    # 改为取「纸色 + 最饱和像素（强调色）」组合，断言组合唯一。
+                    sig = page.evaluate("""() => {
                         const img = document.querySelector('.cv-card img');
                         const cv = document.createElement('canvas');
-                        cv.width = 8; cv.height = 8;
+                        cv.width = 40; cv.height = 54;
                         const ctx = cv.getContext('2d');
-                        ctx.drawImage(img, 0, 0, 8, 8);
-                        const d = ctx.getImageData(2, 2, 1, 1).data;
-                        return `${d[0]},${d[1]},${d[2]}`;
+                        ctx.drawImage(img, 0, 0, 40, 54);
+                        const d = ctx.getImageData(0, 0, 40, 54).data;
+                        const paper = [d[0], d[1], d[2]].join(',');
+                        let best = 0, acc = paper;
+                        for (let i = 0; i < d.length; i += 4) {
+                            const r = d[i], g = d[i + 1], b = d[i + 2];
+                            const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+                            // 饱和度 × 亮度：挑最“有颜色”的像素当强调色
+                            const sat = (mx - mn) * (mx / 255);
+                            if (sat > best) { best = sat; acc = [r, g, b].join(','); }
+                        }
+                        return paper + '|' + acc;
                     }""")
-                    bg_of[sid] = rgb
+                    bg_of[sid] = sig
                 except Exception as e:
                     bg_of[sid] = f"ERR:{type(e).__name__}"
             dup = {}
             for sid, rgb in bg_of.items():
                 dup.setdefault(rgb, []).append(sid)
             same = {k: v for k, v in dup.items() if len(v) > 1}
-            check("10 套模板底色互不相同（不再是灰白板）",
+            check("10 套模板（纸色+强调色）组合唯一",
                   not same and len(bg_of) == 10,
                   f"{len(bg_of)} 套 · 重复={same or '无'}")
             page.click('[data-style="editorial"]')

@@ -122,8 +122,24 @@ body:not(.has-img):not(.gz) .chrome-min span {
   color: var(--ink, var(--cover-ink, #111111)) !important;
   text-shadow: none !important;
 }
-/* 强调线保持模板原样（用 --accent），这是纯色模式下唯一露出的强调色，
-   符合规范「accent 克律使用」而不是把整版刷成主色 */
+/* 强调色块（2026-10-25 二次修）：
+   规范里 4 套 Swiss 共用同一个纸色 #fafaf8，只靠强调色区分 ——
+   但纯色模式下强调色原本只出现在一条 96px 短横线上，
+   克莱因蓝/柠檬绿/柠檬黄/安全橙 四套**看起来完全一样**（用户最早抱怨的「都一样」）。
+   规范允许「每张最多一个强调色块（accent card）」，所以把 kicker 标签
+   （「封面 · Cover」）做成强调色填充块 —— 既是瑞士设计的常见手法，
+   又让 4 套一眼可分，且不违反「accent 克制使用」。 */
+body:not(.has-img):not(.gz) .t-cat,
+body:not(.has-img):not(.gz) .kicker {
+  background: var(--accent) !important;
+  color: var(--accent-on, #ffffff) !important;
+  padding: 5px 12px !important;
+  border-radius: 2px !important;
+  display: inline-block !important;
+  text-shadow: none !important;
+}
+
+/* 强调线保持模板原样（用 --accent） */
 body:not(.has-img):not(.gz) .hr-accent {
   background: var(--accent) !important;
   opacity: 1;
