@@ -23,14 +23,26 @@ if [[ -f "$ENV_FILE" ]]; then
   : "${CLOUDFLARE_API_TOKEN:?ERROR: $ENV_FILE 缺少 CLOUDFLARE_API_TOKEN}"
   echo "==> 使用凭证文件 $ENV_FILE"
 else
-  if ! npx --yes wrangler@latest whoami >/dev/null 2>&1; then
-    echo "ERROR: 既没有凭证文件 $ENV_FILE，wrangler 也没登录。" >&2
+  # wrangler 凭证位置（2026-10-25 核实）：
+  #   Windows: $APPDATA/xdg.config/.wrangler/config/default.toml
+  #   Linux/macOS: ~/.config/.wrangler/config/default.toml
+  # 原来用 `npx wrangler whoami` 探测，但它会因代理警告/网络抖动返回非 0
+  # → 「明明有登录态却报没登录」（实测踩到）。改为直接看凭证文件，稳定可靠。
+  WR_CFG_WIN="${APPDATA:-}/xdg.config/.wrangler/config/default.toml"
+  WR_CFG_NIX="$HOME/.config/.wrangler/config/default.toml"
+  if [[ -f "$WR_CFG_WIN" ]] || [[ -f "$WR_CFG_NIX" ]]; then
+    echo "==> 使用 wrangler 登录态"
+  elif npx --yes wrangler@latest whoami >/dev/null 2>&1; then
+    echo "==> 使用 wrangler 登录态（whoami 探测通过）"
+  else
+    echo "ERROR: 既没有凭证文件 $ENV_FILE，也找不到 wrangler 登录态。" >&2
+    echo "       已查：$WR_CFG_WIN" >&2
+    echo "             $WR_CFG_NIX" >&2
     echo "       解决（二选一）：" >&2
     echo "         a) npx wrangler login" >&2
     echo "         b) 建 $ENV_FILE 写入 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN" >&2
     exit 1
   fi
-  echo "==> 无凭证文件，使用 wrangler 登录态"
 fi
 
 # ── 铁律（2026-10-18）：部署到服务器的一律先同步 git ─────────────────────
