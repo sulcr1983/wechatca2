@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-25T18:36:54+08:00",
-  "totalCommits": 198,
+  "generatedAt": "2026-10-25T18:49:56+08:00",
+  "totalCommits": 199,
   "releases": [
     {
       "version": "1.6.0",
@@ -9,7 +9,7 @@
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
         "added": 2,
-        "fixed": 9,
+        "fixed": 10,
         "other": 12
       },
       "groups": [
@@ -37,6 +37,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "修卡片按钮错位 + 署名在图片里不显示",
+              "scope": "cover",
+              "hash": "63480f4",
+              "date": "2026-10-25T18:48:58+08:00",
+              "breaking": false
+            },
             {
               "text": "按底色亮度自动选字色（WCAG 相对亮度），午夜墨金等中等亮度底色不再白字看不清",
               "scope": "cover",
