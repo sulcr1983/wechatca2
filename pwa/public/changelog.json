@@ -1,17 +1,16 @@
 {
-  "version": "1.5.0",
-  "generatedAt": "2026-10-25T15:59:19+08:00",
-  "totalCommits": 186,
+  "version": "1.6.0",
+  "generatedAt": "2026-10-25T16:53:20+08:00",
+  "totalCommits": 188,
   "releases": [
     {
-      "version": "1.5.0",
-      "date": "2026-10-24",
-      "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
+      "version": "1.6.0",
+      "date": "2026-10-25",
+      "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
-        "added": 16,
-        "changed": 17,
-        "fixed": 12,
-        "other": 13
+        "added": 1,
+        "fixed": 6,
+        "other": 6
       },
       "groups": [
         {
@@ -24,7 +23,122 @@
               "hash": "6087dd8",
               "date": "2026-10-25T12:27:10+08:00",
               "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "修杂志分栏不生效 + hero/timeline 在 151/163 套主题上无效",
+              "scope": "layout",
+              "hash": "e9b2e59",
+              "date": "2026-10-25T15:58:18+08:00",
+              "breaking": false
             },
+            {
+              "text": "支持 wrangler 登录态（不再强制要求 opendoor/.env）",
+              "scope": "deploy",
+              "hash": "34a38bf",
+              "date": "2026-10-25T15:03:23+08:00",
+              "breaking": false
+            },
+            {
+              "text": "调用侧去掉 node shim 环境变量（正确修法，不改业务代码）",
+              "scope": "release",
+              "hash": "c3877a7",
+              "date": "2026-10-25T14:55:05+08:00",
+              "breaking": false
+            },
+            {
+              "text": "build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态",
+              "scope": "build,test",
+              "hash": "b8495b8",
+              "date": "2026-10-25T14:41:15+08:00",
+              "breaking": false
+            },
+            {
+              "text": "修「卡片组排版失败」+ 小红书文案/布局 + 新增小红书全量截图测试",
+              "scope": "",
+              "hash": "5672cfa",
+              "date": "2026-10-25T13:34:58+08:00",
+              "breaking": false
+            },
+            {
+              "text": "门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档",
+              "scope": "",
+              "hash": "f37b725",
+              "date": "2026-10-25T01:40:36+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "STATE 同步（线上 b207 已部署）",
+              "scope": "",
+              "hash": "d5ebf9d",
+              "date": "2026-10-25T16:05:03+08:00",
+              "breaking": false
+            },
+            {
+              "text": "构建产物同步（版式修复上线）",
+              "scope": "",
+              "hash": "dbd403a",
+              "date": "2026-10-25T15:59:30+08:00",
+              "breaking": false
+            },
+            {
+              "text": "STATE 同步（线上 b203 = 本地 b203，已部署）",
+              "scope": "",
+              "hash": "2750fb1",
+              "date": "2026-10-25T15:07:55+08:00",
+              "breaking": false
+            },
+            {
+              "text": "构建产物同步（b203）",
+              "scope": "",
+              "hash": "0fb01de",
+              "date": "2026-10-25T14:58:27+08:00",
+              "breaking": false
+            },
+            {
+              "text": "还原 rmrf 为原生 rmSync + 同步生成物（b201）",
+              "scope": "",
+              "hash": "ca7aca2",
+              "date": "2026-10-25T14:54:12+08:00",
+              "breaking": false
+            },
+            {
+              "text": "复核他人审计（§八）+ 补修 3 处「诊断出却没修」的文档错误",
+              "scope": "",
+              "hash": "119d2b5",
+              "date": "2026-10-25T11:31:50+08:00",
+              "breaking": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.5.0",
+      "date": "2026-10-24",
+      "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
+      "counts": {
+        "added": 15,
+        "changed": 17,
+        "fixed": 6,
+        "other": 9
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
             {
               "text": "抽屉加版式层 + 段落样式开关，修 worker 主题缓存只比 id 的 bug",
               "scope": "pwa",
@@ -262,48 +376,6 @@
           "label": "修复",
           "items": [
             {
-              "text": "修杂志分栏不生效 + hero/timeline 在 151/163 套主题上无效",
-              "scope": "layout",
-              "hash": "e9b2e59",
-              "date": "2026-10-25T15:58:18+08:00",
-              "breaking": false
-            },
-            {
-              "text": "支持 wrangler 登录态（不再强制要求 opendoor/.env）",
-              "scope": "deploy",
-              "hash": "34a38bf",
-              "date": "2026-10-25T15:03:23+08:00",
-              "breaking": false
-            },
-            {
-              "text": "调用侧去掉 node shim 环境变量（正确修法，不改业务代码）",
-              "scope": "release",
-              "hash": "c3877a7",
-              "date": "2026-10-25T14:55:05+08:00",
-              "breaking": false
-            },
-            {
-              "text": "build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态",
-              "scope": "build,test",
-              "hash": "b8495b8",
-              "date": "2026-10-25T14:41:15+08:00",
-              "breaking": false
-            },
-            {
-              "text": "修「卡片组排版失败」+ 小红书文案/布局 + 新增小红书全量截图测试",
-              "scope": "",
-              "hash": "5672cfa",
-              "date": "2026-10-25T13:34:58+08:00",
-              "breaking": false
-            },
-            {
-              "text": "门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档",
-              "scope": "",
-              "hash": "f37b725",
-              "date": "2026-10-25T01:40:36+08:00",
-              "breaking": false
-            },
-            {
               "text": "tip 段落样式完全失效 —— 预处理器把提示行转成 blockquote 后规则匹配不到",
               "scope": "engine",
               "hash": "e3258e5",
@@ -351,34 +423,6 @@
           "type": "other",
           "label": "其他",
           "items": [
-            {
-              "text": "STATE 同步（线上 b203 = 本地 b203，已部署）",
-              "scope": "",
-              "hash": "2750fb1",
-              "date": "2026-10-25T15:07:55+08:00",
-              "breaking": false
-            },
-            {
-              "text": "构建产物同步（b203）",
-              "scope": "",
-              "hash": "0fb01de",
-              "date": "2026-10-25T14:58:27+08:00",
-              "breaking": false
-            },
-            {
-              "text": "还原 rmrf 为原生 rmSync + 同步生成物（b201）",
-              "scope": "",
-              "hash": "ca7aca2",
-              "date": "2026-10-25T14:54:12+08:00",
-              "breaking": false
-            },
-            {
-              "text": "复核他人审计（§八）+ 补修 3 处「诊断出却没修」的文档错误",
-              "scope": "",
-              "hash": "119d2b5",
-              "date": "2026-10-25T11:31:50+08:00",
-              "breaking": false
-            },
             {
               "text": "新增真实 AI 态有头测试（真调 DeepSeek），线上 17/17 全通过",
               "scope": "",

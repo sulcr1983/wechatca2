@@ -133,6 +133,46 @@ def bump_patch(ver: str) -> str:
     return f"{m.group(1)}.{m.group(2)}.{int(m.group(3)) + 1}"
 
 
+def bump_minor(ver: str) -> str:
+    """1.5.0 → 1.6.0（minor +1，patch 归零）。"""
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)$", ver.strip())
+    if not m:
+        raise SystemExit(f"ERROR: 版本号格式不认识：{ver}（应为 x.y.z）")
+    return f"{m.group(1)}.{int(m.group(2)) + 1}.0"
+
+
+def commits_since_last_release() -> list[str]:
+    """上次改 version.json 之后的提交标题（用于判断该升 patch 还是 minor）。"""
+    r = subprocess.run(
+        ["git", "log", "--oneline", "-1", "--format=%H", "--", "pwa/version.json"],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    last = (r.stdout or "").strip()
+    if not last:
+        return []
+    r2 = subprocess.run(
+        ["git", "log", "--format=%s", f"{last}..HEAD"],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    return [ln for ln in (r2.stdout or "").splitlines() if ln.strip()]
+
+
+def suggest_bump(cur: str) -> tuple[str, str, int]:
+    """按「自上次发版以来的改动」判断版本号该升多少。
+
+    语义化版本规则（这里只做粗判，够用且可解释）：
+      - 有 feat / 新增功能 / 修 bug 这类实质改动 → **minor +1**（1.5.0 → 1.6.0）
+      - 只有 chore / docs / 构建产物同步这类杂务 → **patch +1**（1.5.0 → 1.5.1）
+    返回 (目标版本, 理由, 实质改动数)
+    """
+    msgs = commits_since_last_release()
+    # chore / docs / 构建产物 不算「功能改动」
+    trivial = re.compile(r"^(chore|docs|style|test)\b|构建产物同步|STATE 同步")
+    substantive = [m for m in msgs if not trivial.search(m)]
+    n = len(substantive)
+    if n > 0:
+        return bump_minor(cur), f"自上次发版有 {n} 项实质改动（功能/修复）→ 升 minor", n
+    return bump_patch(cur), "自上次发版只有杂务改动 → 升 patch", 0
+
+
 def write_version(ver: str) -> None:
     d = json.loads(VERSION_FILE.read_text(encoding="utf-8"))
     d["version"] = ver
@@ -184,9 +224,16 @@ def main() -> int:
     args = ap.parse_args()
 
     cur = read_version()
-    new_ver = args.version.strip() or bump_patch(cur)
-    if args.version and not re.match(r"^\d+\.\d+\.\d+$", new_ver):
-        raise SystemExit(f"ERROR: --version 格式应为 x.y.z，收到 {new_ver}")
+    if args.version.strip():
+        new_ver = args.version.strip()
+        if not re.match(r"^\d+\.\d+\.\d+$", new_ver):
+            raise SystemExit(f"ERROR: --version 格式应为 x.y.z，收到 {new_ver}")
+        bump_reason = "手动指定"
+    else:
+        # 2026-10-25：原来固定只升 patch，导致 62 个提交都挤在 v1.5.0 下。
+        # 现在按「自上次发版以来的改动性质」自动判断：有实质改动升 minor，只有杂务升 patch。
+        new_ver, bump_reason, n_sub = suggest_bump(cur)
+        say(f"版本判断：{bump_reason}")
 
     plan(args, new_ver)
     if args.dry_run:
