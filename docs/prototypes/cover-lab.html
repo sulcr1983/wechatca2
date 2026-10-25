@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>封面实验室 · Cover Lab</title>
+<style>
+/* ============================================================
+   Cover Lab — 小红书封面方案原型
+   用于评估「借鉴外部方案」的效果，不是生产代码
+   ============================================================ */
+
+/* ---------- UI 层（浅色） ---------- */
+:root{
+  --ui-bg:#f4f3f0;
+  --ui-panel:#ffffff;
+  --ui-ink:#191919;
+  --ui-ink2:#4b4b52;
+  --ui-ink3:#93939b;
+  --ui-line:#e4e1da;
+  --ui-line2:#f1efea;
+  --ui-accent:#8f7650;
+  --ui-accent-soft:#f3ede2;
+  --ui-ok:#2e6b4f;
+  --ui-ok-soft:#e9f4ee;
+  --ui-warn:#9b5a2e;
+  --ui-warn-soft:#fdf1e7;
+  --ui-risk:#a8322c;
+  --ui-risk-soft:#fbebea;
+}
+*{box-sizing:border-box; -webkit-font-smoothing:antialiased}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ui-bg); color:var(--ui-ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:13px; line-height:1.6; overflow:hidden;
+}
+.app{display:flex; height:100vh}
+
+/* ---------- 左侧面板 ---------- */
+.panel{
+  flex:0 0 344px; background:var(--ui-panel); border-right:1px solid var(--ui-line);
+  overflow-y:auto; padding:0 0 40px;
+}
+.panel::-webkit-scrollbar{width:8px}
+.panel::-webkit-scrollbar-thumb{background:#dcd9d2; border-radius:4px}
+
+.p-head{padding:22px 22px 18px; border-bottom:1px solid var(--ui-line); position:sticky; top:0; background:var(--ui-panel); z-index:10}
+.p-head h1{
+  margin:0; font-size:16px; font-weight:700; letter-spacing:-.01em;
+  font-family:Georgia,"Songti SC",serif;
+}
+.p-head .sub{font-size:11px; color:var(--ui-ink3); margin-top:3px; letter-spacing:.02em}
+
+.grp{padding:13px 20px 2px; border-bottom:1px solid var(--ui-line2)}
+.grp:last-child{border-bottom:0}
+.grp-t{
+  font-size:10px; font-weight:700; letter-spacing:.13em; color:var(--ui-ink3);
+  text-transform:uppercase; margin-bottom:9px; display:flex; justify-content:space-between; align-items:center;
+}
+.grp-t .src{font-size:9px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--ui-accent); opacity:.85}
+
+label.f{display:block; margin-bottom:8px}
+label.f span{display:block; font-size:10.5px; color:var(--ui-ink3); margin-bottom:3px}
+input[type=text], textarea{
+  width:100%; border:1px solid var(--ui-line); border-radius:5px; padding:6px 8px;
+  font-family:inherit; font-size:12px; color:var(--ui-ink); background:#fcfbf9;
+  resize:vertical; outline:none; transition:border-color .15s, background .15s;
+}
+input[type=text]:focus, textarea:focus{border-color:var(--ui-accent); background:#fff}
+textarea{line-height:1.6}
+
+/* 选项按钮网格 */
+.grid{display:grid; gap:6px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.chip{
+  border:1px solid var(--ui-line); background:#fcfbf9; border-radius:6px;
+  padding:7px 6px; font-size:11.5px; color:var(--ui-ink2); cursor:pointer;
+  text-align:center; transition:all .13s; font-family:inherit; line-height:1.35;
+}
+.chip:hover{border-color:#c9c2b4; background:#fff}
+.chip.on{background:var(--ui-ink); color:#fff; border-color:var(--ui-ink)}
+
+/* 风格色卡 */
+.swatches{display:grid; grid-template-columns:repeat(4,1fr); gap:7px}
+.sw{
+  cursor:pointer; border:1px solid var(--ui-line); border-radius:7px; overflow:hidden;
+  background:none; padding:0; transition:all .13s; position:relative;
+}
+.sw:hover{transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,.09)}
+.sw.on{box-shadow:0 0 0 2px var(--ui-ink)}
+.sw .bar{height:28px; display:flex; align-items:flex-end; justify-content:flex-end; padding:3px; gap:2px}
+.sw .dot{width:7px; height:7px; border-radius:50%; border:1px solid rgba(255,255,255,.45)}
+.sw .nm{font-size:9px; padding:3px 2px; text-align:center; color:var(--ui-ink3); background:#fff; line-height:1.25; letter-spacing:-.01em}
+
+/* 开关 */
+.sw-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; font-size:12px; color:var(--ui-ink2)}
+.tog{position:relative; width:34px; height:19px; border-radius:999px; background:#dcd9d2; cursor:pointer; transition:background .18s; border:0; padding:0; flex:0 0 auto}
+.tog::after{content:''; position:absolute; top:2.5px; left:2.5px; width:14px; height:14px; border-radius:50%; background:#fff; transition:transform .18s; box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.tog.on{background:var(--ui-ok)}
+.tog.on::after{transform:translateX(15px)}
+
+/* 检测结果 */
+.diag{display:grid; gap:7px}
+.dg{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11.5px; padding:6px 9px; border-radius:5px; background:var(--ui-line2)}
+.dg .k{color:var(--ui-ink3); flex:0 0 auto}
+.dg .v{font-family:"SF Mono",Consolas,monospace; font-size:11px; font-weight:600}
+.dg.ok{background:var(--ui-ok-soft)} .dg.ok .v{color:var(--ui-ok)}
+.dg.warn{background:var(--ui-warn-soft)} .dg.warn .v{color:var(--ui-warn)}
+.dg.risk{background:var(--ui-risk-soft)} .dg.risk .v{color:var(--ui-risk)}
+
+.notes{margin:0; padding-left:16px; font-size:11px; line-height:1.62; color:var(--ui-ink3)}
+.notes li{margin-bottom:6px}
+.notes b{color:var(--ui-ink2); font-weight:600}
+
+/* ---------- 右侧舞台 ---------- */
+.stage{flex:1; display:flex; flex-direction:column; min-width:0}
+.stage-top{
+  flex:0 0 auto; padding:14px 26px; border-bottom:1px solid var(--ui-line);
+  display:flex; align-items:center; gap:14px; background:rgba(255,255,255,.6);
+}
+.stage-top .combo{font-size:12px; font-weight:600}
+.stage-top .combo em{font-style:normal; color:var(--ui-accent)}
+.stage-top .hint{font-size:11px; color:var(--ui-ink3); margin-left:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46%}
+
+.viewport{
+  flex:1; min-height:0; overflow:auto; padding:34px 26px;
+  display:flex; align-items:center; justify-content:flex-start;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.018) 1px, transparent 1px) 0 0/24px 24px,
+    linear-gradient(rgba(0,0,0,.018) 1px, transparent 1px) 0 0/24px 24px;
+}
+/* margin:auto 而非 justify-content:center —— 后者在内容溢出时会裁掉左侧无法滚动 */
+.canvas-row{display:flex; gap:26px; align-items:center; margin:auto; padding:2px}
+
+.canvas{position:relative; flex:0 0 auto; box-shadow:0 3px 22px rgba(0,0,0,.11), 0 0 0 1px rgba(0,0,0,.05)}
+.poster{
+  position:absolute; top:0; left:0; transform-origin:top left;
+  overflow:hidden; display:flex; flex-direction:column;
+  font-family:var(--f-body); color:var(--fg); background:var(--bg);
+}
+
+/* 页标签 */
+.page-badge{
+  position:absolute; left:0; top:-22px; font-size:11px; color:var(--ui-ink3);
+  font-family:"SF Mono",Consolas,monospace; letter-spacing:.04em;
+}
+
+/* ---------- 缩略图条 ---------- */
+.thumb-strip{
+  flex:0 0 auto; border-top:1px solid var(--ui-line); background:#fff;
+  padding:14px 26px; display:none; gap:18px; align-items:flex-end; overflow-x:auto;
+}
+.thumb-strip.on{display:flex}
+.thumb-item{flex:0 0 auto; text-align:center}
+.thumb-box{position:relative; box-shadow:0 1px 6px rgba(0,0,0,.13); outline:1px solid rgba(0,0,0,.06)}
+.thumb-box .poster{transform-origin:top left}
+.thumb-item .cap{font-size:10px; color:var(--ui-ink3); margin-top:6px; letter-spacing:.02em}
+.thumb-item .cap b{color:var(--ui-ink2)}
+
+/* 安全区叠加 */
+.safe-overlay{position:absolute; inset:0; pointer-events:none; display:none; z-index:5}
+.safe-overlay.on{display:block}
+.safe-overlay .guide{position:absolute; background:rgba(0,140,255,.55)}
+.safe-overlay .guide.v{top:0; bottom:0; width:1px}
+.safe-overlay .guide.h{left:0; right:0; height:1px}
+.safe-overlay .zone{
+  position:absolute; left:0; right:0; bottom:0;
+  background:repeating-linear-gradient(45deg, rgba(200,40,30,.13) 0 8px, rgba(200,40,30,.05) 8px 16px);
+  border-top:1px dashed rgba(200,40,30,.65);
+}
+.safe-overlay .zone span{
+  position:absolute; left:10px; top:8px; font-size:26px; letter-spacing:.06em;
+  color:#a8322c; font-family:"SF Mono",Consolas,monospace; font-weight:600;
+}
+.safe-overlay .safe-rect{position:absolute; border:1px dashed rgba(0,140,255,.7)}
+
+/* ============================================================
+   海报样式系统 —— 全部由 CSS 变量驱动
+   ============================================================ */
+
+/* ---- 尺寸 ---- */
+.poster[data-size="xhs"]{ width:1080px; height:1440px; --px:96px; --py:88px; --pb:120px; }
+.poster[data-size="square"]{ width:1080px; height:1080px; --px:96px; --py:80px; --pb:104px; }
+.poster[data-size="wide"]{ width:2100px; height:900px; --px:128px; --py:72px; --pb:72px; }
+.poster{ padding:var(--py) var(--px) var(--pb); }
+
+/* ---- 内置排版基元 ---- */
+.poster .inner{display:flex; flex-direction:column; flex:1; min-height:0; position:relative}
+.poster .eyebrow{
+  font-size:26px; letter-spacing:.24em; text-transform:uppercase;
+  color:var(--accent); font-weight:600; margin-bottom:auto;
+}
+.poster .title{
+  font-family:var(--f-title); font-weight:var(--w-title);
+  letter-spacing:var(--tr-title); line-height:var(--lh-title);
+  color:var(--fg); text-wrap:balance; margin:0;
+}
+.poster .lead{
+  font-family:var(--f-body); font-size:var(--sz-lead); line-height:1.5;
+  color:var(--muted); font-weight:var(--w-lead); margin:0;
+}
+.poster .byline{
+  font-size:26px; letter-spacing:.1em; color:var(--muted);
+  margin-top:28px; font-weight:500;
+}
+.poster .rule{height:1px; background:var(--line); margin:30px 0}
+.poster .accent-rule{height:6px; width:96px; background:var(--accent); margin:32px 0}
+
+/* 正文段落 */
+.poster .body{font-size:40px; line-height:1.72; color:var(--muted); display:flex; flex-direction:column; gap:26px}
+.poster .body p{margin:0}
+.poster .body strong{color:var(--fg); font-weight:700}
+
+/* 清单 */
+.poster .list{display:flex; flex-direction:column; gap:34px}
+.poster .li{display:flex; gap:28px; align-items:flex-start}
+.poster .li .n{
+  font-family:var(--f-title); font-size:44px; font-weight:700; color:var(--accent);
+  line-height:1.1; flex:0 0 auto; min-width:64px; font-variant-numeric:tabular-nums;
+}
+.poster .li .tx{font-size:40px; line-height:1.55; color:var(--fg); padding-top:4px}
+.poster .li .tx small{display:block; font-size:31px; color:var(--muted); margin-top:8px; line-height:1.5}
+
+/* 对比 */
+.poster .cmp{display:grid; grid-template-columns:1fr 1fr; gap:0; flex:1; align-content:center}
+.poster .cmp .col{padding:0 40px}
+.poster .cmp .col:first-child{padding-left:0; border-right:1px solid var(--line)}
+.poster .cmp .col:last-child{padding-right:0}
+.poster .cmp .h{font-size:30px; letter-spacing:.16em; color:var(--accent); font-weight:700; margin-bottom:26px}
+.poster .cmp .b{font-size:38px; line-height:1.65; color:var(--muted)}
+
+/* 页脚 */
+.poster .foot{
+  position:absolute; left:var(--px); right:var(--px); bottom:calc(var(--pb) * .42);
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:24px; color:var(--muted); letter-spacing:.08em;
+}
+.poster .foot .pn{font-family:"SF Mono",Consolas,monospace; font-variant-numeric:tabular-nums}
+
+/* ---- 版式：大字报 ---- */
+.poster[data-layout="poster"]{--sz-lead:60px; --lh-title:1.16; --w-title:800; --tr-title:-.025em}
+.poster[data-layout="poster"] .title{font-size:154px}
+.poster[data-layout="poster"] .inner{justify-content:flex-start}
+.poster[data-layout="poster"] .eyebrow{margin-bottom:52px}
+.poster[data-layout="poster"] .lead{margin-top:auto; padding-top:40px; max-width:88%}
+
+/* ---- 版式：堆叠 ---- */
+.poster[data-layout="stack"]{--sz-lead:48px; --lh-title:1.28; --w-title:700; --tr-title:-.02em}
+.poster[data-layout="stack"] .title{font-size:116px}
+.poster[data-layout="stack"] .inner{justify-content:flex-start}
+.poster[data-layout="stack"] .eyebrow{margin-bottom:64px}
+.poster[data-layout="stack"] .lead{
+  margin-top:auto; padding-top:40px; max-width:92%;
+  border-top:1px solid var(--line);
+}
+
+/* ---- 版式：清单 ---- */
+.poster[data-layout="list"]{--sz-lead:44px; --lh-title:1.2; --w-title:750; --tr-title:-.02em}
+.poster[data-layout="list"] .title{font-size:96px; margin-bottom:56px}
+.poster[data-layout="list"] .lead{margin-top:40px}
+
+/* ---- 版式：对比 ---- */
+.poster[data-layout="compare"]{--sz-lead:46px; --lh-title:1.22; --w-title:750; --tr-title:-.02em}
+.poster[data-layout="compare"] .title{font-size:94px; margin-bottom:52px}
+
+/* ---- 版式：高密度 ---- */
+.poster[data-layout="dense"]{--sz-lead:46px; --lh-title:1.22; --w-title:750; --tr-title:-.018em}
+.poster[data-layout="dense"] .title{font-size:86px; margin-bottom:40px}
+.poster[data-layout="dense"] .accent-rule{margin:0 0 38px}
+.poster .cont-flag{
+  font-size:30px; letter-spacing:.1em; color:var(--accent); font-weight:600;
+  padding-bottom:26px; margin-bottom:40px; border-bottom:1px solid var(--line);
+}
+
+/* ---- 版式：金句 ---- */
+.poster[data-layout="quote"]{--sz-lead:52px; --lh-title:1.38; --w-title:600; --tr-title:-.012em}
+.poster[data-layout="quote"] .title{font-size:112px; font-style:normal}
+.poster[data-layout="quote"] .inner{justify-content:center}
+.poster[data-layout="quote"] .lead{margin-top:52px}
+.poster[data-layout="quote"] .qmark{
+  font-family:Georgia,serif; font-size:200px; line-height:.8; color:var(--accent);
+  opacity:.22; margin-bottom:-40px; font-weight:700;
+}
+
+/* 宽版字号微调 */
+.poster[data-size="wide"][data-layout="poster"] .title{font-size:168px}
+.poster[data-size="wide"][data-layout="stack"] .title{font-size:120px}
+.poster[data-size="wide"] .inner{justify-content:center}
+
+/* 方形字号微调 */
+.poster[data-size="square"][data-layout="poster"] .title{font-size:140px}
+.poster[data-size="square"][data-layout="stack"] .title{font-size:106px}
+
+/* ============================================================
+   8 套风格主题（全部原创，仅借鉴配色哲学）
+   ============================================================ */
+.poster[data-theme="ink"]{
+  --bg:#f3f0e8; --fg:#17150f; --accent:#b33a2e; --muted:#6b6257; --line:#d7cfbe;
+  --f-title:Georgia,"Songti SC","STSong","SimSun",serif;
+  --f-body:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --w-lead:400;
+}
+.poster[data-theme="dune"]{
+  --bg:#f0e6d2; --fg:#332b1e; --accent:#8f7650; --muted:#7d7059; --line:#ddcfb2;
+  --f-title:Georgia,"Songti SC","STSong",serif;
+  --f-body:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --w-lead:400;
+}
+.poster[data-theme="midnight"]{
+  --bg:#14120f; --fg:#f2ead9; --accent:#d4a04a; --muted:#9a9184; --line:#332e26;
+  --f-title:Georgia,"Songti SC","STSong",serif;
+  --f-body:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --w-lead:300;
+}
+.poster[data-theme="ikb"]{
+  --bg:#fafaf8; --fg:#0f0f0f; --accent:#002FA7; --muted:#5c5c5c; --line:#e2e2de;
+  --f-title:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+  --f-body:-apple-system,"PingFang SC",sans-serif;
+  --w-lead:400;
+}
+.poster[data-theme="lemon"]{
+  --bg:#fafaf8; --fg:#101010; --accent:#c9a800; --muted:#5c5c5c; --line:#e2e2de;
+  --f-title:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+  --f-body:-apple-system,"PingFang SC",sans-serif;
+  --w-lead:400;
+}
+.poster[data-theme="forest"]{
+  --bg:#f5f1e8; --fg:#1c2a22; --accent:#2e6b4f; --muted:#5f6d63; --line:#d9ded3;
+  --f-title:Georgia,"Songti SC","STSong",serif;
+  --f-body:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --w-lead:400;
+}
+.poster[data-theme="terminal"]{
+  --bg:#0c0e0c; --fg:#c9f7d4; --accent:#00e05a; --muted:#5f7a67; --line:#1e2a21;
+  --f-title:"SF Mono",Consolas,"Courier New",monospace;
+  --f-body:"SF Mono",Consolas,"PingFang SC",monospace;
+  --w-lead:400;
+  --tr-title:-.01em;
+}
+.poster[data-theme="candy"]{
+  --bg:#fff5f7; --fg:#241a1d; --accent:#ff2442; --muted:#7a6569; --line:#f6dde1;
+  --f-title:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;
+  --f-body:-apple-system,"PingFang SC",sans-serif;
+  --w-lead:400;
+}
+/* 纸张质感（极轻，避免截图脏） */
+.poster[data-theme="ink"], .poster[data-theme="dune"], .poster[data-theme="forest"]{
+  background-image:radial-gradient(circle at 18% 12%, rgba(255,255,255,.5), transparent 42%),
+                   radial-gradient(circle at 82% 88%, rgba(0,0,0,.035), transparent 46%);
+}
+
+/* 字体覆盖 */
+.poster[data-font="sans"]{ --f-title:-apple-system,"Helvetica Neue","PingFang SC",sans-serif !important }
+.poster[data-font="serif"]{ --f-title:Georgia,"Songti SC","STSong",serif !important }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ==================== 面板 ==================== -->
+  <aside class="panel">
+    <div class="p-head">
+      <h1>封面实验室 Cover Lab</h1>
+      <div class="sub">借鉴方案效果评估 · 非生产代码</div>
+    </div>
+
+    <!-- 内容 -->
+    <div class="grp">
+      <div class="grp-t">示例内容 <span class="src">一键换量级，测拆页</span></div>
+      <div class="grid g3" id="preset-wrap" style="margin-bottom:10px"></div>
+      <label class="f"><span>主标题</span>
+        <textarea id="in-title" rows="2">因为太懒所以写了个工具</textarea>
+      </label>
+      <label class="f"><span>副标题</span>
+        <input type="text" id="in-lead" value="把每周重复的排版工作，变成一次配置">
+      </label>
+      <label class="f"><span>正文（空行分段）</span>
+        <textarea id="in-body" rows="4">排版这件事，做一次很爽，做一百次很烦。
+
+真正的问题不是不会排，而是每次都要重新决定字号、留白和信息优先级。
+
+所以我把它拆成了三层：设计令牌负责数值，版式负责结构，风格只负责气质。
+
+改风格不该动版式，改版式不该重写样式。这两件事正交之后，加一套新风格的成本从「复制整个模板」降到「写一份变量」。</textarea>
+      </label>
+      <label class="f"><span>署名</span>
+        <input type="text" id="in-byline" value="苏哥 · 工具备忘">
+      </label>
+    </div>
+
+    <!-- 风格 -->
+    <div class="grp">
+      <div class="grp-t">风格 <span class="src">借鉴：预设锁色 / 单变量换肤</span></div>
+      <div class="swatches" id="sw-wrap"></div>
+    </div>
+
+    <!-- 版式 -->
+    <div class="grp">
+      <div class="grp-t">版式 <span class="src">借鉴：Style × Layout 正交</span></div>
+      <div class="grid g3" id="lay-wrap"></div>
+    </div>
+
+    <!-- 尺寸 -->
+    <div class="grp">
+      <div class="grp-t">画板尺寸</div>
+      <div class="grid g3" id="size-wrap"></div>
+    </div>
+
+    <!-- 字体 -->
+    <div class="grp">
+      <div class="grp-t">字体 <span class="src">主题默认 / 强制覆盖</span></div>
+      <div class="grid g3" id="font-wrap"></div>
+    </div>
+
+    <!-- 排版优化 -->
+    <div class="grp">
+      <div class="grp-t">排版优化 <span class="src">借鉴：中文断行 / 字号锚点</span></div>
+      <div class="sw-row"><span>语义断行（不劈开「所以/但是」）</span><button class="tog on" id="tg-break"></button></div>
+      <div class="sw-row"><span>字号自适应（按字数选档）</span><button class="tog on" id="tg-size"></button></div>
+    </div>
+
+    <!-- 视图 -->
+    <div class="grp">
+      <div class="grp-t">检验工具</div>
+      <div class="sw-row"><span>安全区叠加（底部 120 禁区）</span><button class="tog" id="tg-safe"></button></div>
+      <div class="sw-row"><span>缩略图自检（170×227）</span><button class="tog" id="tg-thumb"></button></div>
+      <div class="sw-row"><span>自动拆页（仅高密度）</span><button class="tog" id="tg-page"></button></div>
+    </div>
+
+    <!-- 诊断 -->
+    <div class="grp">
+      <div class="grp-t">实时诊断</div>
+      <div class="diag" id="diag"></div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="grp" style="padding-bottom:20px">
+      <div class="grp-t">这个原型在验证什么</div>
+      <ol class="notes">
+        <li><b>风格 × 版式正交</b>：8 风格 × 6 版式 = 48 种组合，但只需维护 8 份变量 + 6 份骨架。加一套新风格不用复制模板。</li>
+        <li><b>语义断行</b>：中文没有空格，浏览器会在任意汉字间断行。这里让断点优先落在标点/连接词上，宁可降一档字号也不劈开「所以」。</li>
+        <li><b>字号自适应</b>：按标题字数反推字号，落在 100–180px 区间，避免「短标题空、长标题挤」。</li>
+        <li><b>自动拆页</b>：按真实渲染高度切页，续页不重复大标题（否则每页都像封面）。</li>
+        <li><b>缩略图自检</b>：一键缩到 170×227 的信息流真实尺寸——正文基本不可读，这决定了封面只能承载标题级信息。</li>
+        <li><b>安全区</b>：底部 120px 会被平台标题遮住，重要信息不能放。</li>
+        <li><b>实时诊断</b>：从真实 DOM 读取字号与配色，算对比度、查溢出——不用肉眼猜。</li>
+      </ol>
+    </div>
+  </aside>
+
+  <!-- ==================== 舞台 ==================== -->
+  <main class="stage">
+    <div class="stage-top">
+      <div class="combo" id="combo"></div>
+      <div class="hint" id="hint">滚轮缩放画布区域可整体查看</div>
+    </div>
+
+    <div class="viewport" id="viewport"></div>
+
+    <div class="thumb-strip" id="thumb-strip"></div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   状态
+   ============================================================ */
+const PRESETS = {
+  short: {
+    name:'短文案',
+    title:'慢下来',
+    lead:'一周只做一件事',
+    byline:'苏哥 · 工具备忘',
+    body:'真正的效率不是做得更多，而是决定不做什么。',
+  },
+  mid: {
+    name:'中等',
+    title:'因为太懒所以写了个工具',
+    lead:'把每周重复的排版工作，变成一次配置',
+    byline:'苏哥 · 工具备忘',
+    body:`排版这件事，做一次很爽，做一百次很烦。
+
+真正的问题不是不会排，而是每次都要重新决定字号、留白和信息优先级。
+
+所以我把它拆成了三层：设计令牌负责数值，版式负责结构，风格只负责气质。
+
+改风格不该动版式，改版式不该重写样式。这两件事正交之后，加一套新风格的成本从「复制整个模板」降到「写一份变量」。`,
+  },
+  long: {
+    name:'长文案',
+    title:'我把一年的排版工作压缩成了二十行配置',
+    lead:'从每周手调到一次配好，附完整踩坑记录',
+    byline:'苏哥 · 工具备忘',
+    body:`先说结论：能自动化的不是设计，是决策。
+
+每一次排版真正花时间的，不是把字摆上去，而是决定这一屏标题多大、正文多小、留白多宽。
+
+这些决定一旦被固化成令牌，剩下的就只是填空。
+
+第一层是数值。字号不是一个绝对数字，而是画布宽度的一个比例。1080 宽的封面，主标题大约落在画布宽度的六到七分之一。
+
+第二层是结构。同样的内容，用大字报、清单还是对比，决定了读者第一眼看到什么。结构不该被风格绑架。
+
+第三层才是气质。配色、字体、质感，这些是最后叠加的。它们变化最频繁，所以最应该独立。
+
+把这三层分开之后，加一套新风格只需要写一份变量，而不是复制一整个模板。
+
+第三层才是气质。配色、字体、质感，这些是最后叠加的。它们变化最频繁，所以最应该独立。
+
+到这里你可能会问：那内容特别长怎么办？答案是拆页。按渲染后的真实高度切，而不是按字数猜。
+
+拆页的关键不是算法，而是续页的视觉延续性。第二页不该再重复一遍大标题，否则每页都像封面。
+
+最后一个坑：中文没有空格，浏览器会在任意汉字之间断行。所以「所以」「但是」这类词很容易被劈到两行，必须自己控制断点。`,
+  },
+};
+
+const SIZES = {
+  xhs:    {w:1080, h:1440, label:'3:4'},
+  square: {w:1080, h:1080, label:'1:1'},
+  wide:   {w:2100, h:900,  label:'21:9'},
+};
+
+const THEMES = [
+  {id:'ink',      name:'墨色经典', bg:'#f3f0e8', accent:'#b33a2e', note:'暖纸墨字 + 衬线标题'},
+  {id:'dune',     name:'沙丘暖纸', bg:'#f0e6d2', accent:'#8f7650', note:'低饱和大地色'},
+  {id:'midnight', name:'午夜墨金', bg:'#14120f', accent:'#d4a04a', note:'暗底金调，高端感'},
+  {id:'ikb',      name:'克莱因蓝', bg:'#fafaf8', accent:'#002FA7', note:'瑞士风，无衬线大字'},
+  {id:'lemon',    name:'柠檬黄',   bg:'#fafaf8', accent:'#c9a800', note:'年轻跳跃'},
+  {id:'forest',   name:'森林墨绿', bg:'#f5f1e8', accent:'#2e6b4f', note:'自然沉稳'},
+  {id:'terminal', name:'终端绿',   bg:'#0c0e0c', accent:'#00e05a', note:'等宽字体，极客'},
+  {id:'candy',    name:'小红书红', bg:'#fff5f7', accent:'#ff2442', note:'平台原生色'},
+];
+
+const LAYOUTS = [
+  {id:'poster',  name:'大字报',  note:'标题吃掉画面，信息量最少、冲击最强'},
+  {id:'stack',   name:'堆叠',    note:'标签 + 大标题 + 底部副标，最通用'},
+  {id:'list',    name:'清单',    note:'编号条目，干货/推荐类'},
+  {id:'compare', name:'对比',    note:'左右分栏，before/after'},
+  {id:'dense',   name:'高密度',  note:'小标题 + 多段正文，适合拆页'},
+  {id:'quote',   name:'金句',    note:'居中大字 + 署名'},
+];
+
+const state = {
+  theme:'ink', layout:'stack', size:'xhs', font:'auto',
+  title:'', lead:'', body:'', byline:'',
+  safe:false, thumb:false, paginate:false,
+  smartBreak:true, autoSize:true,
+};
+
+/* ============================================================
+   工具
+   ============================================================ */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+function hexToRgb(h){
+  h = h.replace('#','');
+  if (h.length === 3) h = h.split('').map(c=>c+c).join('');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function relLum(hex){
+  const [r,g,b] = hexToRgb(hex).map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+  });
+  return 0.2126*r + 0.7152*g + 0.0722*b;
+}
+function contrast(a, b){
+  const l1 = relLum(a), l2 = relLum(b);
+  const hi = Math.max(l1,l2), lo = Math.min(l1,l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================================================
+   海报构建
+   ============================================================ */
+function bodyParagraphs(){
+  return state.body.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+}
+
+/** 把一段文字拆成「短标题 + 余下说明」，供清单版式用 */
+function splitItem(t){
+  const m = t.match(/^(.{2,24}?)[。！？]/);
+  if (!m) return { head: t, rest: '' };
+  return { head: m[1], rest: t.slice(m[0].length).trim() };
+}
+
+/* ---------- 中文断行：不让「所以」「但是」这类词被劈开 ---------- */
+const BREAK_PUNCT = ['，','。','！','？','；','：','、','—','·'];
+const BREAK_CUES  = ['所以','因为','但是','而且','然后','就是','而是','不是','如果','只要',
+                     '为了','不过','其实','这个','那个','我们','你','它','把','让'];
+
+/**
+ * 按语义把标题切成两行。cap = 每行最多能放的字数。
+ * 返回 { lines, semantic } —— semantic 表示断点是否命中标点/连接词。
+ * 硬约束：两行各自都不超过 cap，否则宁可不切。
+ */
+function smartBreak(text, cap){
+  const len = text.length;
+  if (len <= cap) return { lines: [text], semantic: false };
+
+  const target = Math.ceil(len / 2);
+  let best = -1, bestScore = -Infinity;
+
+  // 断点 i 必须同时满足：第一行不超 cap、第二行不超 cap
+  const lo = Math.max(1, len - cap);
+  const hi = Math.min(cap, len - 1);
+
+  for (let i = lo; i <= hi; i++){
+    let score = 0;
+    if (BREAK_PUNCT.includes(text[i-1])) score = 100;
+    else if (BREAK_CUES.some(c => text.startsWith(c, i))) score = 80;
+    else continue;
+
+    score -= Math.abs(i - target) * 10;   // 偏离均分位置要扣分
+    if (score > bestScore){ bestScore = score; best = i; }
+  }
+
+  if (best > 0) return { lines: [text.slice(0, best), text.slice(best)], semantic: true };
+
+  const mid = Math.ceil(len / 2);
+  return { lines: [text.slice(0, mid), text.slice(mid)], semantic: false };
+}
+
+/**
+ * 字号 + 断行联合求解。
+ * 目标：在「最多两行」前提下尽量用大字号，但断点优先落在语义位置。
+ * —— 一句话就是为了不劈开「所以」，宁可把字号降一档。
+ */
+function planTitle(text, baseSize, availW){
+  let fallback = null;
+
+  for (let k = 1.16; k >= 0.6; k -= 0.04){
+    const size = Math.round(baseSize * k);
+    const cap = Math.floor(availW / (size * 1.04));
+    if (cap < 2) continue;
+
+    const br = smartBreak(text, cap);
+    const fits = Math.ceil(text.length / cap) <= 2 && br.lines.every(l => l.length <= cap);
+    if (!fits) continue;
+
+    const plan = { size, cap, lines: br.lines };
+    if (br.semantic) return plan;      // 找到语义断点，立刻采用
+    if (!fallback) fallback = plan;    // 否则记住最大字号的可行解
+  }
+
+  if (fallback) return fallback;
+  const size = Math.round(baseSize * 0.6);
+  const cap = Math.max(2, Math.floor(availW / (size * 1.04)));
+  return { size, cap, lines: smartBreak(text, cap).lines };
+}
+
+/** 各版式的标题基准字号（与 CSS 保持一致，供自适应计算用） */
+const BASE_TITLE = {
+  xhs:    {poster:154, stack:116, list:96,  compare:94, dense:86,  quote:112},
+  square: {poster:140, stack:106, list:90,  compare:88, dense:82,  quote:104},
+  wide:   {poster:168, stack:120, list:100, compare:98, dense:90,  quote:116},
+};
+const PAD_X = {xhs:96, square:96, wide:128};
+
+/** 生成标题 HTML（含断行与字号覆盖） */
+function titleHtml(){
+  const baseSize = BASE_TITLE[state.size][state.layout];
+  const availW = SIZES[state.size].w - PAD_X[state.size] * 2;
+  const plan = planTitle(state.title, baseSize, availW);
+
+  const size = state.autoSize ? plan.size : baseSize;
+  const cap  = state.autoSize ? plan.cap  : Math.max(2, Math.floor(availW / (size * 1.04)));
+  const style = state.autoSize ? ` style="font-size:${size}px"` : '';
+
+  if (!state.smartBreak) return `<h1 class="title"${style}>${esc(state.title)}</h1>`;
+
+  const lines = state.autoSize ? plan.lines : smartBreak(state.title, cap).lines;
+  return `<h1 class="title"${style}>${lines.map(esc).join('<br>')}</h1>`;
+}
+
+function posterMarkup(theme, layout, size, opts={}){
+  const showFoot = opts.page || opts.total;
+  const pageNo = opts.page || 1, total = opts.total || 0;
+  let inner = '';
+
+  if (layout === 'poster'){
+    inner = `
+      <div class="eyebrow">${esc(opts.eyebrow || 'NOTE')}</div>
+      ${titleHtml()}
+      <p class="lead">${esc(state.lead)}</p>
+      ${state.byline ? `<div class="byline">${esc(state.byline)}</div>` : ''}`;
+  }
+  else if (layout === 'stack'){
+    inner = `
+      <div class="eyebrow">${esc(opts.eyebrow || 'NOTE')}</div>
+      ${titleHtml()}
+      <div class="lead">
+        ${esc(state.lead)}
+        ${state.byline ? `<div class="byline">${esc(state.byline)}</div>` : ''}
+      </div>`;
+  }
+  else if (layout === 'list'){
+    const items = bodyParagraphs().slice(0, 5);
+    inner = `
+      ${titleHtml()}
+      <div class="accent-rule"></div>
+      <div class="list">
+        ${items.map((t,i)=>{
+          const {head, rest} = splitItem(t);
+          return `<div class="li"><div class="n">${String(i+1).padStart(2,'0')}</div>
+            <div class="tx">${esc(head)}${rest ? `<small>${esc(rest)}</small>` : ''}</div></div>`;
+        }).join('')}
+      </div>`;
+  }
+  else if (layout === 'compare'){
+    const ps = bodyParagraphs();
+    const half = Math.ceil(ps.length/2);
+    inner = `
+      ${titleHtml()}
+      <div class="cmp">
+        <div class="col"><div class="h">之前</div><div class="b">${ps.slice(0,half).map(p=>`<p style="margin:0 0 14px">${esc(p)}</p>`).join('')}</div></div>
+        <div class="col"><div class="h">之后</div><div class="b">${ps.slice(half).map(p=>`<p style="margin:0 0 14px">${esc(p)}</p>`).join('')}</div></div>
+      </div>`;
+  }
+  else if (layout === 'dense'){
+    const ps = opts.paragraphs || bodyParagraphs();
+    // 续页不再重复大标题，改成「续」标签 + 小标题，避免拆页后每页都像封面
+    const head = opts.cont
+      ? `<div class="cont-flag">续 · ${esc(state.title)}</div>`
+      : `${titleHtml()}<div class="accent-rule"></div>`;
+    inner = `
+      ${head}
+      <div class="body">${ps.map(p=>`<p>${esc(p)}</p>`).join('')}</div>`;
+  }
+  else if (layout === 'quote'){
+    inner = `
+      <div class="qmark">“</div>
+      ${titleHtml()}
+      <p class="lead">${esc(state.lead)}</p>
+      ${state.byline ? `<div class="byline">— ${esc(state.byline)}</div>` : ''}`;
+  }
+
+  const foot = showFoot ? `
+    <div class="foot">
+      <span>${esc(state.byline || '')}</span>
+      <span class="pn">${String(pageNo).padStart(2,'0')} / ${String(total).padStart(2,'0')}</span>
+    </div>` : '';
+
+  return `<div class="inner">${inner}</div>${foot}`;
+}
+
+function makePoster({theme, layout, size, opts, scale = 1, font}){
+  const el = document.createElement('div');
+  el.className = 'poster';
+  el.dataset.theme = theme;
+  el.dataset.layout = layout;
+  el.dataset.size = size;
+  if (font && font !== 'auto') el.dataset.font = font;
+  const {w,h} = SIZES[size];
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+  if (scale !== 1) el.style.transform = `scale(${scale})`;
+  el.innerHTML = posterMarkup(theme, layout, size, opts);
+  return el;
+}
+
+/* ============================================================
+   拆页引擎
+   ============================================================ */
+let probe = null;
+function getProbe(){
+  if (probe) return probe;
+  probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed; left:-99999px; top:0; visibility:hidden;';
+  document.body.appendChild(probe);
+  return probe;
+}
+
+/** 按可用高度逐段试塞，超了就另起一页 */
+function splitPages(size){
+  const paras = bodyParagraphs();
+  if (paras.length === 0) return [[]];
+  if (!state.paginate) return [paras];
+
+  const host = getProbe();
+  const {w} = SIZES[size];
+  // 单页可用高度 = 画布高 - 上内边距 - 下内边距
+  const cs = { xhs:{py:88,pb:120}, square:{py:80,pb:104}, wide:{py:72,pb:72} }[size];
+
+  function measure(batch){
+    host.innerHTML = '';
+    const p = makePoster({
+      theme: state.theme, layout: 'dense', size,
+      opts: { paragraphs: batch }, font: state.font
+    });
+    p.style.height = 'auto';
+    p.style.minHeight = '0';
+    p.style.width = w + 'px';
+    host.appendChild(p);
+    return p.offsetHeight;
+  }
+
+  const pages = [];
+  let cur = [];
+  for (const para of paras){
+    const next = [...cur, para];
+    if (cur.length > 0 && measure(next) > SIZES[size].h - 8){
+      pages.push(cur);
+      cur = [para];
+    } else {
+      cur = next;
+    }
+  }
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+let currentScale = 0.4;
+
+function fit(){
+  const vp = $('#viewport');
+  const {w,h} = SIZES[state.size];
+  const n = $$('#viewport .canvas').length || 1;
+  const gap = 26, padX = 52, padY = 68;
+  // 页数多时给每页留个底线，不够就横向滚动，而不是把画布缩成邮票
+  const availW = Math.max(200, (vp.clientWidth - padX - gap*(n-1)) / n);
+  const availH = vp.clientHeight - padY;
+  let s = Math.min(availW / w, availH / h);
+  s = Math.max(0.1, Math.min(s, 1));
+  currentScale = s;
+
+  $$('#viewport .canvas').forEach(cv => {
+    cv.style.width = (w*s) + 'px';
+    cv.style.height = (h*s) + 'px';
+    cv.querySelector('.poster').style.transform = `scale(${s})`;
+  });
+
+  // 安全区随 scale 绘制
+  $$('#viewport .safe-overlay').forEach(ov => drawSafe(ov, s, w, h));
+  return s;
+}
+
+function drawSafe(ov, s, w, h){
+  const px = {xhs:96, square:96, wide:128}[state.size];
+  const py = {xhs:88, square:80, wide:72}[state.size];
+  const pb = {xhs:120, square:104, wide:72}[state.size];
+
+  ov.innerHTML = `
+    <div class="guide v" style="left:${px*s}px"></div>
+    <div class="guide v" style="right:${px*s}px"></div>
+    <div class="guide h" style="top:${py*s}px"></div>
+    <div class="zone" style="height:${pb*s}px">
+      <span style="font-size:${Math.max(9, 26*s)}px">底部 ${pb}px 禁区</span>
+    </div>`;
+  ov.classList.toggle('on', state.safe);
+}
+
+function render(){
+  const vp = $('#viewport');
+  vp.innerHTML = '';
+
+  const row = document.createElement('div');
+  row.className = 'canvas-row';
+  vp.appendChild(row);
+
+  const pages = splitPages(state.size);
+  const total = pages.length;
+
+  pages.forEach((batch, i) => {
+    const canvas = document.createElement('div');
+    canvas.className = 'canvas';
+
+    const opts = state.layout === 'dense'
+      ? { paragraphs: batch, page: i+1, total, cont: i > 0 }
+      : {};
+    const p = makePoster({
+      theme: state.theme, layout: state.layout, size: state.size,
+      opts: total > 1 && state.layout !== 'dense' ? { ...opts, page:i+1, total } : opts,
+      font: state.font
+    });
+    canvas.appendChild(p);
+
+    const ov = document.createElement('div');
+    ov.className = 'safe-overlay' + (state.safe ? ' on' : '');
+    canvas.appendChild(ov);
+
+    const badge = document.createElement('div');
+    badge.className = 'page-badge';
+    badge.textContent = total > 1 ? `PAGE ${i+1}` : '';
+    canvas.appendChild(badge);
+
+    row.appendChild(canvas);
+  });
+
+  fit();
+  renderThumbs();
+  diagnose(pages);
+  updateCombo();
+}
+
+/* 缩略图自检 */
+function renderThumbs(){
+  const strip = $('#thumb-strip');
+  strip.classList.toggle('on', state.thumb);
+  if (!state.thumb) return;
+
+  strip.innerHTML = '';
+  const {w,h} = SIZES[state.size];
+  const tw = 170;
+  const s = tw / w;
+
+  const pages = splitPages(state.size);
+  pages.forEach((batch, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'thumb-item';
+
+    const box = document.createElement('div');
+    box.className = 'thumb-box';
+    box.style.width = (w*s)+'px';
+    box.style.height = (h*s)+'px';
+
+    const opts = state.layout === 'dense'
+      ? { paragraphs:batch, page:i+1, total:pages.length, cont: i > 0 }
+      : {};
+    const p = makePoster({
+      theme: state.theme, layout: state.layout, size: state.size,
+      opts, scale: s, font: state.font
+    });
+    box.appendChild(p);
+    wrap.appendChild(box);
+
+    const cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.innerHTML = `<b>${Math.round(w*s)}×${Math.round(h*s)}</b> 信息流真实尺寸`;
+    wrap.appendChild(cap);
+
+    strip.appendChild(wrap);
+  });
+}
+
+/* 诊断 */
+function diagnose(pages){
+  const first = $('#viewport .poster');
+  let titleSize = 0, minBody = 999;
+
+  if (first){
+    const t = first.querySelector('.title');
+    if (t) titleSize = Math.round(parseFloat(getComputedStyle(t).fontSize));
+    // 只统计「要读的字」：正文段落 / 副标 / 清单说明 / 署名。
+    // 页脚页码属于标注级，不算在内（否则恒报最小字号不达标）
+    first.querySelectorAll('.body p, .lead, .tx, .tx small, .byline').forEach(n=>{
+      const fs = Math.round(parseFloat(getComputedStyle(n).fontSize));
+      if (fs > 0) minBody = Math.min(minBody, fs);
+    });
+  }
+  if (minBody === 999) minBody = 0;
+
+  // 对比度：正文色 vs 底色
+  let crRatio = 0;
+  if (first){
+    const cs = getComputedStyle(first);
+    crRatio = contrast(rgbToHex(cs.backgroundColor), rgbToHex(cs.color));
+  }
+
+  // 溢出检测
+  let overflow = false;
+  $$('#viewport .poster').forEach(p=>{
+    const inner = p.querySelector('.inner');
+    if (inner && inner.scrollHeight > inner.clientHeight + 4) overflow = true;
+  });
+
+  const rows = [
+    {k:'主标题字号', v: titleSize ? titleSize+'px' : '—',
+     s: !titleSize ? '' : (titleSize >= 100 && titleSize <= 180 ? 'ok' : 'warn')},
+    {k:'最小字号', v: minBody ? minBody+'px' : '—',
+     s: !minBody ? '' : (minBody >= 24 ? 'ok' : (minBody >= 18 ? 'warn' : 'risk'))},
+    {k:'正文对比度', v: crRatio ? crRatio.toFixed(1)+':1' : '—',
+     s: !crRatio ? '' : (crRatio >= 7 ? 'ok' : (crRatio >= 4.5 ? 'warn' : 'risk'))},
+    {k:'内容溢出', v: overflow ? '有溢出' : '无',
+     s: overflow ? 'risk' : 'ok'},
+    {k:'总页数', v: pages.length + ' 页',
+     s: pages.length > 1 ? 'ok' : ''},
+  ];
+
+  $('#diag').innerHTML = rows.map(r=>
+    `<div class="dg ${r.s}"><span class="k">${r.k}</span><span class="v">${r.v}</span></div>`
+  ).join('');
+}
+
+function rgbToHex(rgb){
+  const m = rgb.match(/\d+/g);
+  if (!m) return '#000000';
+  return '#' + m.slice(0,3).map(x => (+x).toString(16).padStart(2,'0')).join('');
+}
+
+function updateCombo(){
+  const th = THEMES.find(t=>t.id===state.theme);
+  const ly = LAYOUTS.find(l=>l.id===state.layout);
+  $('#combo').innerHTML =
+    `<em>${th.name}</em> × ${ly.name} <span style="color:var(--ui-ink3);font-weight:400">· ${SIZES[state.size].w}×${SIZES[state.size].h}</span>`;
+  $('#hint').textContent = ly.note;
+}
+
+/* ============================================================
+   面板构建
+   ============================================================ */
+function buildPanel(){
+  // 示例内容
+  $('#preset-wrap').innerHTML = Object.entries(PRESETS).map(([id,p])=>
+    `<button class="chip" data-preset="${id}">${p.name}</button>`).join('');
+  $$('#preset-wrap .chip').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
+
+  // 风格
+  $('#sw-wrap').innerHTML = THEMES.map(t=>`
+    <button class="sw ${t.id===state.theme?'on':''}" data-theme="${t.id}" title="${t.note}">
+      <div class="bar" style="background:${t.bg}">
+        <span class="dot" style="background:${t.accent}"></span>
+      </div>
+      <div class="nm">${t.name}</div>
+    </button>`).join('');
+
+  // 版式
+  $('#lay-wrap').innerHTML = LAYOUTS.map(l=>`
+    <button class="chip ${l.id===state.layout?'on':''}" data-layout="${l.id}" title="${l.note}">${l.name}</button>`).join('');
+
+  // 尺寸
+  $('#size-wrap').innerHTML = Object.entries(SIZES).map(([k,v])=>`
+    <button class="chip ${k===state.size?'on':''}" data-size="${k}">${v.label}</button>`).join('');
+
+  // 字体
+  $('#font-wrap').innerHTML = [['auto','主题默认'],['sans','无衬线'],['serif','衬线']].map(([k,n])=>`
+    <button class="chip ${k===state.font?'on':''}" data-font="${k}">${n}</button>`).join('');
+
+  // 事件
+  $$('#sw-wrap .sw').forEach(b=>b.onclick=()=>{ state.theme=b.dataset.theme; refreshPanel(); render(); });
+  $$('#lay-wrap .chip').forEach(b=>b.onclick=()=>{ state.layout=b.dataset.layout; refreshPanel(); render(); });
+  $$('#size-wrap .chip').forEach(b=>b.onclick=()=>{ state.size=b.dataset.size; refreshPanel(); render(); });
+  $$('#font-wrap .chip').forEach(b=>b.onclick=()=>{ state.font=b.dataset.font; refreshPanel(); render(); });
+}
+
+function applyPreset(id){
+  const p = PRESETS[id];
+  if (!p) return;
+  state.title = p.title;
+  state.lead = p.lead;
+  state.body = p.body;
+  state.byline = p.byline;
+  $('#in-title').value = p.title;
+  $('#in-lead').value = p.lead;
+  $('#in-body').value = p.body;
+  $('#in-byline').value = p.byline;
+  $$('#preset-wrap .chip').forEach(b=>b.classList.toggle('on', b.dataset.preset === id));
+  render();
+}
+
+function refreshPanel(){
+  $$('#sw-wrap .sw').forEach(b=>b.classList.toggle('on', b.dataset.theme===state.theme));
+  $$('#lay-wrap .chip').forEach(b=>b.classList.toggle('on', b.dataset.layout===state.layout));
+  $$('#size-wrap .chip').forEach(b=>b.classList.toggle('on', b.dataset.size===state.size));
+  $$('#font-wrap .chip').forEach(b=>b.classList.toggle('on', b.dataset.font===state.font));
+  $('#tg-safe').classList.toggle('on', state.safe);
+  $('#tg-thumb').classList.toggle('on', state.thumb);
+  $('#tg-page').classList.toggle('on', state.paginate);
+  $('#tg-break').classList.toggle('on', state.smartBreak);
+  $('#tg-size').classList.toggle('on', state.autoSize);
+}
+
+/* ============================================================
+   绑定
+   ============================================================ */
+$('#in-title').oninput = e => { state.title = e.target.value; render(); };
+$('#in-lead').oninput  = e => { state.lead  = e.target.value; render(); };
+$('#in-body').oninput  = e => { state.body  = e.target.value; render(); };
+$('#in-byline').oninput= e => { state.byline= e.target.value; render(); };
+
+$('#tg-safe').onclick = () => { state.safe = !state.safe; $$('#viewport .safe-overlay').forEach(o=>o.classList.toggle('on', state.safe)); refreshPanel(); fit(); };
+$('#tg-thumb').onclick = () => { state.thumb = !state.thumb; refreshPanel(); render(); };
+$('#tg-break').onclick = () => { state.smartBreak = !state.smartBreak; refreshPanel(); render(); };
+$('#tg-size').onclick  = () => { state.autoSize  = !state.autoSize;  refreshPanel(); render(); };
+$('#tg-page').onclick = () => {
+  state.paginate = !state.paginate;
+  // 拆页只在正文类版式上有意义 —— 打开时自动切过去，避免「点了没反应」
+  if (state.paginate && state.layout !== 'dense'){
+    state.layout = 'dense';
+    setTimeout(()=>{ $('#hint').textContent = '已自动切到「高密度」版式 —— 拆页只对它生效'; }, 0);
+  }
+  refreshPanel();
+  render();
+};
+
+window.addEventListener('resize', () => fit());
+
+// 首次布局时 viewport 高度可能还没稳定（flex + 缩略图条切换都会改变它），
+// 用 ResizeObserver 兜底重算，避免画布按错误比例渲染。
+let fitRaf = 0;
+new ResizeObserver(() => {
+  cancelAnimationFrame(fitRaf);
+  fitRaf = requestAnimationFrame(fit);
+}).observe($('#viewport'));
+
+/* 初始化 */
+state.title  = $('#in-title').value;
+state.lead   = $('#in-lead').value;
+state.body   = $('#in-body').value;
+state.byline = $('#in-byline').value;
+
+// URL 参数：?theme=midnight&layout=dense&page=1&thumb=1&safe=1
+// 便于直接分享某个组合，也方便截图核对
+const Q = new URLSearchParams(location.search);
+if (THEMES.some(t => t.id === Q.get('theme')))   state.theme  = Q.get('theme');
+if (LAYOUTS.some(l => l.id === Q.get('layout'))) state.layout = Q.get('layout');
+if (SIZES[Q.get('size')])                        state.size   = Q.get('size');
+if (Q.get('page'))  state.paginate = true;
+if (Q.get('thumb')) state.thumb = true;
+if (Q.get('safe'))  state.safe = true;
+if (Q.get('raw')){ state.smartBreak = false; state.autoSize = false; }
+if (Q.get('title')){ state.title = Q.get('title'); $('#in-title').value = state.title; }
+
+buildPanel();
+if (Q.get('preset') && PRESETS[Q.get('preset')]) applyPreset(Q.get('preset'));
+refreshPanel();
+render();
+requestAnimationFrame(fit);
+</script>
+</body>
+</html>

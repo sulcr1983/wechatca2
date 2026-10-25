@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小红书封面生成方案调研 · 2026-10-25</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --panel:#ffffff; --ink:#1a1a1a; --ink-2:#3f3f46; --ink-3:#71717a;
+    --line:#e6e3dd; --line-2:#f0ede7;
+    --accent:#8f7650; --accent-soft:#f3eee4;
+    --ok:#2e6b4f; --ok-soft:#eaf4ee;
+    --warn:#9b5a2e; --warn-soft:#fdf0e6;
+    --risk:#a8322c; --risk-soft:#fbeceb;
+    --info:#315d93; --info-soft:#eaf0f8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Source Han Sans",-apple-system,sans-serif;
+    font-size:15px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:0 32px 100px}
+
+  /* header */
+  header{padding:72px 0 40px; border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:12px; letter-spacing:.22em; color:var(--accent); text-transform:uppercase; margin-bottom:18px}
+  h1{
+    font-family:Georgia,"Songti SC",serif; font-size:38px; line-height:1.28;
+    font-weight:700; margin:0 0 16px; letter-spacing:-.01em;
+  }
+  .sub{font-size:15px; color:var(--ink-3); max-width:640px}
+  .meta{margin-top:26px; display:flex; gap:28px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-3)}
+  .meta b{color:var(--ink-2); font-weight:600}
+
+  /* section */
+  section{padding-top:56px}
+  h2{
+    font-family:Georgia,"Songti SC",serif; font-size:24px; font-weight:700;
+    margin:0 0 8px; padding-bottom:14px; border-bottom:2px solid var(--ink);
+    display:flex; align-items:baseline; gap:12px;
+  }
+  h2 .num{font-family:Georgia,serif; font-size:14px; color:var(--accent); font-weight:400}
+  h3{font-size:16.5px; font-weight:700; margin:34px 0 10px; color:var(--ink)}
+  h4{font-size:14px; font-weight:700; margin:22px 0 6px; color:var(--ink-2)}
+  p{margin:10px 0; color:var(--ink-2)}
+  ul,ol{margin:10px 0; padding-left:22px; color:var(--ink-2)}
+  li{margin:6px 0}
+  code{
+    font-family:"SF Mono",Consolas,monospace; font-size:.88em;
+    background:var(--line-2); padding:1.5px 5px; border-radius:3px; color:var(--ink);
+  }
+  strong{color:var(--ink); font-weight:600}
+  a{color:var(--info); text-decoration:none; border-bottom:1px solid rgba(49,93,147,.3)}
+
+  /* table */
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:13.5px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:var(--accent-soft); font-weight:600; font-size:12.5px; color:var(--ink); letter-spacing:.02em}
+  td{color:var(--ink-2)}
+  tr:last-child td{border-bottom:1px solid var(--line)}
+  .t-wrap{overflow-x:auto}
+
+  /* tag */
+  .tag{
+    display:inline-block; font-size:11px; font-weight:600; padding:2px 8px;
+    border-radius:999px; white-space:nowrap; letter-spacing:.02em; line-height:1.7;
+  }
+  .t-ok{background:var(--ok-soft); color:var(--ok)}
+  .t-warn{background:var(--warn-soft); color:var(--warn)}
+  .t-risk{background:var(--risk-soft); color:var(--risk)}
+  .t-info{background:var(--info-soft); color:var(--info)}
+  .t-gray{background:var(--line-2); color:var(--ink-3)}
+
+  /* card */
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:24px 26px; margin:20px 0;
+  }
+  .card-hd{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:4px}
+  .card-hd h3{margin:0}
+  .card .repo{font-size:12px; color:var(--ink-3); font-family:"SF Mono",Consolas,monospace; margin-bottom:12px; word-break:break-all}
+  .kv{display:grid; grid-template-columns:82px 1fr; gap:4px 14px; font-size:13px; margin:12px 0}
+  .kv dt{color:var(--ink-3); font-size:12.5px}
+  .kv dd{margin:0; color:var(--ink-2)}
+
+  /* callout */
+  .box{border-left:3px solid; padding:14px 18px; margin:18px 0; font-size:13.5px; border-radius:0 6px 6px 0}
+  .box p{margin:4px 0}
+  .box-ok{border-color:var(--ok); background:var(--ok-soft)}
+  .box-warn{border-color:var(--warn); background:var(--warn-soft)}
+  .box-risk{border-color:var(--risk); background:var(--risk-soft)}
+  .box-info{border-color:var(--info); background:var(--info-soft)}
+  .box .t{font-weight:700; display:block; margin-bottom:4px; font-size:13px}
+
+  /* priority */
+  .p{display:flex; gap:16px; padding:18px 0; border-bottom:1px solid var(--line-2)}
+  .p:last-child{border-bottom:0}
+  .p-badge{
+    flex:0 0 46px; height:46px; border-radius:8px; display:flex; align-items:center;
+    justify-content:center; font-family:Georgia,serif; font-weight:700; font-size:15px;
+  }
+  .p0{background:var(--risk); color:#fff}
+  .p1{background:var(--warn); color:#fff}
+  .p2{background:var(--info); color:#fff}
+  .p3{background:var(--line); color:var(--ink-2)}
+  .p-body{flex:1; min-width:0}
+  .p-body h4{margin:0 0 6px; font-size:15px}
+  .p-body .where{font-size:12px; color:var(--ink-3); font-family:"SF Mono",Consolas,monospace; margin-top:6px}
+
+  .foot{margin-top:64px; padding-top:24px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-3)}
+  .foot p{margin:4px 0; color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">开源方案调研 · 许可合规 · 落地建议</div>
+  <h1>小红书封面生成方案调研<br>与 SuperSu 借鉴建议</h1>
+  <p class="sub">对 GitHub / npm 上主流的小红书封面与图文卡片生成方案做横向拆解，提取实现思路、布局排版、字体与配色处理的可借鉴做法，并核对许可边界。</p>
+  <div class="meta">
+    <span><b>调研日期</b> 2026-10-25</span>
+    <span><b>项目</b> SuperSu（wechatca2）</span>
+    <span><b>范围</b> 7 个方案 + 5 个渲染组件</span>
+    <span><b>结论</b> 借鉴思路可行，代码需按许可分档</span>
+  </div>
+</header>
+
+<!-- 0 结论 -->
+<section>
+  <h2><span class="num">00</span>先说结论</h2>
+
+  <div class="box box-ok">
+    <span class="t">整体判断：我们缺的不是模板数量，是「多页 + 结构化」能力</span>
+    <p>项目已有 12 套封面风格（2 套归藏内置 + 10 套归藏模板）、modern-screenshot 渲染管线、fitty 字号自适应、得意黑可选字体。跟外部方案比，<strong>视觉资产不缺，缺的是三件事</strong>：① 多页/轮播（分页算法）；② 风格 × 版式的正交组合（现在是 12 套扁平主题，N 套风格要写 N 个模板）；③ 排版质量的可验证性（现在靠肉眼，外部已有 DOM 测量校验）。</p>
+  </div>
+
+  <div class="box box-risk">
+    <span class="t">最大的风险不在「要不要抄」，而在 BLCaptain 的自定义双许可</span>
+    <p>归藏（AGPL-3.0）我们已经在用，且项目整体也以 AGPL-3.0 发布、<code>THIRD_PARTY_NOTICES.md</code> 已履行 §5/§13 义务 —— <strong>这部分是合规的</strong>。但 BLCaptain 是<strong>自定义双许可</strong>，其声明写明「改为闭源部署或商用须先取得书面商业授权」。SUPERSu 目前线上是 supersu.ccwu.cc，属于自用性质尚可；一旦要商业化，这是必须提前处理的硬约束。</p>
+  </div>
+
+  <div class="box box-info">
+    <span class="t">许可分档（决定「能抄到什么程度」）</span>
+    <p><strong>可直接借鉴代码</strong>（保留版权声明即可）：Auto-Redbook-Skills (MIT)、baoyu-skills (MIT)、XHS_Cover (MIT)、xhs-toolkit (MIT)、modern-screenshot / snapdom (MIT)。</p>
+    <p><strong>只能学思路、不能抄代码/模板</strong>：归藏 (AGPL-3.0) —— 与我们的 AGPL 主许可兼容，但若将来要闭源商业版，其版式与 CSS 必须彻底重写。</p>
+    <p><strong>需商业授权</strong>：BLCaptain Style Skill（自定义双许可）。</p>
+    <p><strong>组件库可链接使用、改动源文件才需开源</strong>：satori (MPL-2.0)，文件级 copyleft，不传染调用方。</p>
+  </div>
+</section>
+
+<!-- 1 方案矩阵 -->
+<section>
+  <h2><span class="num">01</span>方案横向对比</h2>
+
+  <div class="t-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:20%">方案</th>
+        <th style="width:13%">许可</th>
+        <th style="width:17%">渲染管线</th>
+        <th style="width:10%">主题/版式</th>
+        <th>核心特点</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>归藏 social-card</strong><br><span style="font-size:12px;color:var(--ink-3)">op7418（已采用）</span></td>
+        <td><span class="tag t-risk">AGPL-3.0</span></td>
+        <td>单文件 HTML + Playwright</td>
+        <td>28 版式<br>10 主题</td>
+        <td>双视觉系统（Editorial / Swiss）；<strong>禁止自定义 hex</strong> 的设计纪律；文字压图主体避让；Playwright DOM 测量校验</td>
+      </tr>
+      <tr>
+        <td><strong>Auto-Redbook-Skills</strong><br><span style="font-size:12px;color:var(--ink-3)">comeonzhj · 2.4k★</span></td>
+        <td><span class="tag t-ok">MIT</span></td>
+        <td>Marked + Playwright<br>（Py / Node 双实现）</td>
+        <td>8 主题<br>4 分页模式</td>
+        <td><strong>分页算法最完整</strong>；三层卡片结构；封面与正文风格自动联动；尺寸基准值直接可用</td>
+      </tr>
+      <tr>
+        <td><strong>baoyu-skills</strong><br><span style="font-size:12px;color:var(--ink-3)">JimLiu</span></td>
+        <td><span class="tag t-ok">MIT</span></td>
+        <td>多为 LLM 出图<br>+ 手写 SVG</td>
+        <td>12 风格 × 6 布局<br>× 3 调色板</td>
+        <td><strong>Style × Layout 正交维度</strong>最值得学；另有 77 种组合的 cover-image 五维生成</td>
+      </tr>
+      <tr>
+        <td><strong>XHS_Cover</strong><br><span style="font-size:12px;color:var(--ink-3)">Smartloe</span></td>
+        <td><span class="tag t-ok">MIT</span></td>
+        <td>React + html-to-image</td>
+        <td>7 模板<br>7 配色</td>
+        <td>唯一的<strong>可视化拖拽编辑</strong>路线；Emoji 贴纸可拖拽/缩放/旋转；渐变文字 + 圆角高亮</td>
+      </tr>
+      <tr>
+        <td><strong>xhs-toolkit</strong><br><span style="font-size:12px;color:var(--ink-3)">fifizy</span></td>
+        <td><span class="tag t-ok">MIT</span></td>
+        <td>纯 HTML/CSS + Puppeteer</td>
+        <td>3 模板<br>4 主题色</td>
+        <td><strong>单变量换肤</strong>（<code>--accent</code> 一键切主色）；零框架依赖，最轻</td>
+      </tr>
+      <tr>
+        <td><strong>xhs-image-mcp</strong><br><span style="font-size:12px;color:var(--ink-3)">npm / MCP</span></td>
+        <td><span class="tag t-gray">未核实</span></td>
+        <td>Playwright + Gemini</td>
+        <td>4 主题</td>
+        <td>智能分页 + AI 封面；MCP 协议集成，agent 原生</td>
+      </tr>
+      <tr>
+        <td><strong>mooncat-xhs-card</strong><br><span style="font-size:12px;color:var(--ink-3)">npm</span></td>
+        <td><span class="tag t-gray">未核实</span></td>
+        <td>React + Playwright</td>
+        <td>作品制</td>
+        <td>输出 <code>card.layout.json</code> <strong>布局报告</strong>可程序化检查；保留 React/CSS 自由度不用 JSON Schema 约束</td>
+      </tr>
+      <tr>
+        <td><strong>xhscover / @emit/*</strong><br><span style="font-size:12px;color:var(--ink-3)">npm</span></td>
+        <td><span class="tag t-warn">SaaS</span></td>
+        <td>远程 API</td>
+        <td>—</td>
+        <td>闭源商业 API（送 10 次免费），<strong>不可复用</strong>，仅说明市场存在付费需求</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="box box-warn">
+    <p><strong>一个容易被忽略的信号</strong>：小红书上出现的大量项目其实是「Skill + 渲染脚本」形态，不是传统 Web 应用。它们的共同取舍是 <strong>AI 只负责产文案与选版式，绝对不让 AI 负责画字</strong> —— 因为文生图模型的文字准确率不可控。这条正好和我们「纯文本进、排版出、不开 AI 也能用」的定位一致，是方向上的正面验证。</p>
+  </div>
+</section>
+
+<!-- 2 逐项拆解 -->
+<section>
+  <h2><span class="num">02</span>关键方案拆解</h2>
+
+  <div class="card">
+    <div class="card-hd">
+      <h3>Auto-Redbook-Skills</h3>
+      <span class="tag t-ok">MIT · 可借鉴代码</span>
+    </div>
+    <div class="repo">github.com/comeonzhj/Auto-Redbook-Skills</div>
+    <dl class="kv">
+      <dt>渲染</dt><dd>Markdown → marked 解析 → HTML 模板 → Playwright 截图。Python 与 Node 各一套实现，参数对齐。</dd>
+      <dt>主题</dt><dd>每个主题一个独立 CSS 文件挂在 <code>assets/themes/</code>，共用 <code>styles.css</code> 定义容器骨架。主题只改「排版 + 内层背景」，不动外层结构。</dd>
+      <dt>分页</dt><dd>四模式：<code>separator</code>（按 <code>---</code> 手动）/ <code>auto-fit</code>（固定尺寸整体缩放）/ <code>auto-split</code>（按渲染高度自动拆）/ <code>dynamic</code>（高度随内容）</dd>
+    </dl>
+    <h4>可直接借鉴的三处</h4>
+    <ul>
+      <li><strong>三层卡片结构</strong>：<code>.card-container</code>（1080 宽、浅灰渐变底、padding 50）→ <code>.card-inner</code>（白底 95% 透明、圆角 20、padding 60、<code>min-height: calc(1440px - 100px)</code>、轻阴影）→ <code>.card-content</code>（纯排版 42px/1.7）。<em>结构层与主题层彻底解耦，换版式不用重写内容样式</em>。</li>
+      <li><strong>精确尺寸基准</strong>：封面容器 1080×1440，内层 950×1310 偏移 (65,65)，padding <code>60px 85px</code>。这类「外层留白 65 / 内层 padding 85」的双重边距是杂志感的关键，比单层 padding 稳。</li>
+      <li><strong>字号阶梯</strong>：封面标题 130px / weight 900 / line-height 1.35（渐变文字）、副标题 72px / weight 350；正文卡 h1 72 / h2 56 / h3 48 / 正文 42，全部 line-height 1.3~1.7 递增。</li>
+    </ul>
+    <h4>中文断行处理（细节但关键）</h4>
+    <p>标题用 <code>word-break: normal; overflow-wrap: break-word</code> —— 让浏览器按中文词法断行，只在超长无空格串时强制断。代码块用 <code>white-space: pre-wrap</code> + <code>overflow-wrap: break-word</code> 替代横向滚动（截图场景滚动条会被截进去）。这两条我们 <code>textmode.js</code> 里应按字逐一 <code>span</code> 时特别注意，逐字包裹会破坏浏览器原生断行。</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">
+      <h3>归藏 social-card skill</h3>
+      <span class="tag t-risk">AGPL-3.0 · 仅学思路</span>
+    </div>
+    <div class="repo">github.com/op7418/guizang-social-card-skill</div>
+    <dl class="kv">
+      <dt>渲染</dt><dd>单文件 HTML（内嵌全部 CSS）+ Playwright <code>render.mjs</code> → PNG。刻意不做前端构建链，理由是「HTML/CSS 是文本，Agent 能直接读写改验证」。</dd>
+      <dt>体系</dt><dd>两套视觉系统共用一套工作流：Editorial（杂志风，氛围叙事）+ Swiss（瑞士风，事实结构）。3 个画板尺寸：<code>.poster.xhs</code> 1080×1440 / <code>.poster.wide</code> 2100×900 / <code>.poster.square</code> 1080×1080。</dd>
+      <dt>主题</dt><dd>10 套预设，切换只改 <code>&lt;section class="poster" data-theme="..."&gt;</code> 一个属性，CSS 全走 <code>var(--...)</code>。</dd>
+    </dl>
+    <h4>最值得学的是「约束」而不是「素材」</h4>
+    <ul>
+      <li><strong>不允许自定义 hex 值</strong> —— README 原话是「保护美学比给自由更重要」。这条我们已经在 <code>catalog.js</code> 的 <code>swatch/accent</code> 里做到了雏形，但没有显式禁止用户改色。</li>
+      <li><strong><code>validate-social-deck.mjs</code></strong>：用 Playwright 跑真实 DOM 测量，自动检测溢出、字号上限、四横带密度、footer 碰撞。<em>这是「排版质量可验证」的样板 —— 我们完全可以照此思路写自己的检查脚本（思路借鉴，非代码）。</em></li>
+      <li><strong>文字压图的 quiet-zone 与主体避让</strong>：满铺图先算出「可安静放字的区域」与「人脸/产品/关键动作」的映射，文字避开主体；只在需要时加局部 tint，不默认整图遮罩。</li>
+      <li><strong>字号 / 字距 / 字重有对照表</strong>：<code>references/components.md</code> 逐组件列出三值，改模板要同步更新表。<em>这正好命中我们「文档必须与代码同步」的痛点。</em></li>
+    </ul>
+    <div class="box box-warn" style="margin-top:14px">
+      <p><strong>红线</strong>：AGPL-3.0 下，其 CSS 变量体系、版式骨架、校验脚本的具体实现<strong>不能搬进任何非 AGPL 的姊妹项目</strong>。当前 SuperSu 整体 AGPL + 已提供源码，内部使用与修改是合规的；但「读它的代码然后换个写法搬过来」在闭源场景下同样有风险。安全做法：只取<strong>设计原则</strong>（如「禁止自定义色值」「校验四横带密度」），实现自己写。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">
+      <h3>baoyu-skills · baoyu-xhs-images</h3>
+      <span class="tag t-ok">MIT · 可借鉴代码</span>
+    </div>
+    <div class="repo">github.com/JimLiu/baoyu-skills</div>
+    <p>整个仓库 20+ skill，与本项目相关的是 <code>baoyu-xhs-images</code>（1-10 张图文卡片）与 <code>baoyu-cover-image</code>（五维度 × 77 组合）。</p>
+    <h4>核心借鉴：正交维度而非扁平清单</h4>
+    <p>它把「长什么样」拆成三个<strong>互相独立</strong>的轴：</p>
+    <ul>
+      <li><strong>Style（12）</strong>：cute / fresh / warm / bold / minimal / retro / pop / notion / chalkboard / study-notes / screen-print / sketch-notes</li>
+      <li><strong>Layout（6）</strong>：sparse（封面/金句）/ balanced（常规）/ dense（知识卡）/ list（清单）/ comparison（对比）/ flow（流程）</li>
+      <li><strong>Palette（3 可选覆盖）</strong>：macaron / warm / neon</li>
+    </ul>
+    <p>12 × 6 = 72 种组合，但只需要维护 12 份风格 + 6 份布局。<strong>这正是我们 12 套扁平模板的解法</strong>：现在加一套风格要复制一整个 <code>index.html</code>，正交化之后加风格只写一份风格 CSS。</p>
+    <p style="font-size:13px;color:var(--ink-3)">其 <code>baoyu-diagram</code> 还有一条值得记的产品判断：矢量图表类<strong>不调图片模型</strong>，让模型手写真实 SVG 代码。理由同样是文字准确性与可编辑性。</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">
+      <h3>XHS_Cover / xhs-toolkit</h3>
+      <span class="tag t-ok">MIT · 可借鉴代码</span>
+    </div>
+    <div class="repo">github.com/Smartloe/XHS_Cover · github.com/fifizy/xhs-toolkit</div>
+    <h4>XHS_Cover：如果要做「可视化微调」，这是参考架构</h4>
+    <p>React + Vite + Tailwind + Radix UI，核心交互库是 <code>react-draggable</code>（拖拽）+ <code>react-color</code>（取色）+ <code>html-to-image</code>（导出）。360×480 预览画布，导出 1080×1440（3 倍缩放）。</p>
+    <ul>
+      <li>文本分层：标题 / 高亮关键词 / 正文 / 标签，各层独立编辑 —— 比「一个 title 输入框」表达力强得多</li>
+      <li>100+ Emoji 贴纸可拖拽 / 缩放 / 旋转，<code>Delete</code> 删除</li>
+      <li>坑点记录：跨域图片导出需设 <code>crossOrigin</code> + <code>referrerPolicy</code>，否则导出空白。<em>我们 <code>images.js</code> 做外链图本地化时同理</em></li>
+    </ul>
+    <h4>xhs-toolkit：最小可用的换肤范式</h4>
+    <p>一个 <code>--accent</code> CSS 变量切换全篇主色（紫 #7C3AED 科技 / 橙 #FF6B00 热点 / 红 #E74C3C 争议 / 蓝 #2563EB 教程），背景固定暖白 <code>#FDF8F3</code> + 白色卡片 + 彩色左边框 + 轻阴影。<strong>把「主题」压缩到单个变量</strong>，是我们低成本扩充风格的最快路径。</p>
+  </div>
+</section>
+
+<!-- 3 横向：排版/字体/配色 -->
+<section>
+  <h2><span class="num">03</span>横向提炼：排版 · 字体 · 配色</h2>
+
+  <h3>3.1 布局排版：外部共识的四条硬规则</h3>
+  <div class="t-wrap">
+  <table>
+    <thead><tr><th style="width:24%">规则</th><th>具体做法</th><th style="width:22%">出处</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>上重下轻</strong></td>
+        <td>信息流里封面底部约 15%（约 120px）会被标题+作者头像遮罩覆盖。上部 2/3 放核心信息（大标题、数字、主视觉），下部 1/3 只放装饰。内页不受此限。</td>
+        <td>huashu-skills 设计规范 / spellbook-xiaohongshu</td>
+      </tr>
+      <tr>
+        <td><strong>字号锚点公式</strong></td>
+        <td>主标题 ≈ 画布宽 ÷ 7 ~ ÷ 6。1080 宽 → 154~180px 较稳。三级以下不低于宽度的 1/30（即 36px 以下在缩略图里不可读）。一级:二级 ≤ 3 倍差，否则缩略图糊成一团。</td>
+        <td>多篇设计规范交叉一致</td>
+      </tr>
+      <tr>
+        <td><strong>缩略图自检</strong></td>
+        <td>标题必须在 iPhone 信息流缩略图（约 170×227）下仍可读。做图时缩到 16% 看一眼，是我们现在完全没有的环节。</td>
+        <td>huashu-skills / Auto-Redbook issue</td>
+      </tr>
+      <tr>
+        <td><strong>安全区</strong></td>
+        <td>上下各 80px、左右各 60px；底部 120px 不放重要信息。</td>
+        <td>huashu-skills 设计规范</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>字号层级参考（1080×1440 画布）</h4>
+  <div class="t-wrap">
+  <table>
+    <thead><tr><th>层级</th><th>规范建议</th><th>Auto-Redbook 实测</th><th>我们的处置建议</th></tr></thead>
+    <tbody>
+      <tr><td>主标题</td><td>80-120px（占比 30-50%）</td><td>130px / 900</td><td>落在 <strong>120-150px</strong>，按标题字数动态收缩</td></tr>
+      <tr><td>副标题</td><td>40-60px（10-20%）</td><td>72px / 350</td><td><strong>60-72px / 300-400</strong>（细体是杂志感来源）</td></tr>
+      <tr><td>正文</td><td>28-36px（20-30%）</td><td>42px / 1.7</td><td><strong>38-42px</strong>，line-height 1.6-1.7</td></tr>
+      <tr><td>标注</td><td>20-24px</td><td>34px（tag）</td><td><strong>26-34px</strong>，页脚/来源/署名</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="font-size:13px;color:var(--ink-3)">注：规范类文档的数值口径不一（有的按 1080 画布算，有的按 1242 高清）。落地时应统一到 1080 基准并写进一组常量，不要再散落在各模板里。</p>
+
+  <h3>3.2 字体处理：三条可执行的做法</h3>
+  <ul>
+    <li><strong>只用可商用字体，并明确写进代码注释</strong>。多份规范一致推荐：阿里巴巴普惠体 Bold（标题）、思源黑体 Bold/Regular、站酷庆科黄油体、站酷快乐体。明确避雷：方正、汉仪、华文系列（商用需授权）。有博主因未授权字体被索赔 2 万元的案例被反复引用。</li>
+    <li><strong>字体子集化 / 按需注入</strong>。中文字体动辄 5-10MB，直接内嵌会让 PWA 首屏不可接受。Auto-Redbook 用系统栈兜底（<code>'Source Han Sans CN', 'PingFang SC', 'Microsoft YaHei', -apple-system</code>），归藏则把字体路径改为本地。我们的 <code>textmode.js</code> 已经做了得意黑按需注入 + <code>document.fonts.ready</code> 等待，这条路是对的，可再补一层「只取用到的字形」。可考虑 <code>fonttools pyftsubset</code> 或 <code>cn-font-split</code> 做构建期子集。</li>
+    <li><strong>等字体就绪再截图</strong>。我们 <code>render.js</code> 里已经 <code>await fonts.ready</code> + 两帧 <code>requestAnimationFrame</code> 等 fitty 写回 —— 这是外部方案普遍踩过的坑，我们已经解决了。</li>
+  </ul>
+
+  <h3>3.3 配色处理：三条范式</h3>
+  <div class="t-wrap">
+  <table>
+    <thead><tr><th style="width:22%">范式</th><th>做法</th><th style="width:24%">代表</th><th style="width:20%">适配我们的场景</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>主题预设锁色</strong></td>
+        <td>预设 N 套完整色板（底/主/强调三色），<strong>禁止用户改 hex</strong>。切主题 = 改 <code>data-theme</code> 属性。</td>
+        <td>归藏（10 套）<br>Auto-Redbook（8 套）</td>
+        <td>✅ 我们现状。<code>catalog.js</code> 的 swatch/accent 已是雏形，可补「底/主/强调」三值</td>
+      </tr>
+      <tr>
+        <td><strong>单变量换肤</strong></td>
+        <td>背景与中性色固定，只让 <code>--accent</code> 变化。</td>
+        <td>xhs-toolkit（4 色）</td>
+        <td>✅ 低成本扩风格首选，一套骨架 × N 个 accent</td>
+      </tr>
+      <tr>
+        <td><strong>调色板叠加</strong></td>
+        <td>风格与配色正交，调色板作为可选覆盖层。</td>
+        <td>baoyu-skills（3 调色板）</td>
+        <td>⚠️ 需要先做正交化重构才有意义</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p><strong>配色的一条通用原则</strong>（多源一致）：深浅二选一不混用 —— 要么深底亮字，要么浅底深字；固定账号色板（2-3 套）形成品牌认知；避免低饱和灰底 + 浅灰字（信息流里直接淹没）。</p>
+</section>
+
+<!-- 4 许可合规 -->
+<section>
+  <h2><span class="num">04</span>许可合规：能抄到什么程度</h2>
+
+  <div class="t-wrap">
+  <table>
+    <thead><tr><th style="width:20%">许可</th><th style="width:26%">对我们的约束</th><th style="width:18%">涉及方案</th><th>可做 / 不可做</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>MIT</strong></td>
+        <td>仅需保留版权声明与许可全文</td>
+        <td>Auto-Redbook、baoyu、XHS_Cover、xhs-toolkit、modern-screenshot、snapdom</td>
+        <td><span class="tag t-ok">可做</span> 读代码、改代码、摘取片段、复用 CSS 常量值<br><span class="tag t-warn">注意</span> 在 <code>THIRD_PARTY_NOTICES.md</code> 补登记</td>
+      </tr>
+      <tr>
+        <td><strong>AGPL-3.0</strong></td>
+        <td>衍生作品须 AGPL 开源；<strong>网络服务也须提供源码</strong>（§13）</td>
+        <td>归藏（已采用）</td>
+        <td><span class="tag t-ok">可做</span> 整体 AGPL 下使用、修改、再分发，已合规<br><span class="tag t-risk">不可做</span> 抽其代码进闭源项目 / 姊妹产品；将来闭源商业版须重写版式</td>
+      </tr>
+      <tr>
+        <td><strong>自定义双许可</strong></td>
+        <td>商用或闭源部署需<strong>书面商业授权</strong></td>
+        <td>BLCaptain Style Skill（9 风格）</td>
+        <td><span class="tag t-ok">可做</span> 当前自用范围<br><span class="tag t-risk">必须先做</span> 商业化前联系作者取授权（blteam2026@outlook.com）</td>
+      </tr>
+      <tr>
+        <td><strong>MPL-2.0</strong></td>
+        <td>文件级 copyleft：改了其源文件才需开源该文件</td>
+        <td>satori</td>
+        <td><span class="tag t-ok">可做</span> 作为依赖链接使用、不修改源码<br><span class="tag t-warn">注意</span> 若 fork 改 satori 内部，需公开该文件改动</td>
+      </tr>
+      <tr>
+        <td><strong>未核实</strong></td>
+        <td>—</td>
+        <td>huashu-skills 设计规范、xhs-image-mcp、mooncat-xhs-card</td>
+        <td><span class="tag t-warn">处置</span> 仅作<strong>行业数据参考</strong>，不复用其代码/文档原文；如需采用先查 LICENSE 文件</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="box box-ok">
+    <span class="t">我们已经做对的事（值得保持）</span>
+    <p><code>THIRD_PARTY_NOTICES.md</code> 已逐项登记上游仓库、许可证、修改说明，并声明「本项目整体以 AGPL-3.0 发布，履行 §13」；<code>catalog.js</code> 里也写了「10 套模板（AGPL-3.0，见 THIRD_PARTY_NOTICES）」。<strong>这套做法比大多数同类项目规范</strong>，后续引入任何新资产都应沿用同一格式登记。</p>
+  </div>
+
+  <div class="box box-risk">
+    <span class="t">需要立刻决策的一件事</span>
+    <p>「SUPERSu 是否会闭源商业化」直接决定现在能不能继续深挖归藏模板。<strong>若会</strong>：应从现在起把封面体系做成「自有版式 + 可插拔上游模板」两层，自有层不引用归藏的 CSS 变量与骨架；<strong>若不会</strong>：维持 AGPL 全开源即可，可放心继续用归藏做视觉上限。BLCaptain 同理，但它是双许可，边界更明确，建议无论哪种路线都尽早问一次商业授权条件。</p>
+  </div>
+</section>
+
+<!-- 5 现状差距 -->
+<section>
+  <h2><span class="num">05</span>我们的现状与差距</h2>
+
+  <div class="t-wrap">
+  <table>
+    <thead><tr><th style="width:20%">能力</th><th style="width:16%">SuperSu 现状</th><th style="width:22%">外部最佳实践</th><th>差距性质</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>渲染管线</td>
+        <td>modern-screenshot<br>离屏 iframe</td>
+        <td>Playwright（服务端）/ snapDOM（浏览器）</td>
+        <td><span class="tag t-ok">不落后</span> 纯前端无后端是我们的优势；大 DOM 场景 snapDOM 快 5-11 倍，可作 P2 备选</td>
+      </tr>
+      <tr>
+        <td>字体就绪</td>
+        <td><code>fonts.ready</code> + 双 rAF</td>
+        <td>同</td>
+        <td><span class="tag t-ok">已对齐</span></td>
+      </tr>
+      <tr>
+        <td>字号自适应</td>
+        <td>fitty</td>
+        <td>auto-fit 整体缩放 / 区间钳制</td>
+        <td><span class="tag t-warn">偏弱</span> fitty 只调字号不调行高/字距，长标题易挤压；缺上下界</td>
+      </tr>
+      <tr>
+        <td>多页 / 轮播</td>
+        <td><strong>无</strong>（单张封面）</td>
+        <td>4 种分页模式 + 智能拆页</td>
+        <td><span class="tag t-risk">缺失</span> 这是最大功能缺口</td>
+      </tr>
+      <tr>
+        <td>风格 × 版式</td>
+        <td>12 套扁平主题<br>（每套一个 HTML）</td>
+        <td>Style × Layout 正交（12×6）</td>
+        <td><span class="tag t-risk">架构性</span> 加风格成本高，且模板文件会持续膨胀</td>
+      </tr>
+      <tr>
+        <td>排版校验</td>
+        <td>无（靠肉眼）</td>
+        <td>Playwright DOM 测量 / layout.json 报告</td>
+        <td><span class="tag t-risk">缺失</span> 与我们「门禁化」的工程习惯不匹配</td>
+      </tr>
+      <tr>
+        <td>安全区 / 缩略图</td>
+        <td>无显式约束</td>
+        <td>底部 120px 禁区 + 170×227 自检</td>
+        <td><span class="tag t-warn">缺失</span> 成本极低、收益极高</td>
+      </tr>
+      <tr>
+        <td>可视化微调</td>
+        <td>无（改输入再重渲）</td>
+        <td>拖拽贴纸 / 独立文本层</td>
+        <td><span class="tag t-gray">可选</span> 与「纯文本进排版出」定位有张力，非必须</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 6 落地建议 -->
+<section>
+  <h2><span class="num">06</span>落地建议（按性价比排序）</h2>
+
+  <div class="p">
+    <div class="p-badge p0">P0</div>
+    <div class="p-body">
+      <h4>抽出「设计令牌」常量表 + 安全区约束</h4>
+      <p>把散落在 12 个模板里的字号、边距、色值收敛成一组常量，一次性解决「数值口径不一」和「改一处要改十二处」。同时显式声明安全区：上下 80 / 左右 60 / 底部 120 禁区。</p>
+      <p><strong>借鉴来源</strong>：huashu-skills 设计规范（行业数据）+ Auto-Redbook 的尺寸基准（MIT，可直接取值）。</p>
+      <div class="where">pwa/src/cover/catalog.js 旁新增 tokens.js；各模板改为读令牌</div>
+    </div>
+  </div>
+
+  <div class="p">
+    <div class="p-badge p0">P0</div>
+    <div class="p-body">
+      <h4>加一个「缩略图自检」开关</h4>
+      <p>预览区一键把封面缩到 170×227（小红书信息流真实尺寸），让人眼直接判断标题是否还认得出。这个功能不到 30 行代码，但对成品率影响最大 —— 外部多份规范把它列为核心法则，我们现在完全没有。</p>
+      <p><strong>借鉴来源</strong>：huashu-skills「缩略图测试」法则（思路，非代码）。</p>
+      <div class="where">pwa/src/cover/index.js 预览区加缩放切换</div>
+    </div>
+  </div>
+
+  <div class="p">
+    <div class="p-badge p1">P1</div>
+    <div class="p-body">
+      <h4>补「多页导出」—— 先做 auto-split 一种</h4>
+      <p>这是功能缺口里最大的一块。不必一次做四模式：先实现「按渲染高度自动拆页」—— 在离屏 iframe 里量出内容总高，按 1440 的可用高度切成 N 页，页脚自动加 <code>01/05</code> 页码。这一步打通后，「封面 + 内页」才成为完整产品。</p>
+      <p><strong>借鉴来源</strong>：Auto-Redbook-Skills 的 auto-split 思路与三层卡片结构（<strong>MIT，代码可借鉴</strong>）。</p>
+      <div class="where">pwa/src/cover/ 新增 paginate.js；templates 增加内页骨架</div>
+    </div>
+  </div>
+
+  <div class="p">
+    <div class="p-badge p1">P1</div>
+    <div class="p-body">
+      <h4>写一个排版校验脚本，接进现有门禁</h4>
+      <p>在渲染前用 iframe 内的 <code>getBoundingClientRect</code> 做真实 DOM 测量，检查四件事：内容是否溢出画布、主标题字号是否落在令牌区间、正文最小字号是否达标、页脚与内容是否碰撞。做成 <code>scripts/cover_audit.py</code> 或 JS 版，挂到 <code>run_gates.py</code> 的本地层。</p>
+      <p><strong>借鉴来源</strong>：归藏 <code>validate-social-deck.mjs</code> 的<strong>检测维度</strong>（AGPL，只学「查什么」，不搬实现）；mooncat 的 layout.json 报告形态。</p>
+      <div class="where">scripts/ 新增；AGENTS.md 门禁清单登记</div>
+    </div>
+  </div>
+
+  <div class="p">
+    <div class="p-badge p2">P2</div>
+    <div class="p-body">
+      <h4>风格与版式正交化重构</h4>
+      <p>把「视觉风格」（配色、字体、质感）与「版式骨架」（大字报 / 清单 / 对比 / 流程 / 高密度）拆成两个独立维度，组合生成可用模板。参考 12 风格 × 6 布局的组合思路。<strong>这是重构，不是新增</strong> —— 建议等 P0/P1 落地、tokens 稳定后再动，且要保留现有 12 套作为「精选预设」入口，避免体验倒退。</p>
+      <p><strong>借鉴来源</strong>：baoyu-skills 的 Style × Layout 双维度体系（<strong>MIT，概念可借鉴</strong>）。</p>
+      <div class="where">catalog.js 结构改造 + 模板拆分；影响面大，需单独立项</div>
+    </div>
+  </div>
+
+  <div class="p">
+    <div class="p-badge p3">P3</div>
+    <div class="p-body">
+      <h4>可选：字体子集化、snapDOM 备份、单变量换肤扩充</h4>
+      <ul>
+        <li><strong>字体子集</strong>：构建期用 <code>pyftsubset</code> / <code>cn-font-split</code> 只为用到的字形出子集，压掉中文字体体积。</li>
+        <li><strong>snapDOM 备选</strong>：MIT，纯 Web API 零依赖，大 DOM 比 modern-screenshot 快 5-11 倍。可做 A/B 再决定是否替换 <code>vendor/modern-screenshot.js</code>。</li>
+        <li><strong>单变量换肤</strong>：一套骨架 × N 个 <code>--accent</code>，是扩充风格最快的方式（xhs-toolkit 范式）。</li>
+      </ul>
+      <div class="where">pwa/scripts/build.mjs · public/vendor/ · pwa/src/style.css</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 边界 -->
+<section>
+  <h2><span class="num">07</span>明确不做什么（避免抄袭与产品走偏）</h2>
+
+  <ul>
+    <li><strong>不搬归藏的 CSS 变量体系与版式骨架到非 AGPL 产物</strong>。它的设计原则（禁自定义色值、校验密度、主体避让）可以学，具体声明与几何数值自己重算。</li>
+    <li><strong>不做拖拽式画布编辑器</strong>。XHS_Cover 那条路（react-draggable + 贴纸）与「纯文本进、排版出」的定位相互冲突，会让我们退化成又一个 Canva。真需要微调，优先做「文案级参数」而非「像素级拖拽」。</li>
+    <li><strong>不引入 LLM 出图做封面主视觉</strong>。外部方案一致避开这条路，原因是文字准确率不可控。我们已有 <code>image_search.py</code> 找真图 + PIL 叠加，方向更稳。</li>
+    <li><strong>不接第三方付费封面 API</strong>（xhscover 那类）。核心能力外置会把产品命运交给别人。</li>
+    <li><strong>不追求模板数量</strong>。归藏 README 的判断值得记住：「2025 年起千篇一律的模板互动率持续下降」。我们的优势应是「同一套内容换气质」，而不是「164 个模板任选」。</li>
+  </ul>
+</section>
+
+<footer class="foot">
+  <p><strong>调研方式</strong>：Web 检索 GitHub 仓库 README / 源码、npm 包文档、第三方设计规范文档；许可信息以各仓库 LICENSE 声明与 README License 段落为准。标注「未核实」者为仅见二手介绍、未见 LICENSE 原文，落地前需自行核对。</p>
+  <p><strong>免责</strong>：本文档为内部技术调研，所引数值与结论以调研当日公开信息为准；上游项目迭代较快，实施前建议复核版本与许可。</p>
+</footer>
+
+</div>
+</body>
+</html>
