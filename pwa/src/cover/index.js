@@ -523,6 +523,10 @@ function renderGallery() {
     const label = document.createElement('span');
     label.className = 'cv-card-label';
     label.textContent = `${COVER_SIZES[r.size].hint} · ${styleById(r.style).name}`;
+    label.title = label.textContent;
+    // 按钮包一层容器（2026-10-25）：避免长标签把两个按钮挤到换行
+    const acts = document.createElement('div');
+    acts.className = 'cv-card-acts';
     const nine = document.createElement('button');
     nine.type = 'button';
     nine.className = 'cv-dl';
@@ -533,7 +537,8 @@ function renderGallery() {
     dl.href = r.url;
     dl.download = `supersu-cover-${r.style}-${r.size}.png`;
     dl.textContent = '下载';
-    foot.append(label, nine, dl);
+    acts.append(nine, dl);
+    foot.append(label, acts);
     fig.append(img, foot);
     gal.appendChild(fig);
   }

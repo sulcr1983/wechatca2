@@ -187,12 +187,26 @@ function applyImage(html, image) {
 export function prepareCoverHtml(html, { title, lead, author, image, baseUrl }) {
   const now = new Date();
   const date = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  /* ⚠️ 2026-10-25 修的隐藏 bug：
+     原来「先替换占位符、再删空标签」——
+       .replace(/\{\{AUTHOR\}\}/g, '') 先把 {{AUTHOR}} 变成空串，
+       随后 /<span>\s*\{\{AUTHOR\}\}\s*<\/span>/ 永远匹配不到 → 死代码。
+     结果：没填署名时，封面上会残留「· 小红书」「/ 」这种孤儿分隔符。
+     正确顺序：**先按 data-author 标记删掉整个元素，再替换占位符**。 */
+  const dropIfEmpty = (flag, on) => {
+    if (on) return;
+    // 匹配带 data-author 的任意简单元素并整块删除（模板里都是单层叶子元素）
+    html = html.replace(/<(\w+)[^>]*\bdata-author\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+  };
+  dropIfEmpty('author', String(author || '').trim());
+
   html = html.replace(/\{\{TITLE\}\}/g, esc(title))
     .replace(/\{\{LEAD\}\}/g, esc(lead))
     .replace(/\{\{AUTHOR\}\}/g, esc(author))
     .replace(/\{\{DATE\}\}/g, date);
+  // lead 为空时删掉空段落（这条原本就是对的：它匹配的是「替换后变成空」的 <p class="lead">）
   if (!lead) html = html.replace(/<p[^>]*class="[^"]*\blead\b[^"]*"[^>]*>\s*<\/p>/gi, '');
-  if (!author) html = html.replace(/<span>\s*\{\{AUTHOR\}\}\s*<\/span>/gi, '');
   html = applyImage(html, image);
   // 纯色模式：按模板自己的 --accent 亮度算出可读的字色，注入 --cover-ink 变量
   // （OVERRIDE_CSS 里用它；模板自带 --accent-on 时以模板为准，见 CSS 的回落链）
@@ -242,24 +256,36 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
       ? 'background: linear-gradient(90deg, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 60%);'
       : 'background: linear-gradient(180deg, rgba(10,10,11,0) 50%, rgba(10,10,11,.30) 100%);';
 
+  // 署名（2026-10-25 新增）：归藏两套原来完全没有署名字段，用户填了也不显示。
+  // 空署名时不渲染，避免留下孤儿分隔符。
+  const hasAuthor = String(author || '').trim().length > 0;
+  const authorLine = (extra = '') => (hasAuthor
+    ? `<p class="gz-author" style="font-family:monospace;font-size:${f.metaSize}px;`
+      + `letter-spacing:${f.metaLetter};color:rgba(255,255,255,.72);margin:18px 0 0;${extra}">`
+      + `By ${esc(author)}</p>`
+    : '');
+
   const body = isWide ? `
     <div class="wide-layout">
       <div>
         <p class="kicker" style="font-size:21px;letter-spacing:.22em;color:${c.accent};margin:0 0 24px;">封面 · Cover</p>
         <h1 class="wide-title">{{TITLE}}</h1>
         <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;">{{LEAD}}</p>
+        ${authorLine()}
       </div>
       ${image ? '<div><img class="wide-img" src="{{IMAGE}}" alt=""></div>' : ''}
     </div>` : isSquare ? `
     <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:rgba(255,255,255,.75);">Vol. 01 · ${date}</div>
     <h1 class="square-title">{{TITLE}}</h1>
-    <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;">{{LEAD}}</p>` : `
+    <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;">{{LEAD}}</p>
+    ${authorLine()}` : `
     <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:rgba(255,255,255,.75);">Vol. 01 <span class="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);margin:0 12px;"></span> ${date}</div>
     <div style="margin-top:40px;">
       <p class="kicker" style="font-family:monospace;font-size:21px;letter-spacing:.22em;color:rgba(255,255,255,.85);margin:0 0 24px;">封面 · Cover</p>
       <h1 class="h-display">{{TITLE}}</h1>
       <div style="width:48px;height:3px;background:${c.accent};margin-bottom:20px;opacity:.8;"></div>
       <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;max-width:640px;">{{LEAD}}</p>
+      ${authorLine()}
     </div>`;
 
   const html = `<!doctype html>

@@ -202,6 +202,15 @@ def main() -> int:
             check("归藏一次出 3 个尺寸", dims == [[1080, 1440], [1080, 1080], [2100, 900]], str(dims))
             check("每张都有下载链接", page.locator("a.cv-dl").count() == 3)
 
+            # 2026-10-25 补：卡片底部「九宫格 / 下载」被长标签挤成竖排（用户反馈错位）。
+            # 断言按钮是单行、且不换行（高度 < 40px 说明没被压成两行）。
+            btn_boxes = page.eval_on_selector_all(
+                ".cv-dl", "els => els.map(e => { const r = e.getBoundingClientRect();"
+                " return {t: e.textContent.trim(), w: Math.round(r.width), h: Math.round(r.height)}; })")
+            bad_btn = [b for b in btn_boxes if b["h"] >= 40]
+            check("卡片按钮单行不换行", not bad_btn and len(btn_boxes) >= 6,
+                  f"{len(btn_boxes)} 个按钮，异常={bad_btn[:2] or '无'}")
+
             # ── 模板：3:4 ──
             tab("style")
             page.click('[data-style="editorial-dune"]')

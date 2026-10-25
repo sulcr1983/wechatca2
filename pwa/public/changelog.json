@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-25T18:29:38+08:00",
-  "totalCommits": 196,
+  "generatedAt": "2026-10-25T18:36:54+08:00",
+  "totalCommits": 198,
   "releases": [
     {
       "version": "1.6.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 2,
         "fixed": 9,
-        "other": 10
+        "other": 12
       },
       "groups": [
         {
@@ -106,6 +106,20 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（字体+玩法+图库已上线）",
+              "scope": "",
+              "hash": "6ca480d",
+              "date": "2026-10-25T18:32:26+08:00",
+              "breaking": false
+            },
+            {
+              "text": "构建产物同步（字体+玩法+图库）",
+              "scope": "",
+              "hash": "396ba19",
+              "date": "2026-10-25T18:29:44+08:00",
+              "breaking": false
+            },
             {
               "text": "STATE 同步（模板配色修复 b215 已部署）",
               "scope": "",

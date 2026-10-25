@@ -49,6 +49,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "output" / "gate-run"
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
+
+# node 解析：优先用托管版本；模板单测不需要浏览器，用它最快
+def _find_node():
+    cands = [
+        Path.home() / ".workbuddy" / "binaries" / "node" / "versions" / "22.22.2-6" / "node.exe",
+        Path("C:/Program Files/nodejs/node.exe"),
+    ]
+    for c in cands:
+        if c.exists():
+            return c
+    return "node"
+
+
+NODE = _find_node()
 if not PY.exists():
     PY = Path(sys.executable)
 
@@ -61,6 +75,7 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("export",         [PY, "scripts/pwa_export_test.py"],        "导出四件套 12", "local"),
     ("nine",           [PY, "scripts/pwa_nine_test.py"],          "九宫格切图 15", "local"),
     ("cover",          [PY, "scripts/pwa_cover_test.py"],         "封面 18（1 SKIP 网络）", "local"),
+    ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
     ("layout_compat",  [PY, "scripts/pwa_layout_compat_test.py"], "版式兼容矩阵 100", "in-process"),
     ("doc_sync",       [PY, "scripts/doc_sync_check.py"],
                        "文档一致性（数字与实际对齐）", "in-process"),
