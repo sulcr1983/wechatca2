@@ -92,11 +92,13 @@ body:not(.has-img):not(.gz) .grow { display: none !important; }
    纯色模式下底图被移除 → 只剩 .inner-content 的 rgba(0,0,0,.08) 淡灰，
    10 套模板看起来**完全一样**（都是灰白板），用户以为「点了没反应」。
 
-   修法：无底图时用模板自己的 --accent（克莱因蓝/柠檬绿/柠檬黄/安全橙…）
-   做整版底色，文字转为 --paper（浅色），标题用 --accent-on。
-   这样每套模板的配色差异立刻可见，且不依赖任何图片。 */
+   修法（2026-10-25 二次校正）：无底图时用模板的 **--paper 做纸底 + --ink 做墨字**，
+   强调色只留在模板原有的细节元素（.hr-accent 短横线等）里。
+   之前一版是「整版刷成 --accent」—— 能区分但违反规范：
+   theme-presets.md 明确「accent 克制使用，最多一个强调卡片」，
+   整版铺主色不是归藏的设计语言。 */
 body:not(.has-img):not(.gz) .poster {
-  background: var(--accent) !important;
+  background: var(--paper) !important;
 }
 body:not(.has-img):not(.gz) .inner-content {
   background: transparent !important;
@@ -117,12 +119,14 @@ body:not(.has-img):not(.gz) .t-meta,
 body:not(.has-img):not(.gz) .issue-row,
 body:not(.has-img):not(.gz) .chrome-min,
 body:not(.has-img):not(.gz) .chrome-min span {
-  color: var(--accent-on, var(--cover-ink, #ffffff)) !important;
+  color: var(--ink, var(--cover-ink, #111111)) !important;
   text-shadow: none !important;
 }
+/* 强调线保持模板原样（用 --accent），这是纯色模式下唯一露出的强调色，
+   符合规范「accent 克律使用」而不是把整版刷成主色 */
 body:not(.has-img):not(.gz) .hr-accent {
-  background: var(--cover-ink, #ffffff) !important;
-  opacity: .7;
+  background: var(--accent) !important;
+  opacity: 1;
 }
 /* 模板里的装饰网格/点阵在纯色底上会脏，去掉 */
 body:not(.has-img):not(.gz) .dot-mat { display: none !important; }

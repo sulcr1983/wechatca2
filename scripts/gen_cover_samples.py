@@ -83,8 +83,14 @@ def main() -> int:
             page.wait_for_selector("#cover-root:not([hidden])", timeout=15000)
 
             for style_id, text in SAMPLES:
+                # 2026-10-25 改版：左栏分成 4 个标签，非当前标签内的控件是 hidden，
+                # 直接 fill/click 会超时。操作前先切到对应标签。
+                page.click(".cv-tab[data-tab='content']")
+                page.wait_for_timeout(120)
                 page.fill("#cv-text", text)
                 page.wait_for_timeout(150)
+                page.click(".cv-tab[data-tab='style']")
+                page.wait_for_timeout(120)
                 page.locator(f".cv-style[data-style='{style_id}']").click()
                 page.wait_for_timeout(150)
                 page.click("#cv-gen")

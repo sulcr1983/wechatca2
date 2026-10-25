@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { TEMPLATE_STYLES } from '../src/cover/catalog.js';
+import { TEMPLATE_STYLES, ALL_STYLES } from '../src/cover/catalog.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PWA = path.resolve(HERE, '..');
@@ -324,10 +324,12 @@ function main() {
     fs.writeFileSync(path.join(DIST, 'cover-templates', `${t.id}.html`), html, 'utf8');
     coverN += 1;
   }
+  // 缩略图（2026-10-25）：原来只拷 10 套模板的，归藏两套（editorial / swiss）
+  // 补了真实预览图后也被漏掉 → 界面上是破图。改为按 ALL_STYLES 全量拷贝。
   const coverThumbSrc = path.join(ROOT, 'public', 'social-thumb');
   mkdirp(path.join(DIST, 'cover-thumbs'));
   let coverThumbN = 0;
-  for (const t of TEMPLATE_STYLES) {
+  for (const t of ALL_STYLES) {
     const p = path.join(coverThumbSrc, `${t.id}.png`);
     if (fs.existsSync(p)) {
       copyFile(p, path.join(DIST, 'cover-thumbs', `${t.id}.png`));

@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-25T19:20:50+08:00",
-  "totalCommits": 202,
+  "generatedAt": "2026-10-25T19:58:47+08:00",
+  "totalCommits": 204,
   "releases": [
     {
       "version": "1.6.0",
@@ -10,7 +10,7 @@
       "counts": {
         "added": 2,
         "fixed": 11,
-        "other": 14
+        "other": 16
       },
       "groups": [
         {
@@ -120,6 +120,20 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（归藏配色+AI提示词已上线）",
+              "scope": "",
+              "hash": "b7a114a",
+              "date": "2026-10-25T19:23:38+08:00",
+              "breaking": false
+            },
+            {
+              "text": "构建产物同步（归藏配色+AI提示词）",
+              "scope": "",
+              "hash": "54afdc6",
+              "date": "2026-10-25T19:20:55+08:00",
+              "breaking": false
+            },
             {
               "text": "STATE 同步（按钮+署名修复已上线）",
               "scope": "",
