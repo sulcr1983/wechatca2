@@ -84,11 +84,11 @@ body:not(.has-img) .t-meta,
 body:not(.has-img) .issue-row,
 body:not(.has-img) .chrome-min,
 body:not(.has-img) .chrome-min span {
-  color: var(--accent-on, #ffffff) !important;
+  color: var(--accent-on, var(--cover-ink, #ffffff)) !important;
   text-shadow: none !important;
 }
 body:not(.has-img) .hr-accent {
-  background: var(--accent-on, #ffffff) !important;
+  background: var(--cover-ink, #ffffff) !important;
   opacity: .7;
 }
 /* 模板里的装饰网格/点阵在纯色底上会脏，去掉 */
@@ -139,6 +139,27 @@ function fitScript() {
 </script>`;
 }
 
+/** 按底色亮度选文字色（2026-10-25）。
+ *
+ * 模板的 --accent 亮度差异很大：克莱因蓝 #002FA7（暗）要用白字，
+ * 柠檬黄 #FFD500（很亮）要用黑字，午夜墨金 #d4a04a（中等亮度）白字对比度不足。
+ * 用 WCAG 相对亮度公式判断，保证每套模板的文字都可读。
+ */
+function inkForAccent(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim());
+  if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16);
+  const toLin = (c) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const r = toLin((n >> 16) & 255);
+  const g = toLin((n >> 8) & 255);
+  const b = toLin(n & 255);
+  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;   // 0=黑 1=白
+  return L > 0.42 ? '#0a0a0a' : '#ffffff';
+}
+
 function applyImage(html, image) {
   const imgRe = /<img[^>]*class="[^"]*\bcover-img\b[^"]*"[^>]*>/i;
   const overlayRe = /<div[^>]*class="[^"]*\bimg-overlay\b[^"]*"[^>]*>\s*<\/div>/i;
@@ -173,7 +194,12 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl }) 
   if (!lead) html = html.replace(/<p[^>]*class="[^"]*\blead\b[^"]*"[^>]*>\s*<\/p>/gi, '');
   if (!author) html = html.replace(/<span>\s*\{\{AUTHOR\}\}\s*<\/span>/gi, '');
   html = applyImage(html, image);
-  const head = `<link rel="stylesheet" href="${baseUrl}fonts/cover-fonts.css"><style>${OVERRIDE_CSS}</style>`;
+  // 纯色模式：按模板自己的 --accent 亮度算出可读的字色，注入 --cover-ink 变量
+  // （OVERRIDE_CSS 里用它；模板自带 --accent-on 时以模板为准，见 CSS 的回落链）
+  const accentHex = (/--accent:\s*(#[0-9a-fA-F]{6})/.exec(html) || [])[1] || '';
+  const inkColor = inkForAccent(accentHex);
+  const head = `<link rel="stylesheet" href="${baseUrl}fonts/cover-fonts.css">`
+    + `<style>:root{--cover-ink:${inkColor}}</style><style>${OVERRIDE_CSS}</style>`;
   if (/<\/head>/i.test(html)) html = html.replace(/<\/head>/i, `${head}</head>`);
   else html = head + html;
   if (/<\/body>/i.test(html)) html = html.replace(/<\/body>/i, `${fitScript()}</body>`);
