@@ -48,7 +48,7 @@ sys.path.insert(0, str(ROOT))
 from core.preprocessor import preprocess                    # noqa: E402
 from core.format_engine import (                            # noqa: E402
     md_to_html, inject_inline_styles, _plain_len,
-    process_fenced_containers, process_callouts,
+    process_fenced_containers, process_callouts, _split_top_blocks,
 )
 
 THEMES = ROOT / "public" / "themes"
@@ -259,6 +259,33 @@ def has_headings(md: str) -> bool:
     return len(re.findall(r"<h2[^>]*>", h)) >= 2
 
 
+def paragraphs_per_section_max(md: str) -> int:
+    """各小节里「连续纯段落」的最大数量（判断 magazine 双栏能否展开）。
+
+    magazine 的分栏逻辑是「同一节内**连续**的段落分成左右两列」，
+    块级元素（引用块 / stat 卡 / 列表 / 图片）会打断连续区。
+    ⚠️ 判据必须按引擎的真实切分口径算：用 _split_top_blocks 切顶层块，
+       逐块累加纯段落数，遇到块级元素就断 —— 不能简单数 <p> 总数，
+       否则「1 段 + 块 + 1 段」会被误算成 2 段（2026-10-25 实测踩到）。
+    """
+    h = md_to_html(process_callouts(process_fenced_containers(preprocess(md))))
+    best = 0
+    for sec in re.split(r"(?=<h2)", h)[1:]:
+        m = re.match(r"(<h[12][^>]*>.*?</h[12]>)(.*)$", sec, re.DOTALL)
+        body = m.group(2) if m else sec
+        run = 0
+        for piece, is_block in _split_top_blocks(body):
+            if not piece.strip():
+                continue
+            if is_block:
+                best = max(best, run)
+                run = 0
+                continue
+            run += len(re.findall(r"<p[^>]*>", piece))
+        best = max(best, run)
+    return best
+
+
 def render(md: str, theme: dict) -> str:
     """走与生产一致的完整链路（容器/提示框解析必须在 md_to_html 之前）"""
     text = process_fenced_containers(md)
@@ -425,8 +452,20 @@ def main() -> int:
                 sig = LAYOUT_SIGNATURE[lay]
                 feat_ok = True if not sig else sig[1](html)
                 # 结构版式（目录/分栏/卡片/强调条）需要小标题或分段才有意义。
-                # 无小标题的短文自动降级为普通排版 —— 这是设计内的合理降级，不算失败
+                # 无小标题的短文自动降级为普通排版 —— 这是设计内的合理降级，不算失败。
+                #
+                # ⚠️ 2026-10-25 补：magazine 还需要「每节 ≥2 段」才能分出左右列。
+                #    standard 夹具每节只有 1 段 → 引擎按设计整宽输出（不造假双栏），
+                #    原逻辑只判断「有没有小标题」→ 误判为失败。这里把该情形也纳入合理降级。
                 degraded = (not feat_ok) and (not has_headings(md)) and lay != ""
+                if (not feat_ok) and lay == "magazine" and has_headings(md):
+                    # 有小标题但「最长连续段落」不足 2 段 → 双栏无从展开（块级元素
+                    # 会把段落打断，如引用块 / stat 卡 / 列表 / 图片），属设计内降级。
+                    if paragraphs_per_section_max(md) < 2:
+                        degraded = True
+                    else:
+                        # 段落够却仍没分栏 = 真问题，不能降级放行
+                        pass
 
                 good = fidelity >= 0.95 and ok_bal and not res and plain_out > 0 and (feat_ok or degraded)
                 results.append((name, tag, lay or "默认", good, fidelity, ok_bal, res,

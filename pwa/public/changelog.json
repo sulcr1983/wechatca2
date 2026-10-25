@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-25T14:58:04+08:00",
-  "totalCommits": 182,
+  "generatedAt": "2026-10-25T15:28:39+08:00",
+  "totalCommits": 185,
   "releases": [
     {
       "version": "1.5.0",
@@ -10,8 +10,8 @@
       "counts": {
         "added": 16,
         "changed": 17,
-        "fixed": 10,
-        "other": 11
+        "fixed": 11,
+        "other": 13
       },
       "groups": [
         {
@@ -262,6 +262,13 @@
           "label": "修复",
           "items": [
             {
+              "text": "支持 wrangler 登录态（不再强制要求 opendoor/.env）",
+              "scope": "deploy",
+              "hash": "34a38bf",
+              "date": "2026-10-25T15:03:23+08:00",
+              "breaking": false
+            },
+            {
               "text": "调用侧去掉 node shim 环境变量（正确修法，不改业务代码）",
               "scope": "release",
               "hash": "c3877a7",
@@ -337,6 +344,20 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（线上 b203 = 本地 b203，已部署）",
+              "scope": "",
+              "hash": "2750fb1",
+              "date": "2026-10-25T15:07:55+08:00",
+              "breaking": false
+            },
+            {
+              "text": "构建产物同步（b203）",
+              "scope": "",
+              "hash": "0fb01de",
+              "date": "2026-10-25T14:58:27+08:00",
+              "breaking": false
+            },
             {
               "text": "还原 rmrf 为原生 rmSync + 同步生成物（b201）",
               "scope": "",

@@ -1429,6 +1429,9 @@ def _wrap_card_sections(html: str, card_cfg: dict, theme: dict | None = None) ->
         part = part.strip()
         if not part:
             continue
+        # ⚠️ 2026-10-25：同 cardflow —— 卡片里不要再套一个实心色块标题，
+        # 否则视觉上双重卡片，用户以为版式没生效。
+        part = _strip_heading_block(part, accent)
         cards.append(f'<section style="{card_style}">{part}</section>')
 
     return ''.join(cards)
@@ -1877,10 +1880,14 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
         # 2026-10-25：不再要求主题必须有 'card' 字段 —— 缺字段时用默认卡片样式，
         # 否则 74 套默认版式主题点「卡片组」会直接 KeyError → 界面「排版失败」
         html = _wrap_card_sections(html, theme.get("card") or {}, theme)
-    elif _layout == "hero" and "hero" in theme:
-        html = _wrap_hero_sections(html, theme["hero"], theme)
-    elif _layout == "timeline" and "timeline" in theme:
-        html = _wrap_timeline_sections(html, theme["timeline"], style_map)
+    elif _layout == "hero":
+        # 2026-10-25：不再要求主题必须有 'hero' 字段。
+        # 实测 151/164 套主题没有该字段 → 用户点「首屏」完全没反应。
+        # _wrap_hero_sections 内部本来就有 HERO_DEFAULTS 兜底，直接传空 dict 即可。
+        html = _wrap_hero_sections(html, theme.get("hero") or {}, theme)
+    elif _layout == "timeline":
+        # 同上：实测 163/164 套主题没有 'timeline' 字段 → 点「时间线」没反应。
+        html = _wrap_timeline_sections(html, theme.get("timeline") or {}, style_map)
     elif _layout in LAYOUT_REGISTRY:
         html = LAYOUT_REGISTRY[_layout](html, theme)
 
@@ -2176,6 +2183,47 @@ def _derive_block_color(base: str, accent: str, alpha: float) -> str:
     return accent
 
 
+def _strip_heading_block(head: str, ink: str = "") -> str:
+    """把标题标签上的「实心背景块」样式去掉（2026-10-25）。
+
+    背景：56/164 套主题的 h2 是「实心色底 + 圆角 + inline-block」，
+    在卡片类版式（cardflow / card）里会变成「卡片里套一个色块」，
+    视觉上双重卡片，用户会以为版式没生效（实测反馈「全部都是卡片组」）。
+
+    做法：只处理 <h1>~<h3> 开标签的 style，移除
+    background / background-color / border-radius / display:inline-block / padding，
+    保留字号、颜色、字重等。
+
+    ⚠️ 去背景后原样式里的白色字会看不见 → 若 ink 给了就用 ink 替换纯白/近白色。
+    """
+    if not head:
+        return head
+
+    def _fix(m: re.Match) -> str:
+        tag, style = m.group(1), m.group(2)
+        if not style:
+            return m.group(0)
+        parts = []
+        for decl in style.split(";"):
+            if not decl.strip():
+                continue
+            prop, _, val = decl.partition(":")
+            p, v = prop.strip().lower(), val.strip()
+            if p in ("background", "background-color", "border-radius",
+                     "display", "padding", "box-shadow"):
+                continue
+            # 去掉背景后，原本为白/近白的字色改成 ink，否则白字看不见
+            if p == "color" and ink and v.lower() in (
+                    "#fff", "#ffffff", "white", "#fefefe", "#f8f8f8"):
+                v = ink
+            parts.append(f"{prop.strip()}:{v}")
+        new_style = ";".join(parts)
+        return f"<{tag} style=\"{new_style}\">"
+
+    return re.sub(r"<(h[1-3])\b[^>]*?\sstyle=\"([^\"]*)\"[^>]*>", _fix, head,
+                  flags=re.IGNORECASE)
+
+
 def apply_paragraph_blocks(html: str, theme: dict) -> str:
     """C 方案 · 段落级色块强调（2026-10-24）
 
@@ -2431,7 +2479,8 @@ def _layout_magazine(html: str, theme: dict) -> str:
     for si, sec in enumerate(sections):
         m = re.match(r"(<h[12][^>]*>.*?</h[12]>)(.*)$", sec, re.DOTALL)
         head, body = (m.group(1), m.group(2)) if m else ("", sec)
-        out.append(head)
+        # 2026-10-25：分栏版式里标题也去掉实心色块，否则与双栏文字抢视觉
+        out.append(_strip_heading_block(head, ink))
 
         if si == 0:
             # 首屏：紧跟标题的第一段整宽（当导语），标题下加 accent 细线
@@ -2450,12 +2499,22 @@ def _layout_magazine(html: str, theme: dict) -> str:
         def flush() -> None:
             if not buf:
                 return
+            # ⚠️ 2026-10-25 修：只有 1 段时原来会生成「左列有内容 + 右列空白」的
+            # 两列表格 —— 视觉上完全看不出分栏，用户以为「杂志分栏没生效」
+            # （实测反馈）。段落不足 2 段就整宽输出，不造假分栏。
+            if len(buf) < 2:
+                out.append("".join(buf))
+                buf.clear()
+                return
             half = (len(buf) + 1) // 2
+            # table-layout:fixed 必须有（开源实践共识，2026-10-25 查证）：
+            # 微信端不设它时列宽会被内容长度撑破，两栏不等宽甚至错位。
             out.append(
-                '<table style="width:100%;border-collapse:collapse;margin:0 0 20px"><tr>'
+                '<table style="width:100%;table-layout:fixed;border-collapse:collapse;'
+                'margin:0 0 20px"><tbody><tr>'
                 f'<td style="width:50%;vertical-align:top;padding-right:10px">{"".join(buf[:half])}</td>'
                 f'<td style="width:50%;vertical-align:top;padding-left:10px">{"".join(buf[half:])}</td>'
-                '</tr></table>'
+                '</tr></tbody></table>'
             )
             buf.clear()
 
@@ -2529,6 +2588,9 @@ def _layout_cardflow(html: str, theme: dict) -> str:
         head, body = (m.group(1), m.group(2)) if m else ("", sec)
         num = (f'<span style="display:inline-block;font-size:11px;letter-spacing:.08em;'
                f'color:{accent};margin-bottom:6px">{i:02d}</span>') if head else ""
+        # ⚠️ 2026-10-25：卡片版式里必须把 h2 的实心背景/圆角/padding 去掉，
+        # 否则「卡片里套一个色块标题」→ 视觉上双重卡片，用户以为版式没生效。
+        head = _strip_heading_block(head, ink)
         out.append(f'<section style="margin:0 0 14px;padding:18px 20px;'
                    f'background:{card_bg};border-radius:12px">{num}{head}{body}</section>')
     result = "".join(out)
