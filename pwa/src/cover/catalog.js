@@ -11,12 +11,12 @@ export const GUIZANG_STYLES = [
   {
     id: 'editorial', name: 'Editorial 杂志风', group: '归藏',
     desc: '杂志排版，衬线标题，适合随笔与长文',
-    sizes: ['xhs', 'square', 'wide'], swatch: '#0d0c0b', accent: '#c4956a',
+    sizes: ['xhs', 'square', 'wide'], swatch: '#f3f0e8', accent: '#111111',
   },
   {
     id: 'swiss', name: 'Swiss 瑞士风', group: '归藏',
     desc: '瑞士极简，无衬线大字，适合观点与清单',
-    sizes: ['xhs', 'square', 'wide'], swatch: '#0a0a0a', accent: '#3b82f6',
+    sizes: ['xhs', 'square', 'wide'], swatch: '#fafaf8', accent: '#002FA7',
   },
 ];
 

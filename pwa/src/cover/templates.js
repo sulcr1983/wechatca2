@@ -9,21 +9,52 @@
 
 import { COVER_SIZES } from './catalog.js';
 
+/* 归藏设计系统（2026-10-25 按 references/theme-presets.md 原始规范校正）
+ *
+ * ⚠️ 之前这里两套都是**深色底**，与归藏原文完全不符：
+ *    - Editorial 原文是「暖纸浅色」(#f3f0e8 纸 + #0a0a0b 墨)，
+ *      深色只有一个特例 Midnight Ink，且明确「不得自创第二个深色」
+ *    - Swiss 原文是「白纸」(#fafaf8 纸 + #002FA7 克莱因蓝强调)
+ *    用户看到黑底直呼「人家原来不是这样子的」—— 确实是抄错了。
+ *
+ * 取值逐项对照 references/theme-presets.md：
+ *   Editorial 默认盘（第一套）/ Swiss IKB Blue
+ */
 const GZ_COLORS = {
-  editorial: { paper: '#0d0c0b', ink: '#e8dcc8', muted: '#6b6560', accent: '#c4956a', bg: '#141210' },
-  swiss: { paper: '#0a0a0a', ink: '#f5f5f5', muted: '#737373', accent: '#3b82f6', bg: '#111111' },
+  editorial: {
+    paper: '#f3f0e8',        // --paper
+    paper2: '#ebe6da',       // --paper-2（内层纸/卡片）
+    ink: '#0a0a0b',          // --ink
+    muted: '#68625a',        // --muted
+    accent: '#111111',       // --accent
+    accentSoft: '#d8d2c6',   // --accent-soft
+    bg: '#e7e2d6',           // 画布外底色（比纸略深，让海报有边）
+  },
+  swiss: {
+    paper: '#fafaf8',        // --paper
+    ink: '#0a0a0a',          // --ink
+    muted: '#737373',        // --grey-3
+    accent: '#002FA7',       // --accent（IKB 蓝）
+    accentOn: '#ffffff',     // --accent-on
+    bg: '#ececea',
+  },
 };
 
+/* 字体系统（对照 references/style-system.md 的排版规范）
+ * Editorial：标题 weight 500 + 宽字距（+.03~.04em），正文用宋体 ——
+ *            原文明确「700~900 粗题 + 无衬线正文 + 负字距」是反面教材
+ * Swiss：    「大字号要细」主标题 weight 200-400，小字反而更粗
+ */
 const GZ_FONTS = {
   editorial: {
     family: "'Noto Serif SC', 'Songti SC', Georgia, serif",
-    titleSize: 96, titleWeight: 500, titleLine: 1.1,
-    bodySize: 28, bodyLine: 1.55, metaSize: 20, metaLetter: '.22em',
+    titleSize: 96, titleWeight: 500, titleLine: 1.12, titleTracking: '.04em',
+    bodySize: 28, bodyLine: 1.65, metaSize: 20, metaLetter: '.22em',
   },
   swiss: {
     family: "'Noto Sans SC', 'PingFang SC', system-ui, sans-serif",
-    titleSize: 104, titleWeight: 700, titleLine: 1.05,
-    bodySize: 32, bodyLine: 1.45, metaSize: 22, metaLetter: '.15em',
+    titleSize: 104, titleWeight: 300, titleLine: 1.06, titleTracking: '-.01em',
+    bodySize: 30, bodyLine: 1.5, metaSize: 22, metaLetter: '.15em',
   },
 };
 
@@ -46,12 +77,14 @@ body.has-img .square-title, body.has-img .wide-title {
 }
 body.has-img .h-sub, body.has-img .lead { color: rgba(255,255,255,.86) !important; }
 
-/* 无底图（纯色纸底）：模板原本靠底图撑满画布，改为内容垂直居中 */
-body:not(.has-img) .inner-content,
-body:not(.has-img) .content { min-height: 100%; }
-body:not(.has-img) .inner-content,
-body:not(.has-img) .content { justify-content: center; }
-body:not(.has-img) .grow { display: none !important; }
+/* 无底图（纯色纸底）：模板原本靠底图撑满画布，改为内容垂直居中。
+   ⚠️ 全部加 :not(.gz) —— 归藏两套（body.gz）自带完整排版与浅色纸底，
+   若被这些规则命中会被强制成白字/居中，浅底直接看不见（2026-10-25 修）。 */
+body:not(.has-img):not(.gz) .inner-content,
+body:not(.has-img):not(.gz) .content { min-height: 100%; }
+body:not(.has-img):not(.gz) .inner-content,
+body:not(.has-img):not(.gz) .content { justify-content: center; }
+body:not(.has-img):not(.gz) .grow { display: none !important; }
 
 /* ── 纯色模式补底色（2026-10-25 修）─────────────────────────────
    10 套模板原本全部靠 cover-img（真实照片）撑满画布，并且文字是白色
@@ -62,10 +95,10 @@ body:not(.has-img) .grow { display: none !important; }
    修法：无底图时用模板自己的 --accent（克莱因蓝/柠檬绿/柠檬黄/安全橙…）
    做整版底色，文字转为 --paper（浅色），标题用 --accent-on。
    这样每套模板的配色差异立刻可见，且不依赖任何图片。 */
-body:not(.has-img) .poster {
+body:not(.has-img):not(.gz) .poster {
   background: var(--accent) !important;
 }
-body:not(.has-img) .inner-content {
+body:not(.has-img):not(.gz) .inner-content {
   background: transparent !important;
   border-radius: 0;
 }
@@ -73,26 +106,26 @@ body:not(.has-img) .inner-content {
    ⚠️ editorial 系列模板没有定义 --accent-on，而它们的 --accent 是深色
    （#111 墨黑 / #2e6b4f 森林绿 / #315d93 靛蓝），必须用白字。
    这里用 --accent-on 优先、缺失时回落 #fff，覆盖两类模板。 */
-body:not(.has-img) .h-display,
-body:not(.has-img) .h-statement,
-body:not(.has-img) .square-title,
-body:not(.has-img) .wide-title,
-body:not(.has-img) .lead,
-body:not(.has-img) .kicker,
-body:not(.has-img) .t-cat,
-body:not(.has-img) .t-meta,
-body:not(.has-img) .issue-row,
-body:not(.has-img) .chrome-min,
-body:not(.has-img) .chrome-min span {
+body:not(.has-img):not(.gz) .h-display,
+body:not(.has-img):not(.gz) .h-statement,
+body:not(.has-img):not(.gz) .square-title,
+body:not(.has-img):not(.gz) .wide-title,
+body:not(.has-img):not(.gz) .lead,
+body:not(.has-img):not(.gz) .kicker,
+body:not(.has-img):not(.gz) .t-cat,
+body:not(.has-img):not(.gz) .t-meta,
+body:not(.has-img):not(.gz) .issue-row,
+body:not(.has-img):not(.gz) .chrome-min,
+body:not(.has-img):not(.gz) .chrome-min span {
   color: var(--accent-on, var(--cover-ink, #ffffff)) !important;
   text-shadow: none !important;
 }
-body:not(.has-img) .hr-accent {
+body:not(.has-img):not(.gz) .hr-accent {
   background: var(--cover-ink, #ffffff) !important;
   opacity: .7;
 }
 /* 模板里的装饰网格/点阵在纯色底上会脏，去掉 */
-body:not(.has-img) .dot-mat { display: none !important; }
+body:not(.has-img):not(.gz) .dot-mat { display: none !important; }
 `;
 
 function fitScript() {
@@ -173,8 +206,13 @@ function applyImage(html, image) {
         `$1<img class="cover-img" src="${image}" alt="">`);
     }
     html = html.replace(/<body([^>]*)>/i, (m, attrs) => {
+      // ⚠️ 重建 class 时要保留原有标记（gz = 归藏，走自己的排版），
+      //    否则有底图时归藏会被模板规则接管（2026-10-25）
+      const keep = (attrs.match(/class="([^"]*)"/i) || [, ''])[1]
+        .split(/\s+/).filter((c) => c && c !== 'has-img');
+      const cls = ['has-img', ...keep].join(' ').trim();
       const clean = attrs.replace(/\s*class="[^"]*"/i, '');
-      return `<body${clean} class="has-img">`;
+      return `<body${clean} class="${cls}">`;
     });
   } else {
     html = html.replace(imgRe, '');
@@ -234,19 +272,19 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
     .content { padding: 80px 120px; }
     .wide-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; height:100%; align-items:center; }
-    .wide-title { font-size:96px; line-height:1.1; font-weight:${f.titleWeight}; letter-spacing:.03em; margin:0 0 24px; }
+    .wide-title { font-size:96px; line-height:1.1; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.03em'}; margin:0 0 24px; }
     .wide-img { width:100%; height:100%; object-fit:cover; border-radius:4px; }
     .lead { max-width: 720px; }
   ` : isSquare ? `
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
     .content { padding:88px; justify-content:center; align-items:center; text-align:center; }
-    .square-title { font-size:88px; line-height:1.15; font-weight:${f.titleWeight}; letter-spacing:.04em; margin:0 0 24px; }
+    .square-title { font-size:88px; line-height:1.15; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.04em'}; margin:0 0 24px; }
     .lead { max-width: 760px; }
     .issue-row { justify-content:center; margin-bottom:32px; }
   ` : `
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
     .content { justify-content:flex-end; padding:96px 88px; }
-    .h-display { font-size:${f.titleSize}px; line-height:${f.titleLine}; font-weight:${f.titleWeight}; letter-spacing:.04em; margin:0 0 20px; }
+    .h-display { font-size:${f.titleSize}px; line-height:${f.titleLine}; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.04em'}; margin:0 0 20px; }
   `;
 
   const imageHtml = image ? `<img class="cover-img" src="{{IMAGE}}" alt=""><div class="img-overlay"></div>` : '';
@@ -261,7 +299,7 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   const hasAuthor = String(author || '').trim().length > 0;
   const authorLine = (extra = '') => (hasAuthor
     ? `<p class="gz-author" style="font-family:monospace;font-size:${f.metaSize}px;`
-      + `letter-spacing:${f.metaLetter};color:rgba(255,255,255,.72);margin:18px 0 0;${extra}">`
+      + `letter-spacing:${f.metaLetter};color:${c.muted};margin:18px 0 0;${extra}">`
       + `By ${esc(author)}</p>`
     : '');
 
@@ -270,21 +308,21 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
       <div>
         <p class="kicker" style="font-size:21px;letter-spacing:.22em;color:${c.accent};margin:0 0 24px;">封面 · Cover</p>
         <h1 class="wide-title">{{TITLE}}</h1>
-        <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;">{{LEAD}}</p>
+        <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
         ${authorLine()}
       </div>
       ${image ? '<div><img class="wide-img" src="{{IMAGE}}" alt=""></div>' : ''}
     </div>` : isSquare ? `
-    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:rgba(255,255,255,.75);">Vol. 01 · ${date}</div>
+    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 · ${date}</div>
     <h1 class="square-title">{{TITLE}}</h1>
-    <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;">{{LEAD}}</p>
+    <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
     ${authorLine()}` : `
-    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:rgba(255,255,255,.75);">Vol. 01 <span class="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);margin:0 12px;"></span> ${date}</div>
+    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 <span class="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${c.muted};margin:0 12px;"></span> ${date}</div>
     <div style="margin-top:40px;">
-      <p class="kicker" style="font-family:monospace;font-size:21px;letter-spacing:.22em;color:rgba(255,255,255,.85);margin:0 0 24px;">封面 · Cover</p>
+      <p class="kicker" style="font-family:monospace;font-size:21px;letter-spacing:.22em;color:${c.ink};margin:0 0 24px;">封面 · Cover</p>
       <h1 class="h-display">{{TITLE}}</h1>
       <div style="width:48px;height:3px;background:${c.accent};margin-bottom:20px;opacity:.8;"></div>
-      <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:rgba(255,255,255,.85);margin:0;max-width:640px;">{{LEAD}}</p>
+      <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;max-width:640px;">{{LEAD}}</p>
       ${authorLine()}
     </div>`;
 
@@ -298,10 +336,10 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   .poster .cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
   .poster .img-overlay{position:absolute;inset:0;z-index:1;pointer-events:none;${overlayCss}}
   .poster .grain{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.30;
-    background-image:radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px);background-size:3px 3px}
+    background-image:radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px);background-size:3px 3px}
   ${layoutCss}
 </style></head>
-<body><section class="poster ${size}" id="xhs-cover">
+<body class="gz"><section class="poster ${size}" id="xhs-cover">
   ${imageHtml}
   <div class="grain"></div>
   <div class="content">${body}</div>

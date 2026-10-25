@@ -1031,7 +1031,11 @@ async function initAi() {
             ['小节', plan.sections], ['列表', plan.lists],
           ].filter(([, v]) => Array.isArray(v) && v.length)
             .map(([k, v]) => `${k} ${v.length}`).join(' · ') || '结构微调';
-          say(`已按 AI 结构重排：${counts}（正文一个字没改）`);
+          const info = ai.analyzeContent(text);
+          say(`已按 AI 结构重排：${counts}（正文一个字没改）`
+            + `\n判定：${info.label} · ${info.paraCount} 段 · ${info.chars} 字`
+            + ` · 装饰上限 提示框${info.budget.callouts}/分隔线${info.budget.hrs}`
+            + `/金句${info.budget.pullquotes}/表格${info.budget.tables}`);
           toast(`智能排版完成：${counts}`);
           return;
         }

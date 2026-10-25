@@ -140,7 +140,7 @@ def main() -> int:
                 except Exception:
                     msgs = []
                 sys0 = (msgs[0].get("content") or "") if msgs else ""
-                if "排版结构规划器" in sys0:
+                if "排版结构" in sys0:   # 用稳定关键词，不绑死「规划器/编辑」具体措辞
                     content = {
                         "ok": json.dumps(PLAN, ensure_ascii=False),
                         "badjson": "这段不是 JSON",
