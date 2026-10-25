@@ -1,7 +1,7 @@
 {
   "version": "1.5.0",
-  "generatedAt": "2026-10-25T14:53:31+08:00",
-  "totalCommits": 180,
+  "generatedAt": "2026-10-25T14:58:04+08:00",
+  "totalCommits": 182,
   "releases": [
     {
       "version": "1.5.0",
@@ -10,8 +10,8 @@
       "counts": {
         "added": 16,
         "changed": 17,
-        "fixed": 9,
-        "other": 10
+        "fixed": 10,
+        "other": 11
       },
       "groups": [
         {
@@ -262,6 +262,13 @@
           "label": "修复",
           "items": [
             {
+              "text": "调用侧去掉 node shim 环境变量（正确修法，不改业务代码）",
+              "scope": "release",
+              "hash": "c3877a7",
+              "date": "2026-10-25T14:55:05+08:00",
+              "breaking": false
+            },
+            {
               "text": "build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态",
               "scope": "build,test",
               "hash": "b8495b8",
@@ -330,6 +337,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "还原 rmrf 为原生 rmSync + 同步生成物（b201）",
+              "scope": "",
+              "hash": "ca7aca2",
+              "date": "2026-10-25T14:54:12+08:00",
+              "breaking": false
+            },
             {
               "text": "复核他人审计（§八）+ 补修 3 处「诊断出却没修」的文档错误",
               "scope": "",
