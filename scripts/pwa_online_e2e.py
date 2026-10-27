@@ -139,7 +139,7 @@ def main() -> int:
 
         page.wait_for_selector("#btn-update:not([hidden])", timeout=30000)
         check("右下角更新入口可见", page.is_visible("#btn-update"), "hidden", "visible")
-        check("顶栏入口写着「小红书」", page.inner_text("#btn-cover").strip() == "小红书", "", page.inner_text("#btn-cover"))
+        check("顶栏入口写着「小红书标题图生成」", page.inner_text("#btn-cover").strip() == "小红书标题图生成", "", page.inner_text("#btn-cover"))
 
         # ── 1. 更多菜单 + 草稿/清数据/关于 ─────────────────────
         page.click("#btn-more")
@@ -381,7 +381,7 @@ def main() -> int:
         page.click("#btn-cover"); page.wait_for_timeout(500)
         check("封面页打开 / 排版页隐藏", page.is_visible("#cover-root") and page.is_hidden("#stage"),
               "排版", "封面", snap(page, "cover"))
-        check("进入封面后按钮变「排版」", page.inner_text("#btn-cover").strip() == "排版", "", page.inner_text("#btn-cover"))
+        check("进入封面后按钮变「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版", "", page.inner_text("#btn-cover"))
         check("12 种风格全部渲染", page.locator(".cv-style").count() == 12,
               "", page.locator(".cv-style").count())
 
@@ -417,21 +417,50 @@ def main() -> int:
         check("上传底图", page.is_visible(".cv-bg-preview img"), "", page.inner_text(".cv-bg-meta").replace("\n", " | ")[:100],
               snap(page, "cover-upload"))
 
+        # ── 联网搜图（2026-10-27 重写）──────────────────────────────
+        # 原来这里测 Wikimedia，但该图源早已移除（国内必超时），
+        # 于是每轮都超时 → 被记成「网络不可达」的 SKIP，静默掩盖了「测试已过时」。
+        # 现在：PWA 只剩 Pexels，且只认中文/英文都行。
+        # 有 Key 就真搜一次；没 Key 就断言给出「填 Key」指引 —— 两种情况都必须有结论，不许 SKIP。
         page.click('.cv-mode[data-mode="search"]')
-        page.fill("#cv-q", "coffee")
-        page.click("#cv-search")
-        try:
+        pv_key = ""
+        envf = ROOT / ".env"
+        if envf.exists():
+            for line in envf.read_text(encoding="utf-8").splitlines():
+                if line.strip().startswith("PEXELS_API_KEY="):
+                    pv_key = line.split("=", 1)[1].strip()
+                    break
+        if pv_key:
+            page.evaluate(
+                "k => localStorage.setItem('supersu.cover.stock.v1',"
+                " JSON.stringify({pexels:k}))", pv_key)
+            page.click('.cv-mode[data-mode="color"]')
+            page.wait_for_timeout(200)
+            page.click('.cv-mode[data-mode="search"]')
+            page.wait_for_timeout(300)
+            page.fill("#cv-q", "咖啡")
+            page.click("#cv-search")
             page.wait_for_function("document.querySelectorAll('.cv-cand').length > 0", timeout=45000)
+            page.wait_for_function(
+                "() => [...document.querySelectorAll('.cv-cand img')]"
+                ".every(i => i.complete && i.naturalWidth > 0)", timeout=30000)
             cands = page.locator(".cv-cand").count()
             page.locator(".cv-cand").first.click()
             page.wait_for_function(
-                "document.querySelector('.cv-bg-meta') && document.querySelector('.cv-bg-meta').textContent.includes('Wikimedia')",
-                timeout=60000,
-            )
-            check("Wikimedia 搜图并选中", True, "", f"{cands} 个候选 / " + page.inner_text(".cv-bg-meta").replace("\n", " | ")[:100],
+                "document.querySelector('.cv-bg-meta') &&"
+                " document.querySelector('.cv-bg-meta').textContent.includes('Pexels')",
+                timeout=60000)
+            check("Pexels 搜图（中文「咖啡」）并选中", True, "",
+                  f"{cands} 个候选 / " + page.inner_text(".cv-bg-meta").replace("\n", " | ")[:100],
                   snap(page, "cover-search"))
-        except Exception as e:
-            skip("Wikimedia 搜图并选中", f"网络不可达或超时：{str(e)[:100]}")
+        else:
+            page.fill("#cv-q", "coffee")
+            page.click("#cv-search")
+            page.wait_for_function(
+                "() => { const s = document.getElementById('cv-status');"
+                " return s && /Key/.test(s.textContent); }", timeout=8000)
+            check("无 Key 时给出配置指引", True, "",
+                  page.inner_text("#cv-status").strip()[:60], snap(page, "cover-search-nokey"))
 
         page.click("#cv-gen")
         page.wait_for_function("document.querySelectorAll('.cv-card').length === 3", timeout=180000)
@@ -475,7 +504,7 @@ def main() -> int:
 
         page.click("#btn-cover"); page.wait_for_timeout(500)
         check("返回排版页", page.is_visible("#stage") and page.is_hidden("#cover-root"), "封面", "排版")
-        check("返回后按钮变「小红书」", page.inner_text("#btn-cover").strip() == "小红书", "", page.inner_text("#btn-cover"))
+        check("返回后按钮变「小红书标题图生成」", page.inner_text("#btn-cover").strip() == "小红书标题图生成", "", page.inner_text("#btn-cover"))
 
         # ── 7. 发布小票（#upd-demo 的三个按钮）──────────────────
         def open_demo(n: int):

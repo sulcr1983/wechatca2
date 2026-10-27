@@ -62,6 +62,27 @@ def skip(name: str, detail: str = "") -> None:
 
 
 # ── 夹具：三类典型输入 ────────────────────────────────────────────────
+
+# 杂志分栏专用文案（2026-10-27 补，**不放进 FIXTURES**：
+# FIXTURES 会被 A 段「164 套模板 × 夹具」遍历，多一个就把渲染量翻一倍）。
+# 背景：引擎规则是「段落不足 2 段就整宽输出，不造假分栏」，
+# 标准文每节只有 1 段，本来就该没有表格；要验证真双栏必须每节 ≥2 段。
+MAG_TEXT = """周末去海边
+
+两天的沉默之后，我重新听见了海浪、风声，还有自己。城市里的声音太密，密到让人忘了什么叫安静。
+
+出发前的那点犹豫
+
+行李收了一半又放下，总觉得有事情没做完。后来想明白了：事情永远做不完，但海不会等人。
+
+最后还是去了。车窗外的雨一直没停，我把耳机塞进包里，听了一路海的声音。
+
+到了之后
+
+下午四点，光从侧面打过来，沙滩是温的。我脱了鞋走了很久，脚底的沙子一层层塌下去。
+
+天快黑的时候风起来了，我们沿着岸线往回走，谁也没说话。"""
+
 FIXTURES = {
     "短": "今天下午去了海边，风很大，但很舒服。回程路上一直在想，人为什么要那么赶。",
 
@@ -382,6 +403,16 @@ def main() -> int:
             ]
             sigs = {}
             for label, key in LAYOUT_EXPECT:
+                # 杂志分栏要「每节≥2段」才真分栏（见 MAG_TEXT 说明），
+                # 其余版式统一用标准文，保证「五种版式输出互不相同」的比较基准一致。
+                if label == "杂志分栏":
+                    # 此时主题抽屉是打开的，#input 被遮挡 → fill 会超时。
+                    # 用 JS 设值 + 派发 input（这里验的是版式渲染，不是输入交互）。
+                    page.evaluate(
+                        "t => { const el = document.getElementById('input');"
+                        " el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); }",
+                        MAG_TEXT)
+                    page.wait_for_timeout(1600)
                 page.click(f".dl-chip:has-text('{label}')")
                 page.wait_for_timeout(1600)
                 pr = probe(page)
@@ -396,6 +427,13 @@ def main() -> int:
                     check("版式「默认」可用", pr["htmlLen"] > 0, "", f"{pr['htmlLen']}B")
                 if pr["balance"]:
                     check(f"版式「{label}」标签配平", False, "", str(pr["balance"]))
+                if label == "杂志分栏":
+                    # 换回标准文，后续版式与「五种版式互不相同」用同一基准
+                    page.evaluate(
+                        "t => { const el = document.getElementById('input');"
+                        " el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); }",
+                        FIXTURES["标准"])
+                    page.wait_for_timeout(1400)
             uniq = len({v[0] for v in sigs.values()})
             check("五种版式输出互不相同", uniq >= 4, "", f"{uniq}/5 种独有输出")
 
@@ -580,8 +618,13 @@ def main() -> int:
                 except Exception:
                     msgs = []
                 sys0 = (msgs[0].get("content") or "") if msgs else ""
-                content = (json.dumps(AI_PLAN, ensure_ascii=False)
-                           if "排版结构规划器" in sys0 else "ok")
+                # ⚠️ 判定不能绑死某一版提示词措辞：2026-10-25 重写结构规划提示词时
+                #    「排版结构规划器」这句被删掉，mock 从此永远返回 "ok"，
+                #    AI 产物没有结构 → 卡片流/目录导航/杂志分栏 全部渲染不出来（7 条挂）。
+                #    改为「身份句 or JSON 字段名」双保险，措辞再改也不至于静默失效。
+                is_plan = ("排版结构编辑" in sys0 or "排版结构规划" in sys0
+                           or ('"sections"' in sys0 and '"heading"' in sys0))
+                content = json.dumps(AI_PLAN, ensure_ascii=False) if is_plan else "ok"
                 route.fulfill(status=200, content_type="application/json",
                               body=json.dumps({"choices": [{"message": {"content": content}}]}))
 

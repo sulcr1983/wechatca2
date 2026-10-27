@@ -30,7 +30,11 @@ def check(name, ok, detail=""):
 
 def mock_ai(route):
     body = route.request.post_data or ""
-    if "结构规划" in body:
+    # ⚠️ 别用「结构规划」这种会被改写的业务措辞做判定（2026-10-25 重写提示词时
+    #    这词被删了，mock 从此永远落到 else 分支 → 排版不生效、这条用例静默挂掉）。
+    #    改用系统提示词里稳定存在的身份句 + JSON 字段名双保险。
+    is_plan = ("排版结构编辑" in body) or ('"sections"' in body and '"heading"' in body)
+    if is_plan:
         content = json.dumps({
             "title": 0,
             "sections": [{"heading": "小节一", "start": 1, "end": 2}],

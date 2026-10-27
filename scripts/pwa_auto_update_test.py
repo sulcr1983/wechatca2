@@ -56,14 +56,19 @@ def start_server(directory):
     return srv, port
 
 
+
 def main():
     if not (DIST / "index.html").exists():
         print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs")
         return 2
 
-    if PROBE.exists():
-        shutil.rmtree(PROBE)
-    shutil.copytree(DIST, PROBE)
+    # ⚠️ 这里**故意不删**探针目录（2026-10-27）：
+    #    探针是整份 pwa/dist（约 444 个文件），无论一次性 rmtree 还是逐个 unlink，
+    #    都会撞上执行环境的「累计删除」保护（阈值 50）——表现为 8 项断言全 PASS、
+    #    但进程退出码非 0，门禁把这一套判成 FAIL。
+    #    改成覆盖式拷贝：不产生任何删除操作，且 dist 的新内容仍会盖旧内容。
+    #    （残留的旧文件对探针无影响：预缓存清单来自 sw.js，每次都会被覆盖。）
+    shutil.copytree(DIST, PROBE, dirs_exist_ok=True)
     SHOTS.mkdir(parents=True, exist_ok=True)
 
     srv, port = start_server(PROBE)
@@ -152,7 +157,7 @@ def main():
     finally:
         srv.shutdown()
         srv.server_close()
-        shutil.rmtree(PROBE, ignore_errors=True)
+        # 收尾同样不删（见上：删 444 个文件会触发执行环境保护）
 
     failed = [r for r in results if not r[1]]
     print("\n" + "=" * 52)
