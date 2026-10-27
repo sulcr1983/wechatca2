@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-27T18:48:17+08:00",
-  "totalCommits": 213,
+  "generatedAt": "2026-10-27T19:15:32+08:00",
+  "totalCommits": 215,
   "releases": [
     {
       "version": "1.6.0",
@@ -9,9 +9,9 @@
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
         "added": 4,
-        "changed": 3,
+        "changed": 4,
         "fixed": 13,
-        "other": 18
+        "other": 19
       },
       "groups": [
         {
@@ -52,6 +52,13 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "联网搜图只保留 Pexels，移除 Pixabay",
+              "scope": "cover",
+              "hash": "939ede5",
+              "date": "2026-10-27T18:59:48+08:00",
+              "breaking": false
+            },
             {
               "text": "封面模块设计稿/方案/规范 + 三套交互原型(canonical)",
               "scope": "cover",
@@ -176,6 +183,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（Pexels 单源已上线）",
+              "scope": "",
+              "hash": "b7ba09b",
+              "date": "2026-10-27T19:03:13+08:00",
+              "breaking": false
+            },
             {
               "text": "STATE 同步（Pixabay 接入已上线）",
               "scope": "",

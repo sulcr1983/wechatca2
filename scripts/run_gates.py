@@ -74,7 +74,7 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("theme_drawer",   [PY, "scripts/pwa_theme_drawer_test.py", "--local"], "模板库全量审计 59", "local"),
     ("export",         [PY, "scripts/pwa_export_test.py"],        "导出四件套 12", "local"),
     ("nine",           [PY, "scripts/pwa_nine_test.py"],          "九宫格切图 15", "local"),
-    ("cover",          [PY, "scripts/pwa_cover_test.py"],         "封面 18（1 SKIP 网络）", "local"),
+    ("cover",          [PY, "scripts/pwa_cover_test.py"],         "封面 30（含实时预览 3 项）", "local"),
     ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
     ("ai_plan",        [str(NODE), "scripts/ai_plan_unit.mjs"],   "AI 排版结构单测 20", "in-process"),
     ("theme_spec",     [PY, "scripts/audit_theme_spec.py"],       "模板配色审计（对照归藏规范）", "in-process"),

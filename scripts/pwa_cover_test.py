@@ -82,12 +82,10 @@ def main() -> int:
             page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
             check("封面页打开", page.is_visible("#cover-root"))
 
-            # 2026-10-25 改版：左栏改为 4 个标签（内容/风格/文字/底图），
-            # 非当前标签内的控件是 hidden，直接 click 会超时。
-            # 统一封装「先切标签再操作」，避免每处都写一遍。
+            # 2026-10-27 三栏改版：左栏不再有标签，所有控件同屏可见，
+            # 这里保留 tab() 作为**空操作**，调用点不用动（改动面最小）。
             def tab(name):
-                page.click(f".cv-tab[data-tab='{name}']")
-                page.wait_for_timeout(120)
+                return None
 
             check("排版页隐藏", page.is_hidden("#stage"))
             # 2026-10-25：按钮文案改为「公众号排版」（原「排版」，用户要求说清返回哪一页）
@@ -107,14 +105,54 @@ def main() -> int:
                   page.locator(".cv-style[data-style='editorial']").get_attribute("aria-pressed") == "true",
                   "")
 
+            # ── 实时预览（2026-10-27 三栏改版的核心能力）──
+            # 用户原话：「先输入文案，然后选风格，风格最好可以预览，
+            # 不需要生成就可以预览那种，然后才是生成大图」。
+            # 这里断言：一进来就有预览（没点生成），改文案预览跟着变。
+            try:
+                page.wait_for_selector(".cv-preview-scaler iframe", timeout=20000)
+                page.wait_for_function(
+                    "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                    " return f && f.contentDocument && f.contentDocument.getElementById('xhs-cover'); }",
+                    timeout=20000)
+                check("打开就有实时预览（未点生成）", True, "")
+            except Exception as e:
+                check("打开就有实时预览（未点生成）", False, str(e)[:70])
+
+            page.fill("#cv-text", "预览联动测试\n\n第二段用来验证实时更新。")
+            try:
+                page.wait_for_function(
+                    "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                    " if (!f || !f.contentDocument) return false;"
+                    " const b = f.contentDocument.body;"
+                    " return !!b && b.innerText.includes('预览联动测试'); }", timeout=8000)
+                check("改文案预览实时更新（不用生成）", True, "")
+            except Exception as e:
+                check("改文案预览实时更新（不用生成）", False, str(e)[:70])
+
+            # 预览 should 与真实生成一致：切风格后预览的底色要跟着变
+            page.click('.cv-style[data-style="editorial-midnight-ink"]')
+            try:
+                page.wait_for_function(
+                    "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                    " if (!f || !f.contentDocument) return false;"
+                    " const el = f.contentDocument.getElementById('xhs-cover');"
+                    " if (!el) return false;"
+                    " const bg = getComputedStyle(el).backgroundColor;"
+                    " return bg === 'rgb(14, 13, 12)'; }", timeout=8000)
+                check("切风格预览实时换色（不用生成）", True, "")
+            except Exception as e:
+                check("切风格预览实时换色（不用生成）", False, str(e)[:70])
+            page.click('.cv-style[data-style="editorial"]')
+
             # ── 风格与尺寸 ──
             tab("style")
             styles = page.locator(".cv-style").count()
             check("12 种风格全部渲染", styles == 12, f"{styles} 个")
             check("默认支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3)
-            page.click('[data-style="editorial-dune"]')
+            page.click('.cv-style[data-style="editorial-dune"]')
             check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1)
-            page.click('[data-style="editorial"]')
+            page.click('.cv-style[data-style="editorial"]')
 
             # ── 每种风格必须生成「视觉上不同」的图（2026-10-25 补）──
             # 之前只断言「有 12 个按钮」，漏掉了「10 套模板纯色模式下全变灰白板」的
@@ -129,7 +167,7 @@ def main() -> int:
                 if not sid.startswith(("editorial-", "swiss-")):
                     continue        # 只测 10 套模板（归藏两套另有断言）
                 tab("style")
-                page.click(f'[data-style="{sid}"]')
+                page.click(f'.cv-style[data-style="{sid}"]')
                 page.wait_for_timeout(400)
                 page.click("#cv-gen")
                 try:
@@ -168,7 +206,7 @@ def main() -> int:
             check("10 套模板（纸色+强调色）组合唯一",
                   not same and len(bg_of) == 10,
                   f"{len(bg_of)} 套 · 重复={same or '无'}")
-            page.click('[data-style="editorial"]')
+            page.click('.cv-style[data-style="editorial"]')
 
             # ── 字体与文字玩法（2026-10-25 新增）──
             tab("text")
@@ -225,7 +263,7 @@ def main() -> int:
 
             # ── 模板：3:4 ──
             tab("style")
-            page.click('[data-style="editorial-dune"]')
+            page.click('.cv-style[data-style="editorial-dune"]')
             page.click("#cv-gen")
             page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
             page.wait_for_function("document.querySelector('.cv-card img').naturalWidth === 1080", timeout=30000)
@@ -329,7 +367,7 @@ def main() -> int:
                         pass
 
 
-            page.eval_on_selector(".cv-panel", "el => el.scrollTop = 0")
+            page.eval_on_selector(".cv-col-left", "el => el.scrollTop = 0")
             page.screenshot(path=str(OUT / "pwa-cover-test.png"))
 
             # ── 窄屏 ──
@@ -349,9 +387,6 @@ def main() -> int:
                 if page.is_hidden("#cover-root"):
                     page.click("#btn-cover")
                     page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
-                # 断网阶段可能停在「底图」等其它标签，先切回「内容」再填文案
-                page.click(".cv-tab[data-tab='content']")
-                page.wait_for_timeout(150)
                 page.fill("#cv-text", TEXT)
                 page.click("#cv-gen")
                 page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)

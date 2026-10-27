@@ -3,7 +3,7 @@
  */
 
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, COVER_SIZES, styleById } from './catalog.js';
-import { renderCoverBlob } from './render.js';
+import { renderCoverBlob, buildCoverHtml } from './render.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { searchBackground, fetchImageDataUrl, guessQuery, getStockKeys } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
@@ -102,23 +102,6 @@ function selectStyle(id) {
   savePrefs();
   renderStyles();
   renderSizes();
-}
-
-/* ── 左侧标签（2026-10-25 改版）──
-   原来 5 个 section 纵排，加字体/玩法/图库后太长。改成 4 个标签，
-   每组设置一屏可见；当前标签存进 prefs，下次进来还在同一页。 */
-function selectTab(id) {
-  if (!['content', 'style', 'text', 'bg'].includes(id)) return;
-  state.tab = id;
-  document.querySelectorAll('.cv-tab').forEach((b) => {
-    const on = b.dataset.tab === id;
-    b.setAttribute('aria-selected', String(on));
-    b.classList.toggle('on', on);
-  });
-  document.querySelectorAll('.cv-tabpane').forEach((p) => {
-    p.hidden = p.dataset.pane !== id;
-  });
-  savePrefs();
 }
 
 function renderFonts() {
@@ -669,15 +652,122 @@ async function downloadNineZip() {
   }
 }
 
+/* ── 实时预览（2026-10-27 三栏改版的核心）──────────────────────────
+ *
+ * 为什么不用 renderCoverBlob：
+ *   那条路是「离屏 iframe → 等字体 → modern-screenshot 截图」，一次 1~2 秒。
+ *   拿它做预览，用户点一个风格要等两秒，所谓「实时」就是假的。
+ *
+ * 这里改用 buildCoverHtml 拿到 HTML，直接塞进一个 **缩放的 iframe**：
+ *   - 不截图、不合成，浏览器自己排版，通常 50~150ms 就画出来了
+ *   - iframe 保持真实尺寸（1080×1440），只用 CSS transform 缩放，
+ *     所以模板里的 px/fitty 计算完全不受影响，视觉效果与最终图一致
+ *   - 打字时用 300ms 防抖 + 序号丢弃过期结果，避免连打十几个字时
+ *     排队渲染把主线程拖住
+ */
+
+let pvTimer = 0;
+let pvSeq = 0;
+let pvRO = null;
+
+/** 防抖调度一次预览。任何设置变化都应该走这里。 */
+export function schedulePreview(delay = 300) {
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(() => { updatePreview(); }, delay);
+}
+
+async function updatePreview() {
+  const scaler = $('cv-preview');
+  if (!scaler) return;
+  if ($('cover-root') && $('cover-root').hidden) return;   // 页不可见时不做无用功
+
+  const seq = ++pvSeq;
+  const { title, lead } = extractStory($('cv-text').value);
+  try {
+    const { html, size, meta } = await buildCoverHtml({
+      style: state.style,
+      size: state.size,
+      title,
+      lead,
+      author: ($('cv-author')?.value || '').trim(),
+      image: state.image || '',
+      textMode: state.textMode,
+      font: state.font,
+    });
+    if (seq !== pvSeq) return;        // 期间又改了，这版丢掉
+    paintPreview(scaler, html, size);
+
+    const dim = COVER_SIZES[size] || COVER_SIZES.xhs;
+    const pvMeta = $('cv-pv-meta');
+    if (pvMeta) pvMeta.textContent = `${meta.name} · ${dim.w}×${dim.h}`;
+  } catch (e) {
+    // 预览失败不影响生成（比如模板还没下载完），静默降级
+    const pvMeta = $('cv-pv-meta');
+    if (pvMeta) pvMeta.textContent = '预览暂不可用';
+  }
+}
+
+function paintPreview(scaler, html, size) {
+  const dim = COVER_SIZES[size] || COVER_SIZES.xhs;
+  let fr = scaler.querySelector('iframe');
+  if (!fr) {
+    fr = document.createElement('iframe');
+    fr.setAttribute('aria-hidden', 'true');
+    fr.setAttribute('tabindex', '-1');
+    fr.style.cssText = 'position:absolute;left:0;top:0;border:0;transform-origin:top left;';
+    scaler.appendChild(fr);
+  }
+  fr.style.width = `${dim.w}px`;
+  fr.style.height = `${dim.h}px`;
+  fr.srcdoc = html;
+  fitPreview(scaler, dim);
+}
+
+/** 让真实尺寸的 iframe 缩放后正好装进预览框。 */
+function fitPreview(scaler, dim) {
+  if (!scaler) return;
+  const box = scaler.parentElement;
+  if (!box) return;
+  const w = box.clientWidth;
+  const h = box.clientHeight;
+  if (!w || !h) return;
+  const k = Math.min(w / dim.w, h / dim.h);
+  const fr = scaler.querySelector('iframe');
+  if (fr) fr.style.transform = `scale(${k})`;
+  scaler.style.width = `${Math.round(dim.w * k)}px`;
+  scaler.style.height = `${Math.round(dim.h * k)}px`;
+}
+
+/** 首次挂载：观察预览框尺寸变化，窗口缩放/侧栏折叠时重新贴合。 */
+function initPreview() {
+  const scaler = $('cv-preview');
+  if (!scaler) return;
+  const box = scaler.parentElement;
+  if (box && 'ResizeObserver' in window && !pvRO) {
+    pvRO = new ResizeObserver(() => {
+      const fr = scaler.querySelector('iframe');
+      if (!fr) return;
+      const w = parseFloat(fr.style.width);
+      const h = parseFloat(fr.style.height);
+      if (w && h) fitPreview(scaler, { w, h });
+    });
+    pvRO.observe(box);
+  }
+  schedulePreview(0);
+}
+
 /* ── 偏好 ── */
 function savePrefs() {
   try {
     localStorage.setItem(PREFS, JSON.stringify({
       style: state.style, size: state.size, mode: state.mode,
-      tab: state.tab, font: state.font, textMode: state.textMode,
+      font: state.font, textMode: state.textMode,
       author: $('cv-author')?.value || '',
     }));
   } catch { /* 隐私模式不阻断 */ }
+  // 偏好一变（风格/尺寸/字体/玩法/署名都在这里收口）就刷新预览，
+  // 这样任何选择都立刻可见，不用点生成（2026-10-27 三栏改版配套）
+  schedulePreview();
 }
 
 function loadPrefs() {
@@ -686,7 +776,6 @@ function loadPrefs() {
     if (p.style && styleById(p.style)) state.style = p.style;
     if (p.size && COVER_SIZES[p.size]) state.size = p.size;
     if (['color', 'upload', 'search'].includes(p.mode)) state.mode = p.mode;
-    if (['content', 'style', 'text', 'bg'].includes(p.tab)) state.tab = p.tab;
     if (TEXT_FONTS.some((f) => f.id === p.font)) state.font = p.font;
     if (TEXT_MODES.some((m) => m.id === p.textMode)) state.textMode = p.textMode;
     if (p.author && $('cv-author')) $('cv-author').value = p.author;
@@ -705,72 +794,48 @@ function mount() {
   if (!root) return;
   root.innerHTML = `
     <main class="cv-stage">
-      <aside class="cv-panel">
-        <!-- 标签栏（2026-10-25 改版）：原来 5 个 section 纵向堆叠，加了字体/玩法/图库
-             配置后左侧会变得很长、要一直滚。改成 4 个标签，一屏只看一组设置。 -->
-        <div class="cv-tabs" id="cv-tabs" role="tablist">
-          <button class="cv-tab" type="button" data-tab="content" role="tab">内容</button>
-          <button class="cv-tab" type="button" data-tab="style" role="tab">风格</button>
-          <button class="cv-tab" type="button" data-tab="text" role="tab">文字</button>
-          <button class="cv-tab" type="button" data-tab="bg" role="tab">底图</button>
-        </div>
-
-        <div class="cv-tabpane" data-pane="content">
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">文案</span><button class="cv-mini-btn" id="cv-use-main" type="button">用正文</button></div>
-            <textarea class="cv-text" id="cv-text" maxlength="500" placeholder="第一行作大标题，接下来两行作引语。&#10;&#10;也可以点右上「用正文」带入排版页的内容。"></textarea>
-            <span class="cv-count" id="cv-count">0 / 500</span>
-          </section>
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">署名（可选）</span></div>
-            <input class="cv-field" id="cv-author" maxlength="20" placeholder="例如：阿苏" autocomplete="off">
-          </section>
-        </div>
-
-        <div class="cv-tabpane" data-pane="style" hidden>
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">风格</span><span class="cv-hint" id="cv-style-hint"></span></div>
-            <div id="cv-styles"></div>
-          </section>
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span></div>
-            <div class="cv-size-row" id="cv-sizes"></div>
-          </section>
-        </div>
-
-        <div class="cv-tabpane" data-pane="text" hidden>
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">字体</span><span class="cv-hint" id="cv-font-hint"></span></div>
-            <div class="cv-chip-row" id="cv-fonts"></div>
-          </section>
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">文字玩法</span><span class="cv-hint" id="cv-textmode-hint"></span></div>
-            <div class="cv-chip-row cv-mode-row" id="cv-textmodes"></div>
-          </section>
-        </div>
-
-        <div class="cv-tabpane" data-pane="bg" hidden>
-          <section class="cv-sec">
-            <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
-            <div class="cv-modes" id="cv-modes">
-              <button class="cv-mode" type="button" data-mode="color">纯色</button>
-              <button class="cv-mode" type="button" data-mode="upload">上传</button>
-              <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
-            </div>
-            <div class="cv-bg-body" id="cv-bg-body"></div>
-            <div id="cv-bg-preview"></div>
-          </section>
-        </div>
-
-        <button class="cv-gen" id="cv-gen" type="button">生成标题图</button>
-        <div class="cv-status" id="cv-status"></div>
+      <!-- ── 三栏布局（原型 A，2026-10-27）────────────────────────────
+           改版原因：原来是「4 个标签 + 结果区」，写文案、选风格、看效果
+           分散在三个标签里，用户要先点「生成」才知道长什么样 ——
+           试 12 个风格就要出 36 张废图、等 12 次。
+           现在：左边写 → 中间实时看 → 右边挑，全程不点生成也能看到效果。 -->
+      <aside class="cv-col cv-col-left">
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">文案</span><button class="cv-mini-btn" id="cv-use-main" type="button">用正文</button></div>
+          <textarea class="cv-text" id="cv-text" maxlength="500" placeholder="第一行作大标题，接下来两行作引语。&#10;&#10;也可以点右上「用正文」带入排版页的内容。"></textarea>
+          <span class="cv-count" id="cv-count">0 / 500</span>
+        </section>
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">署名（可选）</span></div>
+          <input class="cv-field" id="cv-author" maxlength="20" placeholder="例如：阿苏" autocomplete="off">
+        </section>
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">字体</span><span class="cv-hint" id="cv-font-hint"></span></div>
+          <div class="cv-chip-row" id="cv-fonts"></div>
+        </section>
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">文字玩法</span><span class="cv-hint" id="cv-textmode-hint"></span></div>
+          <div class="cv-chip-row cv-mode-row" id="cv-textmodes"></div>
+        </section>
       </aside>
-      <section class="cv-output">
+
+      <section class="cv-col cv-col-mid">
+        <div class="cv-pv-head">
+          <span class="cv-pv-title"><i class="cv-pv-dot"></i>实时预览</span>
+          <span class="cv-pv-meta" id="cv-pv-meta"></span>
+          <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
+          <input type="file" id="cv-nine-file" accept="image/*" hidden>
+        </div>
+        <div class="cv-preview-box">
+          <div class="cv-preview-scaler" id="cv-preview"></div>
+        </div>
+        <div class="cv-pv-actions">
+          <button class="cv-gen" id="cv-gen" type="button">生成标题图</button>
+          <div class="cv-status" id="cv-status"></div>
+        </div>
         <div class="cv-out-head">
           <span class="cv-out-title">标题图结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
-          <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
-          <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
@@ -790,6 +855,27 @@ function mount() {
         </div>
         <p class="cv-tip">手机上生成后长按图片即可保存到相册；桌面端点「下载」。</p>
       </section>
+
+      <aside class="cv-col cv-col-right">
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">风格</span><span class="cv-hint" id="cv-style-hint"></span></div>
+          <div id="cv-styles"></div>
+        </section>
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span></div>
+          <div class="cv-size-row" id="cv-sizes"></div>
+        </section>
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
+          <div class="cv-modes" id="cv-modes">
+            <button class="cv-mode" type="button" data-mode="color">纯色</button>
+            <button class="cv-mode" type="button" data-mode="upload">上传</button>
+            <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
+          </div>
+          <div class="cv-bg-body" id="cv-bg-body"></div>
+          <div id="cv-bg-preview"></div>
+        </section>
+      </aside>
     </main>
     <div class="cv-nine" id="cv-nine" hidden>
       <div class="cv-nine-panel" role="dialog" aria-label="九宫格切图">
@@ -829,13 +915,10 @@ function mount() {
   renderFonts();
   renderTextModes();
   renderBg();
-  selectTab(state.tab);
-  document.querySelectorAll('.cv-tab').forEach((b) => {
-    b.addEventListener('click', () => selectTab(b.dataset.tab));
-  });
+  initPreview();
   updateCount();
   if ($('cv-author')) $('cv-author').addEventListener('input', savePrefs);
-  $('cv-text').addEventListener('input', updateCount);
+  $('cv-text').addEventListener('input', () => { updateCount(); schedulePreview(); });
   $('cv-text').addEventListener('input', () => {
     if (state.mode === 'search' && $('cv-q') && !state.searchQuery) {
       $('cv-q').value = guessQuery($('cv-text').value).query;

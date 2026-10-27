@@ -385,10 +385,10 @@ def main() -> int:
         check("12 种风格全部渲染", page.locator(".cv-style").count() == 12,
               "", page.locator(".cv-style").count())
 
-        page.click('[data-style="editorial-dune"]')
+        page.click('.cv-style[data-style="editorial-dune"]')
         check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1,
               "3 尺寸", "1 尺寸")
-        page.click('[data-style="editorial"]')
+        page.click('.cv-style[data-style="editorial"]')
         check("归藏支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3,
               "1 尺寸", "3 尺寸")
 

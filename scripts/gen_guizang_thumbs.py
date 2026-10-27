@@ -52,9 +52,8 @@ def main() -> int:
             pg.fill("#cv-text", TEXT)
             pg.fill("#cv-author", "阿苏")
             for sid in STYLES:
-                pg.click(".cv-tab[data-tab='style']")
                 pg.wait_for_timeout(220)
-                pg.click(f"[data-style='{sid}']")
+                pg.click(f".cv-style[data-style='{sid}']")
                 pg.wait_for_timeout(320)
                 pg.click("#cv-gen")
                 try:
