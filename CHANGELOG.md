@@ -37,6 +37,8 @@
 - 门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档 (f37b725)
 
 ### 其他
+- STATE 同步（b240 待部署） (5b1f60e)
+- STATE 同步（b240） (31a5fca)
 - 新增 pwa_preview_verify.py — 预览与出图一致性 + 长文案预览耗时 (d4e1450)
 - STATE 同步（Pexels 单源已上线） (b7ba09b)
 - STATE 同步（Pixabay 接入已上线） (c8ad1c8)

@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-27T19:55:03+08:00",
-  "totalCommits": 218,
+  "generatedAt": "2026-10-27T19:56:50+08:00",
+  "totalCommits": 220,
   "releases": [
     {
       "version": "1.6.0",
@@ -11,7 +11,7 @@
         "added": 5,
         "changed": 4,
         "fixed": 14,
-        "other": 20
+        "other": 22
       },
       "groups": [
         {
@@ -197,6 +197,20 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（b240 待部署）",
+              "scope": "",
+              "hash": "5b1f60e",
+              "date": "2026-10-27T19:55:39+08:00",
+              "breaking": false
+            },
+            {
+              "text": "STATE 同步（b240）",
+              "scope": "",
+              "hash": "31a5fca",
+              "date": "2026-10-27T19:55:15+08:00",
+              "breaking": false
+            },
             {
               "text": "新增 pwa_preview_verify.py — 预览与出图一致性 + 长文案预览耗时",
               "scope": "cover",
