@@ -359,8 +359,8 @@ function renderBg() {
     hint.className = 'cv-hint';
     hint.style.marginTop = '8px';
     hint.textContent = (keys.pexels || keys.pixabay)
-      ? '按 Pexels → Pixabay 顺序找图，一家没结果自动换另一家；均可商用免署名。'
-      : '联网搜图需要 Key（免费）。填一个 Pexels 或 Pixabay 的 Key 就能用。';
+      ? '按 Pexels → Pixabay 顺序找图：Pexels 支持中文，Pixabay 只认英文；均可商用免署名。'
+      : '联网搜图需要 Key（免费）。建议填 Pexels —— 它支持中文关键词。';
     body.append(row, stateRow, grid, hint);
     renderCandidates();
   }

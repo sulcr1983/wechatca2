@@ -288,13 +288,17 @@ def main() -> int:
             # ── 有真 Key 时跑一次真实搜索（无 Key / 断网记 SKIP）──
             # Key 从项目根 .env 读（已被 .gitignore 排除，不会进仓库）
             real_key = ""
+            pbay_key = ""
             envf = ROOT / ".env"
             if envf.exists():
                 for line in envf.read_text(encoding="utf-8").splitlines():
                     line = line.strip()
-                    if line.startswith("PEXELS_API_KEY=") and not line.startswith("#"):
+                    if line.startswith("#"):
+                        continue
+                    if line.startswith("PEXELS_API_KEY="):
                         real_key = line.split("=", 1)[1].strip()
-                        break
+                    elif line.startswith("PIXABAY_API_KEY="):
+                        pbay_key = line.split("=", 1)[1].strip()
             if not real_key:
                 skip("Pexels 真实搜索", "未配置 PEXELS_API_KEY")
             else:
@@ -322,6 +326,38 @@ def main() -> int:
                           f"{n} 张 · {meta[:50]}")
                 except Exception as e:
                     skip("Pexels 真实搜索", f"网络/配额问题：{str(e)[:70]}")
+                    try:
+                        page.click('[data-mode="color"]', timeout=3000)
+                    except Exception:
+                        pass
+
+            # ── Pixabay 单源 + 缓存不串源（2026-10-27 新增）──
+            # 曾经踩过：缓存只用查询词当 key，换 Key 后仍命中旧缓存，
+            # 用户明明没配 Pexels 却拿到 Pexels 的图。这里断言换源后来源跟着变。
+            if not pbay_key:
+                skip("Pixabay 单源可用", "未配置 PIXABAY_API_KEY")
+            else:
+                page.evaluate(
+                    "k => localStorage.setItem('supersu.cover.stock.v1',"
+                    " JSON.stringify({pexels:'', pixabay:k}))", pbay_key)
+                tab("bg")
+                page.click('[data-mode="color"]')
+                page.wait_for_timeout(200)
+                page.click('[data-mode="search"]')
+                page.wait_for_timeout(400)
+                page.fill("#cv-q", "beach")
+                page.click("#cv-search")
+                try:
+                    page.wait_for_function(
+                        "document.querySelectorAll('.cv-cand').length > 0", timeout=40000)
+                    page.locator(".cv-cand").first.click()
+                    page.wait_for_selector(".cv-bg-preview img", timeout=30000)
+                    meta = page.inner_text(".cv-bg-meta")
+                    check("Pixabay 单源可用且不串源（未串到 Pexels）",
+                          "Pixabay" in meta and "Pexels" not in meta,
+                          meta.replace("\n", " | ")[:60])
+                except Exception as e:
+                    skip("Pixabay 单源可用", f"网络/配额问题：{str(e)[:70]}")
                     try:
                         page.click('[data-mode="color"]', timeout=3000)
                     except Exception:

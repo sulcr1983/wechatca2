@@ -73,7 +73,7 @@ export function guessQuery(text) {
   if (ascii && ascii.length <= 60 && /[a-zA-Z]/.test(ascii)) {
     return { query: ascii, translated: false, from: '' };
   }
-  // 中文无映射：去掉标点后取前 12 字直接搜（两家图库都支持中文）
+  // 中文无映射：去掉标点后取前 12 字直接搜（Pexels 能吃中文；Pixabay 会返回 0，见下）
   const cleaned = raw.replace(/[，。！？、；：""''《》【】（）()\s]+/g, ' ').trim();
   return { query: cleaned.slice(0, 12), translated: false, from: '' };
 }
@@ -223,18 +223,27 @@ async function searchMultiProvider(q, limit) {
     tried.push('Pexels 未配置 Key');
   }
   if (keys.pixabay) {
-    try {
-      const items = await searchPixabay(q, limit, keys.pixabay);
-      if (items.length) return { items, provider: 'pixabay' };
-      tried.push('Pixabay 无结果');
-    } catch (e) {
-      tried.push(`Pixabay 失败：${e.message || e}`);
+    // Pixabay 不支持中文关键词（实测 totalHits=0），中文就别浪费请求了
+    if (/[\u4e00-\u9fa5]/.test(q)) {
+      tried.push('Pixabay 不吃中文关键词，已跳过');
+    } else {
+      try {
+        const items = await searchPixabay(q, limit, keys.pixabay);
+        if (items.length) return { items, provider: 'pixabay' };
+        tried.push('Pixabay 无结果');
+      } catch (e) {
+        tried.push(`Pixabay 失败：${e.message || e}`);
+      }
     }
   } else {
     tried.push('Pixabay 未配置 Key');
   }
 
-  const err = new SearchError('没找到底图，换个关键词试试（建议用具体名词，如 beach / coffee / city）。');
+  // 中文 + 只有 Pixabay → 说清楚原因，别让用户以为是自己关键词的问题
+  const cjkOnly = /[\u4e00-\u9fa5]/.test(q) && keys.pixabay && !keys.pexels;
+  const err = new SearchError(cjkOnly
+    ? 'Pixabay 不支持中文关键词。换成英文（beach / coffee / city）再搜，或填一个 Pexels Key（支持中文）。'
+    : '没找到底图，换个关键词试试（建议用具体名词，如 beach / coffee / city）。');
   err.detail = tried;
   throw err;
 }
@@ -245,14 +254,23 @@ export async function searchBackground(input, { limit = 6 } = {}) {
   const q = guess.query;
   if (!q) return { query: '', translated: false, from: '', items: [], provider: '' };
 
+  /* 缓存必须绑定「当前用了哪些图源」（2026-10-27 修）。
+     原来只用查询词当 key，实测踩到：先配 Pexels 搜 beach（结果入缓存），
+     再把 Pexels Key 清空、只留 Pixabay，再搜 beach —— 直接命中旧缓存，
+     返回 Pexels 的图，可用户明明没有 Pexels Key。
+     现在 key = 「图源签名:查询词」，换 Key 立刻失效，不会串源。 */
+  const sig = availableProviders().join('+') || 'none';
+  const ck = `${sig}:${q}`;
   const cache = readCache();
-  const hit = cache[q];
+  const hit = cache[ck];
   if (hit && Date.now() - hit.t < CACHE_TTL && Array.isArray(hit.items)) {
     return { ...guess, items: hit.items, provider: hit.provider || '' };
   }
 
   // 2026-10-27：只保留 Pexels / Pixabay 两家（都要 Key）。
-  // 两家原生支持中文，不再需要先把中文映射成英文再搜。
+  // ⚠️ 中文支持不一样：Pexels 直接吃中文；Pixabay **完全不吃中文**
+  //    （实测「咖啡」→ totalHits 0，「coffee」→ 500）。所以 Pixabay 那一路
+  //    必须拿到英文词，中文原样丢过去只会白跑一次请求。
   let items = [];
   let provider = '';
   try {
@@ -269,7 +287,7 @@ export async function searchBackground(input, { limit = 6 } = {}) {
       throw e;
     }
   }
-  cache[q] = { t: Date.now(), items, provider };
+  cache[ck] = { t: Date.now(), items, provider };
   writeCache(cache);
   return { ...guess, items, provider };
 }
