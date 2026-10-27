@@ -294,41 +294,47 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 | GET | `/assets/<path:filename>` | public/ 静态资源 |
 | POST | `/open-folder` | 打开本地文件夹 |
 
-## 6. 公众号页面关键元素（2026-10-18 重设计：贴边三段式 + 解析条 + 风格条）
+## 6. 公众号页面关键元素（2026-10-27 按真实 DOM 重写）
+
+> ⚠️ 本节之前描述的是**本地 Flask 版的旧结构**（`.topbar` / `.workspace` /
+> `.col-text` / `.tpl-bar` / `.footbar`），那些类在 PWA 里 grep 命中数为 0。
+> 2026-10-27 全量 E2E 时发现并重写，别再照旧版抄。
 
 ```
-.topbar                  → 贴边白 chrome（56px，底部 1px）：.logo（品牌 logo 徽标 + SuperSu 公众号编辑器）+ .tab-btn
-                           （公众号排版 | 小红书封面，active 底部朱砂条）+ 教程 / 设置
-#page-wechat
-  .workspace             → 主区 flex 双栏（无 gap，1px 分隔）
-    .col-text            → 左栏 620px：.editor-header 48px
-                           （#btn-clear 清空 / #btn-insert 插入 popover / #btn-demo 看示例）
-                           + .editor-area（#input-area，Markdown 源码，flex-1）+ .parse-bar 44px
-      .parse-bar         → 识别结构 chips（#parse-chips，纯展示 span）+ #tidy-hint 整理结果瞬态
-                           + #btn-format 整理格式
-                           ⚠️ 2026-10-18：「智能转换」#sw-chip 是假开关（无 paste 实现）已下线；
-                           「导入文档」#btn-import 是占位按钮已下线
-    .col-divider         → 1px 分隔线
-    .col-preview         → 右栏：.preview-header 48px（.pv-btn 网页HTML|手机预览 分段 + #theme-chip 当前风格胶囊）
-                           + .preview-content 舞台（#preview-frame，手机模式 375×min(600,100%)）
-                           + .tpl-bar 风格条 104px
-      .tpl-bar           → #tpl-search 紧凑筛选 + #tpl-toggle 收起 + #btn-all-tpl 全部 164 套
-                           + #tpl-strip 最近使用胶囊（.tpl-card 含 .swatch/.tname/.tpl-fav）
-  .footbar               → 底栏 64px：#foot-status（真实草稿状态：尚未保存 / 已保存 · HH:MM /
-                           本地保存失败）+ #foot-count 字数/结构 + #ai-toggle
-                           + #btn-history 历史 + #btn-push 推送草稿箱（secondary）+ #btn-copy 复制（唯一 primary）
-                           ⚠️ 草稿落盘 localStorage `supersu.draft.v1`（input 500ms 防抖 + pagehide +
-                              visibilitychange + doRender 前），刷新自动恢复；清空也会写空草稿
-  .ai-panel              → AI 工具面板（默认收起，功能保留）
-  .drawer#drawer-tpl     → 模板库抽屉 560（#drawer-search + #family-chips 六族 + #drawer-grid 两列卡片）
-  .popover#popover-insert→ 插入模块（10 项，光标处插入 ::: 围栏）
-  .dialog#dialog-copy    → 手动复制指引（剪贴板降级第三级）
-  .dialog#dialog-error   → 渲染错误浮层
-  ⚠️ 后向兼容契约（勿删）：#tpl-strip（风格胶囊容器）/ .tpl-card + .tname / .tpl-bar(class) /
-     #tpl-toggle（切换 .tpl-bar.collapsed）/ #tpl-search —— 三套有头测试依赖
-  ⚠️ 加载即自动选中上次主题（localStorage supersu.lastTheme，缺省首套）→ 输入即渲染
-  ⚠️ 解析条统计源 = /api/render 返回的 markdown（引擎识别结果），不是编辑器原文
-  ⚠️ 复制写入 text/html（ClipboardItem）；非安全上下文走 execCommand；再失败弹 #dialog-copy 手动指引
+header.top（56px，底部 1px）
+  .top-left            → brand logo + SuperSu + #btn-cover（小红书标题图生成；
+                          窄屏用 data-short 显示「标题图」）
+  .top-right           → #engine-badge（引擎加载中/就绪）+ #btn-export 导出▾
+                          + #btn-ai（AI 面板）+ #btn-more ⋯（草稿/数据/更新/关于）
+                          ⚠️ 顶栏在 390px 已挤满 4 个控件，不要再往里加按钮
+                             （2026-10-27 实测加第 5 个会与 #btn-cover 重叠 21px）
+
+main.stage#stage[data-tab=edit|preview]   ← 两行网格：1fr 内容 + auto 风格条
+  section.pane.pane-edit#pane-edit
+    .pane-head         → 「内容」+ #btn-demo 看示例 / #btn-clear 清空 / #char-count
+    textarea#input     → Markdown 源码（首行自动当标题）
+    .parse-bar#parse-bar → #parse-body 结构 chips（纯展示）+ #btn-ai-format-row AI 排版
+  section.pane.pane-preview#pane-preview
+    .pane-head         → 「预览」+ #btn-mode 手机/网页 + #btn-copy 复制到公众号
+    iframe#preview     → sandbox="allow-same-origin"，渲染结果都在这
+    #preview-empty     → 空态（#btn-empty-demo 看示例）
+  .style-bar#style-bar → **.stage 的直接子元素**（2026-10-27 从 pane-preview 里提出来）：
+                         .style-scroll ×2 + #style-caps 色卡胶囊 + #btn-themes 全部风格
+                         ⚠️ 提出来是为了让手机「内容」页签也能换主题；之前嵌在预览页签
+                            里，内容页签下高度 0，用户必须先切页签
+                         ⚠️ 作为 grid 项必须 `min-width:0`，否则被 40 个色卡撑到
+                            3992px 宽（实测整页高度爆到 3376px）
+
+#cover-root            → 小红书封面页容器（DOM 由 src/cover/index.js 注入）
+nav.tabs#tabs          → 仅窄屏：内容 | 预览
+aside.ai-sheet#ai-sheet → AI 工具面板（BYOK，配置存浏览器 localStorage `supersu.ai`）
+aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + #drawer-layouts
+                         + #drawer-grid（.d-card[data-family] 族代表卡 / .d-card[data-id] 具体主题
+                         / .d-tone 色调 / .d-fav 收藏）+ #btn-drawer-close
+                         ⚠️ 窄屏选完主题会**自动收起并切到预览**（预览在另一个页签，不切看不见）；
+                            桌面端保持「不关抽屉、连点对比」（预览就在左边）
+#about                 → 关于/源码弹层
+#update-root           → 更新提示挂载点（右下角「已升级」小条）
 ```
 
 ## 7. 小红书页面关键元素（双引擎 + 自动搜图）

@@ -44,7 +44,16 @@ with sync_playwright() as p:
 
     # 1) 缩略图
     page.click("#btn-themes")
-    page.wait_for_timeout(2500)
+    # ⚠️ 别用固定等待：慢环境（刚部署后 SW 更新 / 冷缓存）抽屉渲染 + 图片懒加载
+    #    可能超过 2.5s，2026-10-27 门禁里就出现过 n=0 的假失败（单跑 9/9 正常）。
+    #    改成等「真有缩略图且已解码」再测。
+    try:
+        page.wait_for_function(
+            "() => { const i = document.querySelector('#drawer-grid .d-thumb');"
+            " return !!i && i.naturalWidth > 0; }", timeout=20000)
+    except Exception:
+        pass
+    page.wait_for_timeout(300)
     thumbs = page.evaluate("""() => {
       const imgs = [...document.querySelectorAll('#drawer-grid .d-thumb')].slice(0, 9);
       const loaded = imgs.filter(i => i.naturalWidth > 0).length;

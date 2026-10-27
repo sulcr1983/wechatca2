@@ -150,10 +150,19 @@ def main():
             check("无横向滚动（预览页签）", no_hscroll(page))
             page.screenshot(path=str(SHOTS / "wechat-3-preview.png"))
 
-            # 抽屉能关掉（窄屏是遮罩式）
+            # 2026-10-27 新行为：窄屏选完主题自动收起抽屉并切到预览
+            #（桌面端仍保持「不关抽屉、连点对比」，因为预览就在左边）
+            check("选完主题自动收起抽屉", not page.is_visible("#drawer"))
+            check("选完主题自动切到预览页签",
+                  page.get_attribute("#stage", "data-tab") == "preview",
+                  "preview", page.get_attribute("#stage", "data-tab"))
+
+            # 关闭按钮仍然可用：重新打开再关一次
+            page.click("#btn-themes")
+            page.wait_for_timeout(600)
             page.click("#btn-drawer-close")
             page.wait_for_timeout(600)
-            check("风格库可关闭", not page.is_visible("#drawer"))
+            check("风格库可关闭（× 按钮）", not page.is_visible("#drawer"))
 
             # ══ 小红书封面页 ══
             print("\n── 小红书封面页 ──")

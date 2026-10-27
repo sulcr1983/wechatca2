@@ -71,6 +71,9 @@ def main() -> int:
             errors = []
             page.on("console", lambda m: errors.append(m.type + ":" + m.text) if m.type == "error" else None)
             page.on("pageerror", lambda e: errors.append("pageerror:" + str(e)))
+            # 「保存大图」= 点一次直接落盘（2026-10-27），用下载事件验证，别只信文案
+            downloads = []
+            page.on("download", lambda d: downloads.append(d.suggested_filename))
 
             page.goto(f"http://127.0.0.1:{PORT}/", wait_until="domcontentloaded")
             check("页面标题正确", page.title().startswith("SuperSu"), page.title())
@@ -268,6 +271,10 @@ def main() -> int:
             page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
             page.wait_for_function("document.querySelector('.cv-card img').naturalWidth === 1080", timeout=30000)
             check("模板出一张 1080×1440", page.eval_on_selector(".cv-card img", "e => [e.naturalWidth, e.naturalHeight]") == [1080, 1440])
+            # 2026-10-27：按钮语义是「保存」，点一次就要有文件，不能只出卡片再让用户点下载
+            check("点「保存大图」直接落盘（无需二次点击）",
+                  len(downloads) >= 1,
+                  (str(downloads[:2]) if downloads else "无下载事件"))
 
             # ── 上传底图 ──
             if UPLOAD.exists():

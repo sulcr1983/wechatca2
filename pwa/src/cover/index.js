@@ -513,8 +513,13 @@ async function generate() {
       state.results.push({ ...r, url });
       renderGallery();
     }
-    setStatus(`已存 ${state.results.length} 张`);
-    toast('大图已保存', 'ok');
+    /* 「保存大图」要真的是「存下来」——生成完直接落盘，别让用户再点一次卡片上的「下载」。
+       归藏会出 3 个尺寸，只自动存当前选中的那个；其余尺寸仍在卡片上手动下载。 */
+    const want = document.querySelector(`.cv-card a.cv-dl[download$="-${state.size}.png"]`);
+    let saved = false;
+    if (want) { want.click(); saved = true; }
+    setStatus(saved ? `已保存到下载文件夹（${COVER_SIZES[state.size].label}）` : `已生成 ${state.results.length} 张`);
+    toast(saved ? '大图已保存' : '大图已生成，点卡片上的「下载」保存', 'ok');
   } catch (err) {
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
