@@ -23,12 +23,8 @@
     .venv/Scripts/python.exe scripts/run_gates.py --full --ui --online   # 全都要
 
 排除说明：
-  本地 Flask 版套件（手动跑，不进 PWA 门禁）：
-      python tests/test_e2e.py            端到端 74（test_client）
-      python tests/test_api_e2e.py        后端 API 29（需起 5000）
-      python tests/test_integration.py    前后端联动 35（需起 5000）
-      python tests/test_headed_full_e2e.py / test_headed_wechat_copy.py
-      python tests/test_headed_userflow.py / test_headed_audit_fixes.py
+  本地 Flask 版套件——**已于 2026-10-28 随本地版封存**（整个 tests/ 移出工作区，
+  见 ARCHIVE.md）。不要再照旧文档跑 `python tests/test_e2e.py`，那个文件已不存在。
   pwa_incremental_test  需要「部署一次 → 换文件 → 再部署」两次部署之间跑，手动执行
   test_headed_pm_audit  审计套件（失败=发现问题），不是门禁，不纳入
 

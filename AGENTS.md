@@ -14,7 +14,11 @@
 SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 核心理念：**纯文本进，排版出。不用 AI 就不开 AI。**
 
-> ⚠️ **方向调整（2026-10-18，苏哥拍板）**：以后**主打 PWA 版**（`pwa/` → https://supersu.ccwu.cc）；**本地 Flask 版（`app.py` + `templates/index.html`）标记弃用、暂不删除**（保留作参考/回退）。引擎真源仍为两版共用：`core/preprocessor.py` + `core/format_engine.py` + `public/themes/`（PWA 由 `node pwa/scripts/build.mjs` 构建时拷入 `pwa/dist/py/`、`pwa/dist/themes/`，**改引擎后必须重跑构建**）；**UI 真源转为 `pwa/src/app.js` + `pwa/src/style.css`**。
+> ⚠️ **方向（2026-10-18 定，2026-10-28 收尾）**：**只有 PWA 版**（`pwa/` → https://supersu.ccwu.cc）。
+> **本地 Flask 版已于 2026-10-28 封存并移出工作区**（`app.py` / `templates/` / `data/` / `tests/` /
+> `start-app.bat` / `scripts/run_headed_test.bat` / `scripts/audit_run.py`），
+> 取回方式见 **`ARCHIVE.md`**（tag `flask-v1-archive-2026-10-28`）。
+> 仓库里**不要**再出现第二套后端结构 —— 见过太多「照着 Flask 改 PWA」的返工。引擎真源仍为两版共用：`core/preprocessor.py` + `core/format_engine.py` + `public/themes/`（PWA 由 `node pwa/scripts/build.mjs` 构建时拷入 `pwa/dist/py/`、`pwa/dist/themes/`，**改引擎后必须重跑构建**）；**UI 真源转为 `pwa/src/app.js` + `pwa/src/style.css`**。
 
 - 自动 Markdown 预处理（本地规则，零延迟零费用）
 - **164 套**主题自动排版（45 套早期原创 + 119 套 su-* 原创 = 47 初代 + 72 六族；Markdown → 微信内联 HTML）
@@ -31,7 +35,6 @@ SuperSu 是本地化微信公众号自动排版 + 小红书封面生成工具。
 ## 3. 架构速查
 
 ```
-app.py                  Flask 主应用（路由 + SSE + API）——本地弃用版入口，PWA 不经过它
 core/
   format_engine.py      排版引擎（164 主题，Markdown → 微信 HTML）
   preprocessor.py       纯文本 → Markdown（纯规则零延迟；四模式 conservative/longform/tutorial/auto，⚠️ 尚无 UI 入口待接线）
@@ -97,29 +100,18 @@ docs/
 
 ## 4. 启动与停止
 
-```bash
-# 启动（二选一）
-start-app.bat                    # 双击即用：自动建 venv/装依赖 → 起服务 → 开浏览器
-python app.py                    # http://127.0.0.1:5000（等效，需自己先激活环境）
-# ⚠️ start-app.bat 的三条硬约束（改动前必读；2026-09-26 / 10-13 因这些踩过坑）：
-#   1) 全程用 %~dp0 拼绝对路径调用 .venv\Scripts\python.exe，**不要用 activate.bat**——
-#      其内部写死创建时的绝对路径，项目一换目录就失效 → python 落到系统解释器
-#      → 报 No module named 'flask'。.venv 换目录后可用
-#      `<基础解释器> -m venv .venv` 原地重建激活脚本（不加 --clear，已装包会保留）。
-#   2) *.bat / *.cmd **必须 CRLF 换行**（已由 .gitattributes 的 eol=crlf 锁定）。
-#      裸 LF 会让 cmd 解析错乱、把行切成半截命令，表现为窗口一闪或一堆
-#      `'xxx' is not recognized`。
-#   3) **bat 内不写中文（保持纯 ASCII）**，判断逻辑不依赖 `>nul` / `2>nul` 设备重定向。
-#      cmd 会错位解析含多字节字符的 bat 行、吃掉下一行行首（2026-10-13 实锤，见变更 17）；
-#      设备重定向在部分机器上间歇性报「系统找不到指定的路径」并污染退出码。
-#      bat 不再下载 Chromium——封面渲染用系统 Chrome（缺失回退 Edge，core/browser_utils.py）。
-#      中文启动提示由 app.py 打印。
+> ⚠️ **2026-10-28 起本项目没有「启动服务」这一步** —— PWA 是纯静态站。
+> 旧文档里的 `start-app.bat` / `python app.py` / `127.0.0.1:5000` 属**已封存的 Flask 版**，
+> 见 `ARCHIVE.md`。下面只保留现行命令。
 
-# 测试
-python tests/test_e2e.py         # E2E（Flask test_client，无需起服务）— 74/74 通过
-python tests/test_integration.py # 集成测试（需先启动服务）— 35/35 通过
-python tests/test_api_e2e.py     # 后端 API 全端点 E2E（自起服务，29 项）— 29/29 通过
-                                  # ⚠️ blcaptain-style-skill 子项目不在仓库时 28/28 + 1 SKIP（环境性，2026-10-24 起）
+```bash
+# 本地预览 PWA（二选一，都不需要后端）
+python -m http.server 8000 --directory pwa/dist   # 然后开 http://127.0.0.1:8000
+# 或直接用门禁脚本，它会自己起静态服务
+
+# 构建（改过 pwa/src / core 引擎 / public/themes 必须重跑）
+node pwa/scripts/build.mjs
+
 python scripts/test_all.py       # ★ **一键全测入口**（推荐给日常用）：交互选档位 quick/normal/ui/all，
                                   # 委托给 run_gates.py（唯一真源），跑完给汇总表；--list 只列档位
                                   #   quick ~3min / normal ~6min（本地层）/ ui ~20min（+164套模板+8版式+真实AI）

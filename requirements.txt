@@ -1,9 +1,9 @@
-flask>=3.0
+# 2026-10-28：Flask 版已封存（见 ARCHIVE.md），移除 flask / platformdirs；
+# 保留的依赖都是 PWA 构建与门禁脚本实际用到的（markdown 用于 core/format_engine.py）
 python-dotenv>=1.0
 requests>=2.31
 pillow>=10.0
 markdown>=3.5
-platformdirs>=4.0
 
 # 小红书封面生成（必装依赖）：安装后还需执行 `playwright install chromium` 下载浏览器
 # >=1.61：低版本 clipboard 写入与 set_content 行为不一致，复制/底图会静默失败

@@ -86,7 +86,7 @@ def main() -> int:
         pass
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--file", default="", help="用指定文本文件代替内置短文（如 tests/fixtures/txt-format-lab.txt）")
+    ap.add_argument("--file", default="", help="用指定文本文件代替内置短文（如 scripts/fixtures/txt-format-lab.txt）")
     ap.add_argument("--max-chars", type=int, default=24000, help="超长时截断，避免一次请求过大")
     ap.add_argument("--dump", default="", help="把 AI 返回的结构 JSON 落到指定文件，便于排查")
     args = ap.parse_args()
