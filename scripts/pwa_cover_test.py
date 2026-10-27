@@ -1,6 +1,6 @@
 """PWA 封面有头测试：起静态服务 → 系统 Chrome 跑完整封面链路。
 
-覆盖：入口切换 / 12 种风格 / 3 尺寸 / 归藏与模板出图 / 上传底图 /
+覆盖：入口切换 / 13 种风格 / 3 尺寸 / 归藏与模板出图 / 上传底图 /
       联网搜图（仅 Pexels，验无 Key 指引 + 真实搜索）/ 下载链接 / 窄屏布局 / 断网生成。
 
 用法：.venv/Scripts/python.exe scripts/pwa_cover_test.py
@@ -151,7 +151,7 @@ def main() -> int:
             # ── 风格与尺寸 ──
             tab("style")
             styles = page.locator(".cv-style").count()
-            check("12 种风格全部渲染", styles == 12, f"{styles} 个")
+            check("13 种风格全部渲染", styles == 13, f"{styles} 个")
             check("默认支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3)
             page.click('.cv-style[data-style="editorial-dune"]')
             check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1)

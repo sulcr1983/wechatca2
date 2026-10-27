@@ -1,4 +1,4 @@
-"""为归藏两套（editorial / swiss）生成真实缩略图。
+"""为归藏三套（editorial / swiss / bigtype）生成真实缩略图。
 
 背景：这两套在 catalog 里没有 thumb，界面上是用 swatch+accent 拼的斜切色块，
 用户点之前看到的不是真实封面。补上真实预览图（2026-10-25）。
@@ -24,7 +24,7 @@ from core.pwa_test_utils import wait_engine_ready  # noqa: E402
 DIST = ROOT / "pwa" / "dist"
 OUT = ROOT / "public" / "social-thumb"
 PORT = 8232
-STYLES = ["editorial", "swiss"]
+STYLES = ["editorial", "swiss", "bigtype"]
 TEXT = "周末去海边\n\n两天的沉默之后，我重新听见了海浪。"
 
 

@@ -38,6 +38,20 @@ const GZ_COLORS = {
     accentOn: '#ffffff',     // --accent-on
     bg: '#ececea',
   },
+  /* 纯文字大字版（2026-10-28，ROAD-1）
+     定位：**不用底图**也能出封面 —— 用户痛点「搜不到合适的图，封面就废了」。
+     视觉上刻意与「午夜墨金」（深底+金）和「Swiss」（细体大字）都拉开：
+     亮纸 + 极重黑体 + 一点橙红，靠字号对比撑住画面。 */
+  bigtype: {
+    paper: '#fbfaf7',
+    paper2: '#f2efe8',
+    ink: '#0b0b0c',
+    muted: '#6b6660',
+    accent: '#ff3b1f',
+    accentOn: '#ffffff',
+    accentSoft: '#ffd9d2',
+    bg: '#efeee9',
+  },
 };
 
 /* 字体系统（对照 references/style-system.md 的排版规范）
@@ -55,6 +69,14 @@ const GZ_FONTS = {
     family: "'Noto Sans SC', 'PingFang SC', system-ui, sans-serif",
     titleSize: 104, titleWeight: 300, titleLine: 1.06, titleTracking: '-.01em',
     bodySize: 30, bodyLine: 1.5, metaSize: 22, metaLetter: '.15em',
+  },
+  /* 大字版：字号给到 148、字重 800、行高 1.0、负字距 ——
+     与 Swiss 的「大字号要细」相反，这里就是要有重量感。
+     溢出交给 fitty（下方 sel 已包含 .h-display）。 */
+  bigtype: {
+    family: "'Noto Sans SC', 'PingFang SC', system-ui, sans-serif",
+    titleSize: 148, titleWeight: 800, titleLine: 1.0, titleTracking: '-.03em',
+    bodySize: 26, bodyLine: 1.6, metaSize: 18, metaLetter: '.2em',
   },
 };
 
@@ -287,6 +309,8 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   const date = new Date().toISOString().slice(0, 7).replace('-', '.');
   const isWide = size === 'wide';
   const isSquare = size === 'square';
+  // 大字版（2026-10-28）：不用底图 + 垂直居中 + 强调色块压题，跟编辑风拉开距离
+  const isBig = style === 'bigtype';
 
   const layoutCss = isWide ? `
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
@@ -303,11 +327,13 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
     .issue-row { justify-content:center; margin-bottom:32px; }
   ` : `
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
-    .content { justify-content:flex-end; padding:96px 88px; }
+    .content { justify-content:${isBig ? 'center' : 'flex-end'}; padding:96px 88px; }
     .h-display { font-size:${f.titleSize}px; line-height:${f.titleLine}; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.04em'}; margin:0 0 20px; }
   `;
 
-  const imageHtml = image ? `<img class="cover-img" src="{{IMAGE}}" alt=""><div class="img-overlay"></div>` : '';
+  // 大字版**强制不铺底图**：选了图也不铺 —— 它的卖点就是「纯文字、永不图文不符」。
+  const useImg = style === 'bigtype' ? '' : image;
+  const imageHtml = useImg ? `<img class="cover-img" src="{{IMAGE}}" alt=""><div class="img-overlay"></div>` : '';
   const overlayCss = isSquare
     ? 'background: radial-gradient(72% 60% at 50% 50%, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 100%);'
     : isWide
@@ -323,20 +349,11 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
       + `By ${esc(author)}</p>`
     : '');
 
-  const body = isWide ? `
-    <div class="wide-layout">
-      <div>
-        <p class="kicker" style="font-size:21px;letter-spacing:.22em;color:${c.accent};margin:0 0 24px;">封面 · Cover</p>
-        <h1 class="wide-title">{{TITLE}}</h1>
-        <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
-        ${authorLine()}
-      </div>
-      ${image ? '<div><img class="wide-img" src="{{IMAGE}}" alt=""></div>' : ''}
-    </div>` : isSquare ? `
-    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 · ${date}</div>
-    <h1 class="square-title">{{TITLE}}</h1>
-    <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
-    ${authorLine()}` : `
+  /* 3:4 两种排法：默认贴底（编辑风）／大字版居中压色块。
+     ⚠️ 这里刻意**不用嵌套模板**：${cond ? `A` : `B`} 这种写法在部分 Chromium
+     上会让整个模块解析失败（实测报 "Unexpected identifier 'html'"），
+     先算好字符串再插入最稳，也更好读。 */
+  const xhsNormal = `
     <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 <span class="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${c.muted};margin:0 12px;"></span> ${date}</div>
     <div style="margin-top:40px;">
       <p class="kicker" style="font-family:monospace;font-size:21px;letter-spacing:.22em;color:${c.ink};margin:0 0 24px;">封面 · Cover</p>
@@ -345,6 +362,31 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
       <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;max-width:640px;">{{LEAD}}</p>
       ${authorLine()}
     </div>`;
+
+  const xhsBig = `
+    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 <span class="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${c.muted};margin:0 12px;"></span> ${date}</div>
+    <div style="margin:auto 0;">
+      <div style="width:104px;height:14px;background:${c.accent};margin:0 0 40px;"></div>
+      <h1 class="h-display">{{TITLE}}</h1>
+      <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:28px 0 0;max-width:660px;">{{LEAD}}</p>
+      ${authorLine()}
+    </div>
+    <div style="width:100%;height:1px;background:${c.accent};opacity:.35;margin-top:40px;"></div>`;
+
+  const body = isWide ? `
+    <div class="wide-layout">
+      <div>
+        <p class="kicker" style="font-size:21px;letter-spacing:.22em;color:${c.accent};margin:0 0 24px;">封面 · Cover</p>
+        <h1 class="wide-title">{{TITLE}}</h1>
+        <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
+        ${authorLine()}
+      </div>
+      ${useImg ? '<div><img class="wide-img" src="{{IMAGE}}" alt=""></div>' : ''}
+    </div>` : isSquare ? `
+    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 · ${date}</div>
+    <h1 class="square-title">{{TITLE}}</h1>
+    <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
+    ${authorLine()}` : (isBig ? xhsBig : xhsNormal);
 
   const html = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>封面</title>
@@ -365,7 +407,7 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   <div class="content">${body}</div>
 </section></body></html>`;
 
-  return prepareCoverHtml(html, { title, lead, author, image, baseUrl });
+  return prepareCoverHtml(html, { title, lead, author, image: useImg, baseUrl });
 }
 
 /** 10 套模板：原始 HTML 已由构建脚本清洗（去 Google Fonts / 去强制白字段 / 底图占位）。 */

@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-27T22:59:08+08:00",
-  "totalCommits": 223,
+  "generatedAt": "2026-10-28T00:56:41+08:00",
+  "totalCommits": 228,
   "releases": [
     {
       "version": "1.6.0",
@@ -9,9 +9,9 @@
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
         "added": 6,
-        "changed": 4,
-        "fixed": 14,
-        "other": 24
+        "changed": 5,
+        "fixed": 15,
+        "other": 27
       },
       "groups": [
         {
@@ -67,6 +67,13 @@
           "label": "调整",
           "items": [
             {
+              "text": "U-10 搜图缓存在文件里出现两次（一处已闭环、一处仍写待做），统一为已闭环",
+              "scope": "todo",
+              "hash": "3824293",
+              "date": "2026-10-28T00:29:23+08:00",
+              "breaking": false
+            },
+            {
               "text": "联网搜图只保留 Pexels，移除 Pixabay",
               "scope": "cover",
               "hash": "939ede5",
@@ -100,6 +107,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "「保存大图」点一次真落盘 + 两处测试健壮性",
+              "scope": "ux",
+              "hash": "63c64d6",
+              "date": "2026-10-27T23:02:11+08:00",
+              "breaking": false
+            },
             {
               "text": "九宫格切图按钮归位到结果区（改版时误挪到预览条）",
               "scope": "cover",
@@ -204,6 +218,27 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "封存本地 Flask 版（tag flask-v1-archive-2026-10-28）",
+              "scope": "",
+              "hash": "7436ece",
+              "date": "2026-10-28T00:43:29+08:00",
+              "breaking": false
+            },
+            {
+              "text": "STATE 同步（b246 已上线，门禁 21/21）",
+              "scope": "",
+              "hash": "cbed51d",
+              "date": "2026-10-27T23:20:47+08:00",
+              "breaking": false
+            },
+            {
+              "text": "STATE 同步（构建号对齐）",
+              "scope": "",
+              "hash": "603ae6b",
+              "date": "2026-10-27T23:03:43+08:00",
+              "breaking": false
+            },
             {
               "text": "全量 E2E 修复 5 处「测试与代码脱节」，门禁 21/21",
               "scope": "e2e",

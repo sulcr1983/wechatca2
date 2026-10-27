@@ -9,7 +9,7 @@
 
 判定标准（2026-10-27 实测基线）：
   平均差 < 12 且 超阈像素 < 15% → 一致
-  实测 12 套均在 1.5~2.7（纯缩放抗锯齿），可放心把阈值收紧
+  实测 13 套均在 1.5~2.7（纯缩放抗锯齿），可放心把阈值收紧
   若某套突然 > 20，通常是「预览和出图用了不同参数」或模板自身有随机性
 
 用法：.venv/Scripts/python.exe scripts/pwa_preview_verify.py
@@ -38,6 +38,7 @@ PORT = 8451
 STYLES = [
     ("editorial", "Editorial 杂志风"),
     ("swiss", "Swiss 瑞士风"),
+    ("bigtype", "大字版"),
     ("editorial-ink-classic", "经典墨色"),
     ("editorial-dune", "沙丘暖纸"),
     ("editorial-kraft-paper", "牛皮纸"),

@@ -17,6 +17,7 @@ import http.server
 import json
 import re
 import shutil
+import tempfile
 import socketserver
 import sys
 import threading
@@ -32,7 +33,10 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "pwa" / "dist"
-PROBE = ROOT / "output" / "auto-update-probe"
+# 探针是整份 pwa/dist 的副本（约 22MB / 444 个文件）。
+# 放系统临时目录，而不是 output/ —— 放 output 里既占仓库空间，
+# 又因为"不能批量删"（见下方拷贝处注释）而只能一直留着。tempfile 由系统回收。
+PROBE = Path(tempfile.gettempdir()) / "supersu-auto-update-probe"
 SHOTS = ROOT / "output" / "auto-update"
 results = []
 

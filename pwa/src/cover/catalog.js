@@ -20,6 +20,15 @@ export const GUIZANG_STYLES = [
     sizes: ['xhs', 'square', 'wide'], swatch: '#fafaf8', accent: '#002FA7',
     thumb: './cover-thumbs/swiss.png',
   },
+  {
+    /* ROAD-1（2026-10-28）：纯文字大字版。
+       专门解决「搜不到合适的图 → 封面就废了」：它**根本不用底图**，
+       选了也不铺，所以永远不会图文不符，出图也最快（不用等图片解码）。 */
+    id: 'bigtype', name: '大字版', group: '归藏',
+    desc: '纯文字大字，不用底图也好看，适合金句与观点',
+    sizes: ['xhs', 'square', 'wide'], swatch: '#fbfaf7', accent: '#ff3b1f',
+    thumb: './cover-thumbs/bigtype.png',
+  },
 ];
 
 // 10 套模板（public/cover-templates，AGPL-3.0，见 THIRD_PARTY_NOTICES）：只有 3:4
