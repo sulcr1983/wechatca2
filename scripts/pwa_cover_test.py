@@ -1,7 +1,7 @@
 """PWA 封面有头测试：起静态服务 → 系统 Chrome 跑完整封面链路。
 
 覆盖：入口切换 / 12 种风格 / 3 尺寸 / 归藏与模板出图 / 上传底图 /
-      Wikimedia 搜图（网络不可达记 SKIP）/ 下载链接 / 窄屏布局 / 断网生成。
+      联网搜图（Pexels/Pixabay，只验无 Key 指引）/ 下载链接 / 窄屏布局 / 断网生成。
 
 用法：.venv/Scripts/python.exe scripts/pwa_cover_test.py
 前置：node pwa/scripts/build.mjs 已产出 pwa/dist/
@@ -244,33 +244,88 @@ def main() -> int:
             else:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
 
-            # ── Wikimedia 搜图（网络失败记 SKIP，不算失败）──
+            # ── 联网搜图（2026-10-27 重写）──────────────────────────────
+            # 图源已收敛为 Pexels / Pixabay 两家（都要用户 Key），Wikimedia 移除。
+            # 所以这里不再测「免 key 能不能搜到」——那条路已经不存在了，
+            # 改为断言三件可以离线确定的事：
+            #   1) 只列两家图源，不再出现 Wikimedia
+            #   2) 没配 Key 时给出明确指引（而不是转圈超时）
+            #   3) 指引按钮能跳到 Key 配置
             tab("bg")
             page.click('[data-mode="search"]')
+            page.wait_for_timeout(400)
+
+            pills = page.eval_on_selector_all(
+                ".cv-stock-pill", "els => els.map(e => e.textContent.trim())")
+            check("图源只有 Pexels / Pixabay",
+                  len(pills) == 2 and all(("Pexels" in x or "Pixabay" in x) for x in pills)
+                  and not any("Wikimedia" in x for x in pills), str(pills))
+
+            # 清掉 Key 后重新渲染底图面板（切模式会重读 getStockKeys）。
+            # ⚠️ 不要 reload：会打断后面的断网/窄屏断言，且重载后引擎要重新初始化。
+            page.evaluate("() => localStorage.removeItem('supersu.cover.stock.v1')")
+            tab("bg")
+            page.click('[data-mode="color"]')
+            page.wait_for_timeout(200)
+            page.click('[data-mode="search"]')
+            page.wait_for_timeout(300)
             page.fill("#cv-q", "coffee")
             page.click("#cv-search")
+            # 快速失败：应立刻给出「还没配置图库 Key」，而不是等网络超时
             try:
-                page.wait_for_function("document.querySelectorAll('.cv-cand').length > 0", timeout=40000)
-                cands = page.locator(".cv-cand").count()
-                page.locator(".cv-cand").first.click()
                 page.wait_for_function(
-                    "document.querySelector('.cv-bg-meta') && document.querySelector('.cv-bg-meta').textContent.includes('Wikimedia')",
-                    timeout=60000,
-                )
-                page.click("#cv-gen")
-                page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
-                page.wait_for_function("document.querySelector('.cv-card img').naturalWidth > 0", timeout=30000)
-                check("Wikimedia 搜图可选作底图并生成", True, f"{cands} 个候选")
+                    "() => { const s = document.getElementById('cv-status');"
+                    " return s && /图库 Key/.test(s.textContent); }", timeout=6000)
+                check("无 Key 时给出配置指引（不空转）", True,
+                      page.inner_text("#cv-status").strip()[:40])
             except Exception as e:
-                skip("Wikimedia 搜图", f"网络不可达或超时：{str(e)[:80]}")
-                # 2026-10-25 修：搜图超时后页面可能停在「搜索中」状态（按钮禁用 / 遮罩），
-                # 导致后面「窄屏封面页可用」偶发失败（实测 release 门禁里踩到）。
-                # 这里主动恢复：切回纯色模式，确保 #cv-gen 可用。
+                check("无 Key 时给出配置指引（不空转）", False, str(e)[:80])
+
+            # 指引按钮存在且可点（点开 AI 面板填 Key）
+            check("有「填 Key」入口", page.locator(".cv-stock-set").count() == 1,
+                  page.inner_text(".cv-stock-set") if page.locator(".cv-stock-set").count() else "缺失")
+
+            # ── 有真 Key 时跑一次真实搜索（无 Key / 断网记 SKIP）──
+            # Key 从项目根 .env 读（已被 .gitignore 排除，不会进仓库）
+            real_key = ""
+            envf = ROOT / ".env"
+            if envf.exists():
+                for line in envf.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line.startswith("PEXELS_API_KEY=") and not line.startswith("#"):
+                        real_key = line.split("=", 1)[1].strip()
+                        break
+            if not real_key:
+                skip("Pexels 真实搜索", "未配置 PEXELS_API_KEY")
+            else:
+                page.evaluate(
+                    "k => localStorage.setItem('supersu.cover.stock.v1',"
+                    " JSON.stringify({pexels:k,pixabay:''}))", real_key)
+                tab("bg")
+                page.click('[data-mode="color"]')
+                page.wait_for_timeout(200)
+                page.click('[data-mode="search"]')
+                page.wait_for_timeout(400)
+                page.fill("#cv-q", "beach")
+                page.click("#cv-search")
                 try:
-                    page.click('[data-mode="color"]', timeout=5000)
-                    page.wait_for_timeout(500)
-                except Exception:
-                    pass
+                    page.wait_for_function(
+                        "document.querySelectorAll('.cv-cand').length > 0", timeout=40000)
+                    page.wait_for_function(
+                        "() => [...document.querySelectorAll('.cv-cand img')]"
+                        ".every(i => i.complete && i.naturalWidth > 0)", timeout=30000)
+                    n = page.locator(".cv-cand").count()
+                    page.locator(".cv-cand").first.click()
+                    page.wait_for_selector(".cv-bg-preview img", timeout=30000)
+                    meta = page.inner_text(".cv-bg-meta").replace("\n", " | ")
+                    check("Pexels 真实搜索可用", n >= 6 and "Pexels" in meta,
+                          f"{n} 张 · {meta[:50]}")
+                except Exception as e:
+                    skip("Pexels 真实搜索", f"网络/配额问题：{str(e)[:70]}")
+                    try:
+                        page.click('[data-mode="color"]', timeout=3000)
+                    except Exception:
+                        pass
 
             page.eval_on_selector(".cv-panel", "el => el.scrollTop = 0")
             page.screenshot(path=str(OUT / "pwa-cover-test.png"))

@@ -1,11 +1,11 @@
 /* PWA 封面页：文案 / 风格 / 尺寸 / 底图 / 生成 / 画廊 / 下载长按。
- * 纯前端：不传内容、不依赖后端；底图可选纯色、上传、Wikimedia 免 key 搜图。
+ * 纯前端：不传内容、不依赖后端；底图可选纯色、上传、联网搜图（Pexels / Pixabay，BYOK）。
  */
 
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, COVER_SIZES, styleById } from './catalog.js';
 import { renderCoverBlob } from './render.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
-import { searchBackground, fetchImageDataUrl, guessQuery } from './search.js';
+import { searchBackground, fetchImageDataUrl, guessQuery, getStockKeys } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
 
 const PREFS = 'supersu.cover.prefs.v1';
@@ -320,11 +320,48 @@ function renderBg() {
     const grid = document.createElement('div');
     grid.className = 'cv-search-grid';
     grid.id = 'cv-cands';
+    /* 图源状态条（2026-10-27 修）：
+       原来这里写死「Wikimedia 免 key…国内网络不可达时请改用上传」——
+       那是只有 Commons 时代的文案，等于在劝退用户。
+       现只保留 Pexels / Pixabay 两家（都要免费 Key），这里如实显示配置状态。 */
+    const keys = getStockKeys();
+    // ⚠️ 千万别叫 state —— 本文件有模块级 state 对象，同名 const 会遮蔽它，
+    //    而上面几行刚读过 state.searchQuery，同块作用域下直接 TDZ 报错，
+    //    整个 renderBgBody 抛出 → 搜图面板空白（2026-10-27 踩过）。
+    const stateRow = document.createElement('div');
+    stateRow.className = 'cv-stock-state';
+    const items = [
+      ['Pexels', !!keys.pexels],
+      ['Pixabay', !!keys.pixabay],
+    ];
+    stateRow.innerHTML = items.map(([n, ok]) =>
+      `<span class="cv-stock-pill ${ok ? 'ok' : 'no'}">${n}${ok ? ' ✓' : ' 需 Key'}</span>`).join('');
+    const setBtn = document.createElement('button');
+    setBtn.type = 'button';
+    setBtn.className = 'cv-stock-set';
+    setBtn.textContent = (keys.pexels || keys.pixabay) ? '图库设置' : '填 Key（免费·2分钟）';
+    // 直达配置：打开 AI 面板（图库 Key 就在面板底部）并滚到那一块；
+    // 没填过 Key 时再顺手把「怎么获取」教程弹出来，省得用户去找。
+    setBtn.addEventListener('click', () => {
+      document.getElementById('btn-ai')?.click();
+      setTimeout(() => {
+        const pex = document.getElementById('stock-pexels');
+        pex?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        pex?.focus();
+        if (!(keys.pexels || keys.pixabay)) {
+          document.getElementById('stock-help')?.click();
+        }
+      }, 260);
+    });
+    stateRow.appendChild(setBtn);
+
     const hint = document.createElement('p');
     hint.className = 'cv-hint';
     hint.style.marginTop = '8px';
-    hint.textContent = 'Wikimedia Commons 免 key，图库以纪实照片为主；国内网络不可达时请改用上传。';
-    body.append(row, grid, hint);
+    hint.textContent = (keys.pexels || keys.pixabay)
+      ? '按 Pexels → Pixabay 顺序找图，一家没结果自动换另一家；均可商用免署名。'
+      : '联网搜图需要 Key（免费）。填一个 Pexels 或 Pixabay 的 Key 就能用。';
+    body.append(row, stateRow, grid, hint);
     renderCandidates();
   }
   renderBgPreview();
@@ -353,7 +390,7 @@ async function doSearch() {
   state.searchQuery = q;
   state.candidates = [];
   renderCandidates();
-  setStatus('正在搜索 Wikimedia Commons…');
+  setStatus('正在搜图…（Pexels → Pixabay）');
   try {
     const r = await searchBackground(q, { limit: 6 });
     state.candidates = r.items;
@@ -383,6 +420,8 @@ function renderCandidates() {
     img.alt = it.title;
     img.loading = 'lazy';
     img.addEventListener('error', () => { if (img.src !== it.url) img.src = it.url; });
+    // 加载完就撤掉骨架闪烁，否则已显示的图还在闪
+    img.addEventListener('load', () => b.classList.add('loaded'), { once: true });
     b.appendChild(img);
     b.addEventListener('click', () => pickCandidate(it));
     box.appendChild(b);
@@ -403,7 +442,7 @@ async function pickCandidate(it) {
     state.imageMeta = it;
     renderCandidates();
     renderBgPreview();
-    setStatus('底图已选（Wikimedia Commons）');
+    setStatus(`底图已选（${it.provider === 'pixabay' ? 'Pixabay' : 'Pexels'}）`);
   } catch (err) {
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
@@ -435,7 +474,9 @@ function renderBgPreview() {
     a.href = m.pageUrl;
     a.target = '_blank';
     a.rel = 'noopener';
-    a.textContent = 'Wikimedia Commons';
+    // 链接文字用「原图 ↗」而不是图源名：license 已经是「Pexels License」，
+    // 再写一遍来源就成了「… Pexels License Pexels」（2026-10-27 修）
+    a.textContent = '原图 ↗';
     meta.appendChild(document.createTextNode(' '));
     meta.appendChild(a);
   }

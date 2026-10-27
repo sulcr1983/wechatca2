@@ -1,12 +1,18 @@
-/* Wikimedia Commons 免 key 搜图（纯前端）。
+/* 联网搜图（纯前端，BYOK）。
  *
- * 为什么用它：不需要用户配置 Key，API 与图片 CDN 都返回 access-control-allow-origin: *。
- * 中文在 Commons 的搜索命中有偏差，所以先用内置场景词表把中文标题映射成英文关键词；
- * 没有命中时退回原文查询，仍无结果就返回空数组（UI 保留纯色 / 上传底图）。
- * 结果元数据缓存 24 小时（localStorage），图片本身只在内存里转 data URL，不落盘。
+ * 图源只有两家，都需要用户自己填免费 Key（2026-10-27 苏哥拍板）：
+ *   Pexels  → 主力。原生支持中文 query，竖图多，图片 CDN 国内可直连
+ *   Pixabay → 备选。素材量更大，Pexels 没结果时自动顶上
+ *
+ * ⚠️ 已彻底移除 Wikimedia Commons：
+ *   实测国内直连必超时（HTTP 000），等于白等一次；留着只会让用户
+ *   以为「功能坏了」。没有 Key 时直接给出明确提示 + 配置入口，
+ *   比转圈 15 秒再失败诚实得多。
+ *
+ * 两家 License 都允许免费商用、无需署名。Key 存 localStorage，不上传。
+ * 结果缓存 24 小时（localStorage），图片只在内存转 data URL，不落盘。
  */
 
-const API = 'https://commons.wikimedia.org/w/api.php';
 const CACHE_KEY = 'supersu.cover.search.v1';
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 const CACHE_MAX = 24;
@@ -67,7 +73,7 @@ export function guessQuery(text) {
   if (ascii && ascii.length <= 60 && /[a-zA-Z]/.test(ascii)) {
     return { query: ascii, translated: false, from: '' };
   }
-  // 中文无映射：去掉标点后取前 12 字，交给 Commons 的中文索引碰运气
+  // 中文无映射：去掉标点后取前 12 字直接搜（两家图库都支持中文）
   const cleaned = raw.replace(/[，。！？、；：""''《》【】（）()\s]+/g, ' ').trim();
   return { query: cleaned.slice(0, 12), translated: false, from: '' };
 }
@@ -87,94 +93,17 @@ function writeCache(obj) {
   } catch { /* 隐私模式 / 配额满：不阻断搜索 */ }
 }
 
-async function request(query, limit) {
-  const params = new URLSearchParams({
-    action: 'query',
-    format: 'json',
-    formatversion: '2',
-    origin: '*',
-    generator: 'search',
-    gsrsearch: `${query} filetype:bitmap`,
-    gsrnamespace: '6',
-    gsrlimit: '30',
-    prop: 'imageinfo',
-    iiprop: 'url|size|extmetadata',
-    iiurlwidth: '1600',
-  });
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), REQ_TIMEOUT);
-  let data;
-  try {
-    const res = await fetch(`${API}?${params.toString()}`, { signal: ctl.signal, mode: 'cors' });
-    if (!res.ok) throw new SearchError(`搜图接口 HTTP ${res.status}`);
-    data = await res.json();
-  } catch (e) {
-    if (e instanceof SearchError) throw e;
-    throw new SearchError(e && e.name === 'AbortError'
-      ? '联网搜图超时（可改用纯色或上传图片）'
-      : '联网搜图失败（网络不可达时可改用纯色或上传图片）');
-  } finally {
-    clearTimeout(timer);
-  }
-
-  const pages = Array.isArray(data?.query?.pages) ? data.query.pages : [];
-  const BAD = /(?:^|[^a-z])(map|census|diagram|logo|chart|flag|coat[ _]of[ _]arms|seal|screenshot|icon)(?:[^a-z]|$)/i;
-  const seen = new Set();
-  const items = [];
-  for (const p of pages) {
-    const ii = p.imageinfo?.[0];
-    if (!ii) continue;
-    const url = ii.thumburl || ii.url || '';
-    const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
-    if (!url || seen.has(url)) continue;
-    if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) continue;
-    if (BAD.test(String(p.title || ''))) continue;
-    const width = ii.thumbwidth || ii.width || 0;
-    const height = ii.thumbheight || ii.height || 0;
-    if (width < 800 || height < 600) continue;
-    const m = ii.extmetadata || {};
-    seen.add(url);
-    // 候选网格用小图（480px），选中后才下载 1600px 原图
-    const small = url.replace(/\/(\d+)px-/, '/480px-');
-    items.push({
-      id: p.pageid,
-      title: plain(String(p.title || '').replace(/^File:/i, '')),
-      url,
-      thumb: small !== url ? small : url,
-      width,
-      height,
-      author: plain(m.Artist?.value || m.Credit?.value || '').slice(0, 80),
-      license: plain(m.LicenseShortName?.value || ''),
-      licenseUrl: m.LicenseUrl?.value || '',
-      pageUrl: ii.descriptionurl || '',
-    });
-  }
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const score = (it) => {
-    let s = 0;
-    const t = it.title.toLowerCase();
-    for (const w of words) if (t.includes(w)) s += 3;
-    if (it.height > it.width) s += 2;              // 竖图更适合 3:4
-    const ratio = it.width / it.height;
-    if (ratio > 0.65 && ratio < 1.55) s += 1;      // 接近方图/竖图，裁切损失小
-    if (it.width * it.height > 2_000_000) s += 0.5;
-    return s;
-  };
-  items.sort((a, b) => score(b) - score(a));
-  return items.slice(0, limit);
-}
 
 /* ── 多图源支持（2026-10-25）─────────────────────────────────────────────
  *
  * 背景：原来只有 Wikimedia Commons，实测**国内直连必超时**（HTTP 000），
  * 等于功能废掉。实测三家主流图库的图片 CDN 国内都能直连：
  *   images.pexels.com 0.69s / cdn.pixabay.com 1.02s / images.unsplash.com 0.23s
- * 所以改成「Pexels → Pixabay → Wikimedia」逐级降级。
+ * 所以改成「Pexels → Pixabay」逐级降级（Wikimedia 已彻底移除，见文件头）。
  *
  * 授权（都不需要署名，可商用）：
  *   Pexels License   https://www.pexels.com/license/
  *   Pixabay License  https://pixabay.com/service/license-summary/
- *   Wikimedia       逐张不同 CC 协议（仅作兜底）
  *
  * Key 存浏览器本地（BYOK，与 AI 功能同模式），不上传服务端。
  */
@@ -208,8 +137,7 @@ export function availableProviders() {
   const out = [];
   if (k.pexels) out.push('pexels');
   if (k.pixabay) out.push('pixabay');
-  out.push('wikimedia');     // 免 key 兜底
-  return out;
+  return out;                     // Wikimedia 已移除（国内不可达）
 }
 
 async function fetchJson(url, { headers = {}, timeout = REQ_TIMEOUT } = {}) {
@@ -269,9 +197,19 @@ async function searchPixabay(q, limit, key) {
   })).filter((it) => it.url && it.width >= 600);
 }
 
-/** 逐级降级搜索：Pexels → Pixabay → Wikimedia（免 key 兜底）。 */
+/** 逐级降级搜索：Pexels → Pixabay（两家都需要 Key，没有免 key 兜底）。 */
 async function searchMultiProvider(q, limit) {
   const keys = getStockKeys();
+  const hasKey = !!(keys.pexels || keys.pixabay);
+
+  // 没配 Key 就别发请求了 —— 直接告诉用户去填，比等一下再失败好
+  if (!hasKey) {
+    const err = new SearchError(
+      '还没配置图库 Key。点「填 Key（免费·2分钟）」填一个 Pexels 或 Pixabay 的 Key 就能用。');
+    err.needKey = true;
+    throw err;
+  }
+
   const tried = [];
   if (keys.pexels) {
     try {
@@ -295,19 +233,8 @@ async function searchMultiProvider(q, limit) {
   } else {
     tried.push('Pixabay 未配置 Key');
   }
-  // 兜底：Wikimedia（免 key，但国内常不可达）
-  try {
-    const items = await request(q, limit);
-    if (items.length) return { items, provider: 'wikimedia' };
-    tried.push('Wikimedia 无结果');
-  } catch (e) {
-    tried.push(`Wikimedia 不可达`);
-  }
-  const err = new SearchError(
-    '没找到底图。' + (keys.pexels || keys.pixabay
-      ? '换个关键词试试，或改用上传。'
-      : '建议先在图库设置里填 Pexels / Pixabay 的免费 Key（点「怎么获取」看教程）。'),
-  );
+
+  const err = new SearchError('没找到底图，换个关键词试试（建议用具体名词，如 beach / coffee / city）。');
   err.detail = tried;
   throw err;
 }
@@ -324,8 +251,8 @@ export async function searchBackground(input, { limit = 6 } = {}) {
     return { ...guess, items: hit.items, provider: hit.provider || '' };
   }
 
-  // 2026-10-25：改为多源降级（Pexels → Pixabay → Wikimedia）。
-  // Pexels/Pixabay 原生支持中文，不再需要先把中文映射成英文再搜。
+  // 2026-10-27：只保留 Pexels / Pixabay 两家（都要 Key）。
+  // 两家原生支持中文，不再需要先把中文映射成英文再搜。
   let items = [];
   let provider = '';
   try {

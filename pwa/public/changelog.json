@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-25T20:16:43+08:00",
-  "totalCommits": 205,
+  "generatedAt": "2026-10-27T18:04:55+08:00",
+  "totalCommits": 209,
   "releases": [
     {
       "version": "1.6.0",
@@ -9,7 +9,8 @@
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
         "added": 2,
-        "fixed": 12,
+        "changed": 3,
+        "fixed": 13,
         "other": 16
       },
       "groups": [
@@ -34,9 +35,43 @@
           ]
         },
         {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "封面模块设计稿/方案/规范 + 三套交互原型(canonical)",
+              "scope": "cover",
+              "hash": "6ad83df",
+              "date": "2026-10-26T09:51:24+08:00",
+              "breaking": false
+            },
+            {
+              "text": "Linux 服务器迁移指南（环境初始化/命令对照/平台差异/不可用项）",
+              "scope": "",
+              "hash": "842e161",
+              "date": "2026-10-25T21:06:52+08:00",
+              "breaking": false
+            },
+            {
+              "text": "小红书封面方案调研 + Lab 交互原型 + 配色规范草案 + 风格审计脚本",
+              "scope": "cover",
+              "hash": "fa5ac2c",
+              "date": "2026-10-25T21:06:44+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "4 套 Swiss 用强调色块区分 + 断言改为「纸色+强调色」组合唯一",
+              "scope": "cover",
+              "hash": "aa657c4",
+              "date": "2026-10-25T20:24:06+08:00",
+              "breaking": false
+            },
             {
               "text": "10 套模板色块与真实配色对齐 + 纯色模式改回纸底墨字 + 缩略图重生成",
               "scope": "cover",

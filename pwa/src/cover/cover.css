@@ -125,8 +125,26 @@
 .cv-search-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 8px;
 }
-.cv-cand { padding: 0; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; background: var(--bg-raised); }
-.cv-cand img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+.cv-cand {
+  padding: 0; border: 1px solid var(--border); border-radius: 5px;
+  overflow: hidden; position: relative;
+  /* 2026-10-27：Pexels 缩略图要走 images.pexels.com，首次加载有 1~3 秒空窗。
+     原来底色是 --bg-raised（近白），空窗期就是一片白框，看着像加载失败。
+     改成暖灰骨架 + 微光动画，明确「正在加载」。 */
+  background: linear-gradient(110deg, #efe9e0 30%, #f8f4ee 50%, #efe9e0 70%);
+  background-size: 200% 100%;
+  animation: cv-cand-shimmer 1.3s linear infinite;
+}
+@keyframes cv-cand-shimmer {
+  from { background-position: 160% 0; }
+  to   { background-position: -60% 0; }
+}
+.cv-cand img {
+  display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover;
+  background: #efe9e0;   /* 图片解码前的兜底，避免闪白 */
+}
+/* 图片一到就停掉骨架动画（避免「已加载还在闪」） */
+.cv-cand.loaded { animation: none; background: var(--bg-raised); }
 .cv-cand[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .cv-bg-preview {
   display: flex; gap: 8px; align-items: center; margin-top: 8px;
@@ -297,3 +315,28 @@
   background: var(--accent); border-color: var(--accent);
   color: #fff; font-weight: 600;
 }
+
+/* ── 联网搜图 · 图源状态条（2026-10-27）────────────────────────────
+   原来这块只有一句话「Wikimedia 免 key…国内不可达时请改用上传」，
+   用户看完以为功能是废的。现在把三个源的真实可用状态摊开显示，
+   并给一个直达 Key 配置的入口。 */
+.cv-stock-state {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  margin-top: 8px;
+}
+.cv-stock-pill {
+  font-size: 10.5px; padding: 2px 8px; border-radius: 99px;
+  border: 1px solid var(--border); white-space: nowrap;
+}
+.cv-stock-pill.ok {
+  background: #eef7f1; border-color: #bfe3cd; color: #227a4b; font-weight: 600;
+}
+.cv-stock-pill.no {
+  background: #fdf3ef; border-color: #f0d3c9; color: #a2563c;
+}
+.cv-stock-set {
+  margin-left: auto; font-size: 11px; padding: 3px 9px; border-radius: 5px;
+  border: 1px solid rgba(175,62,43,.32); background: var(--accent-soft);
+  color: var(--accent); white-space: nowrap; font-weight: 500;
+}
+.cv-stock-set:hover { border-color: var(--accent); }
