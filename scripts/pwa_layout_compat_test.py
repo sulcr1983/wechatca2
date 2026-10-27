@@ -293,21 +293,17 @@ def render(md: str, theme: dict) -> str:
     return inject_inline_styles(md_to_html(text), theme)
 
 
-def ai_available() -> tuple[bool, str]:
-    """探测 AI 排版接口是否可用（本机 app.py 在 5000 时）"""
-    try:
-        req = urllib.request.Request(
-            "http://127.0.0.1:5000/api/ai-format",
-            data=json.dumps({"text": "测试"}).encode(),
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as r:
-            j = json.loads(r.read())
-            engine = j.get("engine", "?")
-            # engine=local 说明未配置 Key，走的是本地兜底
-            return engine != "local" and bool(j.get("markdown")), engine
-    except Exception as e:
-        return False, f"不可用：{type(e).__name__}"
+def ai_note() -> str:
+    """本脚本不探测 AI 服务 —— PWA 的 AI 走浏览器 BYOK（localStorage supersu.ai），
+    没有服务端接口可探。
+
+    ⚠️ 2026-10-28 移除：原来这里会打 http://127.0.0.1:5000/api/ai-format，
+    那是**已封存的本地 Flask 版**（见 ARCHIVE.md）。端口早就不存在，
+    每次跑必然"不可用"，日志会误导人以为 AI 链路没覆盖。
+    实际覆盖：AI 产物形态由 ai_structure() 样本代表；真实链路
+    （AI 排版按钮 / 测试连接门控 / 上游 500 兜底）由 pwa_headed_full_e2e.py 的 E 段覆盖。
+    """
+    return "浏览器 BYOK，无服务端接口（AI 产物用本地样本代表）"
 
 
 # AI 真实会产出的结构化 Markdown 形态（DeepSeek 实测样本结构）：
@@ -403,8 +399,7 @@ def main() -> int:
     base_theme = json.loads(theme_path.read_text(encoding="utf-8"))
 
     fixtures = {"standard": FIXTURES["standard"]} if args.quick else FIXTURES
-    ai_ok, ai_note = ai_available()
-    print(f"AI 排版接口：{'可用' if ai_ok else '不可用'}（{ai_note}）")
+    print(f"AI 产物来源：{ai_note()}")
 
     results = []
     print()
