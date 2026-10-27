@@ -468,3 +468,20 @@
   .cv-preview-box { height: 46vh; }
   .cv-pv-head { position: static; }
 }
+
+
+/* 保存大图 = 次要按钮（2026-10-27）
+   实时预览才是主角；原来实心强调色按钮喧宾夺主，让人以为「不点就没结果」。 */
+.cv-gen--soft {
+  background: var(--bg-raised);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-weight: 600;
+}
+.cv-gen--soft:hover { background: var(--accent-soft); }
+
+/* 预览条上的九宫格入口：小、但不隐形 */
+.cv-nine-entry {
+  flex: none;
+  border-color: var(--border-hi);
+}

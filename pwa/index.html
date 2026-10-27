@@ -190,14 +190,19 @@
       </div>
     </div>
 
+  
+  </section>
+  <!-- 主题条常驻（2026-10-27）：
+       原来它嵌在「预览」页签里，内容页签下高度为 0 → 手机上换主题必须先切页签。
+       换主题是排版页最高频的动作，所以提到 .stage 这一层，两个页签都常驻可见。
+       桌面端样式不变（底部整行），手机端就在底部页签上方。 -->
     <div class="style-bar" id="style-bar">
       <button class="style-scroll" data-dir="-1" aria-label="往前">‹</button>
       <div class="style-caps" id="style-caps"></div>
       <button class="style-scroll" data-dir="1" aria-label="往后">›</button>
       <button class="style-more" id="btn-themes">全部风格</button>
     </div>
-  </section>
-</main>
+  </main>
 
 <!-- 封面页（DOM 由 src/cover/index.js 注入） -->
 <div id="cover-root" hidden></div>

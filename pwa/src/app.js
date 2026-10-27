@@ -504,6 +504,27 @@ function openDrawer() {
   $('drawer-search').focus();
 }
 
+/** 窄屏：切到指定页签（桌面端此函数无副作用）。 */
+function switchTab(name) {
+  const stage = $('stage');
+  if (!stage) return;
+  stage.dataset.tab = name;
+  for (const b of $('tabs').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.tab === name));
+  }
+}
+
+/** 窄屏选完主题：关抽屉 + 切到预览，让用户立刻看到效果。
+ *
+ *  桌面端**不能**这么做：预览就在左边、抽屉不挡视线，原来的
+ *  「不关抽屉、连点几个逐个对比」是更好的体验（见 d-card 处原注释）。
+ */
+function showResultOnNarrow() {
+  if (!window.matchMedia('(max-width: 900px)').matches) return;
+  closeDrawer();
+  switchTab('preview');
+}
+
 function closeDrawer() {
   $('drawer').hidden = true;
   $('drawer-mask').hidden = true;
@@ -1316,6 +1337,7 @@ function bindUI() {
       const t = byId.get(tone.dataset.id);
       drawerTone = t ? toneName(t) : drawerTone;
       setActive(tone.dataset.id, true);
+      showResultOnNarrow();
       return;
     }
     const card = e.target.closest('.d-card');
@@ -1328,8 +1350,10 @@ function bindUI() {
       renderDrawer();
       return;
     }
-    // 选模板不关抽屉：让用户可以连点几个逐个看效果（选风格时预览就在左边）
+    // 桌面：选模板不关抽屉，可以连点几个逐个看效果（预览就在左边）。
+    // 窄屏：预览在另一个页签，抽屉不关等于「选了也看不见」→ 直接送去预览。
     setActive(card.dataset.id, true);
+    showResultOnNarrow();
   });
 
   // 更多菜单
@@ -1430,12 +1454,9 @@ function bindUI() {
   // 移动端 tabs
   $('tabs').addEventListener('click', (e) => {
     const btn = e.target.closest('button');
-    if (!btn) return;
-    $('stage').dataset.tab = btn.dataset.tab;
-    for (const b of $('tabs').querySelectorAll('button')) {
-      b.setAttribute('aria-pressed', String(b === btn));
-    }
+    if (btn) switchTab(btn.dataset.tab);
   });
+
 
   // 快捷键
   document.addEventListener('keydown', (e) => {

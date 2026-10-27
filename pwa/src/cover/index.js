@@ -504,7 +504,7 @@ async function generate() {
   clearResults();
   try {
     for (const size of sizes) {
-      setStatus(`正在生成 ${COVER_SIZES[size].label}…`);
+      setStatus(`正在保存 ${COVER_SIZES[size].label}…`);
       const r = await renderCoverBlob({
         style: state.style, size, title, lead, author, image: state.image,
         textMode: state.textMode, font: state.font,
@@ -513,8 +513,8 @@ async function generate() {
       state.results.push({ ...r, url });
       renderGallery();
     }
-    setStatus(`完成：${state.results.length} 张`);
-    toast('标题图已生成', 'ok');
+    setStatus(`已存 ${state.results.length} 张`);
+    toast('大图已保存', 'ok');
   } catch (err) {
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
@@ -823,24 +823,29 @@ function mount() {
         <div class="cv-pv-head">
           <span class="cv-pv-title"><i class="cv-pv-dot"></i>实时预览</span>
           <span class="cv-pv-meta" id="cv-pv-meta"></span>
+          <!-- 九宫格是独立工具（切任意图），与「有没有生成结果」无关，
+               所以放在预览条常驻可见，而不是埋在结果区（2026-10-27） -->
+          <button class="cv-mini-btn cv-nine-entry" id="cv-nine-pick" type="button"
+                  title="把任意图片切成 3×3 九张">九宫格</button>
+          <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div class="cv-preview-box">
           <div class="cv-preview-scaler" id="cv-preview"></div>
         </div>
         <div class="cv-pv-actions">
-          <button class="cv-gen" id="cv-gen" type="button">生成标题图</button>
+          <!-- 语义修正（2026-10-27）：实时预览已经是成品，用户要的是「把它存下来」。
+               按钮文字按「动词+对象」写，并按次要按钮处理（预览才是主角）。 -->
+          <button class="cv-gen cv-gen--soft" id="cv-gen" type="button">保存大图</button>
           <div class="cv-status" id="cv-status"></div>
         </div>
         <div class="cv-out-head">
           <span class="cv-out-title">标题图结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
-          <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
-          <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
           <b>文案 + 风格 = 标题图</b>
-          <span>左边写文案、选风格和底图，点「生成标题图」。<br>归藏两套一次出 3 个尺寸，模板套出 3:4。</span>
+          <span>左边写文案、右边选风格和底图，预览就是成品。<br>点「保存大图」存成 PNG：归藏两套一次出 3 个尺寸，模板出 3:4。</span>
           <div class="cv-samples" id="cv-samples">
             <span class="cv-samples-label">示例成品 · 点一张直接选该风格</span>
             <div class="cv-samples-row">

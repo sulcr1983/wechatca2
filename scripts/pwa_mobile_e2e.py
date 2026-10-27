@@ -9,8 +9,7 @@
 移动端实测的界面事实（2026-10-27 探查，写进注释免得下次又猜）：
   · 顶栏：小红书标题图生成 / 导出▾ / AI / ⋯          （⋯ 里只有草稿·数据·更新·关于）
   · 底部页签：内容 | 预览
-  · 主题条 .style-bar 挂在「预览」页签内，**内容页签下高度为 0**（不是 bug，
-    但入口不直观，已记入产品诊断）
+  · 主题条 .style-bar 已提到 .stage 层（2026-10-27），两个页签都常驻可见
   · 主题弹层 id 是 #drawer（不是 theme-drawer）
 
 用法：
@@ -100,6 +99,15 @@ def main():
             check("底部页签为 内容/预览",
                   page.locator(".tabs button").count() == 2,
                   "2 个", f"{page.locator('.tabs button').count()} 个")
+
+            # 2026-10-27 改进：主题条提到 .stage 层后，内容页签也能直接换主题
+            #（原来它嵌在预览页签里，内容页签下高度为 0，换主题必须先切页签）
+            bar_edit = page.evaluate("""() => { const b = document.querySelector('.style-bar');
+                if (!b) return null; const r = b.getBoundingClientRect();
+                return { h: Math.round(r.height), w: Math.round(r.width) }; }""")
+            check("主题条在内容页签也可见（免切页签）",
+                  bool(bar_edit) and bar_edit["h"] > 30 and bar_edit["w"] > 200,
+                  "高>30 宽>200", str(bar_edit))
             page.screenshot(path=str(SHOTS / "wechat-1-edit.png"))
 
             # ══ 公众号排版页 · 预览页签 ══
