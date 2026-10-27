@@ -895,28 +895,23 @@ async function initAi() {
   const getStockKeys = () => {
     try {
       const d = JSON.parse(localStorage.getItem(STOCK_KEY) || '{}') || {};
-      return { pexels: String(d.pexels || ''), pixabay: String(d.pixabay || '') };
-    } catch { return { pexels: '', pixabay: '' }; }
+      return { pexels: String(d.pexels || '') };
+    } catch { return { pexels: '' }; }
   };
-  const setStockKeys = ({ pexels = '', pixabay = '' } = {}) => {
+  const setStockKeys = ({ pexels = '' } = {}) => {
     try {
-      localStorage.setItem(STOCK_KEY, JSON.stringify({
-        pexels: String(pexels).trim(), pixabay: String(pixabay).trim(),
-      }));
+      // 只存 pexels（Pixabay 已移除，2026-10-27）
+      localStorage.setItem(STOCK_KEY, JSON.stringify({ pexels: String(pexels).trim() }));
     } catch { /* 隐私模式忽略 */ }
   };
   const refreshStockState = () => {
     const k = getStockKeys();
-    const parts = [];
-    if (k.pexels) parts.push('Pexels ✓');
-    if (k.pixabay) parts.push('Pixabay ✓');
     const el = $('stock-state');
-    if (el) el.textContent = parts.length ? `已配置：${parts.join(' · ')}` : '未配置（只能用免 Key 图源）';
+    if (el) el.textContent = k.pexels ? '已配置：Pexels ✓' : '未配置（联网搜图需要 Pexels Key）';
   };
   const loadStock = () => {
     const k = getStockKeys();
     if ($('stock-pexels')) $('stock-pexels').value = k.pexels;
-    if ($('stock-pixabay')) $('stock-pixabay').value = k.pixabay;
     refreshStockState();
   };
   const openTut = () => {
@@ -928,10 +923,7 @@ async function initAi() {
     if ($('tut-mask')) $('tut-mask').hidden = true;
   };
   $('stock-save')?.addEventListener('click', () => {
-    setStockKeys({
-      pexels: $('stock-pexels')?.value || '',
-      pixabay: $('stock-pixabay')?.value || '',
-    });
+    setStockKeys({ pexels: $('stock-pexels')?.value || '' });
     refreshStockState();
     toast('图库 Key 已保存在本机');
   });

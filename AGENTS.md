@@ -35,7 +35,7 @@ app.py                  Flask 主应用（路由 + SSE + API）——本地弃�
 core/
   format_engine.py      排版引擎（164 主题，Markdown → 微信 HTML）
   preprocessor.py       纯文本 → Markdown（纯规则零延迟；四模式 conservative/longform/tutorial/auto，⚠️ 尚无 UI 入口待接线）
-  image_search.py       联网搜图（PWA 侧已改为 Pexels/Pixabay BYOK，见 pwa/src/cover/search.js）
+  image_search.py       联网搜图（PWA 侧已改为 Pexels 单源 BYOK，见 pwa/src/cover/search.js）
   ai_client.py          多平台 LLM 客户端（润色/摘要/排版）
   image_gen.py          AI 封面图生成（LLM 关键词 → 文生图 → PIL 叠加）
   token_manager.py      微信 Access Token 管理（线程安全单例）
@@ -234,7 +234,7 @@ python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排
 # · 小红书封面（2026-10-19）：`pwa/src/cover/*` + `public/cover-templates`（构建时清洗 10 套）
 #   + `public/vendor/modern-screenshot.js`（MIT，离屏 iframe → PNG）。12 风格 =
 #   归藏 2（editorial/swiss，3 尺寸 3:4 / 1:1 / 21:9）+ 模板 10（仅 3:4）。
-#   底图三选一：纯色 / 上传 / 联网搜图（Pexels → Pixabay，需用户填免费 Key；
+#   底图三选一：纯色 / 上传 / 联网搜图（Pexels 单源，需用户填免费 Key；
 #   中文关键词走内置场景词表映射成英文，国内不可达时提示改用上传）。
 #   中文字体为 Noto 子集（`pwa/public/fonts/cover/`，GB2312 一级 + ASCII，4 字重 2.39MB），
 #   由 `scripts/build_cover_fonts.py` 生成；`cover-fonts.css` 只在封面页按需加载，
@@ -363,7 +363,7 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ## 9. 已知注意事项
 
-- **PWA 封面**（2026-10-19）：纯前端 `modern-screenshot` 生成，不依赖 Flask/Playwright；模板 10 套来自 AGPL-3.0 上游（已在 `THIRD_PARTY_NOTICES.md` 声明），构建时去掉 Google Fonts 并把示例文案替换为占位符。**联网搜图用 Pexels / Pixabay（BYOK）**：Wikimedia 因国内必超时已彻底移除（2026-10-27）；没填 Key 时必须立刻给出配置指引，不得静默或空转等待。
+- **PWA 封面**（2026-10-19）：纯前端 `modern-screenshot` 生成，不依赖 Flask/Playwright；模板 10 套来自 AGPL-3.0 上游（已在 `THIRD_PARTY_NOTICES.md` 声明），构建时去掉 Google Fonts 并把示例文案替换为占位符。**联网搜图只剩 Pexels（BYOK）**：Wikimedia 国内必超时、Pixabay 完全不支持中文关键词，两者均已于 2026-10-27 移除；没填 Key 时必须立刻给出配置指引，不得静默或空转等待。
 - 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
 - ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`

@@ -1,16 +1,17 @@
 /* 联网搜图（纯前端，BYOK）。
  *
- * 图源只有两家，都需要用户自己填免费 Key（2026-10-27 苏哥拍板）：
- *   Pexels  → 主力。原生支持中文 query，竖图多，图片 CDN 国内可直连
- *   Pixabay → 备选。素材量更大，Pexels 没结果时自动顶上
+ * 图源只有 Pexels 一家，必须用户自己填免费 Key。
  *
- * ⚠️ 已彻底移除 Wikimedia Commons：
- *   实测国内直连必超时（HTTP 000），等于白等一次；留着只会让用户
- *   以为「功能坏了」。没有 Key 时直接给出明确提示 + 配置入口，
- *   比转圈 15 秒再失败诚实得多。
+ * 为什么只剩一家（2026-10-27 苏哥拍板「不支持中文的删掉」）：
+ *   - Wikimedia：国内直连必超时（HTTP 000），已移除
+ *   - Pixabay：**完全不支持中文关键词**（实测「咖啡」→ totalHits 0，
+ *     「coffee」→ 500）。而本项目用户几乎全用中文标题搜图，
+ *     留着它只会出现「配了 Key 也搜不到」的困惑，所以一并移除。
+ *   - Pexels：原生支持中文，竖图多，CDN 国内可直连 → 唯一保留
  *
- * 两家 License 都允许免费商用、无需署名。Key 存 localStorage，不上传。
- * 结果缓存 24 小时（localStorage），图片只在内存转 data URL，不落盘。
+ * Pexels License 允许免费商用、无需署名。Key 存 localStorage，不上传。
+ * 结果缓存 24 小时（localStorage），且**按图源签名隔离**（换 Key 即失效）。
+ * 图片只在内存转 data URL，不落盘。
  */
 
 const CACHE_KEY = 'supersu.cover.search.v1';
@@ -73,7 +74,7 @@ export function guessQuery(text) {
   if (ascii && ascii.length <= 60 && /[a-zA-Z]/.test(ascii)) {
     return { query: ascii, translated: false, from: '' };
   }
-  // 中文无映射：去掉标点后取前 12 字直接搜（Pexels 能吃中文；Pixabay 会返回 0，见下）
+  // 中文无映射：去掉标点后取前 12 字直接搜（Pexels 原生支持中文）
   const cleaned = raw.replace(/[，。！？、；：""''《》【】（）()\s]+/g, ' ').trim();
   return { query: cleaned.slice(0, 12), translated: false, from: '' };
 }
@@ -94,39 +95,36 @@ function writeCache(obj) {
 }
 
 
-/* ── 多图源支持（2026-10-25）─────────────────────────────────────────────
+/* ── 图源（2026-10-27 收敛为单源）───────────────────────────────────────
  *
- * 背景：原来只有 Wikimedia Commons，实测**国内直连必超时**（HTTP 000），
- * 等于功能废掉。实测三家主流图库的图片 CDN 国内都能直连：
- *   images.pexels.com 0.69s / cdn.pixabay.com 1.02s / images.unsplash.com 0.23s
- * 所以改成「Pexels → Pixabay」逐级降级（Wikimedia 已彻底移除，见文件头）。
+ * 演进过程：Wikimedia（国内超时）→ 加 Pexels/Pixabay 降级 → 只留 Pexels。
+ * 保留 Pixabay 的唯一理由是「备选」，但它不吃中文关键词，
+ * 对本项目（中文标题）等于无效，用户还会以为是自己没配好。已移除。
  *
- * 授权（都不需要署名，可商用）：
- *   Pexels License   https://www.pexels.com/license/
- *   Pixabay License  https://pixabay.com/service/license-summary/
+ * 授权：Pexels License，免费商用、无需署名
+ *   https://www.pexels.com/license/
  *
  * Key 存浏览器本地（BYOK，与 AI 功能同模式），不上传服务端。
  */
 
 const STOCK_KEY = 'supersu.cover.stock.v1';
 const PEXELS_API = 'https://api.pexels.com/v1/search';
-const PIXABAY_API = 'https://pixabay.com/api/';
 
-/** 读取图库 key。返回 { pexels, pixabay }，缺省为空串。 */
+/** 读取图库 key。返回 { pexels }，缺省为空串。 */
 export function getStockKeys() {
   try {
     const d = JSON.parse(localStorage.getItem(STOCK_KEY) || '{}') || {};
-    return { pexels: String(d.pexels || ''), pixabay: String(d.pixabay || '') };
+    return { pexels: String(d.pexels || '') };
   } catch {
-    return { pexels: '', pixabay: '' };
+    return { pexels: '' };
   }
 }
 
 /** 保存图库 key（只存本机）。 */
-export function setStockKeys({ pexels = '', pixabay = '' } = {}) {
+export function setStockKeys({ pexels = '' } = {}) {
   try {
     localStorage.setItem(STOCK_KEY, JSON.stringify({
-      pexels: String(pexels).trim(), pixabay: String(pixabay).trim(),
+      pexels: String(pexels).trim(),
     }));
   } catch { /* 隐私模式忽略 */ }
 }
@@ -136,8 +134,7 @@ export function availableProviders() {
   const k = getStockKeys();
   const out = [];
   if (k.pexels) out.push('pexels');
-  if (k.pixabay) out.push('pixabay');
-  return out;                     // Wikimedia 已移除（国内不可达）
+  return out;   // Pexels 是唯一图源（Wikimedia/Pixabay 均已移除）
 }
 
 async function fetchJson(url, { headers = {}, timeout = REQ_TIMEOUT } = {}) {
@@ -174,78 +171,30 @@ async function searchPexels(q, limit, key) {
   })).filter((it) => it.url && it.width >= 600);
 }
 
-/** Pixabay 搜索。素材量更大，且含插画（image_type=photo 只取照片）。 */
-async function searchPixabay(q, limit, key) {
-  const params = new URLSearchParams({
-    key, q, per_page: String(Math.max(limit, 12)),
-    image_type: 'photo', orientation: 'vertical', safesearch: 'true',
-  });
-  const data = await fetchJson(`${PIXABAY_API}?${params}`);
-  const hits = Array.isArray(data?.hits) ? data.hits : [];
-  return hits.map((h) => ({
-    id: `pb-${h.id}`,
-    title: h.tags || q,
-    url: h.largeImageURL || h.webformatURL || '',
-    thumb: h.webformatURL || h.previewURL || '',
-    width: h.imageWidth || 0,
-    height: h.imageHeight || 0,
-    author: h.user || '',
-    license: 'Pixabay License',
-    licenseUrl: 'https://pixabay.com/service/license-summary/',
-    pageUrl: h.pageURL || '',
-    provider: 'pixabay',
-  })).filter((it) => it.url && it.width >= 600);
-}
-
-/** 逐级降级搜索：Pexels → Pixabay（两家都需要 Key，没有免 key 兜底）。 */
+/** 搜图主入口：Pexels 是唯一图源（Wikimedia/Pixabay 都已移除）。 */
 async function searchMultiProvider(q, limit) {
   const keys = getStockKeys();
-  const hasKey = !!(keys.pexels || keys.pixabay);
 
   // 没配 Key 就别发请求了 —— 直接告诉用户去填，比等一下再失败好
-  if (!hasKey) {
+  if (!keys.pexels) {
     const err = new SearchError(
-      '还没配置图库 Key。点「填 Key（免费·2分钟）」填一个 Pexels 或 Pixabay 的 Key 就能用。');
+      '还没配置 Pexels Key。点「填 Key（免费·2分钟）」填一个就能用，支持中文关键词。');
     err.needKey = true;
     throw err;
   }
 
-  const tried = [];
-  if (keys.pexels) {
-    try {
-      const items = await searchPexels(q, limit, keys.pexels);
-      if (items.length) return { items, provider: 'pexels' };
-      tried.push('Pexels 无结果');
-    } catch (e) {
-      tried.push(`Pexels 失败：${e.message || e}`);
-    }
-  } else {
-    tried.push('Pexels 未配置 Key');
+  try {
+    const items = await searchPexels(q, limit, keys.pexels);
+    if (items.length) return { items, provider: 'pexels' };
+    const err = new SearchError('没找到底图，换个关键词试试（中文/英文都行，如 海边 / beach / 咖啡）。');
+    err.detail = ['Pexels 无结果'];
+    throw err;
+  } catch (e) {
+    if (e instanceof SearchError) throw e;
+    const err = new SearchError(`搜图失败：${e.message || e}`);
+    err.detail = ['Pexels 请求异常'];
+    throw err;
   }
-  if (keys.pixabay) {
-    // Pixabay 不支持中文关键词（实测 totalHits=0），中文就别浪费请求了
-    if (/[\u4e00-\u9fa5]/.test(q)) {
-      tried.push('Pixabay 不吃中文关键词，已跳过');
-    } else {
-      try {
-        const items = await searchPixabay(q, limit, keys.pixabay);
-        if (items.length) return { items, provider: 'pixabay' };
-        tried.push('Pixabay 无结果');
-      } catch (e) {
-        tried.push(`Pixabay 失败：${e.message || e}`);
-      }
-    }
-  } else {
-    tried.push('Pixabay 未配置 Key');
-  }
-
-  // 中文 + 只有 Pixabay → 说清楚原因，别让用户以为是自己关键词的问题
-  const cjkOnly = /[\u4e00-\u9fa5]/.test(q) && keys.pixabay && !keys.pexels;
-  const err = new SearchError(cjkOnly
-    ? 'Pixabay 不支持中文关键词。换成英文（beach / coffee / city）再搜，或填一个 Pexels Key（支持中文）。'
-    : '没找到底图，换个关键词试试（建议用具体名词，如 beach / coffee / city）。');
-  err.detail = tried;
-  throw err;
 }
 
 /** 搜底图。返回 { query, translated, from, items }；失败抛 SearchError。 */
@@ -256,7 +205,7 @@ export async function searchBackground(input, { limit = 6 } = {}) {
 
   /* 缓存必须绑定「当前用了哪些图源」（2026-10-27 修）。
      原来只用查询词当 key，实测踩到：先配 Pexels 搜 beach（结果入缓存），
-     再把 Pexels Key 清空、只留 Pixabay，再搜 beach —— 直接命中旧缓存，
+     再把 Pexels Key 清空，再搜 beach —— 直接命中旧缓存，
      返回 Pexels 的图，可用户明明没有 Pexels Key。
      现在 key = 「图源签名:查询词」，换 Key 立刻失效，不会串源。 */
   const sig = availableProviders().join('+') || 'none';
@@ -267,10 +216,8 @@ export async function searchBackground(input, { limit = 6 } = {}) {
     return { ...guess, items: hit.items, provider: hit.provider || '' };
   }
 
-  // 2026-10-27：只保留 Pexels / Pixabay 两家（都要 Key）。
-  // ⚠️ 中文支持不一样：Pexels 直接吃中文；Pixabay **完全不吃中文**
-  //    （实测「咖啡」→ totalHits 0，「coffee」→ 500）。所以 Pixabay 那一路
-  //    必须拿到英文词，中文原样丢过去只会白跑一次请求。
+  // 2026-10-27：只保留 Pexels（Wikimedia 国内不可达、Pixabay 不吃中文，均已移除）。
+  // Pexels 原生支持中文，guessQuery 的英文映射只作为「更准的关键词」锦上添花。
   let items = [];
   let provider = '';
   try {
@@ -278,7 +225,7 @@ export async function searchBackground(input, { limit = 6 } = {}) {
     items = r.items;
     provider = r.provider;
   } catch (e) {
-    // 英文映射词没命中时，退回原文再试一次（中文词对 Pixabay 的 tags 常有效）
+    // 英文映射词没命中时，退回原文再试一次（Pexels 直接吃中文，中文往往更准）
     if (input && q !== input.trim()) {
       const r2 = await searchMultiProvider(input.trim().slice(0, 60), limit);
       items = r2.items;

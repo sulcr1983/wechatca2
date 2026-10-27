@@ -1,7 +1,7 @@
 """PWA 封面有头测试：起静态服务 → 系统 Chrome 跑完整封面链路。
 
 覆盖：入口切换 / 12 种风格 / 3 尺寸 / 归藏与模板出图 / 上传底图 /
-      联网搜图（Pexels/Pixabay，只验无 Key 指引）/ 下载链接 / 窄屏布局 / 断网生成。
+      联网搜图（仅 Pexels，验无 Key 指引 + 真实搜索）/ 下载链接 / 窄屏布局 / 断网生成。
 
 用法：.venv/Scripts/python.exe scripts/pwa_cover_test.py
 前置：node pwa/scripts/build.mjs 已产出 pwa/dist/
@@ -257,9 +257,8 @@ def main() -> int:
 
             pills = page.eval_on_selector_all(
                 ".cv-stock-pill", "els => els.map(e => e.textContent.trim())")
-            check("图源只有 Pexels / Pixabay",
-                  len(pills) == 2 and all(("Pexels" in x or "Pixabay" in x) for x in pills)
-                  and not any("Wikimedia" in x for x in pills), str(pills))
+            check("图源只有 Pexels（Wikimedia/Pixabay 已移除）",
+                  len(pills) == 1 and "Pexels" in pills[0], str(pills))
 
             # 清掉 Key 后重新渲染底图面板（切模式会重读 getStockKeys）。
             # ⚠️ 不要 reload：会打断后面的断网/窄屏断言，且重载后引擎要重新初始化。
@@ -274,8 +273,9 @@ def main() -> int:
             # 快速失败：应立刻给出「还没配置图库 Key」，而不是等网络超时
             try:
                 page.wait_for_function(
+                    # 用稳定关键词「Key」而不是整句文案，避免刷新提示语就误判
                     "() => { const s = document.getElementById('cv-status');"
-                    " return s && /图库 Key/.test(s.textContent); }", timeout=6000)
+                    " return s && /Key/.test(s.textContent); }", timeout=6000)
                 check("无 Key 时给出配置指引（不空转）", True,
                       page.inner_text("#cv-status").strip()[:40])
             except Exception as e:
@@ -288,7 +288,6 @@ def main() -> int:
             # ── 有真 Key 时跑一次真实搜索（无 Key / 断网记 SKIP）──
             # Key 从项目根 .env 读（已被 .gitignore 排除，不会进仓库）
             real_key = ""
-            pbay_key = ""
             envf = ROOT / ".env"
             if envf.exists():
                 for line in envf.read_text(encoding="utf-8").splitlines():
@@ -297,8 +296,6 @@ def main() -> int:
                         continue
                     if line.startswith("PEXELS_API_KEY="):
                         real_key = line.split("=", 1)[1].strip()
-                    elif line.startswith("PIXABAY_API_KEY="):
-                        pbay_key = line.split("=", 1)[1].strip()
             if not real_key:
                 skip("Pexels 真实搜索", "未配置 PEXELS_API_KEY")
             else:
@@ -331,37 +328,6 @@ def main() -> int:
                     except Exception:
                         pass
 
-            # ── Pixabay 单源 + 缓存不串源（2026-10-27 新增）──
-            # 曾经踩过：缓存只用查询词当 key，换 Key 后仍命中旧缓存，
-            # 用户明明没配 Pexels 却拿到 Pexels 的图。这里断言换源后来源跟着变。
-            if not pbay_key:
-                skip("Pixabay 单源可用", "未配置 PIXABAY_API_KEY")
-            else:
-                page.evaluate(
-                    "k => localStorage.setItem('supersu.cover.stock.v1',"
-                    " JSON.stringify({pexels:'', pixabay:k}))", pbay_key)
-                tab("bg")
-                page.click('[data-mode="color"]')
-                page.wait_for_timeout(200)
-                page.click('[data-mode="search"]')
-                page.wait_for_timeout(400)
-                page.fill("#cv-q", "beach")
-                page.click("#cv-search")
-                try:
-                    page.wait_for_function(
-                        "document.querySelectorAll('.cv-cand').length > 0", timeout=40000)
-                    page.locator(".cv-cand").first.click()
-                    page.wait_for_selector(".cv-bg-preview img", timeout=30000)
-                    meta = page.inner_text(".cv-bg-meta")
-                    check("Pixabay 单源可用且不串源（未串到 Pexels）",
-                          "Pixabay" in meta and "Pexels" not in meta,
-                          meta.replace("\n", " | ")[:60])
-                except Exception as e:
-                    skip("Pixabay 单源可用", f"网络/配额问题：{str(e)[:70]}")
-                    try:
-                        page.click('[data-mode="color"]', timeout=3000)
-                    except Exception:
-                        pass
 
             page.eval_on_selector(".cv-panel", "el => el.scrollTop = 0")
             page.screenshot(path=str(OUT / "pwa-cover-test.png"))

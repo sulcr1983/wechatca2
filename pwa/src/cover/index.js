@@ -1,5 +1,5 @@
 /* PWA 封面页：文案 / 风格 / 尺寸 / 底图 / 生成 / 画廊 / 下载长按。
- * 纯前端：不传内容、不依赖后端；底图可选纯色、上传、联网搜图（Pexels / Pixabay，BYOK）。
+ * 纯前端：不传内容、不依赖后端；底图可选纯色、上传、联网搜图（Pexels，BYOK）。
  */
 
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, COVER_SIZES, styleById } from './catalog.js';
@@ -323,23 +323,21 @@ function renderBg() {
     /* 图源状态条（2026-10-27 修）：
        原来这里写死「Wikimedia 免 key…国内网络不可达时请改用上传」——
        那是只有 Commons 时代的文案，等于在劝退用户。
-       现只保留 Pexels / Pixabay 两家（都要免费 Key），这里如实显示配置状态。 */
+       现只保留 Pexels 一家（Pixabay 不吃中文关键词，已移除），这里如实显示配置状态。 */
     const keys = getStockKeys();
     // ⚠️ 千万别叫 state —— 本文件有模块级 state 对象，同名 const 会遮蔽它，
     //    而上面几行刚读过 state.searchQuery，同块作用域下直接 TDZ 报错，
     //    整个 renderBgBody 抛出 → 搜图面板空白（2026-10-27 踩过）。
     const stateRow = document.createElement('div');
     stateRow.className = 'cv-stock-state';
-    const items = [
-      ['Pexels', !!keys.pexels],
-      ['Pixabay', !!keys.pixabay],
-    ];
+    // 只剩 Pexels 一家（Pixabay 不吃中文、Wikimedia 国内超时，都已移除）
+    const items = [['Pexels', !!keys.pexels]];
     stateRow.innerHTML = items.map(([n, ok]) =>
       `<span class="cv-stock-pill ${ok ? 'ok' : 'no'}">${n}${ok ? ' ✓' : ' 需 Key'}</span>`).join('');
     const setBtn = document.createElement('button');
     setBtn.type = 'button';
     setBtn.className = 'cv-stock-set';
-    setBtn.textContent = (keys.pexels || keys.pixabay) ? '图库设置' : '填 Key（免费·2分钟）';
+    setBtn.textContent = keys.pexels ? '图库设置' : '填 Pexels Key（免费·2分钟）';
     // 直达配置：打开 AI 面板（图库 Key 就在面板底部）并滚到那一块；
     // 没填过 Key 时再顺手把「怎么获取」教程弹出来，省得用户去找。
     setBtn.addEventListener('click', () => {
@@ -348,7 +346,7 @@ function renderBg() {
         const pex = document.getElementById('stock-pexels');
         pex?.scrollIntoView({ block: 'center', behavior: 'smooth' });
         pex?.focus();
-        if (!(keys.pexels || keys.pixabay)) {
+        if (!keys.pexels) {
           document.getElementById('stock-help')?.click();
         }
       }, 260);
@@ -358,9 +356,9 @@ function renderBg() {
     const hint = document.createElement('p');
     hint.className = 'cv-hint';
     hint.style.marginTop = '8px';
-    hint.textContent = (keys.pexels || keys.pixabay)
-      ? '按 Pexels → Pixabay 顺序找图：Pexels 支持中文，Pixabay 只认英文；均可商用免署名。'
-      : '联网搜图需要 Key（免费）。建议填 Pexels —— 它支持中文关键词。';
+    hint.textContent = keys.pexels
+      ? '支持中文关键词（海边 / 咖啡 都行）；图片可商用、免署名。'
+      : '联网搜图需要 Pexels Key（免费）。填一个就能用，支持中文关键词。';
     body.append(row, stateRow, grid, hint);
     renderCandidates();
   }
@@ -390,7 +388,7 @@ async function doSearch() {
   state.searchQuery = q;
   state.candidates = [];
   renderCandidates();
-  setStatus('正在搜图…（Pexels → Pixabay）');
+  setStatus('正在搜图…（Pexels）');
   try {
     const r = await searchBackground(q, { limit: 6 });
     state.candidates = r.items;
@@ -442,7 +440,7 @@ async function pickCandidate(it) {
     state.imageMeta = it;
     renderCandidates();
     renderBgPreview();
-    setStatus(`底图已选（${it.provider === 'pixabay' ? 'Pixabay' : 'Pexels'}）`);
+    setStatus('底图已选（Pexels）');
   } catch (err) {
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
