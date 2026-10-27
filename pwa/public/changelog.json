@@ -1,7 +1,7 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-27T19:36:42+08:00",
-  "totalCommits": 216,
+  "generatedAt": "2026-10-27T19:55:03+08:00",
+  "totalCommits": 218,
   "releases": [
     {
       "version": "1.6.0",
@@ -10,8 +10,8 @@
       "counts": {
         "added": 5,
         "changed": 4,
-        "fixed": 13,
-        "other": 19
+        "fixed": 14,
+        "other": 20
       },
       "groups": [
         {
@@ -93,6 +93,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "九宫格切图按钮归位到结果区（改版时误挪到预览条）",
+              "scope": "cover",
+              "hash": "6282376",
+              "date": "2026-10-27T19:37:21+08:00",
+              "breaking": false
+            },
             {
               "text": "4 套 Swiss 用强调色块区分 + 断言改为「纸色+强调色」组合唯一",
               "scope": "cover",
@@ -190,6 +197,13 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "新增 pwa_preview_verify.py — 预览与出图一致性 + 长文案预览耗时",
+              "scope": "cover",
+              "hash": "d4e1450",
+              "date": "2026-10-27T19:54:54+08:00",
+              "breaking": false
+            },
             {
               "text": "STATE 同步（Pexels 单源已上线）",
               "scope": "",
