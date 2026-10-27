@@ -382,7 +382,7 @@ def main() -> int:
         check("封面页打开 / 排版页隐藏", page.is_visible("#cover-root") and page.is_hidden("#stage"),
               "排版", "封面", snap(page, "cover"))
         check("进入封面后按钮变「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版", "", page.inner_text("#btn-cover"))
-        check("12 种风格全部渲染", page.locator(".cv-style").count() == 12,
+        check("13 种风格全部渲染", page.locator(".cv-style").count() == 13,
               "", page.locator(".cv-style").count())
 
         page.click('.cv-style[data-style="editorial-dune"]')
