@@ -1,14 +1,14 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-27T19:15:32+08:00",
-  "totalCommits": 215,
+  "generatedAt": "2026-10-27T19:36:42+08:00",
+  "totalCommits": 216,
   "releases": [
     {
       "version": "1.6.0",
       "date": "2026-10-25",
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
-        "added": 4,
+        "added": 5,
         "changed": 4,
         "fixed": 13,
         "other": 19
@@ -18,6 +18,13 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "封面页改为原型 A 三栏布局 + 实时预览",
+              "scope": "cover",
+              "hash": "2d00fb0",
+              "date": "2026-10-27T19:33:23+08:00",
+              "breaking": false
+            },
             {
               "text": "接入 Pixabay 作为第二图源 + 修缓存串源 bug",
               "scope": "cover",

@@ -823,8 +823,6 @@ function mount() {
         <div class="cv-pv-head">
           <span class="cv-pv-title"><i class="cv-pv-dot"></i>实时预览</span>
           <span class="cv-pv-meta" id="cv-pv-meta"></span>
-          <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
-          <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div class="cv-preview-box">
           <div class="cv-preview-scaler" id="cv-preview"></div>
@@ -836,6 +834,8 @@ function mount() {
         <div class="cv-out-head">
           <span class="cv-out-title">标题图结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
+          <button class="cv-mini-btn" id="cv-nine-pick" type="button" title="把任意图片切成 3×3 九张">九宫格切图</button>
+          <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
