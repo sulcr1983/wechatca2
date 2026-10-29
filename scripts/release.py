@@ -15,7 +15,7 @@
    3 生成更新记录  pwa/scripts/gen_changelog.py
    4 构建          node pwa/scripts/build.mjs（注入 build = git 提交数）
    5 本地层门禁    run_gates.py（测当前代码，不联网）
-   6 提交生成物    CHANGELOG.md + changelog.json + version.json
+   6 提交生成物    CHANGELOG.md + changelog.json + version.json + STATE.md
    7 部署前复查    preflight --deploy（工作区脏即拦）
    8 推送          git push origin main
    9 部署          pwa/scripts/deploy.sh
@@ -66,7 +66,9 @@ def _find_node() -> str:
 
 NODE = _find_node()
 VERSION_FILE = ROOT / "pwa" / "version.json"
-GENERATED = ["CHANGELOG.md", "pwa/public/changelog.json", "pwa/version.json"]
+# build.mjs 会重写这四份已跟踪文件（CHANGELOG / changelog.json / version.json / STATE.md），
+# 它们都是「构建产物」而非手写代码，统一在这里列一次，第 6 步按它提交、按它放行。
+GENERATED = ["CHANGELOG.md", "pwa/public/changelog.json", "pwa/version.json", "STATE.md"]
 
 steps_done: list[str] = []
 
@@ -194,7 +196,7 @@ def plan(args, new_ver: str) -> None:
         ("4", "构建 dist", "node pwa/scripts/build.mjs（注入 build=git 提交数）"),
         ("5", "本地层门禁" if not args.skip_tests else "门禁（跳过）",
          "run_gates.py（测当前代码）"),
-        ("6", "提交生成物", "CHANGELOG.md + changelog.json + version.json"),
+        ("6", "提交生成物", "CHANGELOG.md + changelog.json + version.json + STATE.md"),
         ("7", "部署前复查", "preflight --deploy（工作区脏即拦）"),
         ("8", "推送", "git push origin main"),
         ("9", "部署" if not args.no_deploy else "部署（跳过）",
