@@ -12,6 +12,10 @@
      「最近一次改动会被烤进 dist 的路径」那个提交的提交数。
      只要 pwa/src、core、public/themes 等变了而没重建，就会出现
      dist.build < required → 直接失败，并给出重建命令。
+     ⚠️ 构建生成物（pwa/version.json / changelog.json）不算代码路径，
+        否则 release.py「构建 → 提交生成物」会让预检自我矛盾（见 GENERATED_PATHS）。
+  A' 版本号一致（**阻断**）
+     dist/version.json 的 version 必须等于 pwa/version.json。
 
   B 工作区干净（默认只警告；--deploy 时阻断）
      已跟踪文件有未提交改动 → 部署必被 deploy.sh 拦下，提前说清楚。
@@ -53,6 +57,16 @@ CODE_PATHS = [
     "core/preprocessor.py",
     "public/themes",
     "public/brand",
+]
+
+# 这些虽在 CODE_PATHS 覆盖范围内，但属于**构建生成物**：每次发版 build.mjs 都会重写它们。
+# 把它们算进「新鲜度」会让 release.py 自相矛盾（2026-10-29 实测）：
+#   第 4 步构建（build = 当时 HEAD 数 259）→ 第 6 步提交生成物（HEAD 变 260）
+#   → 第 7 步 preflight --deploy 判定 dist.build=259 < 需要 260，发版卡死。
+# 排除后改用 check_version_match() 做内容级兜底（版本号必须一致）。
+GENERATED_PATHS = [
+    "pwa/version.json",
+    "pwa/public/changelog.json",
 ]
 
 OK = "  OK   "
@@ -101,7 +115,9 @@ def check_freshness() -> bool:
         print("         修复：node pwa/scripts/build.mjs")
         return False
 
-    last_sha = git("log", "-1", "--format=%H", "--", *CODE_PATHS)
+    # 排除生成物，只看「真源码」的最后一次提交（理由见 GENERATED_PATHS 注释）
+    excludes = [f":(exclude){p}" for p in GENERATED_PATHS]
+    last_sha = git("log", "-1", "--format=%H", "--", *CODE_PATHS, *excludes)
     if not last_sha:
         print(f"{WARN} git 历史里找不到代码路径的提交（浅克隆？）—— 跳过新鲜度判断")
         return True
@@ -127,6 +143,27 @@ def check_freshness() -> bool:
     extra = "" if behind <= 0 else f"（落后 HEAD {behind} 个提交，但均未改动代码路径）"
     print(f"{OK} dist 新鲜：dist.build={dist_build} >= 需要的 {required}{extra}")
     return True
+
+
+def check_version_match() -> bool:
+    """dist 里的版本号必须等于源码 version.json。
+
+    因为 GENERATED_PATHS 把 pwa/version.json 排除在「提交数新鲜度」之外，
+    这里补一条内容级校验：版本号没被烤进 dist 一样算过期。
+    """
+    src = ROOT / "pwa" / "version.json"
+    try:
+        src_ver = json.loads(src.read_text(encoding="utf-8")).get("version")
+    except (OSError, ValueError) as e:
+        print(f"{FAIL} 读不了 pwa/version.json（{type(e).__name__}）")
+        return False
+    dist_ver, _ = read_dist()
+    if src_ver == dist_ver:
+        print(f"{OK} dist 版本号与源码一致：v{src_ver}")
+        return True
+    print(f"{FAIL} dist 版本号不一致：源码 v{src_ver} ≠ dist v{dist_ver}")
+    print("         修复：node pwa/scripts/build.mjs")
+    return False
 
 
 def check_clean(strict: bool) -> bool:
@@ -183,7 +220,8 @@ def main() -> int:
     args = ap.parse_args()
 
     print(f"前置检查：{ROOT}")
-    results = [check_dist_exists(), check_freshness(), check_clean(args.deploy)]
+    results = [check_dist_exists(), check_freshness(), check_version_match(),
+               check_clean(args.deploy)]
     if args.online:
         results.append(check_online())
 
