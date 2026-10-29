@@ -404,7 +404,7 @@ wechatca2/
 │   ├── public/                 # sw.js / changelog.json（生成物）/ manifest / icons / fonts / runtime/
 │   ├── scripts/                # build.mjs / deploy.sh / gen_changelog.py / smoke.py …
 │   └── dist/                   # 构建产物（gitignore，勿手改）
-├── scripts/                    # 工具脚本 59 个：主题生成 / 缩略图 / 门禁 run_gates / pwa_*_test / 各类 audit
+├── scripts/                    # 工具脚本 60 个：主题生成 / 缩略图 / 门禁 run_gates / pwa_*_test / 各类 audit
 ├── tests/fixtures/             # 排版夹具（测试语料；原 tests/ 下的 Flask 套件已随本地版封存）
 ├── files/TODO.md               # 任务清单（已完成 / 待办 / 未完成需求）
 ├── docs/                       # 方案 / 规范 / 交接 / 审计报告

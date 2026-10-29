@@ -122,6 +122,35 @@ def check_facts() -> list[str]:
     return bad
 
 
+def check_structure_counts() -> list[str]:
+    """项目结构树里写的数量（脚本个数 / core 模块数）必须与实际一致
+
+    这类漂移最阴：删一个文件、加一个脚本都不会报错，只有人肉数才发现。
+    2026-10-29 就踩过——新增 `theme_contrast_online.py` 后 README 还写「工具脚本 59 个」。
+
+    ⚠️ `__init__.py` 是包标记不是模块，数的时候要排掉（否则「只有这 4 个模块」会误报成 5）。
+    """
+    def n_py(d: str) -> int:
+        return len([p for p in (ROOT / d).glob("*.py") if p.name != "__init__.py"])
+
+    facts = {"工具脚本": n_py("scripts"), "core 模块": n_py("core")}
+    checks = [
+        (re.compile(r"工具脚本\s*(\d+)\s*个"), "工具脚本", "scripts/*.py"),
+        (re.compile(r"只有这\s*(\d+)\s*个模块"), "core 模块", "core/*.py"),
+    ]
+    bad = []
+    for name in FACT_DOCS:
+        p = ROOT / name
+        if not p.exists():
+            continue
+        for i, line in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            for pat, key, where in checks:
+                for m in pat.finditer(line):
+                    if int(m.group(1)) != facts[key]:
+                        bad.append(f"{name}:{i} 写「{m.group(0)}」，实际 {facts[key]}（数自 {where}）")
+    return bad
+
+
 def run(cmd: list[str]) -> tuple[int, str]:
     try:
         r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
@@ -242,6 +271,16 @@ def main() -> int:
             print(f"       …… 还有 {len(facts) - 10} 处")
     else:
         print("  OK README / AGENTS / overview 与代码一致")
+
+    # ── F 项目结构树里的数量 ──
+    print("\n[F] 项目结构树里的数量（脚本个数 / core 模块数）")
+    struct = check_structure_counts()
+    if struct:
+        problems.append(f"结构树数量不符 {len(struct)} 处")
+        for s in struct:
+            print(f"  ⛔ {s}")
+    else:
+        print("  OK 与磁盘实际一致")
 
     print("\n" + "=" * 60)
     if problems:

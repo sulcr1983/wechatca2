@@ -38,10 +38,33 @@ python scripts/run_gates.py --full     # 加上扩展层（依赖外部条件）
 | `pwa_export_test.py` / `pwa_nine_test.py` / `pwa_cover_test.py` | 导出四件套 / 九宫格切图 / 封面 12 风格 | local |
 | `pwa_update_panel_test.py` | 更新面板闭环：检查更新 → 一键重启 → 本次更新条数 → 反馈入口 | local |
 | `pwa_release_card_test.py` | 更新「发布小票」 | online |
-| `pwa_auto_update_test.py` | 静默自动更新（真 SW + 探针发版） | local |
-| `pwa_headed_full_e2e.py` | 有头全量：164 套 × 3 类夹具 + 8 版式 + 段落开关 + 按钮 + AI（mock） | local / `--url` 线上 |
+| `pwa_auto_update_test.py` | 静默自动更新（真 SW + 探针发版） | local（`--full` 层） |
+| `pwa_headed_full_e2e.py` | 有头全量：164 套 × 3 类夹具 + 8 版式 + 段落开关 + 按钮 + AI（mock） | local（`--ui` 层）/ `--url` 线上 |
 | `pwa_online_e2e.py` | 线上真环境全量 E2E | online |
 | `doc_sync_check.py` | 文档与代码一致（版本号、族名、主题套数） | in-process |
+
+> 这张表只列「挡用户可见问题」的那几条。完整清单（含 `theme_spec` / `clean_output` / `real_ai` /
+> `offline` / `s1s3` / `light_preview` / `template_ux` / `image_localize`）见 `run_gates.py` 的
+> `SUITES_*` 常量，那才是唯一真源。
+
+## 线上对比度实测（探针，不进门禁）
+
+```bash
+python scripts/theme_contrast_online.py            # 默认跑 v1.8.4 改过色的 15 套
+python scripts/theme_contrast_online.py aurora     # 指定几套
+python scripts/theme_contrast_online.py --all      # 全量 164 套（约 11 分钟）
+```
+
+`theme_contrast_audit.py` 量的是**引擎产出的样式**（解析层），这个脚本量的是**浏览器算出来的颜色**（合成层）。
+两者必须同时绿，否则就是「测试一套标准、渲染另一套」。它不进 `run_gates`：要联网打线上、要有头 Chrome。
+
+⚠️ **这个脚本第一版量错过，而且错得很像真失败**——三个坑写在它 docstring 里，改之前先看：
+
+1. 主题把底色画在包一层的容器上，`body` 是透明的 → 当纯黑算，正文全报 1.2~1.8；
+2. 渐变色标不按 alpha 合成 → `rgba(200,160,98,0.35)` 被当成 `(200,160,98)`，focus-gold 的金字报 1.29；
+3. `background-size: 100% 1px` 这种只画上下两条装饰细线的，文字根本不压在线上，不能当底色。
+
+实测口径（v1.8.4 部署后）：15 套标题 3.00~15.58、正文 7.10~17.40，0 JS 错误。
 
 ## 三个坑（评审时反复解释过）
 

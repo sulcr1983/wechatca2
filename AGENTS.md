@@ -123,7 +123,7 @@ python scripts/release.py        # ★ **一键发版**（10 步串联）：前�
                                   # ⚠️ 先跑 --dry-run 演练；--no-deploy 只提交推送不部署
 python scripts/gen_state.py      # 生成 **STATE.md**（单一状态源）：版本/构建号/git/线上版本/测试结果，
                                   # 全部从真实数据源采集；--check 只校验是否过期
-python scripts/doc_sync_check.py # 文档一致性校验：活文档禁手写具体数字（须指向 STATE.md）+ 历史快照须带过期声明
+python scripts/doc_sync_check.py # 文档一致性校验：活文档禁手写具体数字（须指向 STATE.md）+ 历史快照须带过期声明 + 族名/套数/结构树数量（脚本个数、core 模块数）须与代码一致
                                   # + 族名/主题套数必须与代码一致（退役族名「卷宗/庙会」当现状写会报错）
 python scripts/install_git_hooks.py  # 安装 pre-push 钩子：推送前查换行符漂移 / 构建产物误入 / 文档不一致
                                   # （不查「工作区脏」，那条交给 deploy.sh 与 preflight --deploy）
@@ -453,7 +453,9 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - `core/format_engine.py` 新增 `_readable_heading_props(props, page_bg)`，在 `inject_inline_styles` 构建 `style_map` 时对 `h1–h6` 生效。规则：① 元素自带 `background`/`background-color` → **保住原字色**，只把不合格的那几个色标压深/提亮（aurora 只改渐变里那一段绿，紫/靛两段不动）；② 调背景要动 >60% 路程（说明本来就不是"标题条"而是浅底）→ 改调字色，**保色相**压深（`#C8A062 → #af8c56`，仍是金色，不会变成纯黑）；③ 都不行才退回白/近黑墨色，并把救不了的底色去掉。
   - **达标元素原样返回**（`if worst >= 3.0: return props`）→ 150 套产物与改动前**逐字节一致**，这是回归判据（`scripts/theme_render_dump.py` 导 164 套改前/改后 HTML 做 diff（`--diff` 直接列出变化），实测只有 23 套变化）。
   - ⚠️ **方向别写反**：`_fit_fg` 判据是「底色比字色亮 → 压深字色」。第一版写反了，浅底上的彩字被一路压成 `#111111`，金色/粉色全毁——肉眼一看看不出来是 bug，只有对比前后 HTML 才暴露。
+  - ⚠️ **轻量预览（`pwa/src/light.js`）不走这道护栏**：它是 Pyodide 就绪前的 2s 近似版，直接照抄主题 styles，所以这 23 套在精确结果到达前可能先闪一下未调色的样子，随后被引擎产物替换。近似版不解锁「复制」，这条按设计接受，别在 light.js 里再实现一套颜色数学（必然与引擎漂移）。
   - **门禁**：`scripts/theme_contrast_audit.py`（进 `run_gates` 本地层，名字 `theme_contrast`）。它**直接调引擎里同一个 `_readable_heading_props`**，不另写颜色数学——否则测试用一套标准、渲染用另一套，测试全绿用户还是看不清。反向验证：把护栏换成 identity，它必须报出 23 套（实测成立），所以这道门禁不是恒绿摆设。
+  - **线上实测**：`scripts/theme_contrast_online.py` 不进 `run_gates`（要联网 + 有头 Chrome，部署后留证据时才跑），量的是浏览器算出来的对比度，与引擎解析层的口径必须一致。三个易踩的测量坑（body 透明被当纯黑、渐变色标不按 alpha 合成、`100% 1px` 装饰细线被当底色）写在脚本 docstring 里——量错了会造出一批「1.29 的假失败」，比不测更容易误导。
 - **死代码清理（2026-10-29）**：`core/` 从 12 个模块收到 4 个（`format_engine` / `preprocessor` / `browser_utils` / `pwa_test_utils`）。删掉的 8 个（`ai_client` / `blcaptain_bridge` / `crypto_utils` / `guizang_renderer` / `image_gen` / `image_search` / `token_manager` / `wechat_publisher`，共 1693 行）**只被已归档的本地 Flask 版 `app.py` 调用**：AST 全仓扫描（含 core/ scripts/ pwa/）零 import，`pwa/scripts/build.mjs` 也只拷贝 `format_engine.py` + `preprocessor.py` 进 `dist/py/`。需要取回见 tag `flask-v1-archive-2026-10-28`。**核查方法**：对 core 各模块做 `ast` 的 Import/ImportFrom 扫描（别用 grep 模块名——注释里出现同名也算命中，会误判成「还在用」）。
 - **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
 - **首行 = 文章大标题（2026-10-18 修订）**：`preprocess` 末尾的「首行提升」原实现遇到**已被规则标成 `##` 的首行**会因 `s.startswith('#')` 直接跳过 → 「短标题开头」的文章**全文没有 H1**，预览最大标题只有 h2、层级被压平，识别结构条的「大标题」恒为 0。现规则：首行是普通标题文本 → 直接加 `#`（各非保守模式，沿用原行为）；首行已被规则标为 `##~######` → 升为 `#`（**仅 `auto`/`longform`**；`tutorial` 首行多是「准备工作」这类小节标签，不强升）。例外：① 原文首行本身是手写 Markdown 标题（`## 保留标题`）→ 尊重作者显式层级不动；②「标签：值」行（`联系部门：公关部`）不提升 —— 与 `_looks_like_title`/短行标题检测的既有判定一致。回归：`test_e2e` **74/74**（其中 3 条断言按新行为更新：short_heading / numbered_heading / multi_style_sections）
