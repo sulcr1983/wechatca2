@@ -1,7 +1,7 @@
 {
   "version": "1.8.1",
-  "generatedAt": "2026-10-29T20:01:06+08:00",
-  "totalCommits": 245,
+  "generatedAt": "2026-10-29T20:01:32+08:00",
+  "totalCommits": 246,
   "releases": [
     {
       "version": "1.8.1",
@@ -13,7 +13,7 @@
         "按颜色搜更准：搜「绿」从 13 套变成 29 套，茶青、竹青这类自造色名不会漏"
       ],
       "counts": {
-        "fixed": 1,
+        "fixed": 2,
         "other": 1
       },
       "groups": [
@@ -21,6 +21,14 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "找到「点了更新没反应」的真根因——running 版本读的是服务器值",
+              "scope": "update",
+              "hash": "51a4899",
+              "date": "2026-10-29T20:01:26+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "改名后旧名一律搜不到，看起来像主题丢了——补旧名别名与旧族名",
               "scope": "theme",
