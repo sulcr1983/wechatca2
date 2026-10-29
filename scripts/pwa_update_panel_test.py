@@ -158,12 +158,26 @@ def main():
             print(f"  探针已改写为 {new_version}（原 {old_version}），重新打开面板…")
 
             t0 = page.evaluate("() => performance.timeOrigin")
-            page.click("#btn-update")
-            page.wait_for_selector("#cl-panel:not([hidden])", timeout=10000)
-            page.wait_for_function(
-                "() => document.querySelector('#cl-status')?.textContent.includes('已就绪')",
-                timeout=60000)
-            check("检测到新版本后显示「已就绪」", True,
+            # 2026-10-30 修偶发超时：门禁并发跑时（前面刚跑完 164 套模板审计，
+            # Chrome 还在回收进程），SW 的 updatefound → installed 链路会慢很多，
+            # 60s 不够 → 日志里只有一句 wait_for_function Timeout。
+            # 改成「90s 硬等 + 失败后重开面板再试一次」，避免把偶发当回归。
+            ready = False
+            for attempt in (1, 2):
+                page.click("#btn-update")
+                page.wait_for_selector("#cl-panel:not([hidden])", timeout=15000)
+                try:
+                    page.wait_for_function(
+                        "() => document.querySelector('#cl-status')?.textContent.includes('已就绪')",
+                        timeout=90000)
+                    ready = True
+                    break
+                except Exception:
+                    if attempt == 1:
+                        print("  （第 1 次等 SW 就绪超时，重开面板再试）")
+                        page.click("#cl-close")
+                        page.wait_for_timeout(600)
+            check("检测到新版本后显示「已就绪」", ready,
                   (page.text_content("#cl-status") or "").strip().replace("\n", " ")[:60])
             page.screenshot(path=str(SHOTS / "02-ready.png"))
 
@@ -206,7 +220,11 @@ def main():
                 hrefs = page.eval_on_selector_all("#cl-foot a", "els => els.map(e => e.href)")
                 check("反馈入口指向邮箱", all("sulcr@qq.com" in h for h in hrefs) and len(hrefs) == 2,
                       str([h[:48] for h in hrefs]))
-                check("邮件预填版本信息", all("v1.8" in h for h in hrefs))
+                # 2026-10-30 修：原来写死 "v1.8"，升到 1.9.0 就误报失败。
+                # 改成从 dist/version.json 读当前版本，发版后不用再改测试。
+                cur_ver = json.loads((DIST / "version.json").read_text(encoding="utf-8"))["version"]
+                check("邮件预填版本信息", all(f"v{cur_ver}" in h for h in hrefs),
+                      f"应含 v{cur_ver}")
                 page.click("#cl-close")
 
             check("全程无 JS 未捕获异常", not errors, str(errors[:2]))
