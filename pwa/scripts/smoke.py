@@ -166,13 +166,16 @@ def main() -> int:
         page.wait_for_selector("#drawer:not([hidden])")
         cards = page.locator("#drawer-grid .d-card").count()
         reps = page.locator("#drawer-grid .d-family-card").count()
-        # 2A 折叠后「全部」视图 = 每族 1 张代表卡 + 非族主题平铺；用 index.json 自校验（不写死数字）
+        # 「全部」视图 = 编辑精选（featured，含族主题与经典主题）+ 每族 1 张代表卡
+        # + 剩余经典主题平铺（精选里已出现的不重复）。用 index.json 自校验，不写死数字。
         idx = json.loads(page.evaluate(
             "async () => await (await fetch('./themes/index.json')).text()"))
         fams = {t["family"] for t in idx if t.get("family")}
         classic = [t for t in idx if not t.get("family")]
-        expected = len(fams) + len(classic)
-        check("全部视图按族折叠（族代表卡 + 经典卡）",
+        feat = [t for t in idx if t.get("featured")]
+        feat_ids = {t["id"] for t in feat}
+        expected = len(feat) + len(fams) + len([t for t in classic if t["id"] not in feat_ids])
+        check("全部视图按族折叠（精选 + 族代表卡 + 经典卡）",
               cards == expected and reps == len(fams) and reps >= 6,
               f"卡 {cards}，族代表 {reps}，期望 {expected}")
 
@@ -210,7 +213,7 @@ def main() -> int:
         page.wait_for_timeout(300)
 
         # 搜索
-        page.fill("#drawer-search", "卷宗")
+        page.fill("#drawer-search", "公文")
         page.wait_for_timeout(300)
         searched = page.locator("#drawer-grid .d-card").count()
         check("搜索能过滤", 0 < searched < 164, f"搜到 {searched} 个")

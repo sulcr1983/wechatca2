@@ -390,6 +390,10 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 
 /* ── 2A 族折叠（与本地版 templates/index.html 一致）：族代表卡 + 12 色调色点 ── */
 .d-family-card .d-name { color: var(--accent); }
+/* 「全部」视图的分区标题（编辑精选 / 按族浏览）：整行跨列，不占卡片位 */
+.d-sec { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 4px 0 -2px; }
+.d-sec b { font-size: 13px; color: var(--text); }
+.d-sec span { font-size: 11px; color: var(--text-muted); }
 .d-badge { position: absolute; right: 8px; bottom: 8px; z-index: 2; padding: 1px 7px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 10px; }
 .d-count { flex: none; font-size: 10px; color: var(--text-muted); }
 .d-fold { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; }

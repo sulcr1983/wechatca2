@@ -835,6 +835,247 @@ def build_style_string(props: dict) -> str:
     return ";".join(parts)
 
 
+# ── 移动端可读性归一（2026-10-29）───────────────────────────────────────
+# 背景：手机宽度（375px）下正文区只有约 343px，微信里又无法横向滚动。
+# 实测 164/164 套主题在遇到长 URL / 长英文串时会横向撑破版面（正文被裁）。
+# 这里统一给文字容器补断行规则，只影响「放不下时才断」，正常中文断行不变。
+_WRAP_CSS = "overflow-wrap:break-word;word-break:break-word"
+# 标题额外加 text-wrap:balance：居中刊头（vogue/社论/信笺等 84 套）在长标题下会折成两行，
+# 浏览器默认的换行会让上下两行长度悬殊、看着像没排过；balance 让两行长度尽量相等。
+# iOS Safari 17.5+ / Chrome 114+ 生效，旧内核直接忽略（无副作用）。
+_BALANCE_CSS = "text-wrap:balance"
+_WRAP_TAGS = ("h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote_p",
+              "list_item_text", "callout_content", "td", "th")
+_HEADING_TAGS = ("h1", "h2", "h3", "h4", "h5", "h6")
+
+
+def _ensure_text_wrap(style_map: dict) -> None:
+    """给文字类标签补 overflow-wrap/word-break（幂等，已有则跳过）
+
+    同时把表格单元格的左右内边距压到 ≤16px：3 套主题用了 20px 28px 的
+    「桌面级」内边距，5 列表格光内边距就吃掉 280px，375px 下必然溢出。
+    """
+    for tag in _WRAP_TAGS:
+        s = style_map.get(tag)
+        if not s:
+            continue
+        if "word-break" not in s:
+            s = f"{s};{_WRAP_CSS}"
+        if tag in _HEADING_TAGS and "text-wrap" not in s:
+            s = f"{s};{_BALANCE_CSS}"
+        if tag in ("td", "th"):
+            d = _style_dict(s)
+            changed = _clamp_horizontal_padding(d, 16)
+            # 单元格禁用「任意字间断行」：中文默认可在任意两字之间折行，浏览器会把
+            # 列压到最小内容宽 = 1 个字，「国产化率」于是被拆成「国产化 / 率」（实拍可见）。
+            # keep-all 让 min-content 回到整词宽度，列宽按内容分配；万一某列真的放不下，
+            # overflow-wrap:break-word 兜底仍会折行，不会撑破表格。
+            # ⚠️ 这里必须用 break-word，不能用 anywhere——anywhere 会把 min-content 算成
+            # 1 个字宽，等于把 keep-all 抵消掉（su-deepwater 实测仍折行）。
+            if d.get("word-break") == "break-word":
+                d["word-break"] = "keep-all"
+                d["overflow-wrap"] = "break-word"
+                changed = True
+            if changed:
+                s = _style_str(d)
+        style_map[tag] = s
+
+
+# ── 标题对齐归一（2026-10-29）───────────────────────────────────────────
+# 背景：102/164 套主题把 h1 写成 text-align:center。375px 下 18 字标题有
+# 101 套会折成两行，居中折行的锯齿感在手机上尤其明显（用户实拍反馈）。
+# 规则只作用于「h1 带底色块」的主题（18 套，如庙会/赤陶/字节蓝/杂志）：
+#   ① h1–h6 的居中改左——色块本身已提供视觉边界，居中只制造锯齿；
+#   ② 色块左右内边距补到 16px——与正文左缘（wrapper padding:16px）对齐，
+#      否则左对齐后标题会比正文向外凸 4px，栅格断裂。
+# 84 套纯文字刊头（vogue / 社论报 / 信笺 / 素页…）保持原设计不动。
+# 主题可用顶层 "heading_align": "design" 整套关闭本归一。
+_HEADING_OPEN_RE = re.compile(r"<(h[1-6])((?:\s[^>]*)?)>")
+_HEADING_MIN_PAD = 16
+
+
+def _is_banner_heading(props: dict) -> bool:
+    """标题是否带底色块（纯色或渐变）"""
+    return bool(props.get("background") or props.get("background_color")
+                or props.get("background_image"))
+
+
+def _style_dict(style: str) -> dict:
+    out = {}
+    for part in style.split(";"):
+        if ":" in part:
+            k, v = part.split(":", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def _style_str(d: dict) -> str:
+    return ";".join(f"{k}:{v}" for k, v in d.items())
+
+
+def _px(v) -> float | None:
+    m = re.match(r"^(-?[\d.]+)px$", str(v or "").strip())
+    return float(m.group(1)) if m else None
+
+
+def _bump_horizontal_padding(d: dict, minimum: int = _HEADING_MIN_PAD) -> None:
+    """把色块标题的左右内边距提到 minimum，使文字与正文左缘对齐"""
+    if "padding-left" in d or "padding-right" in d:
+        for k in ("padding-left", "padding-right"):
+            v = _px(d.get(k))
+            if v is not None and v < minimum:
+                d[k] = f"{minimum}px"
+        return
+    parts = (d.get("padding") or "").split()
+    if not parts:
+        return
+    vals = [_px(p) for p in parts]
+    if any(v is None for v in vals):
+        return  # em/% 等无法安全换算，保持原样
+    top = vals[0]
+    right = vals[1] if len(vals) > 1 else top
+    bottom = vals[2] if len(vals) > 2 else top
+    left = vals[3] if len(vals) > 3 else right
+    if left >= minimum and right >= minimum:
+        return
+    d["padding"] = (f"{top:g}px {max(right, minimum):g}px "
+                    f"{bottom:g}px {max(left, minimum):g}px")
+
+
+def _clamp_horizontal_padding(d: dict, maximum: int) -> bool:
+    """把左右内边距压到 maximum 以内（手机窄屏防溢出）。返回是否改动"""
+    changed = False
+    for k in ("padding-left", "padding-right"):
+        v = _px(d.get(k))
+        if v is not None and v > maximum:
+            d[k] = f"{maximum}px"
+            changed = True
+    parts = (d.get("padding") or "").split()
+    if parts:
+        vals = [_px(p) for p in parts]
+        if all(v is not None for v in vals):
+            top = vals[0]
+            right = vals[1] if len(vals) > 1 else top
+            bottom = vals[2] if len(vals) > 2 else top
+            left = vals[3] if len(vals) > 3 else right
+            if left > maximum or right > maximum:
+                d["padding"] = (f"{top:g}px {min(right, maximum):g}px "
+                                f"{bottom:g}px {min(left, maximum):g}px")
+                changed = True
+    return changed
+
+
+def _estimate_text_width(text: str, font_px: float, letter_px: float) -> float:
+    """估算一段文字在给定字号/字距下的像素宽度（含中英文混排）
+
+    权重来自实测标定（164 套主题 × 6 种标题长度，与浏览器实测折行判定
+    936/984 ≈ 95% 一致，误差集中在「刚好卡在边界」的样本上）。
+    只用于判断「标题会不会折行」，不参与布局计算。
+    """
+    units = 0.0
+    for ch in text:
+        o = ord(ch)
+        if ch == " ":
+            units += 0.28
+        elif o > 0x2E80:
+            units += 1.0          # 中日韩全角字符
+        elif ch.isupper():
+            units += 0.62
+        elif ch.islower():
+            units += 0.52
+        elif ch.isdigit():
+            units += 0.55
+        else:
+            units += 0.38
+        units += letter_px / font_px if font_px else 0
+    return units * font_px
+
+
+def _heading_text(html: str, start: int, tag: str) -> str:
+    """取出某个标题开标签之后的纯文本（去内联标签）"""
+    end = html.find(f"</{tag}>", start)
+    raw = html[start:end] if end > 0 else ""
+    return re.sub(r"<[^>]+>", "", raw)
+
+
+def _content_width(theme: dict) -> float:
+    """手机端正文可用宽度：375px 视口减去 wrapper 左右内边距"""
+    wrapper = (theme.get("styles") or {}).get("wrapper") or {}
+    pad = (wrapper.get("padding") or "16px").split()
+    try:
+        side = float(pad[1].replace("px", "")) if len(pad) > 1 else float(pad[0].replace("px", ""))
+    except (ValueError, IndexError):
+        side = 16.0
+    if len(pad) >= 4:
+        try:
+            side = min(float(pad[1].replace("px", "")), float(pad[3].replace("px", "")))
+        except ValueError:
+            pass
+    return 375.0 - 2 * side
+
+
+def normalize_heading_align(html: str, theme: dict) -> str:
+    """标题对齐归一（详见上方注释）。幂等，可重复调用
+
+    两条规则：
+      R1 色块（banner）标题：h1–h6 一律左对齐，左右内边距补到 16px；
+      R2 纯文字居中标题：只有当它「能放下一行」时才保留居中，估算会折行就改左。
+         —— 依据业内通用判断：居中只适合 1–2 行的短标题，长标题居中两侧参差、
+            视线每行都要重新找起点（《写给大家看的设计书》/ 135 编辑器排版规范）。
+    """
+    if str(theme.get("heading_align") or "left").lower() == "design":
+        return html
+    styles = theme.get("styles") or {}
+    banner_theme = _is_banner_heading(styles.get("h1") or {})
+    content_w = _content_width(theme)
+
+    def _fix(match):
+        tag, attrs = match.group(1), match.group(2)
+        sm = re.search(r'style="([^"]*)"', attrs)
+        if not sm:
+            return match.group(0)
+        d = _style_dict(sm.group(1))
+        centered = d.get("text-align", "").lower() == "center"
+        is_banner = _is_banner_heading(d)
+        changed = False
+
+        if banner_theme and centered:
+            # R1：色块标题在色块里居中，折行必然锯齿
+            d["text-align"] = "left"
+            centered = False
+            changed = True
+
+        if is_banner:
+            snapshot = (d.get("padding"), d.get("padding-left"), d.get("padding-right"))
+            _bump_horizontal_padding(d)
+            if snapshot != (d.get("padding"), d.get("padding-left"), d.get("padding-right")):
+                changed = True
+
+        if centered and not is_banner:
+            # R2：估算这一行放不放得下
+            fs = _px(d.get("font-size")) or 16.0
+            ls = str(d.get("letter-spacing") or "0")
+            if ls.endswith("em"):
+                letter_px = float(ls[:-2]) * fs
+            elif ls.endswith("px"):
+                letter_px = float(ls[:-2])
+            else:
+                letter_px = 0.0
+            pad_l = _px(d.get("padding-left")) or 0.0
+            pad_r = _px(d.get("padding-right")) or 0.0
+            text = _heading_text(html, match.end(), tag)
+            inner = content_w - pad_l - pad_r
+            if inner > 0 and _estimate_text_width(text, fs, letter_px) > inner * 0.97:
+                d["text-align"] = "left"
+                changed = True
+
+        if not changed:
+            return match.group(0)
+        return f"<{tag}{attrs.replace(sm.group(0), f'style=\"{_style_str(d)}\"')}>"
+
+    return _HEADING_OPEN_RE.sub(_fix, html)
+
+
 def _auto_dark_mode(theme: dict) -> dict:
     """自动补全深色模式配置
 
@@ -1707,6 +1948,10 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     for tag_key, props in styles.items():
         style_map[tag_key] = build_style_string(props)
 
+    # 移动端断行：文字容器统一补 overflow-wrap/word-break
+    # ⚠️ 必须在深色模式注入之前做 —— 深色模式靠 style 字符串精确匹配替换
+    _ensure_text_wrap(style_map)
+
     # === 1. 处理列表（微信特殊处理：ul/ol → section 模拟，支持嵌套）===
     html = convert_lists_to_sections(html, style_map)
 
@@ -1910,6 +2155,11 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     if dark_mode:
         html = inject_dark_mode_attrs(html, dark_mode, style_map)
 
+    # === 10. 标题对齐归一（色块标题左对齐 + 与正文左缘对齐）===
+    # ⚠️ 必须放在第 9 步之后：深色模式靠 style="{完整样式串}" 精确匹配注入，
+    #    提前改样式会让 data-darkmode-* 匹配失配（22 套主题的深色模式会直接失效）。
+    html = normalize_heading_align(html, theme)
+
     return html
 
 
@@ -2056,18 +2306,29 @@ def generate_preview(article_html: str, footnote_html: str, theme: dict,
     return output_path
 
 
-def convert_image_captions(html: str) -> str:
-    """将图片后紧跟的斜体段落转为图说样式"""
-    caption_style = "text-align:center;font-size:13px;color:#999999;margin-top:-8px;margin-bottom:16px;font-style:normal"
+def convert_image_captions(html: str, theme: dict | None = None) -> str:
+    """将图片后紧跟的斜体段落转为图说样式
+
+    图注色按页面底色明暗自适应：旧值 #999999（13px）在百底上对比度仅 2.85:1，
+    低于 WCAG AA 要求的 4.5:1，手机日光下几乎读不清 —— 亮底用 #6B7280（5.0:1），
+    暗底用 #A1A7AE（对数lum ≈ 7:1）。
+    """
+    page_bg = ((theme or {}).get("colors") or {}).get("background") or "#ffffff"
+    caption_color = "#6B7280" if _is_light_bg(page_bg) else "#A1A7AE"
+    caption_style = (f"text-align:center;font-size:13px;color:{caption_color};"
+                     f"margin-top:-8px;margin-bottom:16px;font-style:normal")
     # 匹配 img wrapper (</section>) 后面紧跟的 <p><em>xxx</em></p>
+    # ⚠️ 2026-10-29 修复：em 在这里早已被注入内联样式（<em style="...">），
+    #    原写法 `<em>` 严格匹配永远失配 —— 图注样式实际上一直没生效。
+    _CAP_BODY = r'<em[^>]*>(.*?)</em>'
     html = re.sub(
-        r'(</section>\s*)<p[^>]*><em>(.*?)</em></p>',
+        rf'(</section>\s*)<p[^>]*>{_CAP_BODY}</p>',
         rf'\1<p style="{caption_style}">\2</p>',
         html
     )
     # 同时匹配 </p>（CDN/外链图片）后面的斜体图说
     html = re.sub(
-        r'(</p>\s*)<p[^>]*><em>(.*?)</em></p>',
+        rf'(</p>\s*)<p[^>]*>{_CAP_BODY}</p>',
         rf'\1<p style="{caption_style}">\2</p>',
         html
     )
@@ -2092,7 +2353,7 @@ def truncate_html_preview(html: str, max_p_tags: int = 12) -> str:
 def _render_single_theme(tid, theme_data, gallery_html, gallery_footnote):
     """渲染单个主题（用于并行 gallery）"""
     rendered = inject_inline_styles(gallery_html, theme_data)
-    rendered = convert_image_captions(rendered)
+    rendered = convert_image_captions(rendered, theme_data)
     if gallery_footnote:
         fn_rendered = inject_inline_styles(gallery_footnote, theme_data, skip_wrapper=True)
         rendered += "\n" + fn_rendered
@@ -2721,9 +2982,9 @@ def format_for_output(content: str, input_path: Path, theme: dict,
     html = inject_inline_styles(html, theme)
     if footnote_html:
         footnote_html = inject_inline_styles(footnote_html, theme, skip_wrapper=True)
-    html = convert_image_captions(html)
+    html = convert_image_captions(html, theme)
     if footnote_html:
-        footnote_html = convert_image_captions(footnote_html)
+        footnote_html = convert_image_captions(footnote_html, theme)
 
     return {
         "html": html,
@@ -2859,9 +3120,9 @@ def main():
     if footnote_html:
         footnote_html = inject_inline_styles(footnote_html, theme, skip_wrapper=True)
 
-    html = convert_image_captions(html)
+    html = convert_image_captions(html, theme)
     if footnote_html:
-        footnote_html = convert_image_captions(footnote_html)
+        footnote_html = convert_image_captions(footnote_html, theme)
 
     # 保存纯文章 HTML
     full_article = html
@@ -2904,7 +3165,7 @@ def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str) -> str:
 
     html = md_to_html(text)
     html = inject_inline_styles(html, theme)
-    html = convert_image_captions(html)
+    html = convert_image_captions(html, theme)
 
     return html
 

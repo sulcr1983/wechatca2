@@ -30,9 +30,11 @@ ONLINE_URL = "https://supersu.ccwu.cc/"
 OUT = ROOT / "output" / "theme-drawer"
 sys.path.insert(0, str(ROOT))
 
+# 族 → 色调数。2026-10-29 起 frost 不再是族（只挂 1 套主题的「族卡」没有意义，
+# su-frost-card 归入平铺），故 7 族 / 9 个 chip。
 FAMILIES = {
     "stamp": 12, "minimal": 12, "biz": 12, "letter": 12,
-    "night": 12, "feast": 12, "dusk": 10, "frost": 1,
+    "night": 12, "feast": 12, "dusk": 10,
 }
 RICH = (
     "周末去海边\n\n两天的沉默之后，我重新听见了海浪。\n\n"
@@ -194,11 +196,11 @@ def main() -> int:
             page.wait_for_timeout(400)
 
             chips = page.locator("#drawer-filters .fchip").count()
-            check("家族筛选条有 10 个 chip（全部/收藏/8 类）", chips == 10, f"{chips} 个")
+            check("家族筛选条有 9 个 chip（全部/收藏/7 类）", chips == 9, f"{chips} 个")
 
             # ① 全部视图：族代表卡 → 进入族视图
             reps = page.locator(".d-family-card").count()
-            check("全部视图有 8 张族代表卡", reps == 8, f"{reps} 张")
+            check("全部视图有 7 张族代表卡", reps == 7, f"{reps} 张")
             page.locator(".d-family-card").first.click()
             page.wait_for_timeout(350)
             # 族视图里家族 chip 会隐藏，当前族由「版式」条的选中态表示
@@ -206,7 +208,7 @@ def main() -> int:
             check("点族代表卡进入该族视图", fam_now not in (None, "all", "fav")
                   and page.locator(".d-tone").count() > 0, f"版式={fam_now}")
 
-            # ② 8 个家族逐一：点数 → 状态 / 胶囊 / toast / 富文本预览差异
+            # ② 7 个家族逐一：点数 → 状态 / 胶囊 / toast / 富文本预览差异
             applied = 0
             no_visual = []
             for fam, expected in FAMILIES.items():
@@ -331,7 +333,7 @@ def main() -> int:
             # ④c 版式 × 色调二维选择器（2026-10-24）：换版式保留同名色调
             enter_family(page, 'minimal', 320)
             axes = page.locator(".d-axis").count()
-            check("族视图出现版式条（8 个）", axes == 8, f"{axes} 个")
+            check("族视图出现版式条（7 个）", axes == 7, f"{axes} 个")
             page.locator(".d-tone[data-id='su-minimal-bamboo']").click()
             page.wait_for_timeout(650)
             page.click(".d-axis[data-fam='biz']")

@@ -534,7 +534,7 @@ def main() -> int:
             page.click("#btn-themes")
             page.wait_for_timeout(400)
             check("「全部风格」打开抽屉", page.is_visible("#drawer"), "", "抽屉可见")
-            page.fill("#drawer-search", "卷宗")
+            page.fill("#drawer-search", "公文")
             page.wait_for_timeout(400)
             n_search = page.locator(".d-card").count()
             check("抽屉搜索有结果", n_search > 0, "", f"{n_search} 张")

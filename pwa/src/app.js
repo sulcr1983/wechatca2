@@ -61,8 +61,8 @@ let renderSeq = 0;
 let themeJsonCache = new Map();
 
 const FAMS = {
-  biz: '卷宗', feast: '庙会', letter: '信笺', minimal: '素页',
-  night: '夜航', stamp: '钢印', dusk: '首屏', frost: '卡片', other: '其他',
+  biz: '公文', feast: '节庆', letter: '信笺', minimal: '素页',
+  night: '夜航', stamp: '钢印', dusk: '暮色',
 };
 
 /* ── 启动 ───────────────────────────────────────────────────── */
@@ -493,7 +493,7 @@ function setActive(id, announce = false) {
 /* ── 抽屉 ───────────────────────────────────────────────────── */
 let drawerFam = 'all';
 let drawerQ = '';
-let drawerTone = '';   // 二维选择器：记住当前色调，跨版式迁移（素页·竹青 → 卷宗·竹青）
+let drawerTone = '';   // 二维选择器：记住当前色调，跨版式迁移（素页·竹青 → 公文·竹青）
 
 function openDrawer() {
   $('drawer').hidden = false;
@@ -624,7 +624,7 @@ function renderFilters() {
 /* ── 2A 族折叠（与本地版 templates/index.html 保持一致）──
    同族 12 换色折叠成「1 张代表卡 + 色调色点条」；点色点换色**不关抽屉**，方便连续对比。 */
 function famLabel(f) { return f ? (FAMS[f] || f) : ''; }
-// 色调名 = 主题名去掉族前缀（「卷宗·朱砂」→「朱砂」）
+// 色调名 = 主题名去掉族前缀（「公文·朱砂」→「朱砂」）
 function toneName(t) {
   const f = t.family;
   if (!f) return t.name;
@@ -709,18 +709,27 @@ function showRecent() {
   }
   renderFlat(ids.map((id) => byId.get(id)), new Set(favList()));
 }
-// 「全部」视图按族折叠：每族 1 张代表卡，其余（初代/经典）平铺
+// 「全部」视图：编辑精选 → 按族折叠（每族 1 张代表卡）→ 其余平铺
 function renderAllFolded(fav) {
   const fams = [...new Set(themes.map((t) => t.family).filter(Boolean))];
   const byFam = {}; fams.forEach((f) => { byFam[f] = []; });
   const classic = [];
   themes.forEach((t) => { (t.family && byFam[t.family] ? byFam[t.family] : classic).push(t); });
   const reps = fams.filter((f) => byFam[f].length).map((f) => familyRepCard(f, byFam[f], fav)).join('');
-  const ranked = [...classic].sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
-  $('drawer-grid').innerHTML = reps + ranked.map((t) => drawerCard(t, fav)).join('');
+  // 精选：把「最好看、最常用」的 12 套提到第一屏（顺序由 theme-curation.json 定）
+  const featured = themes.filter((t) => t.featured);
+  const featIds = new Set(featured.map((t) => t.id));
+  const head = featured.length
+    ? `<div class="d-sec"><b>编辑精选</b><span>先看这 ${featured.length} 套 · 覆盖商务 / 随笔 / 行业 / 技术 / 节庆</span></div>`
+      + featured.map((t) => drawerCard(t, fav)).join('')
+      + '<div class="d-sec"><b>按族浏览</b><span>同一版式换色，点进去可选 10–12 色</span></div>'
+    : '';
+  const ranked = [...classic].filter((t) => !featIds.has(t.id))
+    .sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
+  $('drawer-grid').innerHTML = head + reps + ranked.map((t) => drawerCard(t, fav)).join('');
 }
 // 族视图：版式 × 色调二维选择（2026-10-24）
-// 版式条只列有色调可选的族；换版式时**保留同名色调**（素页·竹青 → 卷宗·竹青）。
+// 版式条只列有色调可选的族；换版式时**保留同名色调**（素页·竹青 → 公文·竹青）。
 function renderFamilyFold(fam, fav) {
   const list = themes.filter((t) => t.family === fam);
   const grid = $('drawer-grid');
@@ -749,8 +758,10 @@ function renderDrawer() {
   const fav = new Set(favList());
   const q = drawerQ.trim().toLowerCase();
   // 搜索优先：全量扁平（跨所有主题，不折叠）
+  // tags 由构建期生成（颜色 + 用途），让「绿 / 商务 / 节庆」这类词也能命中
   if (q) {
-    renderFlat(themes.filter((t) => (t.name + ' ' + t.id + ' ' + (t.desc || '')).toLowerCase().includes(q)), fav);
+    renderFlat(themes.filter((t) => (t.name + ' ' + t.id + ' ' + (t.desc || '') + ' '
+      + (t.tags || []).join(' ')).toLowerCase().includes(q)), fav);
     return;
   }
   if (drawerFam === 'fav') { renderFlat(themes.filter((t) => fav.has(t.id)), fav); return; }

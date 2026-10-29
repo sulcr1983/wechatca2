@@ -51,7 +51,7 @@ scripts/
   build_themes.py           原创主题生成器（设计标尺 → 119 套 su-* 主题 JSON）
   theme_specs.py            原创主题的设计意图规格（47 初代 + 72 六族；新主题在这里加一条）
   build_brand_assets.py     品牌 logo 资产生成器（源图 → UI 徽标 + PWA 5 张安装图标）
-  theme_stress_audit.py     164 套全量渲染审计（标签平衡/无 None/无残渣）
+  theme_stress_audit.py     164 套全量渲染审计（标签平衡/无 None/无残渣/色块标题不居中/正文可断行）
   ai_structure_smoke.py     AI 结构冒烟（真实 Key，非默认门禁）
   pwa_*_test.py             PWA 专项有头测试（见 §4 测试清单；15 个）
   ux_verify_p0/p1/tutorial.py  UX 验收脚本（15/15 · 15/15 · 13/13）
@@ -135,6 +135,9 @@ python scripts/run_gates.py      # 一键门禁（**PWA only**），分层执行
                                   # · 日志落 output/gate-run/
 python scripts/clean_output.py    # output/ 清理（U-15）：默认预览保留 7 天内；--days N 改保留期；--apply 才真删。
                                   # 只动 output/ 内部，绝不碰 data/ public/ pwa/dist/
+python scripts/audit_mobile_typography.py  # ★ 移动端排版体检（375px 微信环境）：静态层秒级，
+                                  # --browser 加 Chrome 实测页宽/折行/表格宽度。有 FAIL 时退出码 1，可当门禁。
+                                  # 判据与取舍见 docs/mobile-typography.md；报告 output/mobile-audit/report.json
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
                                       # 快捷入口：scripts/run_headed_test.bat（自起服务，需 5000 空闲）
 python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
@@ -385,7 +388,13 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - `core/preprocessor.py` 8 处：① 纯分隔线（整行只由 `=`/`-`/`—` 组成）→ `<hr>`，不再产出 `## =` 假标题；② 短标签行**保留结尾冒号**（不再吞字）；③ 阿拉伯数字「连续有序列表」**保留原序号**（不再重排成 `1.` 或标题化）；④ 嵌套列表**保留行首缩进**；⑤ 含 `|` / 以 `<` 开头 / `$$` 公式块不判标题；⑥ `_BULLET_RE` 要求符号后跟空白（`**加粗**` 不再被拆成 `- *加粗**`）；⑦ 步骤行「步骤一：…」**保留标签文字**；⑧ 箭头行「标签：内容 → A → B」不误拆为清单
   - `core/format_engine.py`：`md_to_html` 出口统一做 `sanitize_raw_html`（决策 4A 渲染层安全清洗）——危险标签（script/style/iframe/object/embed/form/…）/ 事件属性（`on*`）/ 危险协议 URL（`javascript:` / `vbscript:` / `data:text/html`）渲染前清除，正常标签与内联 style 保留
   - `scripts/build_themes.py`：字号标尺**整体对齐业界调研比例**（交接文档 §4：四来源一致口径 = 正文 15–16 / h1 18–22 / h2 16–18）——`SCALE` 由 h1 25 / h2 20 / p 16 改为 **h1 22 / h2 18 / h3 16 / h4 15 / h5 14 / h6 13 / p 15**（正文取业内最推荐的 15px；13px 只留给 h6 与注释级）。改这一处重跑 `build_themes.py` 即 119 套全量生效，可逆
-  - 主题对比度（1B / 审计 P1-7）：`scripts/theme_stress_audit.py` 的 `contrast_ink_bg` 原拿 `colors.primary` 当「正文墨色」，对早期原创主题（其 `primary` 是品牌/标题色）**误报**——已改取真实的 `styles.p.color`；真实有问题的只有 `sunset-amber` / `wechat-native` 两套代码块前景（已加深）。渲染审计 156/164 → **164/164**
+  - **移动端排版归一（2026-10-29，用户实拍反馈驱动）**：色块标题居中在手机上折行呈锯齿。诊断数据：h1 居中 102/164 套，18 字标题下 **101/102 折成两行**；长 URL 在 **164/164** 套会把版面横向撑破；3 套表格 5 列溢出；图注 `13px #999999` 对比度仅 2.85:1（低于 WCAG AA）。修复全部落在引擎单点（主题 JSON 零改动），详见 `docs/mobile-typography.md`：
+  - `normalize_heading_align()`（`inject_inline_styles` 第 10 步，**必须在深色模式注入之后**——深色模式靠 `style="{完整样式串}"` 精确 replace，提前改样式会打掉 22 套主题的 `data-darkmode-*`）：① h1 带底色块的主题 → h1–h6 全部居中改左；② 色块标题左右内边距补到 16px，与正文左缘同栅格；③ 纯文字刊头**保留居中**，但按 `_estimate_text_width()` 估算放不下一行时自动改左（984 样本实测 981 正确）
+  - `_ensure_text_wrap()`：`p/td/th/li/h1–h6` 补 `overflow-wrap:break-word;word-break:break-word`（长 URL 防撑破）；标题另加 `text-wrap:balance`（居中刊头折两行时长度接近）；`td/th` 横向内边距压到 ≤16px
+  - `convert_image_captions()`：图注色按底色明暗自适应（`#6B7280` / `#A1A7AE`）；⚠️ 同时修掉一个**从未生效**的老 bug —— 原正则要求 `<em>` 严格匹配，而 `em` 早已被注入 `<em style="…">`，图注样式一直没打上过
+  - 逃生口：主题顶层 `"heading_align": "design"` 可整套保留设计师原样
+  - 回归：`scripts/audit_mobile_typography.py`（新增，可当门禁）+ `theme_stress_audit --only render` 新增「色块标题不居中 / 正文可断行」两项断言，均 **164/164**
+- **主题对比度（1B / 审计 P1-7）**：`scripts/theme_stress_audit.py` 的 `contrast_ink_bg` 原拿 `colors.primary` 当「正文墨色」，对早期原创主题（其 `primary` 是品牌/标题色）**误报**——已改取真实的 `styles.p.color`；真实有问题的只有 `sunset-amber` / `wechat-native` 两套代码块前景（已加深）。渲染审计 156/164 → **164/164**
   - ⚠️ 两条**刻意不修**：夹具 §13 箭头行「导入 TXT → … → 复制到公众号」同时被「原文保真 H01」（要保留箭头）与「转列表 S25」（要拆成分行）要求，**物理互斥**，本轮保留 S25；诗词分层（S22 = P2-3）不在 P0+P1 范围
   - 45 套早期原创主题（非 `su-*`）**字号已对齐业界标尺**（决策 B，2026-10-18）：只改 `h1–h6 + p + list_item_text` 的字号（h1 22 / h2 18 / h3 16 / h4 15 / h5 14 / h6 13 / p 15），**其余定制样式（渐变 / 阴影 / 字重 / 字距 / 字族）原样保留**；至此 164 套正文统一 15px。⚠️ 它们**未纳入 `build_themes.py`**（非 spec 驱动），以后再调字号需直接改 JSON 或另写脚本。
 - 新增功能采用并存模式，不替换现有工作代码
@@ -415,6 +424,11 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - **链路**：族级技法补丁与颜色推导都在 `build_themes.py` 的 `FAMILIES` / `FAMILY_TONES`（accent = 色调色相 × 族级饱和·明度基线，HSL 推导；暗底族同表 `dark=True`）；`theme_specs.py` 末尾只声明「族 × 色调」组合与命名/描述。
   - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
   - **回归锚点**：重跑生成器后既有 47 套 su-* JSON **字节零改动**；164 套全量富样本渲染审计（标签平衡 / 无 None·空 style·拼接残渣）全过；四套件 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错）。
+- **主题命名与排序（2026-10-29）**：用户反馈「模板名字很难找到、有点奇怪」。查出三处：① 族名是文学意象、不说明用途（`卷宗` 生僻、`庙会` 易被读成宗教/集市）；② 45 套早期主题里 6 套沿用第三方品牌名（Monocle / Vogue / GitHub / 少数派 / 字节蓝 / 微信原生）——既有商标面，也最像「奇怪的名字」；③ 色名是 `竹青 / 朱砂 / 麦金 / 粉黛` 这类意象词，按「绿 / 红 / 金 / 粉」搜不到。
+  - **改名**：族名 `卷宗 → 公文`、`庙会 → 节庆`（`theme_specs.py` 的 `_FAMILIES`，重跑生成器；只动 name 行，24 套一字不差）；6 套品牌名主题改名（Monocle·生活→**雅集·墨绿** / Vogue·时尚→**风尚·玄黑** / GitHub→**极客·钴蓝** / 少数派→**效率·朱红** / 字节蓝→**科技·天蓝** / 微信原生→**原生·青绿**），描述里的品牌字样一并去掉。**id 不改**（localStorage 收藏、文档、测试都按 id 走）。
+  - **族的 UI 标签**在 `pwa/src/app.js` 的 `FAMS`：`dusk` 原写成「首屏」（那是版式名，`gen_state.py` 的版式清单里才有「首屏」），已改「暮色」；删掉只挂 1 套主题的 `frost`「卡片族」（`build.mjs` 的 `FAMILIES` 同步删）。
+  - **排序单一真源**：`pwa/theme-curation.json`（`featured` 12 套 + `order` 164 条）→ `pwa/scripts/build.mjs` 的 `buildThemeIndex` 按它排 `themes/index.json`。不在 order 里的新主题按 id 兜底排最后（不会消失）。要调整模板库顺序**只改这个文件**，不碰主题数据。
+  - **可搜索标签**：`buildThemeIndex` 给每套算 `tags`（accent 色相 → 红/橙/黄/绿/青/蓝/紫/粉/灰/黑；底色 → 浅色/深色；族 → 商务/周报/随笔/技术…；描述里的「适合 A、B」直接拆词），前端搜索把它和 name/id/desc 一起匹配。实测搜「绿」23 套、「商务」15 套、「周报」13 套。
 - **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
 - **首行 = 文章大标题（2026-10-18 修订）**：`preprocess` 末尾的「首行提升」原实现遇到**已被规则标成 `##` 的首行**会因 `s.startswith('#')` 直接跳过 → 「短标题开头」的文章**全文没有 H1**，预览最大标题只有 h2、层级被压平，识别结构条的「大标题」恒为 0。现规则：首行是普通标题文本 → 直接加 `#`（各非保守模式，沿用原行为）；首行已被规则标为 `##~######` → 升为 `#`（**仅 `auto`/`longform`**；`tutorial` 首行多是「准备工作」这类小节标签，不强升）。例外：① 原文首行本身是手写 Markdown 标题（`## 保留标题`）→ 尊重作者显式层级不动；②「标签：值」行（`联系部门：公关部`）不提升 —— 与 `_looks_like_title`/短行标题检测的既有判定一致。回归：`test_e2e` **74/74**（其中 3 条断言按新行为更新：short_heading / numbered_heading / multi_style_sections）
 - **格式兼容扩展（2026-10-19，方案 B）**：`core/preprocessor.py` 新增一批**确定性**识别，夹具入库 `tests/fixtures/txt-format-lab.txt`（`scripts/theme_stress_audit.py` 断言 34 → 40）。新增：GFM 任务清单 `- [ ]`/`- [x]` → ☐/☑；`NN｜` 章节标记 → `##`（含带冒号的 06/12，此前因「含 `：` 不当标题」而漏）；**无分隔行的竖线表整表规整**（补首尾竖线 + 补表头分隔行——python-markdown 的 tables 扩展要求行首 `|`）；空格/全角空格对齐表 → 管道表；`~~~` 围栏；GFM Alerts `> [!NOTE]` → `> 【提示】`；admonition 别名 `::: tip/note/warning/danger/details` → 复用 `:::summary[中文标签]`；`【提示】【注意】…` → 引用块。**改口径**：`（1）（2）` 不再一律当四级标题（夹具 §04 明确「看起来像列表，但未必是列表」）→ 永不判标题、保持原文行。**刻意不做**：Setext 下划线标题（与既有 `===`/`---` 分隔线行为互斥）、文本清理（pangu/全角，默认关=不做）、公式渲染（只保留原文）。⚠️ 表格类规则必须让表格**自成一块**（生成前补一个空行），否则会与上一行文字并入同一段落、表格不成立（本轮实测踩到并修掉）。

@@ -1,23 +1,30 @@
 {
   "version": "1.6.0",
-  "generatedAt": "2026-10-28T00:56:41+08:00",
-  "totalCommits": 228,
+  "generatedAt": "2026-10-29T17:37:14+08:00",
+  "totalCommits": 234,
   "releases": [
     {
       "version": "1.6.0",
       "date": "2026-10-25",
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "counts": {
-        "added": 6,
-        "changed": 5,
-        "fixed": 15,
-        "other": 27
+        "added": 7,
+        "changed": 6,
+        "fixed": 16,
+        "other": 30
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "新增「大字版」封面（ROAD-1 纯文字大字，不用底图也不废）",
+              "scope": "cover",
+              "hash": "0089062",
+              "date": "2026-10-28T00:59:08+08:00",
+              "breaking": false
+            },
             {
               "text": "三条产品建议落地 —— 主题条常驻 / 保存大图 / 九宫格常驻",
               "scope": "ux",
@@ -67,6 +74,13 @@
           "label": "调整",
           "items": [
             {
+              "text": "ROAD-1/U-15/DEBT-1/DEBT-2 结案；ROAD-2 标注受阻原因",
+              "scope": "todo",
+              "hash": "522f6ed",
+              "date": "2026-10-28T01:32:01+08:00",
+              "breaking": false
+            },
+            {
               "text": "U-10 搜图缓存在文件里出现两次（一处已闭环、一处仍写待做），统一为已闭环",
               "scope": "todo",
               "hash": "3824293",
@@ -107,6 +121,13 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "删掉打已封存 5000 端口的死探针",
+              "scope": "layout_compat",
+              "hash": "1c18d22",
+              "date": "2026-10-28T01:33:42+08:00",
+              "breaking": false
+            },
             {
               "text": "「保存大图」点一次真落盘 + 两处测试健壮性",
               "scope": "ux",
@@ -218,6 +239,27 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "STATE 同步（门禁 21/21 收官）",
+              "scope": "",
+              "hash": "ccc7d4a",
+              "date": "2026-10-28T01:44:03+08:00",
+              "breaking": false
+            },
+            {
+              "text": "线上全量跟着改 12 → 13 种风格断言",
+              "scope": "online",
+              "hash": "f352d82",
+              "date": "2026-10-28T01:12:02+08:00",
+              "breaking": false
+            },
+            {
+              "text": "STATE 同步（大字版构建）",
+              "scope": "",
+              "hash": "3f037ab",
+              "date": "2026-10-28T00:59:34+08:00",
+              "breaking": false
+            },
             {
               "text": "封存本地 Flask 版（tag flask-v1-archive-2026-10-28）",
               "scope": "",

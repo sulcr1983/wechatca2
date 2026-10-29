@@ -14,7 +14,7 @@
     python scripts/build_themes.py --dry-run  # 只打印将写出的文件，不落盘
 
 第二批（2026-10-13）「六族 · 十二色」：新增 6 套族级风格系统
-（钢印 / 素页 / 卷宗 / 信笺 / 夜航 / 庙会）× 12 个色调 = 72 套。
+（钢印 / 素页 / 公文 / 信笺 / 夜航 / 节庆）× 12 个色调 = 72 套。
 族级视觉技法走 FAMILIES[*]["patch"]（对统一装配结果做元素级覆盖），
 色调只声明色相，具体值按族各自的饱和/明度基线的推导，不沿用任何外部数值。
 风格品类的灵感参照见 AGENTS.md §10（TypeZen，AGPL：仅品类观感参照，
@@ -136,13 +136,13 @@ ARCHETYPES.update({
     "stamp": dict(radius=0, h_weight=900, h_border=False, letter=0.15, code_radius=0, code_header=True),
     # 素页（极简）：小圆角 + 轻字重 + 大留白
     "minimal": dict(radius=3, h_weight=600, h_border=False, letter=0.30, code_radius=3, code_header=False),
-    # 卷宗（商务）：小圆角 + 深色标题块
+    # 公文（商务）：小圆角 + 深色标题块
     "biz": dict(radius=3, h_weight=800, h_border=False, letter=0.15, code_radius=3, code_header=True),
     # 信笺（文艺）：大圆角 + 纸感底色 + 舒展行距
     "letter": dict(radius=10, h_weight=700, h_border=False, letter=0.25, code_radius=8, code_header=False),
     # 夜航（科技）：暗底 + 冷光面板
     "night": dict(radius=6, h_weight=700, h_border=False, letter=0.15, code_radius=6, code_header=True),
-    # 庙会（节庆）：大圆角 + 虚线 + 胶囊标题
+    # 节庆：大圆角 + 虚线 + 胶囊标题
     "feast": dict(radius=12, h_weight=800, h_border=False, letter=0.25, code_radius=10, code_header=False),
 })
 
@@ -255,7 +255,7 @@ def _patch_minimal(c):
 
 
 def _patch_biz(c):
-    """卷宗（商务）：实心标题块 + 虚线分节 + 深色表头"""
+    """公文（商务）：实心标题块 + 虚线分节 + 深色表头"""
     ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
     return {
         "h1": {"text_align": "left", "color": ink, "letter_spacing": "0.06em",
@@ -359,7 +359,7 @@ def _patch_night(c):
 
 
 def _patch_feast(c):
-    """庙会（节庆）：暖米底 + 胶囊标题 + 虚线圆角 + 实心首标题"""
+    """节庆：暖米底 + 胶囊标题 + 虚线圆角 + 实心首标题"""
     ink, accent, accent2 = c["ink"], c["accent"], c["accent2"]
     return {
         "h1": {"background": accent, "color": "#FFFFFF", "text_align": "center",
@@ -425,10 +425,10 @@ FAMILIES = {
 # 目的：让「换族」不只是换颜色，而是换结构。对应关系取自各族的性格：
 #   stamp  钢印 —— cardflow 卡片流：粗野风配硬边分块，每节独立成卡
 #   minimal 素页 —— rhythm 图文节奏：极简不装饰，只靠留白制造呼吸
-#   biz    卷宗 —— outline 目录导航：商务长文最需要结构感与目录
+#   biz    公文 —— outline 目录导航：商务长文最需要结构感与目录
 #   letter 信笺 —— magazine 杂志分栏：衬线 + 双栏，最像纸媒内页
 #   night  夜航 —— cardflow 卡片流：深底上用浅色卡片分块，层次最清楚
-#   feast  庙会 —— rhythm 图文节奏：节庆感靠标题强调条 + 宽松间距
+#   feast  节庆 —— rhythm 图文节奏：节庆感靠标题强调条 + 宽松间距
 FAMILY_LAYOUT = {
     "stamp": "cardflow",
     "minimal": "rhythm",

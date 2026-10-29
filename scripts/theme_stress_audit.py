@@ -31,7 +31,11 @@ sys.path.insert(0, str(BASE))
 from core.preprocessor import preprocess  # noqa: E402
 from core.format_engine import convert_markdown_to_wechat_html  # noqa: E402
 
-FIXTURE = BASE / "tests" / "fixtures" / "txt-format-lab.txt"
+# 夹具实际位置在 scripts/fixtures/（2026-10-29 修正：原路径指向 tests/fixtures，
+# 该目录并不存在 → `python scripts/theme_stress_audit.py` 一跑就 FileNotFoundError）
+FIXTURE = BASE / "scripts" / "fixtures" / "txt-format-lab.txt"
+if not FIXTURE.exists():  # 兼容历史位置
+    FIXTURE = BASE / "tests" / "fixtures" / "txt-format-lab.txt"
 OUT = BASE / "output" / "stress_audit"
 THEMES = BASE / "public" / "themes"
 
@@ -555,13 +559,22 @@ def audit_render(raw: str, theme_ids: list[str]) -> dict:
             "contrast_code": round(contrast(
                 (st.get("pre_code") or {}).get("color", ink),
                 (st.get("pre") or {}).get("background", bg)), 2),
+            # 移动端可读性（2026-10-29）：色块标题必须左对齐、正文必须可断行。
+            # 背景：102/164 套原先把 h1 写成居中，18 字标题在 375px 下 101 套折成两行，
+            # 居中折行在手机上呈锯齿状；长 URL 会横向撑破版面（微信无法横向滚动）。
+            "heading_center_in_banner": (
+                len(re.findall(r"<h[1-6]\s[^>]*text-align:center", html))
+                if (st.get("h1") or {}).get("background") or (st.get("h1") or {}).get("background_color")
+                else 0),
+            "text_wrap_ok": "word-break:break-word" in html,
         }
         # verdict：标题文字渲染率 ≥0.9（兼容「序号徽标」类主题把 h2 拆成 section+span）、
-        # 正文/代码块对比度达标、关键结构（表格/代码块）存在
+        # 正文/代码块对比度达标、关键结构（表格/代码块）存在、色块标题不居中、正文可断行
         rec["verdict"] = (
             "PASS" if (rec["heading_rate"] >= 0.9 and rec["p"] >= 10
                        and rec["table"] >= 1 and rec["pre"] >= 1
-                       and rec["contrast_ink_bg"] >= 4.5 and rec["contrast_code"] >= 4.5)
+                       and rec["contrast_ink_bg"] >= 4.5 and rec["contrast_code"] >= 4.5
+                       and rec["heading_center_in_banner"] == 0 and rec["text_wrap_ok"])
             else "FAIL")
         results.append(rec)
     return {"count": len(results), "pass": sum(1 for r in results if r.get("verdict") == "PASS"),

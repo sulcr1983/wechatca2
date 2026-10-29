@@ -177,11 +177,80 @@ function writeZip(zipPath, entries) {
 }
 
 /* ── 主题索引 ─────────────────────────────────────────────────── */
-const FAMILIES = ['biz', 'feast', 'letter', 'minimal', 'night', 'stamp', 'dusk', 'frost'];
+const FAMILIES = ['biz', 'feast', 'letter', 'minimal', 'night', 'stamp', 'dusk'];
 
 function familyOf(id) {
   const m = /^su-([a-z]+)-/.exec(id);
   return m && FAMILIES.includes(m[1]) ? m[1] : '';
+}
+
+/* ── 名字里的颜色 / 场景 → 可搜索标签 ──────────────────────────────────────
+   为什么需要：色名是「竹青 / 朱砂 / 麦金 / 粉黛」这类意象词，用户按「绿 / 红 / 金 /
+   粉」搜不到；族名也不等于用途。主题名保持不变（好看），另外挂一层标签兜住搜索。 */
+const HUE_STOPS = [[16, '红'], [42, '橙'], [66, '黄'], [160, '绿'],
+                   [200, '青'], [255, '蓝'], [292, '紫'], [336, '粉'], [361, '红']];
+
+function hexToHsl(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2, d = max - min;
+  if (!d) return { h: 0, s: 0, l };
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0));
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return { h: h * 60, s, l };
+}
+
+function colorTagOf(hex) {
+  const hsl = hexToHsl(hex);
+  if (!hsl) return [];
+  const out = [];
+  if (hsl.s < 0.1) out.push(hsl.l > 0.7 ? '白' : hsl.l < 0.3 ? '黑' : '灰');
+  else {
+    out.push(HUE_STOPS.find(([limit]) => hsl.h < limit)[1]);
+    if (hsl.s < 0.28) out.push('灰');
+  }
+  return out;
+}
+
+// 族 → 用途标签（用户真会用来描述文章的词）
+const FAMILY_TAGS = {
+  biz: ['商务', '周报', '复盘', '方案', '汇报', '正式', '公文'],
+  letter: ['散文', '随笔', '读书', '文艺', '书信', '情感'],
+  minimal: ['极简', '观点', '清单', '留白', '简约', '干净'],
+  night: ['技术', '科技', '前沿', '暗色', '暗黑', '深色'],
+  feast: ['节庆', '活动', '节日', '喜事', '热闹', '暖色'],
+  stamp: ['态度', '强对比', '海报', '粗野', '醒目'],
+  dusk: ['行业', '观察', '分析', '深色', '首屏', '沉稳'],
+};
+
+function tagsFor(entry, family) {
+  const tags = new Set();
+  colorTagOf(entry.accent).forEach((t) => tags.add(t));
+  const bg = colorTagOf(entry.background);
+  // 底色只取明暗语义：白/黑/灰 比色相更有用
+  if (bg.includes('白')) tags.add('浅色');
+  if (bg.includes('黑')) { tags.add('深色'); tags.add('暗色'); }
+  (FAMILY_TAGS[family] || []).forEach((t) => tags.add(t));
+  // 描述里的「适合 …」本身就是最准的用途标签
+  const m = /适合([^。]{2,60})/.exec(entry.desc || '');
+  if (m) m[1].split(/[、，,；;与和]/).forEach((w) => {
+    const w2 = w.trim().replace(/等$/, '');
+    if (w2.length >= 2 && w2.length <= 8) tags.add(w2);
+  });
+  return [...tags];
+}
+
+function loadCuration() {
+  const p = path.join(PWA, 'theme-curation.json');
+  if (!fs.existsSync(p)) return { featured: [], order: [] };
+  const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+  return { featured: d.featured || [], order: d.order || [] };
 }
 
 function buildThemeIndex() {
@@ -198,18 +267,30 @@ function buildThemeIndex() {
       throw new Error(`主题 JSON 解析失败：${f} — ${e.message}`);
     }
     const c = theme.colors || {};
-    index.push({
+    const family = familyOf(id);
+    const entry = {
       id,
       name: theme.name || id,
       desc: theme.description || '',
       primary: c.primary || '#191713',
       accent: c.accent || '#AF3E2B',
       background: c.background || '#FFFFFF',
-      family: familyOf(id),
-    });
+      family,
+    };
+    entry.tags = tagsFor(entry, family);
+    index.push(entry);
   }
 
-  index.sort((a, b) => a.id.localeCompare(b.id));
+  /* 排序 = 编辑策展顺序（pwa/theme-curation.json）
+     featured 12 套排最前（跨场景覆盖的「先看这几套」），其余按策展 order；
+     不在 order 里的（新增主题还没策展）按 id 兜底排最后，不会消失。 */
+  const { featured, order } = loadCuration();
+  const featPos = new Map(featured.map((id, i) => [id, i]));
+  const orderPos = new Map(order.map((id, i) => [id, i + featured.length]));
+  const rank = (t) => (featPos.has(t.id) ? featPos.get(t.id)
+    : (orderPos.has(t.id) ? orderPos.get(t.id) : 1e6));
+  index.sort((a, b) => (rank(a) - rank(b)) || a.id.localeCompare(b.id));
+  index.forEach((t) => { t.featured = featPos.has(t.id); });
   return index;
 }
 
