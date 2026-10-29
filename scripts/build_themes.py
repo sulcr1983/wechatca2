@@ -425,14 +425,16 @@ FAMILIES = {
 # 目的：让「换族」不只是换颜色，而是换结构。对应关系取自各族的性格：
 #   stamp  钢印 —— cardflow 卡片流：粗野风配硬边分块，每节独立成卡
 #   minimal 素页 —— rhythm 图文节奏：极简不装饰，只靠留白制造呼吸
-#   biz    公文 —— outline 目录导航：商务长文最需要结构感与目录
+#   biz    公文 —— 不给默认版式：2026-10-29 用户反馈「默认就自动加目录」，
+#                   商务稿大多不需要目录，目录该由用户主动选（版式条点「目录导航」）
 #   letter 信笺 —— magazine 杂志分栏：衬线 + 双栏，最像纸媒内页
 #   night  夜航 —— cardflow 卡片流：深底上用浅色卡片分块，层次最清楚
 #   feast  节庆 —— rhythm 图文节奏：节庆感靠标题强调条 + 宽松间距
+# ⚠️ 这里不要给 biz 加回 "outline"：主题自带的版式用户无法在「默认」态下关掉，
+#    会变成“选着默认却出目录”的假象（见 docs/update-handoff.md 与 pwa/src/app.js layoutOf）。
 FAMILY_LAYOUT = {
     "stamp": "cardflow",
     "minimal": "rhythm",
-    "biz": "outline",
     "letter": "magazine",
     "night": "cardflow",
     "feast": "rhythm",

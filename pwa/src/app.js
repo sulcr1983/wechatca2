@@ -206,7 +206,11 @@ async function loadThemeJson(id) {
   if (id === CUSTOM_ID) {
     const base = themeJsonCache.get(customBase) || await loadThemeJson(customBase);
     const out = applyCustomColors(JSON.parse(base));
+    // 空字符串 = 用户明确选了「默认」→ 必须把继承来的 layout 删掉。
+    // 只写 if (customLayout) 的话，选「默认」时底主题自带的版式（如 outline 目录）会残留，
+    // 出现「UI 选着默认、预览却还在出目录」的矛盾。
     if (customLayout) out.layout = customLayout;
+    else delete out.layout;
     if (customBlocks && Object.values(customBlocks).some(Boolean)) out.blocks = customBlocks;
     return JSON.stringify(out);
   }
@@ -423,7 +427,7 @@ function themeMeta(id) {
     return { id: CUSTOM_ID, name: '自定义配色',
              background: c ? c.bg : base.background, accent: c ? c.accent : base.accent,
              primary: c ? c.text : base.primary,
-             layout: customLayout || base.layout || '',
+             layout: customLayout || '',
              blocks: customBlocks || {} };
   }
   const t = byId.get(id);

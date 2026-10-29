@@ -217,16 +217,16 @@ const FAMILY_TAGS = {
   dusk: ['行业', '观察', '分析', '深色', '首屏', '沉稳'],
 };
 
-/* 旧名别名：2026-10-29 把 6 套沿用第三方品牌名的主题改成自研名（id 与版式都没动）。
-   改名的代价是「老用户按记忆里的名字搜，一条都搜不到」——看起来就像主题丢了。
-   这里把旧名挂进可搜索字段，搜 Monocle / Vogue / 字节 仍能命中现名。 */
+/* 别名索引：主名之外还应该被搜到的词。
+   2026-10-29 这天这批名字被改过一次又改回来（雅集·墨绿 → Monocle·生活 等），
+   凡是短暂出现在界面上的名字都留一路，用户记住哪个都能搜到。 */
 const LEGACY_ALIAS = {
-  monocle: ['Monocle', '生活'],
-  vogue: ['Vogue', '时尚杂志'],
-  github: ['GitHub'],
-  sspai: ['少数派'],
-  bytedance: ['字节蓝', '字节跳动', '飞书'],
-  'wechat-native': ['微信原生'],
+  monocle: ['Monocle', '生活', '雅集', '墨绿', '城市文化'],
+  vogue: ['Vogue', '时尚杂志', '风尚', '玄黑', '时装'],
+  github: ['GitHub', '极客', '钴蓝', '代码', '开发者'],
+  sspai: ['少数派', '效率', '朱红', '数码'],
+  bytedance: ['字节蓝', '字节跳动', '飞书', '科技', '天蓝'],
+  'wechat-native': ['微信原生', '原生', '青绿', '公众号'],
 };
 
 /* 色调词 → 语义色。
@@ -305,6 +305,10 @@ function buildThemeIndex() {
       accent: c.accent || '#AF3E2B',
       background: c.background || '#FFFFFF',
       family,
+      // 主题自带的版式（rhythm/cardflow/magazine/hero/card/timeline）。
+      // 必须带进索引：抽屉的「版式」条读的是这份索引，缺字段就会把什么都显示成
+      // 「默认」——2026-10-29 的「选着默认却自动出目录」就是这么来的（公文族自带 outline）。
+      layout: theme.layout || '',
     };
     entry.tags = tagsFor(entry, family);
     index.push(entry);
