@@ -74,6 +74,7 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
     ("ai_plan",        [str(NODE), "scripts/ai_plan_unit.mjs"],   "AI 排版结构单测 20", "in-process"),
     ("theme_spec",     [PY, "scripts/audit_theme_spec.py"],       "模板配色审计（对照归藏规范）", "in-process"),
+    ("theme_contrast", [PY, "scripts/theme_contrast_audit.py"],   "标题/正文对比度 164 套", "in-process"),
     ("layout_compat",  [PY, "scripts/pwa_layout_compat_test.py"], "版式兼容矩阵 100", "in-process"),
     ("update_panel",   [PY, "scripts/pwa_update_panel_test.py"],
                        "更新面板（检查更新 / 一键更新 / 本次更新条数 / 反馈入口）11", "local"),

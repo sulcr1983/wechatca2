@@ -251,7 +251,7 @@ def main() -> int:
                     if not fam_visual:
                         no_visual.append(fam)
 
-            check("八族全部色调可点可切换", applied == sum(FAMILIES.values()),
+            check("七族全部色调可点可切换", applied == sum(FAMILIES.values()),
                   f"{applied}/{sum(FAMILIES.values())}")
 
             # ③ 全部 164 套：搜索逐个应用，确认没有点不动的模板

@@ -57,11 +57,19 @@ def start_server(directory):
     return srv, srv.server_address[1]
 
 
-def bump_probe(version="1.8.1"):
-    """模拟一次发布：版本号 +1、BUILD_ID 改写、更新记录里补一条新版本。"""
+def bump_probe(version: str | None = None):
+    """模拟一次发布：版本号 patch +1、BUILD_ID 改写、更新记录里补一条新版本。
+
+    ⚠️ 版本号**必须从当前 version.json 现算**，不能写死。第一版写死成 "1.8.1"，
+    真实版本涨到 1.8.3 之后这段就变成了「模拟降级」：探针的 1.8.1 比运行中的 1.8.3
+    还旧，`本次更新` 按 since=1.8.3 去数新条目自然是 0 条 → 两条断言假失败。
+    """
     ver_path = PROBE / "version.json"
     ver = json.loads(ver_path.read_text(encoding="utf-8"))
     old_version = ver.get("version", "")
+    if version is None:
+        m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", old_version)
+        version = f"{m.group(1)}.{m.group(2)}.{int(m.group(3)) + 1}" if m else "9.9.9"
     ver["version"] = version
     ver["build"] = int(ver.get("build") or 0) + 1
     ver_path.write_text(json.dumps(ver, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -145,8 +153,9 @@ def main():
             page.wait_for_timeout(300)
 
             # ── 3. 模拟服务器发版 → 再查一次 → 已就绪 ───────────
-            old_version = bump_probe("1.8.1")
-            print(f"  探针已改写为 1.8.1（原 {old_version}），重新打开面板…")
+            old_version = bump_probe()
+            new_version = json.loads((PROBE / "version.json").read_text(encoding="utf-8"))["version"]
+            print(f"  探针已改写为 {new_version}（原 {old_version}），重新打开面板…")
 
             t0 = page.evaluate("() => performance.timeOrigin")
             page.click("#btn-update")

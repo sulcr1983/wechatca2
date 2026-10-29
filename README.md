@@ -218,7 +218,7 @@
 | 数据技术 | su-gauges / su-hardedge | — | 表头反白 / 粗黑边 |
 | 明快活泼 | su-confetti / su-macaron / su-stickynote / su-picturebook | — | 多色点缀 + 大圆角 |
 | 特殊节奏 | su-ribbon（色带）/ su-countdown（大序号）/ su-deepwater（暗色首尾屏）/ su-milestone（时间线） | `hero` / `timeline` | 单一手法做满 |
-| 六族·十二色（72） | su-stamp-*（钢印）/ su-minimal-*（素页）/ su-biz-*（卷宗）/ su-letter-*（信笺）/ su-night-*（夜航）/ su-feast-*（庙会） | — | 新粗野 / 极简 / 商务 / 文艺 / 科技 / 节庆，每族 12 色调 |
+| 六族·十二色（72） | su-stamp-*（钢印）/ su-minimal-*（素页）/ su-biz-*（公文）/ su-letter-*（信笺）/ su-night-*（夜航）/ su-feast-*（节庆） | — | 新粗野 / 极简 / 商务 / 文艺 / 科技 / 节庆，每族 12 色调 |
 
 ---
 
@@ -330,46 +330,39 @@ PEXELS_API_KEY=your-pexels-key
 
 ## 🧪 测试矩阵
 
-| 套件 | 项数 | 覆盖 |
-|:-----|:----:|:-----|
-| `tests/test_e2e.py` | **74** ✅ | 端到端（无需起服务，Flask test_client） |
-| `tests/test_integration.py` | **35** ✅ | 前后端联动（需先起服务） |
-| `tests/test_api_e2e.py` | **29** ✅ | 后端 API 全端点（自起/自停服务；⚠️ blcaptain 子项目缺失时 28+1 SKIP） |
-| `tests/test_headed_full_e2e.py` | **33** ✅ | 前端有头浏览器全按钮（双页，0 控制台报错） |
-| `tests/test_headed_userflow.py` | **7** ✅ | 有头用户主流程 |
-| `tests/test_headed_wechat_copy.py` | **12** ✅ | 复制富文本 / 推送 / 封面旧资产 |
-| `tests/test_headed_pm_audit.py` | **69/74** | 产品经理视角有头全流程审计（16 类场景语料 + 逐元素覆盖；失败项即审计发现的问题，退出码 1） |
-| `scripts/pwa_cover_test.py` | **16** ✅ | PWA 封面有头（12 风格 / 3 尺寸 / 上传 / Wikimedia 搜图 / 断网生成） |
-| `scripts/pwa_nine_test.py` | **15** ✅ | PWA 九宫格切图（真下载 ZIP 解包读像素：居中裁剪 / 顺序 / 间距 / 移动端） |
-| `scripts/pwa_export_test.py` | **12** ✅ | PWA 导出（长图 PNG / HTML / Markdown / 图片 ZIP；坏图跳过写明原因） |
-| `scripts/pwa_theme_drawer_test.py` | **43** ✅ | 模板库全量审计（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端） |
-| `scripts/pwa_ai_format_test.py` | **27** ✅ | AI 排版（门控 / 四种降级兜底 / 六项结构 / 撤销，全 mock） |
-| `scripts/pwa_ai_preset_test.py` | **21** ✅ | AI 平台预设（4 平台下拉 + 自定义 / 选中自动填地址与模型 / 只填 Key 即连通 / 老配置回显） |
-| `scripts/pwa_release_card_test.py` | **9** ✅ | 更新「发布小票」（版本徽标 `v版本 · b构建号` / 亮点分类 / 查看全部，线上或本地 dist） |
-| `scripts/pwa_auto_update_test.py` | **8** ✅ | 静默自动更新（本地 dist 真 SW：探针发版 → 自动应用 + 右下角「已升级」小提示） |
-| **合计** | **341** | **全绿** |
+> **用例数这里不写**（写死必然漂移）：实时数字与最近一次结果见 [`STATE.md`](STATE.md)
+> —— 由 `scripts/gen_state.py` 从门禁日志生成。本表只说明「有哪几道门、各挡住什么」。
 
-> 口径：341 = 上表 14 个门禁套件合计（不含 `test_headed_pm_audit.py` 审计套件与离线/增量/传输量等探针脚本）；专项全清单见 [AGENTS.md](AGENTS.md) §4。
+| 门禁 / 套件 | 挡住什么 |
+|:-----|:-----|
+| `scripts/theme_contrast_audit.py` | 164 套主题的标题/正文对比度（WCAG AA：标题 ≥3.0、正文 ≥4.5） |
+| `scripts/pwa_theme_drawer_test.py` | 模板库：7 族 × 82 色调、164 套逐个应用、版式×色调二维、移动端 |
+| `scripts/pwa_layout_compat_test.py` | 版式兼容矩阵（10 夹具 × 5 版式 × 无 AI / AI 两态） |
+| `scripts/pwa_ai_format_test.py` | AI 排版门控与四种降级兜底（全 mock，不联网） |
+| `scripts/pwa_ai_preset_test.py` | AI 平台预设（地址/模型自动填、老配置回显） |
+| `scripts/pwa_export_test.py` | 导出四件套（长图 PNG / HTML / Markdown / 图片 ZIP） |
+| `scripts/pwa_nine_test.py` | 九宫格切图（真解包读像素） |
+| `scripts/pwa_cover_test.py` | 封面 12 风格 × 3 尺寸 / 上传 / 搜图 / 断网生成 |
+| `scripts/pwa_update_panel_test.py` | 更新面板：检查更新 → 一键重启 → 本次更新条数 → 反馈入口 |
+| `scripts/pwa_release_card_test.py` | 更新「发布小票」 |
+| `scripts/pwa_auto_update_test.py` | 静默自动更新（真 Service Worker + 探针发版） |
+| `scripts/pwa_headed_full_e2e.py` | 有头全量 E2E：164 套 × 3 类夹具 + 8 版式 + 段落开关 + 按钮 + AI（mock） |
+| `scripts/pwa_online_e2e.py` | 线上真环境全量 E2E |
+| `scripts/doc_sync_check.py` | 文档与代码一致（版本号/族名/主题套数） |
 
 ```bash
-# 快速自检（无需起服务）
-python tests/test_e2e.py
-
-# 一键门禁跑批（按序跑 14 个门禁套件，失败即停；--quick 约 100s，--full 含线上）
+# 一键门禁（分层执行、失败即停；--quick 最快核心，--online 含线上，--ui 有头，--full 扩展）
 python scripts/run_gates.py
 
-# 有头全按钮（浏览器用系统 Chrome，脚本自起/自停服务）
-python tests/test_headed_full_e2e.py
+# 只检查主题配色能不能看清
+.venv/Scripts/python.exe scripts/theme_contrast_audit.py
 
-# 产品经理视角全流程审计（输出问题清单 + 自包含 HTML 报告）
-python tests/test_headed_pm_audit.py
+# 有头全量 E2E（默认打本地 dist，加 --url 打线上）
+.venv/Scripts/python.exe scripts/pwa_headed_full_e2e.py --url https://supersu.ccwu.cc/
 ```
 
-> `test_headed_pm_audit.py` 是**审计套件**（不是门禁）：它把「发现的问题」当作产出，
-> 有问题就退出码 1，结果落 `output/pm_audit/audit.json` + `output/pm_audit/report.html`。
-
-> 有头套件刻意不点 3 个有真实副作用的按钮——`确认推送`（真打微信接口）、`保存AI配置`、`测试连接`（会覆盖配置）；其后端路径由 `test_api_e2e.py` 覆盖。
-> ⚠️ `test_e2e.py` 会读写 `data/*.json`，但已在测试前后做快照 / 还原；仍建议跑测前备份真实配置。
+> 有头套件刻意不点 3 个有真实副作用的按钮——`确认推送`（真打微信接口）、`保存AI配置`、
+> `测试连接`（会覆盖配置）；相关链路由 `pwa_online_e2e.py` 覆盖。
 
 ---
 
@@ -389,21 +382,11 @@ python tests/test_headed_pm_audit.py
 
 ```
 wechatca2/
-├── app.py                      # Flask 主应用（28 条路由）——本地弃用版
-├── core/                       # 两版共用引擎（构建时拷进 pwa/dist/py/）
-│   ├── format_engine.py        # 排版引擎（164 主题 Markdown → 微信 HTML）
+├── core/                       # 两版共用引擎（只有这 4 个模块；构建时拷进 pwa/dist/py/）
+│   ├── format_engine.py        # 排版引擎（164 主题 Markdown → 微信内联 HTML + 标题可读性护栏）
 │   ├── preprocessor.py         # 纯文本 → Markdown（正则规则，零延迟）
-│   ├── image_search.py         # 联网搜图（Pexels 中文优先 / Wikimedia 兜底 + 查询缓存）
-│   ├── guizang_renderer.py     # 归藏封面渲染器（Playwright HTML→PNG，标题自适应）
-│   ├── blcaptain_bridge.py     # BLCaptain 封面引擎适配层（Node.js）
-│   ├── browser_utils.py        # 浏览器回退链（系统 Chrome → Edge）
-│   ├── ai_client.py            # 多平台 LLM 客户端
-│   ├── image_gen.py            # AI 封面图生成（Pillow fallback）
-│   ├── wechat_publisher.py     # 微信公众号草稿推送
-│   ├── token_manager.py        # 微信 Access Token 管理
-│   └── crypto_utils.py         # API Key 加密存储（本地版）
-├── templates/
-│   └── index.html              # 单页前端 SPA（公众号 + 小红书双页面 + 内置教程）——仅本地弃用版
+│   ├── browser_utils.py        # 浏览器回退链（系统 Chrome → Edge → bundled）
+│   └── pwa_test_utils.py       # 有头测试共用工具
 ├── public/
 │   ├── themes/*.json           # 164 套排版主题 JSON 配置
 │   ├── theme-thumbs/           # 主题缩略图（生成物）
@@ -421,13 +404,15 @@ wechatca2/
 │   ├── public/                 # sw.js / changelog.json（生成物）/ manifest / icons / fonts / runtime/
 │   ├── scripts/                # build.mjs / deploy.sh / gen_changelog.py / smoke.py …
 │   └── dist/                   # 构建产物（gitignore，勿手改）
-├── scripts/                    # 工具脚本（主题生成/缩略图/UX 验收/pwa_*_test.py 15 个）
-├── tests/                      # E2E + 集成 + 有头测试（6 个门禁套件 190 项）
+├── scripts/                    # 工具脚本 59 个：主题生成 / 缩略图 / 门禁 run_gates / pwa_*_test / 各类 audit
+├── tests/fixtures/             # 排版夹具（测试语料；原 tests/ 下的 Flask 套件已随本地版封存）
 ├── files/TODO.md               # 任务清单（已完成 / 待办 / 未完成需求）
-├── docs/
+├── docs/                       # 方案 / 规范 / 交接 / 审计报告
 │   ├── screenshots/            # 📷 README 配图
 │   ├── ux-audit/               # UX 诊断报告与验收截图
+│   ├── archive/                # 早期任务结项记录
 │   └── prototypes/             # 早期原型（已废弃）
+├── ARCHIVE.md                  # 本地 Flask 版（tag flask-v1-archive-2026-10-28）取回说明
 ├── AGENTS.md                   # 项目规则与工程纪律（Agent 必读，工程唯一真源）
 ├── HANDOFF.md                  # 交接文档（§0 最新快照优先）
 ├── CLOSURE.md                  # 任务收尾记录
@@ -444,7 +429,7 @@ wechatca2/
 | [docs/overview.md](docs/overview.md) | **先看这份**：一页看懂模块地图、三条数据流、主题系统、关键决策 |
 | [docs/runbook.md](docs/runbook.md) | 运行手册：装/起/停/清、数据在哪、12 条常见故障的处置 |
 | [docs/api-reference.md](docs/api-reference.md) | 28 个路由一览 + 三个高频接口的参数契约 |
-| [docs/testing.md](docs/testing.md) | 测试跑法：Flask 6 套件基线 + PWA 15 个专项脚本（权威计数以 [AGENTS.md](AGENTS.md) §4 为准） |
+| [docs/testing.md](docs/testing.md) | 测试跑法：`run_gates.py` 分层门禁、各道门挡什么、有头 E2E 的取舍 |
 | [docs/project-conventions.md](docs/project-conventions.md) | 产出物规范：三类东西三个家、Git 约定、清理计划 |
 | [docs/audit-playbook.md](docs/audit-playbook.md) | 36 项审计清单，每项含命令 / 判定标准 / 处置方式 |
 | [docs/pwa-build-plan.md](docs/pwa-build-plan.md) | **PWA 施工图（历史文档，D1–D10 已全部完成）**：范围、10 条定稿决策、文件级任务、验收表、部署 |

@@ -124,6 +124,7 @@ python scripts/release.py        # ★ **一键发版**（10 步串联）：前�
 python scripts/gen_state.py      # 生成 **STATE.md**（单一状态源）：版本/构建号/git/线上版本/测试结果，
                                   # 全部从真实数据源采集；--check 只校验是否过期
 python scripts/doc_sync_check.py # 文档一致性校验：活文档禁手写具体数字（须指向 STATE.md）+ 历史快照须带过期声明
+                                  # + 族名/主题套数必须与代码一致（退役族名「卷宗/庙会」当现状写会报错）
 python scripts/install_git_hooks.py  # 安装 pre-push 钩子：推送前查换行符漂移 / 构建产物误入 / 文档不一致
                                   # （不查「工作区脏」，那条交给 deploy.sh 与 preflight --deploy）
 python scripts/run_gates.py      # 一键门禁（**PWA only**），分层执行、失败即停：
@@ -158,7 +159,7 @@ python scripts/pwa_payload_probe.py    # 首次/二次/离线 传输量实测（
 python scripts/pwa_timeline_probe.py   # 首访里程碑（FCP/主题/引擎就绪）
 python scripts/pwa_light_preview_test.py  # 轻量即时预览 6/6（实测首访约 2.5s 出近似排版；门限 15s）
 python scripts/pwa_template_ux_test.py    # 模板库 5/5（缩略图/不遮挡/连续对比/版本/底栏移除）
-python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 59/59（8 族 83 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端 + 版式层 8 选项 + 段落样式 3 开关）
+python scripts/pwa_theme_drawer_test.py   # 模板库全量审计 59/59（7 族 82 色调 + 164 套逐个应用 + 纯文字换色可见 + 版式×色调二维 + 移动端 + 版式层 8 选项 + 段落样式 3 开关）
 python scripts/pwa_headed_full_e2e.py     # ★ 有头全量 E2E **51/51**：
                                           # A 逐套模板 164 套 × 3 类夹具（短/标准/复杂）可渲染/不丢字/标签配平；
                                           # B 8 种版式功能；C 段落样式三开关；D 全部按钮；E AI 态（mock）。
@@ -378,7 +379,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
 ## 9. 已知注意事项
 
 - **PWA 封面**（2026-10-19）：纯前端 `modern-screenshot` 生成，不依赖 Flask/Playwright；模板 10 套来自 AGPL-3.0 上游（已在 `THIRD_PARTY_NOTICES.md` 声明），构建时去掉 Google Fonts 并把示例文案替换为占位符。**联网搜图只剩 Pexels（BYOK）**：Wikimedia 国内必超时、Pixabay 完全不支持中文关键词，两者均已于 2026-10-27 移除；没填 Key 时必须立刻给出配置指引，不得静默或空转等待。
-- 封面渲染统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
+- 封面渲染（**本地版**，该模块已随 2026-10-28 归档删除；PWA 见上条）统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
 - ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
 - `scripts/start_flask.py` / `launcher.py` 旧入口**已删除**（2026-10 审计确认全仓零引用后移除）；真实入口是 `app.py` / `start-app.bat`
@@ -425,7 +426,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   1. **标签泄漏**：`style_pre` 原先把 `<code class="language-xxx">` 开标签一起喂给 `_basic_syntax_highlight`，正则高亮把 `class` 当关键字、`"language-xxx"` 当字符串包成 `<span>`，标签被拆碎；随后 `<code[^>]*>` 替换又吞掉一个 `<span`，导致**每个带语言标记的代码块开头都多显示一行肉眼可见的 `class="language-xxx">`**。现改为先摘出 code 开标签、高亮完再补回。
   2. **f-string 碎片**：`_basic_syntax_highlight` 各步是**串行正则**，后一步会命中前一步插入的 `style="color:#xxx"` 属性值（字符串规则把属性值当字符串再包一层），产出 `<span style=<span style="color:#ce9178">"color:#ce9178"</span>>f…`，**任何含 f-string 的代码都会多出 `"color:#ce9178"` 碎片**。现每步产出的片段存入 `\x00H{i}\x00` 占位符，末尾统一还原。
   3. **围栏被截断**：`preprocess` 的「4 空格缩进 → 自动开代码块」规则不区分是否已在用户手写的 ```` ``` ```` 围栏内，导致 **Python 代码的缩进行被当新代码块、原围栏提前闭合、代码断成两半**（`def` 与 `return` 被拆开）。现新增 `in_fence` 状态跟踪用户围栏，围栏内一律原样保留（**含缩进**）；无围栏的纯缩进行仍照旧自动转代码块。
-  - 验证：92 套主题全量渲染 0 标签不平衡；含缩进/f-string/注释/decorator 的 Python 代码块肉眼可见内容无碎片
+  - 验证：当时 92 套主题全量渲染 0 标签不平衡；含缩进/f-string/注释/decorator 的 Python 代码块肉眼可见内容无碎片
 - **亮底代码块调色板（2026-09-25）**：语法高亮原为固定深底配色，37 套亮底主题（`pre` 背景为浅色）的关键字对比度仅约 2.2:1、发灰读不清。新增 `_SYNTAX_LIGHT` 调色板 + `_is_light_bg()`，按主题 `pre` 背景明暗自动切换（亮底走 VS Code Light+ 系；解析不了的背景按深色处理，不改变未知主题外观）
 - **hero 卡片卡面（2026-09-25）**：`_wrap_hero_sections` 的 cards 分支原先**写死 `background-color:#ffffff`**，而暗底主题（`su-deepwater`）的正文是浅色 → 浅字白底不可读。改为按页面底色向墨色靠 7% 派生卡面（`_mix_hex(bg, ink, 0.07)`）：暗底得到亮一档的卡、亮底得到暗一档的卡，一个公式两个方向都成立。实测 su-deepwater 卡面 `#0E1726` → `#1C2534`
 - **主题体系（2026-09-25 重构）**：`public/themes/` 原有一批（47 套）设计主题是早期从外部仓库机械适配的，命名 / 描述 / 样式数值沿用外部原值，而该仓库**无 LICENSE = 保留所有权利**，本项目开源即分发存在授权风险。现已整体废弃重写为 `su-*` 原创：`public/themes/` 现为 **164 套 = 45 套早期原创 + 119 套 su-\* 原创**（47 初代 + 72 六族，见下条），无 `source` 字段、无旧前缀。
@@ -435,7 +436,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - **色调可见化（2026-10-24）**：素页/卷宗/信笺三族的 h1 增加 2px 本族强调色下划线（其余族本已通过阴影/字色/底色体现色调）。重生成仅 36 套变化、只动 `styles.h1.border_bottom` / `styles.h1.padding_bottom`；写文件必须显式 `newline="\n"`，否则 Windows CRLF 会让 119 套全部变成假改动。
 - **六族 · 十二色新增（2026-10-13）**：主题 92 → **164 套**，新增 6 套族级风格系统 × 12 色调 = 72 套（钢印·新粗野 / 素页·极简 / 卷宗·商务 / 信笺·文艺 / 夜航·科技 / 庙会·节庆）。
   - **链路**：族级技法补丁与颜色推导都在 `build_themes.py` 的 `FAMILIES` / `FAMILY_TONES`（accent = 色调色相 × 族级饱和·明度基线，HSL 推导；暗底族同表 `dark=True`）；`theme_specs.py` 末尾只声明「族 × 色调」组合与命名/描述。
-  - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
+  - **版权路线（灵感派生，勿改口径）**：品类观感参照 [mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)（TypeZen，**AGPL-3.0 + README 附加非商用条款**）。该许可对本项目「开源分发」的代价是整体 AGPL 化 + 非商用 + 署名，故**不移植其代码**：其模板引擎的 CSS 数值、12 色调命名、文案一律未复制；本批族名（钢印/素页/卷宗/信笺/夜航/庙会；2026-10-29 起 卷宗→公文、庙会→节庆）、色调词（朱砂/柿橙/麦金/竹青/茶青/湖蓝/藏蓝/青莲/紫藤/粉黛/铁灰/栗棕）、色值与描述均为本项目自拟/推导。同 AIWriteX 先例（§12「纯灵感派生」）。
   - **回归锚点**：重跑生成器后既有 47 套 su-* JSON **字节零改动**；164 套全量富样本渲染审计（标签平衡 / 无 None·空 style·拼接残渣）全过；四套件 52/52 · 35/35 · 29/29 · 33/33（0 控制台报错）。
 - **主题命名与排序（2026-10-29）**：用户反馈「模板名字很难找到、有点奇怪」。查出三处：① 族名是文学意象、不说明用途（`卷宗` 生僻、`庙会` 易被读成宗教/集市）；② 45 套早期主题里 6 套沿用第三方品牌名（Monocle / Vogue / GitHub / 少数派 / 字节蓝 / 微信原生）——既有商标面，也最像「奇怪的名字」；③ 色名是 `竹青 / 朱砂 / 麦金 / 粉黛` 这类意象词，按「绿 / 红 / 金 / 粉」搜不到。
   - **改名**：族名 `卷宗 → 公文`、`庙会 → 节庆`（`theme_specs.py` 的 `_FAMILIES`，重跑生成器；只动 name 行，24 套一字不差）；6 套品牌名主题改名（Monocle·生活→**雅集·墨绿** / Vogue·时尚→**风尚·玄黑** / GitHub→**极客·钴蓝** / 少数派→**效率·朱红** / 字节蓝→**科技·天蓝** / 微信原生→**原生·青绿**），描述里的品牌字样一并去掉。**id 不改**（localStorage 收藏、文档、测试都按 id 走）。
@@ -445,9 +446,15 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - **改法**：删掉 `public/themes/*.json` 全部 `layout` 字段 → 164 套都是「默认」，打开即干净正文。`scripts/build_themes.py` 的 `FAMILY_LAYOUT` 置空并写死「禁止加回」注释；`theme["layout"] = …` 三处赋值全删。
   - **配套样式仍保留**：新增 `PRESET_LAYOUT_BY_ID`（15 套：hero 13 / card 1 / timeline 1），只决定要不要预置 `card/hero/timeline` 参数，**不写回 layout** —— 用户主动点「首屏/卡片组/时间线」时仍按主题配色生效（否则会退化成引擎通用样式）。
   - **UI 不再说谎**：`build.mjs` 索引里的 `layout` 现恒为空 → 版式条如实高亮「默认」。历史坑：索引缺该字段时界面显示「默认」而引擎跑着「目录导航」。
-  - **验收**：`output/_probe/default_readability_audit.py` 全量 164 套（不丢字 / 无目录 / 无分栏 / 文字对比度），`layout_flatten_audit.py` 做改前改后 A/B 对照。顺带发现 **14 套标题对比度偏低**（<3.0，多为渐变标题条上的白字，如 aurora/bauhaus/bytedance/sakura/feast 三套）—— **与本次改动无关**（这些主题样式没动），待单独评估是否修。
+  - **验收**：`scripts/theme_contrast_audit.py`（正式门禁，见下条）全量 164 套对比度；`output/_probe/layout_flatten_audit.py` 做改前改后 A/B 对照。顺带发现 **23 套标题对比度偏低**（<3.0，多为渐变标题条上的白字，如 aurora/bauhaus/bytedance/sakura/feast 三套）—— **与清空版式无关**（这些主题样式没动），当晚已单独修掉，见下条。
   - **排序单一真源**：`pwa/theme-curation.json`（`featured` 12 套 + `order` 164 条）→ `pwa/scripts/build.mjs` 的 `buildThemeIndex` 按它排 `themes/index.json`。不在 order 里的新主题按 id 兜底排最后（不会消失）。要调整模板库顺序**只改这个文件**，不碰主题数据。
   - **可搜索标签**：`buildThemeIndex` 给每套算 `tags`（accent 色相 → 红/橙/黄/绿/青/蓝/紫/粉/灰/黑；底色 → 浅色/深色；族 → 商务/周报/随笔/技术…；描述里的「适合 A、B」直接拆词），前端搜索把它和 name/id/desc 一起匹配。实测搜「绿」23 套、「商务」15 套、「周报」13 套。
+- **标题可读性护栏（2026-10-29 晚，用户：「要修」）**：清空默认版式后暴露出 23 套主题的标题对比度 <3.0——白字压在浅绿/浅金/浅青标题条上（`#ffffff` on `#10b981` = 2.54），或浅金/浅粉字压在米白底上（`#C8A062` on `#ffffff` = 2.42）。用户还能在「自定义配色」里自选颜色，逐套改 JSON 补不完，所以兜底放进**引擎**：
+  - `core/format_engine.py` 新增 `_readable_heading_props(props, page_bg)`，在 `inject_inline_styles` 构建 `style_map` 时对 `h1–h6` 生效。规则：① 元素自带 `background`/`background-color` → **保住原字色**，只把不合格的那几个色标压深/提亮（aurora 只改渐变里那一段绿，紫/靛两段不动）；② 调背景要动 >60% 路程（说明本来就不是"标题条"而是浅底）→ 改调字色，**保色相**压深（`#C8A062 → #af8c56`，仍是金色，不会变成纯黑）；③ 都不行才退回白/近黑墨色，并把救不了的底色去掉。
+  - **达标元素原样返回**（`if worst >= 3.0: return props`）→ 150 套产物与改动前**逐字节一致**，这是回归判据（`scripts/theme_render_dump.py` 导 164 套改前/改后 HTML 做 diff（`--diff` 直接列出变化），实测只有 23 套变化）。
+  - ⚠️ **方向别写反**：`_fit_fg` 判据是「底色比字色亮 → 压深字色」。第一版写反了，浅底上的彩字被一路压成 `#111111`，金色/粉色全毁——肉眼一看看不出来是 bug，只有对比前后 HTML 才暴露。
+  - **门禁**：`scripts/theme_contrast_audit.py`（进 `run_gates` 本地层，名字 `theme_contrast`）。它**直接调引擎里同一个 `_readable_heading_props`**，不另写颜色数学——否则测试用一套标准、渲染用另一套，测试全绿用户还是看不清。反向验证：把护栏换成 identity，它必须报出 23 套（实测成立），所以这道门禁不是恒绿摆设。
+- **死代码清理（2026-10-29）**：`core/` 从 12 个模块收到 4 个（`format_engine` / `preprocessor` / `browser_utils` / `pwa_test_utils`）。删掉的 8 个（`ai_client` / `blcaptain_bridge` / `crypto_utils` / `guizang_renderer` / `image_gen` / `image_search` / `token_manager` / `wechat_publisher`，共 1693 行）**只被已归档的本地 Flask 版 `app.py` 调用**：AST 全仓扫描（含 core/ scripts/ pwa/）零 import，`pwa/scripts/build.mjs` 也只拷贝 `format_engine.py` + `preprocessor.py` 进 `dist/py/`。需要取回见 tag `flask-v1-archive-2026-10-28`。**核查方法**：对 core 各模块做 `ast` 的 Import/ImportFrom 扫描（别用 grep 模块名——注释里出现同名也算命中，会误判成「还在用」）。
 - **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
 - **首行 = 文章大标题（2026-10-18 修订）**：`preprocess` 末尾的「首行提升」原实现遇到**已被规则标成 `##` 的首行**会因 `s.startswith('#')` 直接跳过 → 「短标题开头」的文章**全文没有 H1**，预览最大标题只有 h2、层级被压平，识别结构条的「大标题」恒为 0。现规则：首行是普通标题文本 → 直接加 `#`（各非保守模式，沿用原行为）；首行已被规则标为 `##~######` → 升为 `#`（**仅 `auto`/`longform`**；`tutorial` 首行多是「准备工作」这类小节标签，不强升）。例外：① 原文首行本身是手写 Markdown 标题（`## 保留标题`）→ 尊重作者显式层级不动；②「标签：值」行（`联系部门：公关部`）不提升 —— 与 `_looks_like_title`/短行标题检测的既有判定一致。回归：`test_e2e` **74/74**（其中 3 条断言按新行为更新：short_heading / numbered_heading / multi_style_sections）
 - **格式兼容扩展（2026-10-19，方案 B）**：`core/preprocessor.py` 新增一批**确定性**识别，夹具入库 `tests/fixtures/txt-format-lab.txt`（`scripts/theme_stress_audit.py` 断言 34 → 40）。新增：GFM 任务清单 `- [ ]`/`- [x]` → ☐/☑；`NN｜` 章节标记 → `##`（含带冒号的 06/12，此前因「含 `：` 不当标题」而漏）；**无分隔行的竖线表整表规整**（补首尾竖线 + 补表头分隔行——python-markdown 的 tables 扩展要求行首 `|`）；空格/全角空格对齐表 → 管道表；`~~~` 围栏；GFM Alerts `> [!NOTE]` → `> 【提示】`；admonition 别名 `::: tip/note/warning/danger/details` → 复用 `:::summary[中文标签]`；`【提示】【注意】…` → 引用块。**改口径**：`（1）（2）` 不再一律当四级标题（夹具 §04 明确「看起来像列表，但未必是列表」）→ 永不判标题、保持原文行。**刻意不做**：Setext 下划线标题（与既有 `===`/`---` 分隔线行为互斥）、文本清理（pangu/全角，默认关=不做）、公式渲染（只保留原文）。⚠️ 表格类规则必须让表格**自成一块**（生成前补一个空行），否则会与上一行文字并入同一段落、表格不成立（本轮实测踩到并修掉）。
@@ -517,7 +524,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
 - **审计实锤（勿再误判）**：
   - 预览卡 `<br>` ＝ **前端 bug**：`templates/index.html:1490` `join('<br>')` + `:1458/:1472` 用 `textContent` 赋值。**成品 PNG 里没有 `<br>`**，别再当成封面渲染问题。
   - 封面溢出根因 ＝ **模板写死字号**（BLCaptain `template-still-paper-card.html:37` `.sp-display{font-size:76px}`），修复落在**引擎层**；且 `blcaptain-style-skill/` 是 vendored 子项目，须"改源 → 重生成 → 跑自带 .mjs 测试"。
-  - 生成耗时大头 ＝ 联网搜图（`core/image_search.py` timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
+  - 生成耗时大头 ＝ 联网搜图（本地版 `core/image_search.py`，已归档删除，timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
 - **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 164 套主题人工打标签分类 / 非技术用户可用性类验收。
 - **实施纪律**：一次一项 → 改完即验（`scripts/run_gates.py`；UI 改动含 `test_headed_full_e2e` **33/33**）→ 单项 commit → 回 `files/TODO.md` 打勾。验收截图基线见 `docs/ux-audit/shots/`（改前基线入库）；`shots/after/` 是 `ux_verify_p0/p1` 每次运行自动重写的产物，**已 gitignore 不入库**（2026-10-24 清理，省 30MB）。

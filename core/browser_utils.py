@@ -14,8 +14,9 @@
 - 2026-10-18 原顺序是 ("msedge", "chrome")，导致装了 Edge 的机器永远轮不到 Chrome；
   同时启动页 `webbrowser.open()` 走系统默认浏览器，被星愿浏览器（注册表
   `StartMenuInternet\\Chromium` + `UserChoice=ChromiumHTM`）抢占。两处一并改掉。
-- BLCaptain（Node 侧）走另一条链：CHROMIUM_PATH 环境变量，见
-  core/blcaptain_bridge.py，其候选来源是本模块。
+- BLCaptain（Node 侧）走另一条链：CHROMIUM_PATH 环境变量，候选来源是本模块。
+  （注：注入方 `core/blcaptain_bridge.py` 只被已归档的本地 Flask 版调用，2026-10-29 已删除，
+   PWA 封面在浏览器里渲染，不再走 Node。）
 """
 
 import os

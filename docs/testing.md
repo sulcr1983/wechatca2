@@ -1,78 +1,58 @@
-# 测试说明
+# 测试说明（PWA 主产品）
 
-> ⚠️ **范围（2026-10-24 审计补）**：本文的「六套件」覆盖**本地 Flask 版**（该版已弃用）。
-> **PWA 主产品另有 15 个专项脚本**（封面 / 导出 / 九宫格 / 模板库 / AI / 更新 / 离线…），
-> 权威清单与计数以 `AGENTS.md` §4 为准；两版合计门禁 341 项（见 `README.md` 测试矩阵）。
+> 本文只讲**现在怎么测**。本地 Flask 版（`app.py` / `tests/*.py` 六套件）已于 2026-10-28 封存，
+> 那份基线归档在 [`archive/testing-flask-2026-10-24.md`](archive/testing-flask-2026-10-24.md)。
+> **用例数与最近一次结果不写在这里**——见 [`../STATE.md`](../STATE.md)（由 `scripts/gen_state.py` 从门禁日志生成）。
 
-6 套件，190 个断言。四套免预启服务（`test_e2e` 用 test client 不开端口，另三套自起 Flask），两套要你先开 `app.py`。
-
-```bash
-# 环境
-pip install -r requirements.txt
-# 封面渲染走系统 Chrome（缺失回退 Edge），无需 playwright install chromium
-python app.py            # 另开一个终端，http://127.0.0.1:5000
-```
-
-## 六套件
-
-| 套件 | 文件 | 数量 | 有头 | 覆盖 | 耗时 |
-|---|---|---|---|---|---|
-| 端到端 | `tests/test_e2e.py` | 74 | 否 | 页面结构、渲染、复制、主题切换、AI 降级、格式兼容 | ~40s |
-| 集成 | `tests/test_integration.py` | 35 | 否 | 真实前端 DOM 契约（选择器/字体） | ~20s |
-| API 全端点 | `tests/test_api_e2e.py` | 29 | 否 | 28 个路由逐个打通 | ~15s |
-| 有头全按钮 | `tests/test_headed_full_e2e.py` | 33 | **是** | 双页所有按钮，0 控制台报错 | ~90s |
-| 有头用户流程 | `tests/test_headed_userflow.py` | 7 | **是** | 粘贴→选风格→预览→复制 走一遍 | ~45s |
-| 有头复制 | `tests/test_headed_wechat_copy.py` | 12 | **是** | 剪贴板、富文本粘贴、样式还原 | ~40s |
-
-基线（2026-10-19 实测）：**74 / 35 / 29 / 33 / 7 / 12 = 190 全绿**。任一项掉了就是回归。
-
-## 跑法
+## 一条命令：`run_gates.py`
 
 ```bash
-# 四套免预启的（不用先开 app.py；test_e2e 不开端口）
-.venv/Scripts/python.exe tests/test_e2e.py          # Flask test client，不开端口
-.venv/Scripts/python.exe tests/test_api_e2e.py      # 自己起 Flask，要求 5000 空闲
-.venv/Scripts/python.exe tests/test_headed_full_e2e.py   # 自己起 Flask + 系统浏览器
-.venv/Scripts/python.exe tests/test_headed_wechat_copy.py
-
-# 两套要你有服务在跑（先 python app.py）
-.venv/Scripts/python.exe tests/test_integration.py
-.venv/Scripts/python.exe tests/test_headed_userflow.py
+python scripts/run_gates.py            # 本地层（默认）：本地 dist / 进程内直调 core，断网可跑
+python scripts/run_gates.py --quick    # 最快核心（约 2 分钟）
+python scripts/run_gates.py --online   # 加上线上层：打 https://supersu.ccwu.cc/
+python scripts/run_gates.py --ui       # 加上有头层（约 20 分钟，用本地 dist）
+python scripts/run_gates.py --full     # 加上扩展层（依赖外部条件）
 ```
 
-# PWA 专项（主产品；跑法见 AGENTS.md §4，全部用系统 Chrome 有头）
-.venv/Scripts/python.exe scripts/pwa_ai_format_test.py     # AI 排版 27/27
-.venv/Scripts/python.exe scripts/pwa_ai_preset_test.py     # AI 平台预设 21/21
-.venv/Scripts/python.exe scripts/pwa_theme_drawer_test.py  # 模板库全量审计 43/43
-# …导出 12/12 · 九宫格 15/15 · 封面 16 项 · 更新 8+9/9 · 线上 E2E 94 项
+要点：
 
-⚠️ 自起服务的套件发现 5000 已被占用会直接 `[ABORT]`——这是防止连到旧进程拿陈旧代码**假通过**，别绕过。
+- **分层、失败即停**，汇总表带 `target` 列（`local` / `in-process` / `online`），日志落 `output/gate-run/`。
+- `run_gates.py` 是**唯一真源**：新增门禁只在这个文件里加一行，不再往文档里抄清单。
 
-## 五个坑（都踩过）
+## 三档判据（别混）
 
-1. **有头套件刻意不点 3 个按钮**：`confirmPush`（真打微信接口）、`saveAiConfig` / `testAiConfig`（会覆盖 `data/ai_config.json`）。其中 ai-config 写路径与 push 的缺参/账号不存在分支由 `test_api_e2e.py` 在后端覆盖；**AI 连通性测试与真实微信推送无自动化覆盖**，别为凑数去点。
+| 档位 | 是什么 | 能不能当门禁 |
+|---|---|---|
+| **门禁**（gate） | 有明确 PASS/FAIL，退出码非 0 就阻断发版 | ✅ 必须全绿 |
+| **审计**（audit） | 「发现的问题」就是产出（如对比度体检、移动端排版体检） | ⚠️ 有 FAIL 时先看是不是已知问题，不直接阻断 |
+| **探针**（probe） | 一次性量数据（传输量、时间线、改前改后 diff） | ❌ 只作证据 |
 
-2. **AI 按钮验收禁止固定 sleep**。LLM 慢的时候会被误判成「优雅降级」而**假通过**。必须轮询到「真实产出 or 真报错」，超时未结束判 FAIL。
+## 各门禁挡什么
 
-3. **`test_e2e.py` 会写 `data/`**。已加测试前快照 + 结束还原，但跑之前仍建议手动备份 `data/`（里面有加密的 AppSecret）。
+| 套件 | 挡住什么 | target |
+|:--|:--|:--|
+| `theme_contrast_audit.py` | 164 套主题标题/正文对比度（标题 ≥3.0、正文 ≥4.5，直接调引擎同一个护栏函数） | in-process |
+| `pwa_theme_drawer_test.py` | 模板库：7 族 × 82 色调、164 套逐个应用、版式×色调二维、移动端不溢出 | local |
+| `pwa_layout_compat_test.py` | 版式兼容矩阵：10 夹具 × 5 版式 × 无 AI / AI 两态 | in-process |
+| `pwa_ai_format_test.py` / `pwa_ai_preset_test.py` | AI 排版门控与降级兜底 / 平台预设（全 mock，不联网） | local |
+| `pwa_export_test.py` / `pwa_nine_test.py` / `pwa_cover_test.py` | 导出四件套 / 九宫格切图 / 封面 12 风格 | local |
+| `pwa_update_panel_test.py` | 更新面板闭环：检查更新 → 一键重启 → 本次更新条数 → 反馈入口 | local |
+| `pwa_release_card_test.py` | 更新「发布小票」 | online |
+| `pwa_auto_update_test.py` | 静默自动更新（真 SW + 探针发版） | local |
+| `pwa_headed_full_e2e.py` | 有头全量：164 套 × 3 类夹具 + 8 版式 + 段落开关 + 按钮 + AI（mock） | local / `--url` 线上 |
+| `pwa_online_e2e.py` | 线上真环境全量 E2E | online |
+| `doc_sync_check.py` | 文档与代码一致（版本号、族名、主题套数） | in-process |
 
-4. **Clash 拦 localhost**。curl 用 `--noproxy '*'`；Playwright 启动参数按套件不同：`tests/` 下有头套件传 `--disable-dev-shm-usage`，`scripts/pwa_*` 多个脚本额外传 `--no-proxy-server`——照抄对应套件的现有写法，别混。
+## 三个坑（评审时反复解释过）
 
-5. **字体断言容错解析 px/rem**。`test_integration.py` 用正则同时抓 `px` 与 `rem`（rem ×16 换算），只断言**最大字号 ≥16px**；写 `24px` 能过，不存在「必须写 rem」的硬约束。
+1. **浏览器永远用系统 Chrome，不 `playwright install chromium`**：183MB 下载在国内会卡死（历史事故）。
+   回退链单真源 `core/browser_utils.py`（Chrome → Edge → bundled）。
+2. **不要全局杀浏览器进程**。Playwright 自带临时 profile，不会碰你自己开着的窗口；
+   手工排查要清残留时**先问用户**，别 `taskkill /IM chrome.exe`（会连用户窗口一起关掉）。
+3. **有头 E2E 不是必选项**。功能先做完、先部署，用 `curl` / 无头 / 单测验证；
+   只有在用户明确要求或部署后要留证据时才跑有头全量。
 
-## DOM 契约
+## 写文档时
 
-测试依赖这些选择器，改 UI 时**不能删**（可以换样式、换包裹层）：
-
-`#page-wechat` `#page-social` `#input-area` `#preview-frame` `#tpl-strip` `#tpl-search` `#tpl-toggle` `.tpl-card` `.tname` `#btn-generate-cover` `#social-text` `#social-tpl-grid` `#social-char-count`
-
-## 审计
-
-不想手跑就执行审计器，A/C/D/E/F 五类自动查，输出 Markdown 报告：
-
-```bash
-.venv/Scripts/python.exe scripts/audit_run.py
-# → test_output/audit/audit-result.md
-```
-
-完整人工审计清单见 `docs/audit-playbook.md`（36 项，含判定标准与处置方式）。
+改完代码顺手跑 `python scripts/doc_sync_check.py`：它检查「活文档不许手写当前数字」「族名/套数必须与代码一致」。
+文档里出现退役族名（如 `卷宗` / `庙会`）或与 `public/themes/` 实际套数不符，会直接报错并给出行号。

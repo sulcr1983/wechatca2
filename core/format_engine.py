@@ -1304,6 +1304,225 @@ def _color_distance(a: str, b: str) -> int:
         return 999
 
 
+# ── 标题可读性护栏（2026-10-29）────────────────────────────────────────
+# 背景：164 套主题里有 14 套标题对比度 < 3.0——白字压在浅绿/浅金/浅青标题条上，
+# 或浅金/浅粉字压在米白页面底上。逐套改 JSON 补不完：用户还能在「自定义配色」里
+# 自选颜色，这类组合只会源源不断。所以把判定放到注入内联样式这一步兜底。
+#
+# 规则（只动颜色，一个字的正文都不碰）：
+#   · 元素自带 background → 保住原字色，只把**不合格的那几个色标**压深/提亮，
+#     多数（aurora/bauhaus/bytedance…）只调一个色标即可，渐变其余部分不动
+#   · 调背景要动太多（> 60% 路程，说明本来就不是"标题条"而是浅底）→ 改调字色
+#   · 元素没有 background → 保住色相，把字色压深/提亮到够对比
+# 本来达标的元素**原样返回**，style 串与改动前逐字节一致：
+# 全套回归的判据就是"164 套里只有出问题的那几套产物变了"。
+_HEADING_MIN_CONTRAST = 3.0     # WCAG AA 大字号
+# 调背景的容忍上限：走完 60% 路程还不达标，就说明该改字色而不是毁掉底色
+_BG_ADJUST_LIMIT = 24           # 40 步里的第 24 步
+_COLOR_TOKEN_RE = re.compile(r"#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)")
+
+
+def _parse_color(value: str):
+    """把 #hex / rgb() / rgba() 解析成 (r, g, b, a)；解析不了返回 None"""
+    if not value:
+        return None
+    v = value.strip()
+    if v.startswith("#"):
+        h = v.lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        if len(h) == 4:                       # #rgba
+            h = "".join(c * 2 for c in h[:3]) + h[3] * 2
+        if not re.fullmatch(r"[0-9a-fA-F]{6}([0-9a-fA-F]{2})?", h):
+            return None
+        a = int(h[6:8], 16) / 255 if len(h) == 8 else 1.0
+        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a
+    m = re.fullmatch(r"rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)", v)
+    if not m:
+        return None
+    r, g, b = (max(0.0, min(255.0, float(m.group(i)))) for i in (1, 2, 3))
+    a = 1.0
+    if m.group(4):
+        a = float(m.group(4)[:-1]) / 100 if m.group(4).endswith("%") else float(m.group(4))
+    return round(r), round(g), round(b), max(0.0, min(1.0, a))
+
+
+def _luminance(rgb) -> float:
+    """WCAG 相对亮度（0=黑，1=白）"""
+    def lin(c):
+        c /= 255.0
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (lin(x) for x in rgb[:3])
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast_ratio(a, b) -> float:
+    """WCAG 对比度，返回 1.0–21.0"""
+    la, lb = _luminance(a), _luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _blend_over(rgba, base_rgb):
+    """把带 alpha 的颜色合成到 base 上，得到肉眼看到的实色"""
+    r, g, b, a = rgba
+    if a >= 0.999:
+        return (r, g, b)
+    return tuple(round(c * a + d * (1 - a)) for c, d in zip((r, g, b), base_rgb))
+
+
+def _bg_view(bg_value: str, page_rgb):
+    """把一个 background 声明翻译成「肉眼看到的底色列表」+ 原始 token 列表
+
+    返回 (effective_colors, tokens)；tokens 与 effective_colors 一一对应。
+    解析不了（url(...)、纯渐变名等）返回 ([], [])，调用方据此跳过。
+    """
+    if not bg_value:
+        return [], []
+    raw = bg_value.strip()
+    if "url(" in raw:
+        return [], []
+    tokens = _COLOR_TOKEN_RE.findall(raw)
+    eff, keep = [], []
+    for tok in tokens:
+        c = _parse_color(tok)
+        if not c:
+            return [], []
+        eff.append(_blend_over(c, page_rgb))
+        keep.append(tok)
+    return eff, keep
+
+
+def _walk_toward(rgb, target, ok, limit=40):
+    """把 rgb 朝 target 逐档混过去，返回 (第一个让 ok 成立的颜色, 用了几档)
+
+    走完 limit 档都不成立返回 (None, limit)。档位越少 = 改动越轻。
+    """
+    for i in range(1, limit + 1):
+        t = i / limit
+        cand = tuple(round(c + (tc - c) * t) for c, tc in zip(rgb, target))
+        if ok(cand):
+            return cand, i
+    return None, limit
+
+
+def _fit_bg_css(bg_value: str, fg_rgb, page_rgb, target: float):
+    """保住字色，把不达标的底色色标压深/提亮。返回新 background 串或 None
+
+    只改「不合格的那几个色标」，够用的色标原样保留——aurora 的渐变紫、
+    bauhaus 的红/蓝块都不动，只把上面压着白字的浅绿/浅黄块压深一档。
+    """
+    eff, tokens = _bg_view(bg_value, page_rgb)
+    if not eff:
+        return None
+    # 字色比底色亮 → 底色要压深；反之提亮
+    fg_lum = _luminance(fg_rgb)
+    targets = []
+    worst_step = 0
+    for cur in eff:
+        need = _contrast_ratio(fg_rgb, cur) < target
+        if not need:
+            targets.append(None)
+            continue
+        toward = (0, 0, 0) if fg_lum > _luminance(cur) else (255, 255, 255)
+        new_eff, step = _walk_toward(cur, toward, lambda c: _contrast_ratio(fg_rgb, c) >= target)
+        if new_eff is None or step > _BG_ADJUST_LIMIT:
+            return None           # 走太远 → 交给字色那边改，别把底色改烂
+        targets.append(new_eff)
+        worst_step = max(worst_step, step)
+    if not worst_step:
+        return None
+    # 按 token 顺序重建：同名色标也要各自处理，所以按位置对应，不能用 tokens.index()
+    out = []
+    for i, tok in enumerate(tokens):
+        new_eff = targets[i]
+        if new_eff is None:
+            out.append(tok)
+            continue
+        r, g, b, a = _parse_color(tok)
+        if a >= 0.999:
+            rr, gg, bb = new_eff
+        else:
+            # 半透明色标：先反解出需要的原色，再保留 alpha 不动
+            rr, gg, bb = (
+                max(0, min(255, round((ne - pb * (1 - a)) / a)))
+                for ne, pb in zip(new_eff, page_rgb)
+            )
+        if tok.startswith("#") and a >= 0.999:
+            out.append("#%02x%02x%02x" % (rr, gg, bb))
+        else:
+            out.append("rgba(%d,%d,%d,%s)" % (rr, gg, bb, round(a, 3)))
+    new_css = bg_value
+    for old, new in zip(tokens, out):
+        if old != new:
+            new_css = new_css.replace(old, new, 1)
+    return new_css
+
+
+def _fit_fg(fg_rgb, stops, target: float):
+    """保住色相，把字色压深/提亮到能与所有底色达标。返回新色或 None
+
+    方向按「底色比自己亮 → 压深，底色比自己暗 → 提亮」定：
+    米白底上的浅金字、浅粉字要压深（保住金色/粉色），深底上的深字要提亮。
+    写反了会把 #C8A062 一路压成纯黑，等于把主题的设计色抹掉。
+    """
+    if not stops:
+        return None
+    worst = min(stops, key=lambda s: _contrast_ratio(fg_rgb, s))
+    toward = (0, 0, 0) if _luminance(worst) > _luminance(fg_rgb) else (255, 255, 255)
+    new_fg, _ = _walk_toward(
+        fg_rgb, toward, lambda c: all(_contrast_ratio(c, s) >= target for s in stops)
+    )
+    return new_fg
+
+
+def _readable_heading_props(props: dict, page_bg: str) -> dict:
+    """标题样式兜底：对比度不足时修正颜色，够了就原样返回（保证零改动）"""
+    fg = _parse_color(str(props.get("color") or ""))
+    if not fg or fg[3] < 0.95:
+        return props
+    page_rgb = _parse_color(page_bg) or (255, 255, 255)
+    page_rgb = page_rgb[:3]
+    fg_rgb = (fg[0], fg[1], fg[2])
+
+    bg_key = "background" if props.get("background") else (
+        "background_color" if props.get("background_color") else None)
+    stops = [_blend_over(_parse_color(t), page_rgb)
+             for t in (_COLOR_TOKEN_RE.findall(str(props.get(bg_key) or "")) if bg_key else [])]
+    stops = [s for s in stops if s]
+    if not stops:
+        stops = [page_rgb]
+
+    worst = min(_contrast_ratio(fg_rgb, s) for s in stops)
+    if worst >= _HEADING_MIN_CONTRAST:
+        return props
+
+    out = dict(props)
+    # 先试「保住字色、只动底色」——有标题条的主题都走这条，设计意图不变
+    if bg_key:
+        new_bg = _fit_bg_css(str(props[bg_key]), fg_rgb, page_rgb, _HEADING_MIN_CONTRAST)
+        if new_bg:
+            out[bg_key] = new_bg
+            return out
+    # 再试「保住底色、只动字色」
+    new_fg = _fit_fg(fg_rgb, stops, _HEADING_MIN_CONTRAST)
+    if new_fg:
+        out["color"] = "#%02x%02x%02x" % new_fg
+        return out
+    # 兜到极端：按「对所有色标最坏情况」挑墨色；连墨色都压不住（底色本身杂乱），
+    # 就放弃这块底色退回页面底——宁可少一个装饰，也不让标题读不出来。
+    def _pick(fg, bgs):
+        return min(_contrast_ratio(fg, s) for s in bgs)
+
+    white, near_black = (255, 255, 255), (17, 17, 17)
+    ink = white if _pick(white, stops) >= _pick(near_black, stops) else near_black
+    if _pick(ink, stops) < _HEADING_MIN_CONTRAST and bg_key:
+        out.pop(bg_key, None)
+        stops = [page_rgb]
+        ink = white if _pick(white, stops) >= _pick(near_black, stops) else near_black
+    out["color"] = "#%02x%02x%02x" % ink
+    return out
+
+
 def _inject_container_styles(html: str, theme: dict) -> str:
     """为围栏容器注入内联样式
 
@@ -1944,8 +2163,13 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     styles = theme["styles"]
 
     # 构建各标签的 style 字符串
+    # 标题先过一道可读性护栏：对比度不足的（14 套）在这里修色，达标的原样返回，
+    # 所以 150 套正常主题的产物与改动前逐字节一致。详见 _readable_heading_props。
+    page_bg = (theme.get("colors") or {}).get("background") or "#ffffff"
     style_map = {}
     for tag_key, props in styles.items():
+        if tag_key in _HEADING_TAGS and isinstance(props, dict):
+            props = _readable_heading_props(props, page_bg)
         style_map[tag_key] = build_style_string(props)
 
     # 移动端断行：文字容器统一补 overflow-wrap/word-break

@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -52,7 +53,8 @@ SKIP = {"STATE.md", "LICENSE", "THIRD_PARTY_NOTICES.md"}
 #     3. 表格里明确标注日期的历史行
 PATTERNS = [
     (re.compile(r"build\s*\d{2,4}(?!\d)"), "构建号（build N）"),
-    (re.compile(r"`?b\d{2,4}`?(?!\d)"), "构建号（bN）"),
+    # ⚠️ 必须排除十六进制颜色：#10b981 里的 b981 会被当成构建号（实测 2026-10-29 误报）
+    (re.compile(r"(?<![#0-9a-eg-z])`?b\d{2,4}`?(?![0-9a-fA-F])"), "构建号（bN）"),
     (re.compile(r"HEAD\s*`?[0-9a-f]{7,40}`?"), "HEAD 提交号"),
     (re.compile(r"\b\d{1,3}/\d{1,3}\s*(通过|全绿)"), "测试计数（N/N 通过）"),
 ]
@@ -63,6 +65,61 @@ ALLOW_CONTEXT = re.compile(
     r"|→\s*\d|改为|修正|原写|写成")
 
 EXPIRED_MARK = re.compile(r"已过期|历史快照|历史记录|不代表现状|已标注过期|已标注")
+
+# ── E 段落：主题族名 / 套数与代码一致 ──────────────────────────────────
+# 2026-10-29 踩过的坑：族名从「卷宗/庙会」改成「公文/节庆」、只挂 1 套的 frost 族
+# 被删掉之后，README 与 AGENTS 里还写着「8 族 83 色调」「卷宗 / 庙会」。
+# 用户读文档再对照 UI，就会判定「主题丢了」。这几条规则把那类漂移变成机检。
+FACT_DOCS = ["README.md", "AGENTS.md", "docs/overview.md"]
+# 已退役的族名 → 现名。文档里再当现状写就是错
+RETIRED_FAMILY = {"卷宗": "公文", "庙会": "节庆"}
+# 历史叙述豁免（和 A 段的 ALLOW_CONTEXT 同一个思路，但这里要更宽一点）
+HISTORY_CONTEXT = re.compile(
+    r"历史|原称|旧名|曾叫|改名|改为|→|已于|早期|当时|旧值|曾经|退役|2026-09|2026-10")
+FAMILY_COUNT_RE = re.compile(r"(\d+)\s*族")
+# 只抓「总数」写法：加粗的总数，或「N 套主题」；不抓 45/119 这类分项拆解
+THEME_TOTAL_RE = re.compile(r"\*\*\s*(\d{2,3})\s*套\s*\*\*|(\d{2,3})\s*套主题")
+
+
+def theme_facts() -> tuple[int, int]:
+    """现役事实：主题套数、族数
+
+    ⚠️ 族**不在主题 JSON 里**：`public/themes/*.json` 没有 family 字段，
+    族是按 id 前缀（`su-<族>-<色调>`）在 `pwa/scripts/build.mjs` 里派生的。
+    所以这里读 FAMILIES 清单（唯一真源），不能数 JSON 字段——数不到会得出 0 族。
+    """
+    files = [p for p in (ROOT / "public" / "themes").glob("*.json")
+             if p.name != "index.json"]
+    fams: list[str] = []
+    m = re.search(r"const FAMILIES\s*=\s*\[([^\]]*)\]",
+                  (ROOT / "pwa" / "scripts" / "build.mjs").read_text(encoding="utf-8"))
+    if m:
+        fams = re.findall(r"['\"]([a-z]+)['\"]", m.group(1))
+    return len(files), len(fams)
+
+
+def check_facts() -> list[str]:
+    """返回不符合现状的文档描述"""
+    n_themes, n_fams = theme_facts()
+    bad = []
+    for name in FACT_DOCS:
+        p = ROOT / name
+        if not p.exists():
+            continue
+        for i, line in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if HISTORY_CONTEXT.search(line):
+                continue
+            for old, new in RETIRED_FAMILY.items():
+                if old in line:
+                    bad.append(f"{name}:{i} 用了退役族名「{old}」（现名「{new}」）")
+            for m in FAMILY_COUNT_RE.finditer(line):
+                if int(m.group(1)) != n_fams:
+                    bad.append(f"{name}:{i} 写「{m.group(0)}」，实际 {n_fams} 族")
+            for m in THEME_TOTAL_RE.finditer(line):
+                got = int(m.group(1) or m.group(2))
+                if got != n_themes:
+                    bad.append(f"{name}:{i} 写「{m.group(0).strip()}」，实际 {n_themes} 套")
+    return bad
 
 
 def run(cmd: list[str]) -> tuple[int, str]:
@@ -171,6 +228,20 @@ def main() -> int:
         print("  ⛔ STATE.md 已过期")
         for line in out.strip().splitlines()[:8]:
             print("     " + line)
+
+    # ── E 族名 / 套数与代码一致 ──
+    print("\n[E] 主题族名 / 套数 / 版本描述是否与代码一致")
+    facts = check_facts()
+    n_themes, n_fams = theme_facts()
+    print(f"  事实：{n_themes} 套主题 / {n_fams} 个族（数自 public/themes/*.json）")
+    if facts:
+        problems.append(f"文档与主题事实不符 {len(facts)} 处")
+        for f in facts[:10]:
+            print(f"  ⛔ {f}")
+        if len(facts) > 10:
+            print(f"       …… 还有 {len(facts) - 10} 处")
+    else:
+        print("  OK README / AGENTS / overview 与代码一致")
 
     print("\n" + "=" * 60)
     if problems:
