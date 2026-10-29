@@ -402,6 +402,16 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl, an
     .replace(/\{\{LEAD\}\}/g, esc(lead))
     .replace(/\{\{AUTHOR\}\}/g, esc(author))
     .replace(/\{\{DATE\}\}/g, date);
+
+  /* 清掉模板自带的写死文案（2026-10-30 实测踩到）：
+     6 套 editorial 模板里 kicker / h-sub 是硬编码的示例文字
+     （「不是情歌，是时代」/「而是想念的那个时代，已经有点远了」），
+     不是占位符 → 用户填了自己的文案后，封面上会同时出现两套文字，
+     看起来像「重复了」。这里统一清空，让模板只显示用户内容。 */
+  html = html.replace(/(<p[^>]*class="[^"]*\bkicker\b[^"]*"[^>]*>)(?!\s*\{\{)[\s\S]*?(<\/p>)/gi,
+    (m, open, close) => (/\{\{/.test(m) ? m : open + close));
+  html = html.replace(/(<p[^>]*class="[^"]*\bh-sub\b[^"]*"[^>]*>)(?!\s*\{\{)[\s\S]*?(<\/p>)/gi,
+    (m, open, close) => (/\{\{/.test(m) ? m : open + close));
   // lead 为空时删掉空段落（这条原本就是对的：它匹配的是「替换后变成空」的 <p class="lead">）
   if (!lead) html = html.replace(/<p[^>]*class="[^"]*\blead\b[^"]*"[^>]*>\s*<\/p>/gi, '');
   html = applyImage(html, image);

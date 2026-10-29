@@ -552,7 +552,10 @@ def main() -> int:
             page.click("#btn-cover")
             page.wait_for_timeout(1200)
             check("切到封面页", page.is_visible("#cover-root"), "", "封面可见")
-            check("封面空态有 3 张示例", page.locator("#cv-samples .cv-sample").count() == 3,
+            # 2026-10-30：示例墙从「空态 3 张」改成「常驻 6 张」
+            # （空态一生成就消失，而电脑版预览下方需要内容填满空白）
+            check("封面示例成品墙 6 张（常驻）",
+                  page.locator("#cv-samples .cv-sample").count() == 6,
                   "", f"{page.locator('#cv-samples .cv-sample').count()} 张")
             page.locator(".cv-sample[data-style='editorial']").click()
             page.wait_for_timeout(600)
