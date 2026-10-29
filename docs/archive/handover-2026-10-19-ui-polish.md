@@ -1,3 +1,9 @@
+> 🗄️ **已归档（2026-10-29 文档合并时统一加注）**：本文是历史文档，正文原样保留，
+> **仅供追溯，不要照着它干活**。现行交接看 [`HANDOFF.md`](../../HANDOFF.md)，
+> 现行状态看 [`STATE.md`](../../STATE.md)，工程规则看 [`AGENTS.md`](../../AGENTS.md)。
+
+---
+
 # 交接：PWA 首页体验优化（2026-10-19）
 
 > ⚠️ **本文 §0 的状态已过时，请以最新交接为准** → [`docs/handover-2026-10-19-txt-format-exports.md`](handover-2026-10-19-txt-format-exports.md)。

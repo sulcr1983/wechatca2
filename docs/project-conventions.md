@@ -68,9 +68,12 @@
 | `files/TODO.md` | **待办**：未完成事项，完成即删或打勾 | 已完成项堆积、历史记录 |
 | `docs/*.md` | **专题方案**：设计稿说明、技术调研、规范（如本文件） | 变更流水、待办 |
 
-**归档规则**：
-- `HANDOFF.md` 超过 100KB 时，把半年以前的变更移到 `docs/archive/HANDOFF-YYYY.md`，主文件保留最近半年 + 索引。
-- `docs/task_closure_*.md`（历史遗留 4 份）→ 内容已并入 `CLOSURE.md` 后移到 `docs/archive/`。
+**归档规则**（2026-10-29 改版）：
+- 根目录 `.md` 有**白名单**（`README` / `AGENTS` / `STATE` / `HANDOFF` / `CLOSURE` / `ARCHIVE` / `CHANGELOG` / `THIRD_PARTY_NOTICES` / `claude`），
+  由 `scripts/doc_sync_check.py` 的 [G] 段机检。**不要再往根目录新增 `HANDOVER-日期.md` 这类文件**。
+- `HANDOFF.md` 只讲「怎么上手 + 坑在哪」，不写版本号/构建号/用例数（那些进 `STATE.md`），也不记变更流水。
+- 过程性记录（诊断报告、逐项验收、某轮交接）→ `docs/archive/`，每份开头必须有「已归档 / 已过期」声明（[C] 段自动全量检查）。
+- `CLOSURE.md` 是**台账**：一轮任务一行；表格超过 10 行就整份移入 `docs/archive/closure-YYYY-MM.md`，本文件重建。
 - 一次性诊断报告（`reports/`）→ 结论沉淀进文档后删除。
 
 ---

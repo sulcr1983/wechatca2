@@ -62,8 +62,8 @@ AI 生成专属底图 · 深色模式预览 · 模板可视化设计器。
 ## PWA 施工 ✅ 已全部完成（2026-10-18 排期，2026-10-24 前全部落地）
 
 > 原施工进度表（阶段 0-4 / PWA-0a...4.2）已整体闭环，逐条打勾失去意义，故替换为本记录（2026-10-24 审计）。
-> 细节去查：`CLOSURE.md` 任务 7-22（逐任务验收）· `AGENTS.md` §3/§4（架构与测试）·
-> `HANDOFF.md` §0（最新快照）· `docs/pwa-build-plan.md`（历史施工图）。
+> 细节去查：`docs/archive/closure-2026-09-10-task-log.md` 任务 7-22（逐任务验收）·
+> `AGENTS.md` §3/§4（架构与测试）· `STATE.md`（当前状态）· `docs/pwa-build-plan.md`（历史施工图）。
 
 | 原条目 | 结果 |
 |---|---|
@@ -99,7 +99,7 @@ AI 生成专属底图 · 深色模式预览 · 模板可视化设计器。
 | **S2** | **自动联网搜真图作底图** | **2026-07-25** | **core/image_search.py 双轨 Wikimedia/Pexels** |
 | S3 | Playwright file:// → data: URI 修复 | 2026-07-25 | guizang_renderer 底图内嵌 |
 | DOC | README 重写（图文并茂+表情丰富） | 2026-07-25 | 4 张截图 + mermaid 架构图 |
-| CLEAN | 文档洁癖同步（AGENTS/HANDOFF/design-audit） | 2026-07-25 | 53→92、DOM 结构、搜图模块、偏差标已解决 |
+| CLEAN | 文档洁癖同步（AGENTS/HANDOFF/design-audit，均已在 2026-10-29 合并归档） | 2026-07-25 | 53→92、DOM 结构、搜图模块、偏差标已解决 |
 | COPY-1 | 复制按钮写富文本（公众号可粘贴渲染） | 2026-07-26 | ClipboardItem text/html + execCommand 兜底 |
 | SEL-1 | 首主题自动选中（输入即渲染） | 2026-07-26 | loadThemes 后 activeTpl=themes[0].id |
 | FILT-1 | 模板筛选匹配 name+id+group | 2026-07-26 | 英文 id（如 editorial）也可搜到 |

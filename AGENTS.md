@@ -380,7 +380,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
 
 - **PWA 封面**（2026-10-19）：纯前端 `modern-screenshot` 生成，不依赖 Flask/Playwright；模板 10 套来自 AGPL-3.0 上游（已在 `THIRD_PARTY_NOTICES.md` 声明），构建时去掉 Google Fonts 并把示例文案替换为占位符。**联网搜图只剩 Pexels（BYOK）**：Wikimedia 国内必超时、Pixabay 完全不支持中文关键词，两者均已于 2026-10-27 移除；没填 Key 时必须立刻给出配置指引，不得静默或空转等待。
 - 封面渲染（**本地版**，该模块已随 2026-10-28 归档删除；PWA 见上条）统一走 `core/guizang_renderer.py`；**浏览器内核优先系统 Chrome、缺失回退 Edge（零下载）**——回退链单真源 `core/browser_utils.py::launch_browser`（bundled Chromium 只作兜底），BLCaptain（Node 侧）经 `CHROMIUM_PATH` 注入系统浏览器（`core/blcaptain_bridge.py` 每次调用 Node 时注入）。旧 `scripts/render_worker.py` 双份实现已删除
-- ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 HANDOFF 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
+- ⚠️ **`.bat` 必须 CRLF + 纯 ASCII**：`.gitattributes` 已锁 `*.bat` / `*.cmd` 为 `eol=crlf`。裸 LF 会解析错乱（2026-09-26 双击完全不可用）；**UTF-8 中文（chcp 65001 下）会令 cmd 错位吃行首、满屏 `'xxx' is not recognized`**（2026-10-13 实锤，见 `docs/archive/handoff-2026-10-flask-spec.md` 变更 17）。`start-app.bat` 现为纯英文文件，中文启动提示由 `app.py` 打印
 - ⚠️ **venv 不能靠 `activate.bat` 定位自己**：激活脚本里写死了创建时的绝对路径，项目换目录后激活会静默失效（`VIRTUAL_ENV` 指向旧路径、`python` 落到系统解释器）。脚本一律用绝对路径调 `.venv\Scripts\python.exe`
 - `scripts/start_flask.py` / `launcher.py` 旧入口**已删除**（2026-10 审计确认全仓零引用后移除）；真实入口是 `app.py` / `start-app.bat`
 - `public/social-thumb/` 为空时需运行 `scripts/gen_thumbnails.py`
@@ -507,7 +507,10 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
 ### 文档分层与回写
 - 内部真源：`AGENTS.md` / `MEMORY.md` / `HANDOFF.md` / `CLOSURE.md`；外部用户：`README.md`。
 - 改代码 / 接口 / 配置 / 架构边界 / 用户行为后，必须同步对应文档（含本文件与 README 测试计数）。
-- 单任务结束执行 `CLOSURE.md` 收尾程序（更新文档、受控提交）。**不再新建 `docs/task_closure_*.md`**，全部并入 `CLOSURE.md`（见 `docs/project-conventions.md`）。
+- 单任务结束执行收尾程序（更新文档、受控提交），**台账**在 `CLOSURE.md` 加一行。
+  逐项验收（改了哪些文件、怎么验证、回滚点）**不要再堆进 `CLOSURE.md`**——它 2026-10-29 前就是这么长到 930 行的；
+  过程记录写 `docs/archive/`，台账只留一行指针。**不要新建 `docs/task_closure_*.md`，也不要新建 `HANDOVER-日期.md`**
+  （根目录 .md 有白名单，`doc_sync_check.py` 的 [G] 段会拦）。
 
 ### 对外贡献 / 多 Agent
 - 个人工具，对外 PR 前先读贡献规则、一次一问题、不混入无关改动。

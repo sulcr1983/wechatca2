@@ -35,15 +35,41 @@ if not PY.exists():
     PY = Path(sys.executable)
 
 # 活文档：不允许手写**当前状态**的数字，必须指向 STATE.md
-LIVE_DOCS = ["README.md", "AGENTS.md", "HANDOFF-2026-10-25.md"]
+LIVE_DOCS = ["README.md", "AGENTS.md", "HANDOFF.md", "CLOSURE.md"]
 
 # 历史快照：允许保留旧数字，但必须有「已过期」声明
 # ⚠️ CHANGELOG.md 不在此列：它是**版本变更记录**，本身就是历史性质，
 #    每个版本的旧数字是正确内容，不是「过期」（2026-10-25 修正误判）。
-SNAPSHOT_DOCS = ["HANDOFF.md", "HANDOVER.md", "CLOSURE.md"]
+# 历史快照：允许保留旧数字，但开头必须有「已过期 / 已归档」声明。
+# 2026-10-29：不再硬编码清单——`docs/archive/**/*.md` 全量自动发现。
+# 理由：硬编码清单必漏（当天新归档 8 份，清单只写了 5 份，另外 3 份就没人管了）。
+ARCHIVE_DIR = "docs/archive"
+
+
+def snapshot_docs() -> list[str]:
+    """所有归档文档（相对仓库根的路径）"""
+    root = ROOT / ARCHIVE_DIR
+    if not root.exists():
+        return []
+    return [p.relative_to(ROOT).as_posix() for p in sorted(root.rglob("*.md"))]
 
 # 明确不检查的（纯历史/生成物/第三方）
 SKIP = {"STATE.md", "LICENSE", "THIRD_PARTY_NOTICES.md"}
+
+# 根目录允许出现的 .md（2026-10-29 文档合并后定版）
+# 为什么要机检：交接/收尾类文档会自然繁殖——每轮多写一份「HANDOVER-日期.md」，
+# 半年后根目录躺着 4 份互相矛盾的交接说明，谁也不知道哪份是真的（这就是当时的状况）。
+ROOT_MD_ALLOWED = {
+    "README.md",            # 对外说明
+    "AGENTS.md",            # 工程规则唯一真源
+    "STATE.md",             # 当前状态（生成物）
+    "HANDOFF.md",           # 交接（只讲怎么上手、坑在哪）
+    "CLOSURE.md",           # 收尾台账（一行一轮）
+    "ARCHIVE.md",           # 封存记录
+    "CHANGELOG.md",         # 版本更新日志（生成物）
+    "THIRD_PARTY_NOTICES.md",  # 第三方许可证
+    "claude.md",            # Claude Code 入口（@AGENTS.md 导入）
+}
 
 # 会被判定为「手写当前状态」的模式。
 # ⚠️ 设计要点（2026-10-25 两轮调整）：
@@ -64,7 +90,7 @@ ALLOW_CONTEXT = re.compile(
     r"统一显示|统一为|格式为|示例|例如|实际|当时|旧值|曾经|历史|已过期|不代表现状"
     r"|→\s*\d|改为|修正|原写|写成")
 
-EXPIRED_MARK = re.compile(r"已过期|历史快照|历史记录|不代表现状|已标注过期|已标注")
+EXPIRED_MARK = re.compile(r"已过期|历史快照|历史记录|不代表现状|已标注过期|已标注|已归档")
 
 # ── E 段落：主题族名 / 套数与代码一致 ──────────────────────────────────
 # 2026-10-29 踩过的坑：族名从「卷宗/庙会」改成「公文/节庆」、只挂 1 套的 frost 族
@@ -232,8 +258,8 @@ def main() -> int:
             print(f"  ⛔ {name}：未提到 STATE.md")
 
     # ── C 历史快照必须有过期声明 ──
-    print("\n[C] 历史快照必须有「已过期」声明")
-    for name in SNAPSHOT_DOCS:
+    print("\n[C] 历史快照必须有「已过期」声明（自动发现 docs/archive/**/*.md）")
+    for name in snapshot_docs():
         p = ROOT / name
         if not p.exists():
             continue
@@ -281,6 +307,17 @@ def main() -> int:
             print(f"  ⛔ {s}")
     else:
         print("  OK 与磁盘实际一致")
+
+    # ── G 根目录不许再堆积交接/收尾类文档 ──
+    print("\n[G] 根目录 .md 是否只有约定内那几份")
+    extra = sorted({p.name for p in ROOT.glob("*.md")} - ROOT_MD_ALLOWED)
+    if extra:
+        problems.append(f"根目录多出 {len(extra)} 份 .md")
+        for name in extra:
+            print(f"  ⛔ {name}：不在约定清单里")
+        print("     现役文档改在根目录现有那几份里；历史/过程记录 → docs/archive/")
+    else:
+        print(f"  OK 只有约定的 {len(ROOT_MD_ALLOWED)} 份")
 
     print("\n" + "=" * 60)
     if problems:

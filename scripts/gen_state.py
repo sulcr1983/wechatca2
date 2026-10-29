@@ -230,7 +230,8 @@ python scripts/release.py                # 正式发版
 
 - **本文件（STATE.md）是当前状态唯一真源**，由脚本生成，禁止手改
 - 其他文档只允许指向本文件，不允许自己写版本号 / 构建号 / 测试计数
-- 历史快照（HANDOFF.md / CLOSURE.md 等）必须带「已过期」声明条
+- 过程性记录、旧交接、逐项验收 → `docs/archive/`，每份开头必须带「已归档 / 已过期」声明条
+  （`doc_sync_check.py` 的 [C] 段自动全量检查）；根目录 `.md` 有白名单，[G] 段拦截新增
 - 校验：`python scripts/doc_sync_check.py`
 """)
     return "".join(out)

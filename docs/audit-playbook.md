@@ -124,10 +124,10 @@
 
 | 编号 | 检查内容 | 执行命令/方法 | 判定标准（PASS） |
 |---|---|---|---|
-| **D1** | 5 个主文档齐全 | `ls README.md AGENTS.md HANDOFF.md CLOSURE.md files/TODO.md` | 全部存在 |
+| **D1** | 主文档齐全 | `ls README.md AGENTS.md STATE.md HANDOFF.md CLOSURE.md ARCHIVE.md files/TODO.md` | 全部存在 |
 | **D2** | 测试计数与实测一致 | 对比 `grep "通过" AGENTS.md` 与实际跑出的数字 | 数字一致（不一致 = P1，需更新文档） |
-| **D3** | 最近变更已记录 | 看 `HANDOFF.md` 最后一条变更的日期 | 包含最近一次代码提交的日期与内容 |
-| **D4** | 收尾台账有回滚点 | 看 `CLOSURE.md` 最后一条是否有提交哈希 | 有 `git log --oneline -1` 的哈希 |
+| **D3** | 最近变更已记录 | 看 `CLOSURE.md` 台账第一行（或 `CHANGELOG.md` 最新版本条目） | 包含最近一次代码提交的日期与内容 |
+| **D4** | 收尾台账能追到细节 | 看 `CLOSURE.md` 最新一行是否指向具体记录（`docs/archive/` 或某份文档） | 有指针，不是空行 |
 | **D5** | docs 目录规范 | `ls docs/` | 根下只有 `.md` + `archive/ prototypes/ screenshots/ ux-audit/`（允许 `exe-packaging-report.html` 这类专题报告） |
 
 ### E. 产出物与目录规范（4 项，约 20 分钟）

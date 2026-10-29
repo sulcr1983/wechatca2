@@ -410,12 +410,13 @@ wechatca2/
 ├── docs/                       # 方案 / 规范 / 交接 / 审计报告
 │   ├── screenshots/            # 📷 README 配图
 │   ├── ux-audit/               # UX 诊断报告与验收截图
-│   ├── archive/                # 早期任务结项记录
+│   ├── archive/                # 历史文档归档（各轮交接 / 收尾全文 / 审计快照）
 │   └── prototypes/             # 早期原型（已废弃）
-├── ARCHIVE.md                  # 本地 Flask 版（tag flask-v1-archive-2026-10-28）取回说明
+├── ARCHIVE.md                  # 封存记录（本地 Flask 版取回方式等）
 ├── AGENTS.md                   # 项目规则与工程纪律（Agent 必读，工程唯一真源）
-├── HANDOFF.md                  # 交接文档（§0 最新快照优先）
-├── CLOSURE.md                  # 任务收尾记录
+├── STATE.md                    # 当前状态（生成物，勿手改）
+├── HANDOFF.md                  # 交接：怎么上手、坑在哪（数字一律看 STATE.md）
+├── CLOSURE.md                  # 收尾台账（一轮任务一行，历史全文在 docs/archive/）
 ├── claude.md                   # Claude Agent 项目规则
 └── references/                 # 归藏设计系统参考文档
 ```
@@ -436,8 +437,9 @@ wechatca2/
 | [docs/pwa-design.md](docs/pwa-design.md) | PWA 设计存档：路线对比、架构、性能预算、域名研究 |
 | [AGENTS.md](AGENTS.md) | 项目定位、架构速查、工程纪律、验收规则 |
 | [files/TODO.md](files/TODO.md) | 任务清单与开发排期（先文档 → 再测试 → 然后再说） |
-| [HANDOFF.md](HANDOFF.md) | 系统模块状态、执行链路、已知问题、变更记录 |
-| [CLOSURE.md](CLOSURE.md) | 任务收尾记录（完成项 / 验证 / 回滚点 / 剩余项） |
+| [HANDOFF.md](HANDOFF.md) | 交接：30 秒上手、发版流程、接手必读的坑、文档地图 |
+| [CLOSURE.md](CLOSURE.md) | 收尾台账（每轮一行结论 + 详细记录的去处） |
+| [docs/agent-constitution-ai-usage.md](docs/agent-constitution-ai-usage.md) | 用本仓库 AGENTS.md 当模板、给别的项目生成 agent 宪法的方法论 |
 | [claude.md](claude.md) | 给 Claude Code 的项目规则入口（`@AGENTS.md` 导入，不重复正文） |
 
 ---

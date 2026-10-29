@@ -38,8 +38,8 @@
 它们仍是 PWA 的引擎真源，构建时会被拷进 `pwa/dist/py/` 与 `pwa/dist/themes/`。
 封存的只是 **Flask 外壳**，不是排版引擎。
 
-`tests/fixtures/txt-format-lab.txt` 挪到了 `scripts/fixtures/`（`ai_structure_smoke.py`
-的示例参数用到），没有丢。
+`tests/fixtures/txt-format-lab.txt` **没有丢**，仍在 `tests/fixtures/`（`ai_structure_smoke.py`
+的示例参数用到）。（原写「挪到 `scripts/fixtures/`」与实际不符，2026-10-29 更正。）
 
 ### 怎么取回
 
@@ -72,3 +72,47 @@ git checkout flask-v1-archive-2026-10-28 -- start-app.bat
 2. 再 `git rm`
 3. 在本文件追加一节，写清「为什么 / 移出了什么 / 保留了什么 / 怎么取回」
 4. 同步清理引用它的活文档（README / AGENTS / docs），**历史快照保留但加过期声明**
+
+---
+
+## 2026-10-29 · 重复文档归档（不是删除，是搬到 `docs/archive/`）
+
+### 为什么
+
+根目录同时躺着 4 份「交接 / 收尾」类文档，内容互相覆盖、指针互相打架：
+
+| 文件 | 行数 | 当时的状态 |
+|---|---:|---|
+| `HANDOFF.md` | 878 | §0 是 10-24 的快照，§1–§7 写的是**当时已删除的 8 个 Flask 模块**，§8 的「变更 1–24」与 `CLOSURE.md` 重复 |
+| `CLOSURE.md` | 930 | 任务 1–23 逐项收尾全文，堆在一份文件里，没人从头读到尾 |
+| `HANDOVER.md` | 283 | 10-18 写的 PWA 上手说明，测试计数全是旧的 |
+| `HANDOFF-2026-10-25.md` | 304 | 那一轮交接，自称「真正的今天交接」 |
+
+后果：接手的人（和 AI）不知道该信哪份；`doc_sync_check.py` 里 `HANDOFF.md` 被当成「历史快照」、
+`HANDOFF-2026-10-25.md` 却当成「活文档」，规则本身就自相矛盾。
+
+### 移出了什么（全部进 `docs/archive/`，`git mv` 保留历史）
+
+| 原位置 | 现位置 |
+|---|---|
+| `HANDOFF.md`（§1–§10） | `docs/archive/handoff-2026-10-flask-spec.md` |
+| `CLOSURE.md`（全文） | `docs/archive/closure-2026-09-10-task-log.md` |
+| `HANDOVER.md` | `docs/archive/handover-2026-10-25-pwa-onboarding.md` |
+| `HANDOFF-2026-10-25.md` | `docs/archive/handoff-2026-10-25-round.md` |
+| `AI_USAGE.md` | `docs/agent-constitution-ai-usage.md`（不是历史，是活文档，只是不该占根目录） |
+| `docs/design-audit.md` 等 6 份带日期的快照 | `docs/archive/`（含 `docs/audit/` 两份审计） |
+
+### 保留了什么
+
+- 根目录 `HANDOFF.md` **重写**为「30 秒上手 + 发版 + 必读的坑 + 文档地图」，约 110 行，不写任何版本号/用例数
+- 根目录 `CLOSURE.md` **重写**为台账（一轮一行 + 归档索引），约 50 行
+- 根目录 `.md` 白名单进机检（`doc_sync_check.py` [G] 段），以后再堆就报错
+
+### 怎么取回
+
+`git mv` 保留了历史，直接看现位置即可；要找回 2026-10-29 之前的结构：
+
+```bash
+git log --oneline --follow -- HANDOFF.md
+git show a518024:HANDOFF.md | head -80      # 归档前那一版
+```
