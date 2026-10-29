@@ -843,6 +843,11 @@ body.browsing .upd-btn { display: none; }
   }
 }
 
+/* 面板打开时让启动提示条让位：#boot 的 z-index 是 100，比 #cl-layer 的 75 高，
+   首次访问引擎还在初始化时，那个胶囊会正好压住面板页脚的反馈入口。
+   启动条本身承诺「不遮挡」，全屏面板打开时收起它最符合原意（引擎就绪会自动消失，这里只提前收）。 */
+body.cl-open .boot { opacity: 0; visibility: hidden; }
+
 @media (max-width: 600px) {
   #cl-head { padding: 0 8px 0 16px; }
   #cl-toolbar { padding: 10px 14px 10px; }
@@ -850,6 +855,17 @@ body.browsing .upd-btn { display: none; }
   #cl-status { padding: 6px 14px; }
   #cl-scroll { padding: 16px 14px 24px; }
   #cl-foot { padding: 8px 14px; }
+
+  /* 版本头挤成一行时标题只剩 4 个字（「更新体验重…」）→ 让标题独占第二行，别再截断 */
+  #cl-panel .cl-rel-head { flex-wrap: wrap; row-gap: 6px; }
+  #cl-panel .cl-rel-title {
+    order: 3;
+    flex: 1 1 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.45;
+  }
 
   #cl-panel .cl-item { flex-wrap: wrap; row-gap: 2px; }
   #cl-panel .cl-item-text { flex: 1 1 100%; }

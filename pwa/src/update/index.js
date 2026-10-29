@@ -224,6 +224,9 @@ export function createUpdater({ changelog } = {}) {
 
     state.remote = v.version || '';
     state.remoteBuild = Number(v.build) || 0;
+    // 记下「上一次真的问到服务器」的时刻：状态条据此显示「刚刚 / N 分钟前检查」，
+    // 也用于 60s 内复用结果（离线时**不**记，否则会谎报刚检查过）
+    state.checkedAt = Date.now();
 
     if (!isNewer()) return settle('latest');
 

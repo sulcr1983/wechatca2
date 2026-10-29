@@ -637,8 +637,9 @@ export function createChangelog(options = {}) {
       cls = 's-check';
       html = '<span class="cl-spin"></span><span class="cl-st-txt">正在检查更新…</span>';
     } else if (p === 'latest' || p === 'idle') {
+      // 版本号在面板头部徽标里已经有了，这里只报「什么时候查的」，避免同一个版本号出现两次
       html = `<i class="cl-st-dot"></i><span class="cl-st-txt">已是最新</span>
-        <span class="cl-st-sub">${tag}${ago ? ` · ${ago}检查` : ''}</span>
+        <span class="cl-st-sub">${ago ? `${ago}检查` : '版本已对齐'}</span>
         <button class="cl-st-btn" data-act="check">再查一次</button>`;
     } else if (p === 'data-only') {
       html = `<i class="cl-st-dot"></i><span class="cl-st-txt">内容已同步</span>
@@ -770,6 +771,7 @@ export function createChangelog(options = {}) {
     updateBanner();
 
     els.layer.hidden = false;
+    document.body.classList.add('cl-open');   // 让启动提示条让位（它 z-index 100，会盖住面板页脚）
     document.addEventListener('keydown', onKeyDown, true);
 
     buildFeedbackLinks();
@@ -777,7 +779,9 @@ export function createChangelog(options = {}) {
 
     // 「点一下更新记录，就去问服务器有没有更新包」——用户诉求的核心一句
     if (state.handlers && typeof state.handlers.check === 'function') {
-      Promise.resolve(state.handlers.check(false)).catch(() => { /* 离线等异常由状态条兜底 */ });
+      // 用户主动打开面板 = 一次明确意图，必须真的问一次服务器（force 跳过 60s 复用窗口）。
+      // 复用窗口只用来兜住后台轮询 / 反复开关面板，不能拿它挡住「点开就想知道有没有新版」。
+      Promise.resolve(state.handlers.check(true)).catch(() => { /* 离线等异常由状态条兜底 */ });
     }
 
     // 桌面端聚焦搜索框方便直接输入；触屏不聚焦（否则一开面板就弹键盘挡内容）
@@ -799,6 +803,7 @@ export function createChangelog(options = {}) {
     if (!state.mounted || els.layer.hidden) return;
 
     els.layer.hidden = true;
+    document.body.classList.remove('cl-open');
     document.removeEventListener('keydown', onKeyDown, true);
     window.clearTimeout(searchTimer);
 
