@@ -1,7 +1,7 @@
 {
   "version": "1.8.0",
-  "generatedAt": "2026-10-29T18:55:11+08:00",
-  "totalCommits": 240,
+  "generatedAt": "2026-10-29T19:04:36+08:00",
+  "totalCommits": 241,
   "releases": [
     {
       "version": "1.8.0",
@@ -13,7 +13,8 @@
         "升级后能直接看到「这次改了什么」，还能一键反馈问题"
       ],
       "counts": {
-        "added": 1
+        "added": 1,
+        "changed": 1
       },
       "groups": [
         {
@@ -25,6 +26,20 @@
               "scope": "update",
               "hash": "6cc8e6b",
               "date": "2026-10-29T18:44:29+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "性能：壳层增量真正落地——固定缓存名 + 逐文件内容哈希键",
+              "scope": "update",
+              "hash": "d3b2fb2",
+              "date": "2026-10-29T19:04:09+08:00",
               "breaking": false,
               "dev": false
             }
