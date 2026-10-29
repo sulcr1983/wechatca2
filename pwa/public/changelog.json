@@ -1,7 +1,7 @@
 {
   "version": "1.8.2",
-  "generatedAt": "2026-10-29T20:12:21+08:00",
-  "totalCommits": 246,
+  "generatedAt": "2026-10-29T20:12:46+08:00",
+  "totalCommits": 247,
   "releases": [
     {
       "version": "1.8.2",
@@ -13,9 +13,24 @@
         "版式条现在会说真话：自带卡片流/杂志分栏的模板，会正确高亮对应的按钮"
       ],
       "counts": {
+        "added": 1,
         "fixed": 1
       },
       "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "恢复 6 套原名 · 默认版式不再自动加目录",
+              "scope": "theme",
+              "hash": "0da46a1",
+              "date": "2026-10-29T20:12:39+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
         {
           "type": "fixed",
           "label": "修复",
