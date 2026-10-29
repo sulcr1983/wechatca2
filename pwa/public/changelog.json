@@ -1,7 +1,7 @@
 {
   "version": "1.9.0",
-  "generatedAt": "2026-10-30T01:25:07+08:00",
-  "totalCommits": 254,
+  "generatedAt": "2026-10-30T01:38:22+08:00",
+  "totalCommits": 255,
   "releases": [
     {
       "version": "1.9.0",
@@ -17,7 +17,7 @@
       ],
       "counts": {
         "added": 1,
-        "other": 1
+        "other": 2
       },
       "groups": [
         {
@@ -38,6 +38,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "线上层适配新版式卡，并把色点数字算准",
+              "scope": "cover",
+              "hash": "8cff4dd",
+              "date": "2026-10-30T01:37:03+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "修两个与版本号/并发相关的误报",
               "scope": "update",
