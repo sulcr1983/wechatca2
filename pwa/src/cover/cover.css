@@ -37,6 +37,13 @@
   min-height: 0;
 }
 .cv-sec { margin-bottom: 20px; }
+/* 电脑版左栏（2026-10-30）：加了「文字位置/磨砂」后面板变长，
+   原来 967px 高、可视 904px → 最后一块要滚动才看得到。
+   收紧各段间距 20→14px、文本框 132→116px，省出 70px 刚好一屏装下。 */
+@media (min-width: 1200px) {
+  .cv-col-left .cv-sec { margin-bottom: 14px; }
+  .cv-text { height: 116px; }
+}
 .cv-sec-head {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin-bottom: 8px;
@@ -192,6 +199,14 @@
 .cv-bg-preview img { width: 42px; height: 56px; object-fit: cover; border-radius: 4px; flex: none; }
 .cv-bg-meta { min-width: 0; flex: 1; font-size: 10.5px; color: var(--text-muted); line-height: 1.45; }
 .cv-bg-meta b { display: block; color: var(--text-soft); font-weight: 500; font-size: 11.5px; }
+/* 底图可读性标记（2026-10-30）：让用户在选图时就看到「这张字会不会糊」 */
+.cv-read {
+  display: inline-block; margin-top: 4px; padding: 1px 7px; border-radius: 99px;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+.cv-read-ok   { background: #eaf4ee; color: #227a4b; }
+.cv-read-warn { background: #fdf2dc; color: #9a6a10; }
+.cv-read-bad  { background: #fbeae7; color: #a2563c; }
 .cv-clear {
   flex: none; width: 24px; height: 24px; border-radius: 50%; font-size: 14px;
   color: var(--text-muted); display: grid; place-items: center;
@@ -365,6 +380,13 @@
   background: var(--accent); border-color: var(--accent);
   color: #fff; font-weight: 600;
 }
+/* 文字位置 / 磨砂（2026-10-30）：只在选了底图时才出现 */
+.cv-textpos { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.cv-switch-row {
+  display: flex; align-items: center; gap: 7px; margin-top: 10px;
+  font-size: 11.5px; color: var(--text-muted); cursor: pointer; line-height: 1.5;
+}
+.cv-switch-row input { flex: none; accent-color: var(--accent); }
 
 /* ── 联网搜图 · 图源状态条（2026-10-27）────────────────────────────
    原来这块只有一句话「Wikimedia 免 key…国内不可达时请改用上传」，

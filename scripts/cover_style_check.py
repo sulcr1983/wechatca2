@@ -327,6 +327,95 @@ def check_banned_css() -> list[Row]:
     return rows
 
 
+# ---------------------------------------------------------------- 底图可读性
+
+# spec §6.2 的可读性下限（人眼可读 4.5:1，勉强可读 3.0:1）。
+CONTRAST_MIN = 4.5
+CONTRAST_WARN = 3.0
+
+
+def _to_lin(c: float) -> float:
+    s = c / 255.0
+    return s / 12.92 if s <= 0.04045 else ((s + 0.055) / 1.055) ** 2.4
+
+
+def _rel_lum(rgb) -> float:
+    r, g, b = rgb
+    return 0.2126 * _to_lin(r) + 0.7152 * _to_lin(g) + 0.0722 * _to_lin(b)
+
+
+def _contrast(l1: float, l2: float) -> float:
+    a, b = max(l1, l2), min(l1, l2)
+    return (a + 0.05) / (b + 0.05)
+
+
+def check_image_readability() -> list[Row]:
+    """用真实测试图跑一遍「选带 + 选字色」算法，确认成品文字真的可读。
+
+    为什么要有这一项：2026-10-30 之前，有底图时文字固定贴底 + 固定白字，
+    实测 7 张真实图在最亮区只有 1.08–1.99:1（下限 4.5）。
+    遮罩加到 50% 也只 2.51:1。算法改成「挑安静带 + 实测选色」后 7/7 达标，
+    这一项就是防止以后有人把算法改回去。
+    """
+    rows: list[Row] = []
+    try:
+        from PIL import Image
+    except ImportError:
+        return [Row("底图可读性", "PIL 可用", "缺", "WARN", "装 Pillow 后此项才会真正检查")]
+
+    files = sorted((ROOT / "docs" / "screenshots" / "covers").glob("*.jpg"))
+    quiet = ROOT / "docs" / "prototypes" / "assets" / "sample-quiet.jpg"
+    if quiet.exists():
+        files.append(quiet)
+    if not files:
+        return [Row("底图可读性", "测试图", "0 张", "WARN", "docs/screenshots/covers 为空，跳过")]
+
+    N = 10
+    for p in files:
+        im = Image.open(p).convert("RGB")
+        W, H = im.size
+        bands = []
+        for i in range(N):
+            top, bot = int(H * i / N), int(H * (i + 1) / N)
+            band = im.crop((0, top, W, bot)).resize((50, 12))
+            px = [_rel_lum(rgb) for rgb in band.getdata()]
+            mean = sum(px) / len(px)
+            var = sum((x - mean) ** 2 for x in px) / len(px)
+            srt = sorted(px)
+            bands.append({"mean": mean, "var": var, "p95": srt[int(len(srt) * 0.95)]})
+
+        # 下方 60% 挑方差最小的连续两条（与 pwa/src/cover/analyze.js 同一算法）
+        best_i, best_score = len(bands) - 2, float("inf")
+        for i in range(int(len(bands) * 0.4), len(bands) - 1):
+            score = bands[i]["var"] + bands[i + 1]["var"]
+            if score < best_score:
+                best_i, best_score = i, score
+        pair = bands[best_i:best_i + 2]
+        mean_L = sum(b["mean"] for b in pair) / len(pair)
+        worst_L = max(b["p95"] for b in pair)
+        c_w, c_b = _contrast(1.0, mean_L), _contrast(0.0, mean_L)
+        use_dark = c_b > c_w
+        raw_worst = _contrast(0.0 if use_dark else 1.0, worst_L)
+
+        # 实测不达标时，analyze.js 会补一层局部淡遮罩（峰值 ≤0.30）。
+        # 校验器要按「补完遮罩之后」的效果判定，否则会把已经处理好的图误报成警告。
+        # 遮罩是叠在图上压暗：alpha 混合后背景亮度 = L × (1 - a)。
+        peak = 0.0
+        if raw_worst < CONTRAST_MIN:
+            target = 0.42 if use_dark else 0.14
+            peak = min(0.30, max(0.15, 1 - target / max(0.001, worst_L)))
+        eff_worst = _contrast(0.0 if use_dark else 1.0, worst_L * (1 - peak))
+
+        where = f"底图/{p.name}"
+        verdict = ("PASS" if eff_worst >= CONTRAST_MIN
+                   else "WARN" if eff_worst >= CONTRAST_WARN else "FAIL")
+        tint_note = f" + 淡遮罩 {peak:.2f}" if peak else "（未加遮罩）"
+        rows.append(Row(where, "文字对比度", f"{eff_worst:.2f}:1", verdict,
+                        f"选中 {best_i / N * 100:.0f}% 带 · "
+                        f"{'黑字' if use_dark else '白字'}{tint_note} · 下限 {CONTRAST_MIN}"))
+    return rows
+
+
 # ---------------------------------------------------------------- 输出
 
 def render(rows: list[Row]) -> int:
@@ -371,6 +460,8 @@ def main() -> None:
     rows: list[Row] = []
     if args.src in ("all", "pwa"):
         rows += check_gz(parse_gz())
+        # 底图可读性（2026-10-30）：用真实图跑一遍选带算法，防止被改回去
+        rows += check_image_readability()
     if args.src in ("all", "proto"):
         rows += check_lab(parse_lab())
     if args.src == "all":

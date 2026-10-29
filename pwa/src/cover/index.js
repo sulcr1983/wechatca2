@@ -4,6 +4,7 @@
 
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, LAYOUTS, COVER_SIZES, styleById, layoutOfStyle } from './catalog.js';
 import { renderCoverBlob, buildCoverHtml } from './render.js';
+import { analyzeImage } from './analyze.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { searchBackground, fetchImageDataUrl, guessQuery, getStockKeys } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
@@ -27,6 +28,11 @@ const state = {
   /* 每张版式卡各自记住上次选的色板（2026-10-29）：
      切走再切回来不应该把颜色丢掉，否则「换版式保留同名色调」的直觉就断了。 */
   layoutPick: {},
+  /* 底图可读性（2026-10-30）：选图时算一次并缓存，预览/生成都复用，
+     避免每帧都跑 canvas 分析（10 条带 × 采样，虽快但没必要反复跑）。 */
+  analysis: null,
+  textPos: 'auto',        // auto | top | center | bottom（用户微调）
+  frosted: false,         // 文字区磨砂，默认关
 };
 
 let toastTimer = null;
@@ -421,8 +427,12 @@ async function onFile(e) {
     const data = await fileToDataUrl(file);
     state.image = data;
     state.imageMeta = { title: file.name, author: '本地上传', license: '' };
+    await refreshAnalysis(data);        // 2026-10-30：上传图同样分析，不只搜图
     renderBgPreview();
-    setStatus('底图已选（本地上传）');
+    const a = state.analysis;
+    setStatus(a
+      ? `底图已选（本地上传）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.needsTint ? '（已补淡遮罩）' : ''}`
+      : '底图已选（本地上传）');
   } catch (err) {
     toast(String(err.message || err), 'err');
   }
@@ -480,15 +490,20 @@ async function pickCandidate(it) {
   // 先清掉旧底图，避免下载还没完成用户就点生成、误用上一张图
   state.image = '';
   state.imageMeta = null;
+  state.analysis = null;
   renderBgPreview();
   setStatus('正在下载底图…');
   try {
     const data = await fetchImageDataUrl(it.url);
     state.image = data;
     state.imageMeta = it;
+    await refreshAnalysis(data);        // 2026-10-30：选图即分析，预览立刻用上
     renderCandidates();
     renderBgPreview();
-    setStatus('底图已选（Pexels）');
+    const a = state.analysis;
+    setStatus(a
+      ? `底图已选（Pexels）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.needsTint ? '（已补淡遮罩）' : ''}`
+      : '底图已选（Pexels）');
   } catch (err) {
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
@@ -497,10 +512,48 @@ async function pickCandidate(it) {
   }
 }
 
+/* 底图可读性分析（2026-10-30）：把 analyze.js 的结论存进 state，
+   预览和生成都会用它决定文字位置与字色。分析失败不阻断出图，只是退回原行为。 */
+async function refreshAnalysis(dataUrl) {
+  state.analysis = null;
+  if (!dataUrl) return;
+  try {
+    state.analysis = await analyzeImage(dataUrl);
+  } catch {
+    state.analysis = null;
+  }
+}
+
+/* 文字位置/磨砂 UI 同步（2026-10-30） */
+function syncTextPosUI() {
+  document.querySelectorAll('#cv-textpos-row .cv-chip').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.pos === state.textPos));
+  });
+  const hint = $('cv-textpos-hint');
+  if (hint) {
+    const a = state.analysis;
+    if (state.textPos !== 'auto') {
+      hint.textContent = '手动';
+    } else if (a) {
+      // 说清「自动」到底把文字放哪了，别让用户以为它没生效
+      hint.textContent = `自动 · ${Math.round(a.bandTop * 100)}%`;
+    } else {
+      hint.textContent = '自动';
+    }
+  }
+  const cb = $('cv-frosted');
+  if (cb) cb.checked = !!state.frosted;
+}
+
 function renderBgPreview() {
   const box = $('cv-bg-preview');
   if (!box) return;
   box.textContent = '';
+  /* 文字位置/磨砂面板只在有底图时出现（2026-10-30）：
+     纯色模式下没有图可压字，这两项没有意义，露出来只会让人困惑。 */
+  const posPanel = $('cv-textpos');
+  if (posPanel) posPanel.hidden = !state.image;
+  if (posPanel && state.image) syncTextPosUI();
   if (!state.image) return;
   const wrap = document.createElement('div');
   wrap.className = 'cv-bg-preview';
@@ -515,6 +568,22 @@ function renderBgPreview() {
   meta.appendChild(title);
   const by = [m.author, m.license].filter(Boolean).join(' · ');
   if (by) meta.appendChild(document.createTextNode(by));
+  /* 可读性标记（2026-10-30）：选中的图才分析（不分析 12 张候选，成本太高）。
+     达标绿 / 勉强黄 / 不达标红，并说清「文字会糊」还是「已自动补淡遮罩」。 */
+  const a = state.analysis;
+  if (a) {
+    const tag = document.createElement('span');
+    const c = a.worstContrast;
+    const level = c >= 4.5 ? 'ok' : (c >= 3.0 ? 'warn' : 'bad');
+    tag.className = `cv-read cv-read-${level}`;
+    tag.textContent = c >= 4.5
+      ? `文字清晰 ${c.toFixed(1)}:1`
+      : (c >= 3.0 ? `文字偏弱 ${c.toFixed(1)}:1` : `文字会糊 ${c.toFixed(1)}:1`);
+    tag.title = a.needsTint
+      ? '这张图文字区反差偏大，已自动在文字带补一层淡遮罩（峰值不超过规范上限）'
+      : '这张图文字区本来就安静，没有加任何遮罩，照片保持原样';
+    meta.appendChild(tag);
+  }
   if (m.pageUrl) {
     const a = document.createElement('a');
     a.href = m.pageUrl;
@@ -534,6 +603,7 @@ function renderBgPreview() {
   clr.addEventListener('click', () => {
     state.image = '';
     state.imageMeta = null;
+    state.analysis = null;              // 2026-10-30：清了图就别留着旧分析
     renderBgPreview();
     setStatus('已清除底图');
   });
@@ -573,6 +643,7 @@ async function generate() {
       const r = await renderCoverBlob({
         style: state.style, size, title, lead, author, image: state.image,
         textMode: state.textMode, font: state.font,
+        analysis: state.analysis, textPos: state.textPos, frosted: state.frosted,
       });
       const url = URL.createObjectURL(r.blob);
       state.results.push({ ...r, url });
@@ -763,6 +834,9 @@ async function updatePreview() {
       image: state.image || '',
       textMode: state.textMode,
       font: state.font,
+      analysis: state.analysis,
+      textPos: state.textPos,
+      frosted: state.frosted,
     });
     if (seq !== pvSeq) return;        // 期间又改了，这版丢掉
     paintPreview(scaler, html, size);
@@ -833,6 +907,7 @@ function savePrefs() {
       style: state.style, size: state.size, mode: state.mode,
       font: state.font, textMode: state.textMode,
       layoutPick: state.layoutPick,
+      textPos: state.textPos, frosted: state.frosted,
       author: $('cv-author')?.value || '',
     }));
   } catch { /* 隐私模式不阻断 */ }
@@ -849,6 +924,8 @@ function loadPrefs() {
     if (['color', 'upload', 'search'].includes(p.mode)) state.mode = p.mode;
     if (TEXT_FONTS.some((f) => f.id === p.font)) state.font = p.font;
     if (TEXT_MODES.some((m) => m.id === p.textMode)) state.textMode = p.textMode;
+    if (['auto', 'top', 'center', 'bottom'].includes(p.textPos)) state.textPos = p.textPos;
+    if (typeof p.frosted === 'boolean') state.frosted = p.frosted;
     if (p.layoutPick && typeof p.layoutPick === 'object') {
       // 只接受当前 catalog 里真实存在的 styleId，避免旧偏好把界面选到空气上
       for (const [k, v] of Object.entries(p.layoutPick)) {
@@ -909,6 +986,21 @@ function mount() {
           </div>
           <div class="cv-bg-body" id="cv-bg-body"></div>
           <div id="cv-bg-preview"></div>
+          <!-- 文字位置与磨砂（2026-10-30）：默认全自动，这里是「我不喜欢自动结果」的出口。
+               刻意不给「遮罩浓度 0–100%」滑块 —— 用户没有亮度直方图可看，只能瞎试。 -->
+          <div class="cv-textpos" id="cv-textpos" hidden>
+            <div class="cv-sec-head"><span class="cv-sec-title">文字位置</span><span class="cv-hint" id="cv-textpos-hint">自动</span></div>
+            <div class="cv-chip-row" id="cv-textpos-row">
+              <button class="cv-chip" type="button" data-pos="auto">自动</button>
+              <button class="cv-chip" type="button" data-pos="top">偏上</button>
+              <button class="cv-chip" type="button" data-pos="center">居中</button>
+              <button class="cv-chip" type="button" data-pos="bottom">偏下</button>
+            </div>
+            <label class="cv-switch-row">
+              <input type="checkbox" id="cv-frosted">
+              <span>文字区磨砂（人物图会糊脸，默认关）</span>
+            </label>
+          </div>
         </section>
       </aside>
 
@@ -1037,6 +1129,23 @@ function mount() {
   document.querySelectorAll('.cv-mode').forEach((b) => {
     b.addEventListener('click', () => setMode(b.dataset.mode));
   });
+  /* 文字位置三档 + 磨砂开关（2026-10-30）：改完立刻重绘预览，用户能马上看到差别 */
+  document.querySelectorAll('#cv-textpos-row .cv-chip').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.textPos = b.dataset.pos || 'auto';
+      savePrefs();
+      syncTextPosUI();
+      schedulePreview(0);
+    });
+  });
+  const frostCb = $('cv-frosted');
+  if (frostCb) {
+    frostCb.addEventListener('change', () => {
+      state.frosted = frostCb.checked;
+      savePrefs();
+      schedulePreview(0);
+    });
+  }
   $('cv-lightbox').addEventListener('click', (e) => {
     if (e.target.id === 'cv-lightbox') closeLightbox();
   });

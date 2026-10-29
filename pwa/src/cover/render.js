@@ -39,10 +39,15 @@ async function loadTemplate(id) {
 }
 
 /** 返回最终 HTML（不渲染），供预览或调试。 */
-export async function buildCoverHtml({ style, size = 'xhs', title, lead = '', author = '', image = '', textMode = 'stack', font = 'auto' }) {
+export async function buildCoverHtml({ style, size = 'xhs', title, lead = '', author = '', image = '', textMode = 'stack', font = 'auto', analysis = null, textPos = 'auto', frosted = false }) {
   const meta = styleById(style);
   const realSize = meta.sizes.includes(size) ? size : meta.sizes[0];
-  const opts = { title, lead, author, image, baseUrl: BASE };
+  const opts = {
+    title, lead, author, image, baseUrl: BASE,
+    // 底图可读性分析结果（2026-10-30）：文字位置与字色由 analyze.js 实测得出，
+    // 传 null 时各渲染器回退到原来的「贴底 + 白字 + 深遮罩」行为（回归安全）。
+    analysis, textPos, frosted,
+  };
   let html;
   if (GUIZANG_STYLES.some((s) => s.id === style)) {
     html = buildGuizangHtml({ style, size: realSize, ...opts });

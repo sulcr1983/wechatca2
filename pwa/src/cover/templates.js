@@ -86,6 +86,86 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/* ── 底图可读性：文字位置 + 自动字色（2026-10-30）──────────────────────
+ *
+ * 此前有底图时一律「文字贴底 + 白字 + 全画布深遮罩」。
+ * 实测 7 张真实图，白字压在最亮区只有 1.08–1.99:1（下限 4.5）；
+ * 遮罩加到 50% 也只 2.51:1，要到 4.5 得 80%，照片就成灰板了。
+ *
+ * 现在按 analyze.js 的实测结果：
+ *   - 文字块按 bandTop 定位（跟着图里最安静的那条带走，不再死钉底部）
+ *   - 字色按实测亮度自动黑白（不再固定白字）
+ *   - 只有 worstContrast 不达标时才补局部渐变（峰值 ≤0.30，spec §6.3 Step 3）
+ *
+ * 传 analysis=null 时返回空串 → 完全退回原来的行为（回归安全）。
+ */
+function readableCss(analysis, textPos) {
+  if (!analysis) return '';
+  const ink = analysis.ink === '#141110' ? '#141110' : '#ffffff';
+  const isDark = ink === '#ffffff';
+  // 投影方向跟着字色走：白字用黑投影，黑字用白投影
+  const shadow = isDark ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.55)';
+
+  // 文字位置：auto = 用分析出的 bandTop；三档微调则覆盖
+  const POS = { top: 0.22, center: 0.42, bottom: 0.62 };
+  const top = textPos && textPos !== 'auto'
+    ? (POS[textPos] ?? analysis.bandTop)
+    : analysis.bandTop;
+
+  // 局部渐变：只在需要时加，只盖文字带，峰值受规范约束
+  const tint = analysis.needsTint
+    ? `background:linear-gradient(180deg,rgba(10,10,11,0) ${Math.max(0, Math.round(top * 100 - 12))}%,`
+      + `rgba(10,10,11,${(analysis.tintPeak * 0.5).toFixed(2)}) ${Math.round(top * 100 + 10)}%,`
+      + `rgba(10,10,11,${analysis.tintPeak.toFixed(2)}) 100%);`
+    : '';
+
+  return `
+  /* 底图可读性（analyze.js 实测：${(analysis.worstContrast || 0).toFixed(2)}:1）*/
+  body.has-img .cover-img { object-position: center ${Math.round(top * 100)}%; }
+  /* 定位用绝对定位，不用 padding-top 百分比：
+     模板的 .inner-content 自带 padding: 96px 88px（短属性），
+     padding-top: X% 的百分比按「父元素宽度」算，实测三档都停在 96px 没动。
+     改成 top + transform 之后，三档真的分开了。 */
+  body.has-img .content { justify-content: flex-start !important; }
+  body.has-img .inner-content {
+    position: absolute !important;
+    left: 0; right: 0;
+    top: ${Math.round(top * 100)}% !important;
+    padding: 0 88px 96px !important;
+    justify-content: flex-start !important;
+  }
+  ${tint ? `.img-overlay{${tint}}` : '.img-overlay{background:none !important;}'}
+  body.has-img .kicker, body.has-img .h-display, body.has-img .h-sub,
+  body.has-img .lead, body.has-img .issue-row, body.has-img .issue-strip span,
+  body.has-img .h-statement, body.has-img .t-meta, body.has-img .t-cat,
+  body.has-img .square-title, body.has-img .wide-title,
+  body.has-img .h-sub, body.has-img .lead {
+    color: ${ink} !important;
+    text-shadow: 0 2px 10px ${shadow}, 0 1px 3px ${shadow} !important;
+  }
+  `;
+}
+
+/** 文字区磨砂（可选，默认关）：只模糊文字所在带，不糊整张图。
+ *  对纯风景有用；对有人物的图会把脸糊掉，所以默认关、由用户手动开。 */
+function frostedCss(frosted, top) {
+  if (!frosted) return '';
+  const start = Math.max(0, Math.round(top * 100 - 8));
+  return `
+  body.has-img .cover-img {
+    filter: none;
+  }
+  .cv-frost {
+    position: absolute; left: 0; right: 0;
+    top: ${start}%; bottom: 0; z-index: 1; pointer-events: none;
+    backdrop-filter: blur(14px) saturate(.92);
+    -webkit-backdrop-filter: blur(14px) saturate(.92);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  }
+  `;
+}
+
 const OVERRIDE_CSS = `
 /* 本地渲染覆盖 */
 *,*::before,*::after { box-sizing: border-box; }
@@ -268,7 +348,7 @@ function applyImage(html, image) {
 }
 
 /** 把占位符、底图、字体、fitty 注入到任意封面 HTML。 */
-export function prepareCoverHtml(html, { title, lead, author, image, baseUrl }) {
+export function prepareCoverHtml(html, { title, lead, author, image, baseUrl, analysis, textPos, frosted }) {
   const now = new Date();
   const date = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -296,17 +376,25 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl }) 
   // （OVERRIDE_CSS 里用它；模板自带 --accent-on 时以模板为准，见 CSS 的回落链）
   const accentHex = (/--accent:\s*(#[0-9a-fA-F]{6})/.exec(html) || [])[1] || '';
   const inkColor = inkForAccent(accentHex);
+  // 底图可读性（2026-10-30）：只有真的选了底图才注入；analysis 为空时是空串，行为不变
+  const readable = image ? readableCss(analysis, textPos) : '';
+  const frostCss = image ? frostedCss(frosted, analysis ? analysis.bandTop : 0.6) : '';
+  const frostEl = (image && frosted) ? '<div class="cv-frost"></div>' : '';
   const head = `<link rel="stylesheet" href="${baseUrl}fonts/cover-fonts.css">`
-    + `<style>:root{--cover-ink:${inkColor}}</style><style>${OVERRIDE_CSS}</style>`;
+    + `<style>:root{--cover-ink:${inkColor}}</style><style>${OVERRIDE_CSS}${readable}${frostCss}</style>`;
   if (/<\/head>/i.test(html)) html = html.replace(/<\/head>/i, `${head}</head>`);
   else html = head + html;
+  if (frostEl) {
+    // 磨砂层要压在底图之上、文字之下
+    html = html.replace(/(<section[^>]*class="[^"]*\bposter\b[^"]*"[^>]*>)/i, `$1${frostEl}`);
+  }
   if (/<\/body>/i.test(html)) html = html.replace(/<\/body>/i, `${fitScript()}</body>`);
   else html += fitScript();
   return html;
 }
 
 /** 归藏两套：按尺寸生成单张海报。 */
-export function buildGuizangHtml({ style, size, title, lead, author, image, baseUrl }) {
+export function buildGuizangHtml({ style, size, title, lead, author, image, baseUrl, analysis, textPos, frosted }) {
   const c = GZ_COLORS[style] || GZ_COLORS.editorial;
   const f = GZ_FONTS[style] || GZ_FONTS.editorial;
   const dim = COVER_SIZES[size] || COVER_SIZES.xhs;
@@ -338,11 +426,27 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   // 大字版**强制不铺底图**：选了图也不铺 —— 它的卖点就是「纯文字、永不图文不符」。
   const useImg = style === 'bigtype' ? '' : image;
   const imageHtml = useImg ? `<img class="cover-img" src="{{IMAGE}}" alt=""><div class="img-overlay"></div>` : '';
-  const overlayCss = isSquare
-    ? 'background: radial-gradient(72% 60% at 50% 50%, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 100%);'
-    : isWide
-      ? 'background: linear-gradient(90deg, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 60%);'
-      : 'background: linear-gradient(180deg, rgba(10,10,11,0) 50%, rgba(10,10,11,.30) 100%);';
+  /* 遮罩（2026-10-30 改）：此前是无条件深遮罩。现在按 analyze.js 的实测结果：
+     · 文字带最亮区够读（worstContrast ≥ 4.5）→ 完全不遮，照片保持原样
+     · 不够 → 只盖文字带，峰值 ≤0.30（spec §6.3 Step 3）
+     没有 analysis 时（老调用路径）退回原来的写法，行为不变。 */
+  let overlayCss;
+  if (useImg && analysis) {
+    const top = textPos && textPos !== 'auto'
+      ? ({ top: 0.22, center: 0.42, bottom: 0.62 }[textPos] ?? analysis.bandTop)
+      : analysis.bandTop;
+    overlayCss = analysis.needsTint
+      ? `background: linear-gradient(180deg, rgba(10,10,11,0) ${Math.max(0, Math.round(top * 100 - 12))}%,`
+        + ` rgba(10,10,11,${(analysis.tintPeak * 0.5).toFixed(2)}) ${Math.round(top * 100 + 10)}%,`
+        + ` rgba(10,10,11,${analysis.tintPeak.toFixed(2)}) 100%);`
+      : 'background: none;';
+  } else {
+    overlayCss = isSquare
+      ? 'background: radial-gradient(72% 60% at 50% 50%, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 100%);'
+      : isWide
+        ? 'background: linear-gradient(90deg, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 60%);'
+        : 'background: linear-gradient(180deg, rgba(10,10,11,0) 50%, rgba(10,10,11,.30) 100%);';
+  }
 
   // 署名（2026-10-25 新增）：归藏两套原来完全没有署名字段，用户填了也不显示。
   // 空署名时不渲染，避免留下孤儿分隔符。
@@ -411,10 +515,18 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   <div class="content">${body}</div>
 </section></body></html>`;
 
-  return prepareCoverHtml(html, { title, lead, author, image: useImg, baseUrl });
+  return prepareCoverHtml(html, {
+    title, lead, author, image: useImg, baseUrl,
+    // 归藏自己也生成了一套 overlayCss，这里传 analysis 让 readableCss 补上字色；
+    // 但 overlay 已被本函数处理过，为避免叠加两层遮罩，readableCss 里对 .img-overlay 的
+    // 覆盖只在 needsTint 时生效 —— 见 readableCss 的注释。
+    analysis: useImg ? analysis : null,
+    textPos,
+    frosted,
+  });
 }
 
 /** 10 套模板：原始 HTML 已由构建脚本清洗（去 Google Fonts / 去强制白字段 / 底图占位）。 */
-export function prepareTemplateHtml(rawHtml, { title, lead, author, image, baseUrl }) {
-  return prepareCoverHtml(rawHtml, { title, lead, author, image, baseUrl });
+export function prepareTemplateHtml(rawHtml, { title, lead, author, image, baseUrl, analysis, textPos, frosted }) {
+  return prepareCoverHtml(rawHtml, { title, lead, author, image, baseUrl, analysis, textPos, frosted });
 }

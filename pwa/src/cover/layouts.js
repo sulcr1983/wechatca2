@@ -51,11 +51,38 @@ function splitItems(lead) {
   return parts.length >= 2 ? parts.slice(0, 4) : [];
 }
 
+
+/** 有底图时的字色与投影（2026-10-30）：各骨架共用，避免重复算又漏定义。
+ *  ink 来自 analyze.js 的实测结果；没有 analysis 时退回白字（原行为）。 */
+function imgInk(analysis) {
+  const ink = analysis?.ink === '#141110' ? '#141110' : '#ffffff';
+  return { ink, shadow: ink === '#ffffff' ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.55)' };
+}
+
 /* ── 外壳：两套版式共用的文档骨架 ───────────────────────────────────── */
-function shell({ pal, cls, css, body, hasImage, serif }) {
+function shell({ pal, cls, css, body, hasImage, serif, analysis, textPos }) {
   const family = serif
     ? "'Noto Serif SC', 'Songti SC', Georgia, serif"
     : "'Noto Sans SC', 'PingFang SC', system-ui, sans-serif";
+  /* 底图可读性（2026-10-30）：按 analyze.js 实测结果决定
+       · 字色（白/黑，按实测亮度比较）
+       · 文字块位置（跟着最安静的带走，不再死钉底部）
+       · 只在最亮区不达标时才补局部渐变（峰值 ≤0.30）
+     没有 analysis 时退回原来的「固定白字 + 深遮罩」——行为不变。 */
+  const { ink, shadow } = imgInk(analysis);
+  const top = (textPos && textPos !== 'auto')
+    ? ({ top: 0.22, center: 0.42, bottom: 0.62 }[textPos] ?? (analysis?.bandTop ?? 0.6))
+    : (analysis?.bandTop ?? 0.6);
+  const needTint = !!analysis?.needsTint;
+  const tintPeak = analysis?.tintPeak ?? 0.26;
+  const scrim = hasImage
+    ? (needTint
+      ? `.ly-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(180deg, rgba(10,10,11,0) ${Math.max(0, Math.round(top * 100 - 12))}%,
+      rgba(10,10,11,${(tintPeak * 0.5).toFixed(2)}) ${Math.round(top * 100 + 10)}%,
+      rgba(10,10,11,${tintPeak.toFixed(2)}) 100%)}`
+      : '.ly-scrim{display:none}')
+    : '';
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>封面</title>
 <style>
@@ -85,15 +112,16 @@ function shell({ pal, cls, css, body, hasImage, serif }) {
            font:400 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
            letter-spacing:.18em;color:var(--muted)}
   ${hasImage ? `
-  /* 有底图时才压暗；峰值 .30 = docs/cover-style-spec.md 的局部 tint 上限 */
-  .ly-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(180deg, rgba(0,0,0,.22) 0%, rgba(0,0,0,0) 26%,
-               rgba(0,0,0,0) 42%, rgba(0,0,0,.30) 100%)}
-  body.has-img .ly-title{color:#fff;text-shadow:0 3px 18px rgba(0,0,0,.45)}
-  body.has-img .ly-lead{color:rgba(255,255,255,.92);text-shadow:0 2px 10px rgba(0,0,0,.40)}
-  body.has-img .ly-kick,body.has-img .ly-foot{color:rgba(255,255,255,.90);
-    text-shadow:0 2px 10px rgba(0,0,0,.40);border-color:rgba(255,255,255,.34)}
+  /* 底图可读性（2026-10-30）：遮罩只在实测不达标时才出现（见 shell 里的 scrim），
+     字色由 analyze.js 按该带实测亮度决定，不再固定白字。 */
+  ${scrim}
+  body.has-img .ly-title{color:${ink};text-shadow:0 3px 18px ${shadow}}
+  body.has-img .ly-lead{color:${ink};opacity:.94;text-shadow:0 2px 10px ${shadow}}
+  body.has-img .ly-kick,body.has-img .ly-foot{color:${ink};opacity:.92;
+    text-shadow:0 2px 10px ${shadow};border-color:rgba(128,128,128,.42)}
   body.has-img .ly-grain{display:none}
+  /* 文字块按分析出的安静带定位：原来死钉底部，图里最安静的地方在上面时就会压到主体 */
+  body.has-img .ly-body{justify-content:flex-start;padding-top:${Math.round(top * 100)}%}
   ` : ''}
   ${css}
 </style></head>
@@ -106,7 +134,7 @@ function shell({ pal, cls, css, body, hasImage, serif }) {
 }
 
 /* ── 1. 图文封面（M16 全出血 / 无图退化为「左侧色带」）────────────────── */
-function buildImageLed({ pal, title, lead, author, image }) {
+function buildImageLed({ pal, title, lead, author, image, analysis, textPos }) {
   const hasImage = !!image;
   const foot = `<div class="ly-foot"><span>{{DATE}}</span><span data-author>By {{AUTHOR}}</span></div>`;
   const body = `
@@ -133,11 +161,11 @@ function buildImageLed({ pal, title, lead, author, image }) {
   .ly-title{font-size:128px;font-weight:600;line-height:1.04}
   .ly-mid{padding-bottom:30px}
   `;
-  return shell({ pal, cls: 'ly-image-led', css, body, hasImage });
+  return shell({ pal, cls: 'ly-image-led', css, body, hasImage, analysis, textPos });
 }
 
 /* ── 2. 金句（M04）────────────────────────────────────────────────── */
-function buildQuote({ pal, title, lead, author, image }) {
+function buildQuote({ pal, title, lead, author, image, analysis, textPos }) {
   const hasImage = !!image;
   const body = `
   <div class="ly-body ly-quote-body">
@@ -157,11 +185,12 @@ function buildQuote({ pal, title, lead, author, image }) {
            letter-spacing:.3em;color:var(--muted)}
   ${hasImage ? '.poster.ly-quote .ly-body{background:rgba(0,0,0,.18)}' : ''}
   `;
-  return shell({ pal, cls: 'ly-quote', css, body, hasImage, serif: true });
+  return shell({ pal, cls: 'ly-quote', css, body, hasImage, serif: true, analysis, textPos });
 }
 
 /* ── 3. 编号大字 ──────────────────────────────────────────────────── */
-function buildNumber({ pal, title, lead, author, image }) {
+function buildNumber({ pal, title, lead, author, image, analysis, textPos }) {
+  const { ink, shadow } = imgInk(analysis);
   const hasImage = !!image;
   const num = pickNumber(title);
   const body = `
@@ -189,14 +218,15 @@ function buildNumber({ pal, title, lead, author, image }) {
   .ly-number .ly-foot{position:absolute;left:${PAD}px;right:${PAD}px;bottom:${PAD}px;margin-top:0}
   .poster.ly-number .ly-title{font-size:92px;line-height:1.16;font-weight:700;letter-spacing:-.01em;max-width:820px}
   .poster.ly-number .ly-lead{font-size:28px;line-height:1.7;max-width:700px;margin-top:26px}
-  body.has-img .ly-num{opacity:.98;color:#fff;text-shadow:0 3px 20px rgba(0,0,0,.5)}
-  body.has-img .ly-side{color:rgba(255,255,255,.85)}
+  body.has-img .ly-num{opacity:.98;color:${ink};text-shadow:0 3px 20px ${shadow}}
+  body.has-img .ly-side{color:${ink};opacity:.88}
   `;
-  return shell({ pal, cls: 'ly-number', css, body, hasImage });
+  return shell({ pal, cls: 'ly-number', css, body, hasImage, analysis, textPos });
 }
 
 /* ── 4. 清单（M05）────────────────────────────────────────────────── */
-function buildList({ pal, title, lead, author, image }) {
+function buildList({ pal, title, lead, author, image, analysis, textPos }) {
+  const { ink, shadow } = imgInk(analysis);
   const hasImage = !!image;
   const items = splitItems(lead);
   const rows = items.map((t, i) => `
@@ -221,10 +251,10 @@ function buildList({ pal, title, lead, author, image }) {
           color:var(--accent);letter-spacing:.06em;padding-top:2px}
   .ly-txt{font-size:34px;line-height:1.55;color:var(--ink)}
   .poster.ly-list .ly-lead{font-size:30px;margin-top:36px}
-  body.has-img .ly-item{border-color:rgba(255,255,255,.34)}
-  body.has-img .ly-txt{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.45)}
+  body.has-img .ly-item{border-color:${ink === '#ffffff' ? 'rgba(255,255,255,.34)' : 'rgba(20,17,16,.30)'}}
+  body.has-img .ly-txt{color:${ink};text-shadow:0 2px 12px ${shadow}}
   `;
-  return shell({ pal, cls: 'ly-list', css, body, hasImage });
+  return shell({ pal, cls: 'ly-list', css, body, hasImage, analysis, textPos });
 }
 
 const BUILDERS = {
@@ -245,7 +275,7 @@ const BUILDERS = {
  * @param {string} o.image    底图 data URL（可空）
  * @param {string} o.baseUrl  资源根（字体绝对 URL 用）
  */
-export function buildLayoutHtml({ style, title, lead = '', author = '', image = '', baseUrl = '' }) {
+export function buildLayoutHtml({ style, title, lead = '', author = '', image = '', baseUrl = '', analysis = null, textPos = 'auto', frosted = false }) {
   const meta = styleById(style);
   const build = BUILDERS[meta.layout];
   if (!build) throw new Error(`未知版式：${meta.layout}`);
@@ -253,13 +283,13 @@ export function buildLayoutHtml({ style, title, lead = '', author = '', image = 
     paper: meta.paper, paper2: meta.paper2, ink: meta.ink,
     muted: meta.muted, accent: meta.accent, accentOn: meta.accentOn,
   };
-  let html = build({ pal, title, lead, author, image });
+  let html = build({ pal, title, lead, author, image, analysis, textPos });
 
   // 引语块：空引语时整块去掉，不留空段落
   html = html.replace('{{LEAD_BLOCK}}',
     String(lead || '').trim() ? '<p class="ly-lead">{{LEAD}}</p>' : '');
 
-  return prepareCoverHtml(html, { title, lead, author, image, baseUrl });
+  return prepareCoverHtml(html, { title, lead, author, image, baseUrl, analysis, textPos, frosted });
 }
 
 export const LAYOUT_IDS = Object.keys(BUILDERS);

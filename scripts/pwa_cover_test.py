@@ -350,8 +350,58 @@ def main() -> int:
                 page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
                 page.wait_for_function("document.querySelector('.cv-card img').naturalWidth > 0", timeout=30000)
                 check("上传底图可生成", True, page.inner_text(".cv-bg-meta").replace("\n", " | "))
+
+                # ── 底图可读性（2026-10-30）──────────────────────────
+                # 此前有底图时文字固定贴底 + 固定白字，实测最亮区只有 1.08–1.99:1。
+                # 现在选图即分析：挑最安静的带放文字、按实测亮度选黑白。
+                page.wait_for_selector(".cv-read", timeout=15000)
+                read_tag = page.inner_text(".cv-read")
+                check("底图显示可读性标记", bool(read_tag), read_tag)
+                check("可读性标记有等级样式",
+                      page.evaluate("() => /cv-read-(ok|warn|bad)/.test("
+                                    "document.querySelector('.cv-read').className)"), "")
+                check("文字位置面板随底图出现",
+                      page.evaluate("() => !document.querySelector('#cv-textpos').hidden"), "")
+
+                # 自动定位：预览里的内容块 padding-top 应等于分析出的 bandTop
+                pos_hint = page.inner_text("#cv-textpos-hint")
+                check("自动定位给出百分比", "%" in pos_hint, pos_hint)
+
+                # 三档微调要真的改变文字位置（读预览 iframe 里内容块的 top 偏移）
+                # ⚠️ 定位方式改过（2026-10-30）：从 padding-top 改成绝对定位 top，
+                #    因为模板的 .inner-content 自带 padding:96px 短属性，
+                #    百分比 padding-top 按父宽度算，实测三档都停在 96px 没动。
+                pads = {}
+                for pos in ("top", "center", "bottom"):
+                    page.click(f'#cv-textpos-row .cv-chip[data-pos="{pos}"]')
+                    page.wait_for_timeout(2200)
+                    pads[pos] = page.evaluate(
+                        "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                        " if (!f || !f.contentDocument) return -1;"
+                        " const c = f.contentDocument.querySelector('.inner-content, .content');"
+                        " if (!c) return -1;"
+                        " const r = c.getBoundingClientRect();"
+                        " return Math.round(r.top); }")
+                check("文字位置三档真的不同",
+                      -1 < pads["top"] < pads["center"] < pads["bottom"],
+                      f"上{pads['top']} < 中{pads['center']} < 下{pads['bottom']}")
+                page.click('#cv-textpos-row .cv-chip[data-pos="auto"]')
+                page.wait_for_timeout(1500)
+
+                # 磨砂开关默认关；打开后预览里应出现 .cv-frost
+                check("磨砂开关默认关闭",
+                      page.evaluate("() => !document.querySelector('#cv-frosted').checked"), "")
+                page.check("#cv-frosted")
+                page.wait_for_timeout(2500)
+                check("开磨砂后预览出现磨砂层",
+                      page.evaluate("() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                                    " return !!(f && f.contentDocument && "
+                                    "f.contentDocument.querySelector('.cv-frost')); }"), "")
+                page.uncheck("#cv-frosted")
+                page.wait_for_timeout(1200)
             else:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
+                skip("底图可读性", f"缺测试图 {UPLOAD}")
 
             # ── 联网搜图（2026-10-27 重写）──────────────────────────────
             # 图源已收敛为 Pexels / Pixabay 两家（都要用户 Key），Wikimedia 移除。
