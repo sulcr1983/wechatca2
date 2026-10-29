@@ -52,6 +52,24 @@ function escHtml(s) {
   ));
 }
 
+/** 「错行」用：把标题按固定字数切成「行组」，偶数行由 CSS 右移。
+ *
+ * ⚠️ 2026-10-29 修：原来 stagger 的 CSS 依赖 `.tm-line` 子元素，
+ *    但只有 offset/rainbow 才会把标题切成 span，stagger 模式不切 →
+ *    选择器永远匹配不到 → 点了等于点「默认」（盘点时实测确认）。
+ *    现在自己切组，效果就是字面意思：相邻行左右错开。 */
+function wrapLineGroups(text, perLine = 5) {
+  const chars = [...String(text)];
+  const groups = [];
+  for (let i = 0; i < chars.length; i += perLine) {
+    groups.push(
+      `<span class="tm-g" style="--tm-i:${groups.length}">` +
+      `${escHtml(chars.slice(i, i + perLine).join(''))}</span>`,
+    );
+  }
+  return groups.join('');
+}
+
 function toHex(n) {
   return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
 }
@@ -136,8 +154,9 @@ function modeCss(mode) {
     case 'outline':
       return `${head}{-webkit-text-stroke:2.5px currentColor !important;color:transparent !important;text-shadow:none !important;}`;
     case 'stagger':
-      return `${head}{text-indent:0 !important;}`
-        + `${head} .tm-line:nth-child(even),${head}:nth-of-type(even){margin-left:.6em;}`;
+      // 相邻「行组」左右错开（配合 wrapLineGroups 的 5 字一组断行）
+      return 'body.tm-stagger .tm-g{display:block;}'
+        + 'body.tm-stagger .tm-g:nth-child(even){margin-left:.72em;}';
     default:
       return '';
   }
@@ -176,6 +195,14 @@ export function applyTextStyle(html, { mode = 'stack', font = 'auto', title = ''
     html = html.replace(
       /(<(?:h1)[^>]*class="[^"]*(?:h-display|h-statement|square-title|wide-title)[^"]*"[^>]*>)([\s\S]*?)(<\/h1>)/i,
       (m, open, _inner, close) => open + wrapped + close,
+    );
+  }
+
+  // 「错行」：切成行组（和逐字类一样需要重建标题内容）
+  if (mode === 'stagger' && title) {
+    html = html.replace(
+      /(<(?:h1)[^>]*class="[^"]*(?:h-display|h-statement|square-title|wide-title)[^"]*"[^>]*>)([\s\S]*?)(<\/h1>)/i,
+      (m, open, _inner, close) => open + wrapLineGroups(title) + close,
     );
   }
 

@@ -66,26 +66,65 @@
 
 /* 风格卡 */
 .cv-group-label { font-size: 11px; color: var(--text-muted); margin: 10px 0 6px; }
-.cv-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-.cv-style {
-  position: relative; text-align: left; padding: 0; overflow: hidden;
-  border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg-raised); transition: border-color .15s, box-shadow .15s;
+.cv-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* 电脑版（2026-10-29）：列数自适应 —— 右栏宽就 3 列、窄就 2 列，不写死。
+   写死 2 列时 9 张卡 1516px 高，1024 屏要滚半屏，用户不知道下面还有 4 个版式；
+   写死 3 列又会在 1440 屏把卡片压到 118px（比改版前的 129px 还小）。 */
+@media (min-width: 1200px) {
+  .cv-style-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  /* 色点行收到 7px，单卡总高压到 ~250px，3 行一屏 */
+  .cv-dots { padding: 6px 7px 7px; gap: 4.5px; }
+  .cv-dot { width: 13px; height: 13px; }
 }
+.cv-style {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-raised); overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+  /* 卡片等高对齐（2026-10-29）：同一行里 3 个色点的卡和 6 个色点的卡，
+     色点行会折成 2 行 → 卡片高矮参差，网格看起来像错位。
+     给底部信息区留一个固定下限，各卡高度就齐了。 */
+}
+.cv-style-foot-slot { margin-top: auto; }
 .cv-style:hover { border-color: var(--border-hi); }
 .cv-style[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .cv-style-thumb {
   /* 2026-10-25：原来 height:54px + object-fit:cover 只露出封面正中间一条，
      而归藏的标题多在版面下半部 → 缩略图看起来是一张空白纸。
      加高到 78px，并把裁切焦点下移到 62%，让标题进入可视范围。 */
-  display: block; width: 100%; height: 78px;
-  object-fit: cover; object-position: center 62%;
+  display: block; width: 100%; aspect-ratio: 3 / 4;
+  object-fit: cover; object-position: center top;
+  background: var(--bg-hover);
 }
-.cv-style-swatch { display: block; width: 100%; height: 78px; }
+.cv-style-pick { position: relative; display: block; width: 100%; padding: 0; line-height: 0; }
+.cv-style-swatch { display: block; width: 100%; aspect-ratio: 3 / 4; }
+.cv-style-meta {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 6px; padding: 6px 8px 0;
+}
 .cv-style-name {
-  display: block; padding: 5px 7px 6px; font-size: 11.5px; color: var(--text);
+  font-size: 12px; font-weight: 600; color: var(--text); min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.cv-style-pal {
+  flex: none; max-width: 46%; font-size: 10.5px; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 卡内色点（2026-10-29）：一个版式一张卡，颜色降级为小圆点 */
+.cv-dots {
+  display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 8px 8px;
+  /* 固定两行高度：3 个点的卡只占一行、6 个点的占两行 → 卡片高矮不齐，网格看着像错位。
+     1200px 以上色点缩到 13px，所以下限也收到 44px（高 2px × 3 行 = 省 6px，
+     正好让 1440×900 的第 9 张卡不再探出屏幕）。 */
+  min-height: 44px; align-content: flex-start;
+}
+.cv-dot {
+  width: 14px; height: 14px; border-radius: 50%; padding: 0; flex: none;
+  border: 1px solid rgba(0, 0, 0, .16);
+  transition: box-shadow .12s, transform .12s;
+}
+.cv-dot:hover { transform: scale(1.14); }
+.cv-dot[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 3.5px var(--accent); }
 .cv-style-badge {
   position: absolute; top: 4px; right: 4px; padding: 1px 5px; border-radius: 99px;
   background: rgba(0,0,0,.42); color: #fff; font-size: 9.5px; letter-spacing: .02em;
@@ -186,13 +225,24 @@
 .cv-empty span { font-size: 12px; max-width: 360px; line-height: 1.7; }
 .cv-samples { margin-top: 10px; }
 .cv-samples-label { display: block; font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
-.cv-samples-row { display: flex; gap: 10px; justify-content: center; }
+.cv-samples-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .cv-sample {
   padding: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-  background: none; cursor: pointer; line-height: 0; transition: border-color .15s;
+  background: none; cursor: pointer; line-height: 0; transition: border-color .15s, transform .15s;
 }
-.cv-sample:hover { border-color: var(--accent); }
+.cv-sample:hover { border-color: var(--accent); transform: translateY(-2px); }
 .cv-sample img { display: block; width: 84px; height: auto; }
+/* 电脑版示例墙（2026-10-29）：6 张按列铺开，把预览下方的空白填满。
+   原来只有 3 张 84px 小图居中，在中栏 1000px+ 宽里像「没做完」。 */
+@media (min-width: 1200px) {
+  .cv-samples { margin-top: 20px; }
+  .cv-samples-label { margin-bottom: 10px; font-size: 12px; }
+  .cv-samples-row {
+    display: grid; justify-content: stretch;
+    grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px;
+  }
+  .cv-sample img { width: 100%; }
+}
 
 .cv-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; align-items: start; }
 .cv-card {
@@ -276,7 +326,7 @@
   .cv-stage { height: auto; display: block; }
   .cv-panel { border-right: 0; border-bottom: 1px solid var(--border); overflow: visible; }
   .cv-output { overflow: visible; padding: 16px; }
-  .cv-style-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cv-style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cv-gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 }
 
@@ -346,8 +396,14 @@
    原来左栏是 4 个标签，用户要先「生成」才知道效果 → 试 12 个风格出 36 张废图。 */
 
 .cv-stage {
-  grid-template-columns: 320px minmax(0, 1fr) 300px;
+  /* 2026-10-29 电脑版重排：右栏原来死钉 300px，1920 屏上卡片只剩 129px 宽，
+     缩略图里标题糊成一团 → 用户以为「模板没了 / 越来越难看」。
+     右栏改为弹性 + 上限：宽屏 520px（3 列 × 156px），窄屏自动收。
+     ⚠️ 下限必须能让 3 列立住：3×148 + 2×10 gap + 28 padding = 492，
+        所以下限直接写 492px —— 用 vw 时 1280 屏只有 441px，会退回 2 列（1641px 高）。 */
+  grid-template-columns: 320px minmax(0, 1fr) clamp(492px, 34.5vw, 520px);
 }
+/* 右栏只放「风格」一块，加宽到 3 列后卡宽 ~180px，标题在缩略图里就能认出来 */
 
 .cv-col {
   min-height: 0;
@@ -365,6 +421,10 @@
   border-left: 1px solid var(--border);
   background: var(--bg-surface);
   padding: 16px;
+}
+/* 宽屏（≥1440）右栏内部留白略收，把宽度让给卡片本身 */
+@media (min-width: 1440px) {
+  .cv-col-right { padding: 16px 14px; }
 }
 .cv-col-mid {
   overflow-y: auto;
@@ -429,21 +489,41 @@
   margin: 14px 0 4px;
   flex-wrap: wrap;
 }
+/* 电脑版（2026-10-29）：按钮跟预览画布左对齐，别贴着栏边。
+   原来预览居中（两侧留白），按钮却钉在栏最左边，看着像两个模块没对齐。 */
+@media (min-width: 1200px) {
+  .cv-pv-actions { justify-content: center; }
+  .cv-pv-actions .cv-status { flex: 0 1 auto; text-align: left; }
+}
 .cv-pv-actions .cv-gen { flex: none; width: auto; min-width: 132px; padding: 0 22px; }
 .cv-pv-actions .cv-status { margin: 0; flex: 1; min-width: 160px; }
 
 .cv-col-mid .cv-out-head { margin-top: 18px; }
 .cv-col-mid .cv-empty { padding: 18px 0 0; }
 
+/* 中屏（1200–1439）左栏收窄：右栏要 3 列就得 460px，左边让出 40px，
+   中栏预览才不至于被挤成窄条（原来 1280 屏中栏只剩 468px）。 */
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .cv-stage { grid-template-columns: 280px minmax(0, 1fr) clamp(460px, 34.5vw, 520px); }
+}
+
 /* ── 窄屏：三栏退化成单栏，预览优先 ── */
-@media (max-width: 1100px) {
+@media (max-width: 1199px) {
   .cv-stage { grid-template-columns: 280px minmax(0, 1fr); }
   .cv-col-right {
     grid-column: 1 / -1;
     border-left: 0; border-top: 1px solid var(--border);
     flex-direction: row; flex-wrap: wrap; gap: 16px;
   }
-  .cv-col-right .cv-sec { flex: 1 1 220px; margin-bottom: 0; }
+  .cv-col-right .cv-sec { flex: 1 1 100%; margin-bottom: 0; }
+  /* 右栏横跨整行时，卡片宽度必须由网格控制：
+     原来只写 repeat(2,1fr)，1100 屏上每张卡拉到 529px 宽 → 一行两个巨卡，更难看。
+     用 auto-fill 又会在整行宽度下排出 7 列（卡片挤成邮票）。
+     所以这一档按屏宽分 4/5 列，别让网格自由发挥。 */
+  .cv-style-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .cv-style-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -458,15 +538,61 @@
   .cv-pv-head, .cv-preview-box, .cv-pv-actions {
     order: 1; padding-left: 16px; padding-right: 16px;
   }
-  .cv-col-left { order: 2; border-right: 0; border-top: 1px solid var(--border); }
-  .cv-col-right {
-    order: 3; border-top: 1px solid var(--border); flex-direction: column;
+  /* 2026-10-29：手机上「风格」必须紧跟预览。
+     原来它在文案/字体/玩法之后（实测 offsetTop 1074px，视口 844）——
+     首屏只有一张预览 + 保存按钮，用户以为没有模板可选，直接判定「模板丢了」。
+     用 display:contents 把右栏拆散，单独给「风格」和「尺寸/底图」定顺序。 */
+  .cv-col-right { display: contents; }
+  .cv-col-right > .cv-sec { padding-left: 16px; padding-right: 16px; }
+  .cv-col-right > .cv-sec:nth-child(1) {
+    order: 2; padding-top: 14px; border-top: 1px solid var(--border);
   }
-  .cv-out-head, #cv-gallery, #cv-empty, .cv-tip {
+  .cv-col-left { order: 3; border-right: 0; border-top: 1px solid var(--border); }
+  .cv-col-right > .cv-sec:nth-child(2),
+  .cv-col-right > .cv-sec:nth-child(3) { order: 4; }
+  /* 2026-10-29：#cv-samples 拆出空态独立后，忘了给它 order →
+     默认 order:0 会排到预览之前，手机首屏变成「示例墙」而不是预览。
+     现在它跟结果区一起排在最后（order:4）。 */
+  .cv-out-head, #cv-gallery, #cv-empty, #cv-samples, .cv-tip {
     order: 4; padding-left: 16px; padding-right: 16px;
   }
-  .cv-preview-box { height: 46vh; }
+  /* 手机预览高度按「画布宽度 × 4/3」算（2026-10-29）：
+     原来写死 46vh（844 屏 = 388px），而 390px 宽的 3:4 画布要 520px 高，
+     上下各空 66px 白边，首屏看着像「预览没加载完」。 */
+  .cv-preview-box { height: min(118vw, 62vh); }
   .cv-pv-head { position: static; }
+  /* 单栏布局下网格吃满整屏宽，写死列数会翻车：
+     写 2 列 → 768/900 屏上卡片 363–429px（巨卡）；auto-fill 无下限 → 390 屏排 4 列（82px）。
+     用 minmax(160px,1fr) 自适应：390 屏 2 列 / 768 屏 3 列 / 900 屏 4 列，每张都在 160px 以上。 */
+  .cv-style-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+/* 小屏（≤430）：minmax 的 160px 下限会顶掉第二列（360 屏只排 1 列，卡 328px 巨卡），
+   所以这一档直接固定 2 列。 */
+@media (max-width: 430px) {
+  .cv-style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ══ 电脑版：预览要够大，空态要有内容（2026-10-29）══════════════════════
+   原来预览框固定 height:min(56vh,540px)，1920×1080 下中栏 1300px 宽，
+   预览只画出 405×540 —— 左右各空 450px，看着像「半成品」。
+   3:4 竖版天生吃高不吃宽，所以把高度上限抬到 78vh / 880px，
+   1080 屏上预览从 405×540 长到 ~645×860（+59% 可视面积）。 */
+@media (min-width: 1200px) {
+  .cv-preview-box { height: min(78vh, 880px); }
+}
+
+/* 空态（2026-10-29）：示例墙已独立成常驻区块，空态只需一行提示，
+   否则它自己也是一块虚线大饼，和下面的示例墙叠在一起更乱。 */
+@media (min-width: 1200px) {
+  .cv-empty {
+    height: auto; min-height: 0;
+    flex-direction: row; align-items: baseline; justify-content: flex-start;
+    gap: 10px; padding: 12px 16px; text-align: left;
+    border-style: solid; background: var(--bg-raised);
+  }
+  .cv-empty b { flex: none; }
+  .cv-empty span { max-width: none; font-size: 12px; }
+  .cv-empty span br { display: none; }
 }
 
 

@@ -78,6 +78,8 @@
 
 /* 抽屉打开时让位，避免浮在风格卡片上 */
 body.browsing .upd-btn { display: none; }
+/* 封面页也让位（2026-10-29）：右下角胶囊会压住「风格」最后一张卡的色点 */
+body.cover-open .upd-btn { display: none; }
 
 @media (max-width: 900px) {
   /* 手机端改从「更多」菜单进入，避免遮挡风格条/解析条 */

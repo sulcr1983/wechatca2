@@ -1,6 +1,6 @@
 """PWA 封面有头测试：起静态服务 → 系统 Chrome 跑完整封面链路。
 
-覆盖：入口切换 / 13 种风格 / 3 尺寸 / 归藏与模板出图 / 上传底图 /
+覆盖：入口切换 / 9 个版式 + 25 种配色 / 3 尺寸 / 归藏与模板与新版式出图 / 上传底图 /
       联网搜图（仅 Pexels，验无 Key 指引 + 真实搜索）/ 下载链接 / 窄屏布局 / 断网生成。
 
 用法：.venv/Scripts/python.exe scripts/pwa_cover_test.py
@@ -90,13 +90,23 @@ def main() -> int:
             def tab(name):
                 return None
 
+            def pick_style(sid):
+                """选一个 styleId：多色的卡点色点，单色的卡点缩略图（2026-10-29）。"""
+                dot = page.locator(f'.cv-dot[data-style="{sid}"]')
+                if dot.count():
+                    dot.first.click()
+                else:
+                    page.click(f'.cv-style-pick[data-style="{sid}"]')
+
             check("排版页隐藏", page.is_hidden("#stage"))
             # 2026-10-25：按钮文案改为「公众号排版」（原「排版」，用户要求说清返回哪一页）
             check("按钮变为「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版")
 
-            # ── 空态示例成品（U-9，2026-10-24）──
+            # ── 示例成品墙（U-9，2026-10-24；2026-10-29 扩到 6 张并常驻）──
+            # 从「空态里 3 张」改成「常驻 6 张」：空态一生成就消失，
+            # 而电脑版预览下方需要内容填满空白，所以示例墙独立成常驻区块。
             samples = page.locator("#cv-samples .cv-sample")
-            check("空态展示 3 张示例成品", samples.count() == 3, f"{samples.count()} 张")
+            check("示例成品墙 6 张（常驻，非空态）", samples.count() == 6, f"{samples.count()} 张")
             check("示例图真实加载（非破图）",
                   page.evaluate(
                       "() => [...document.querySelectorAll('#cv-samples img')].every(i => i.naturalWidth > 0)"),
@@ -134,7 +144,7 @@ def main() -> int:
                 check("改文案预览实时更新（不用生成）", False, str(e)[:70])
 
             # 预览 should 与真实生成一致：切风格后预览的底色要跟着变
-            page.click('.cv-style[data-style="editorial-midnight-ink"]')
+            page.click('.cv-dot[data-style="editorial-midnight-ink"]')
             try:
                 page.wait_for_function(
                     "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
@@ -146,23 +156,45 @@ def main() -> int:
                 check("切风格预览实时换色（不用生成）", True, "")
             except Exception as e:
                 check("切风格预览实时换色（不用生成）", False, str(e)[:70])
-            page.click('.cv-style[data-style="editorial"]')
+            page.click('.cv-style-pick[data-style="editorial"]')
 
-            # ── 风格与尺寸 ──
+            # ── 版式卡 + 色点（2026-10-29 改版）──
+            # 改版前：13 张卡里 10 张是同一套 HTML 换色，缩略图压成 78px 横条，
+            # 用户判定「模板都一样 / 都丢了」。改版后：卡片 = 版式（结构不同），
+            # 卡内一排色点 = 色板，缩略图恢复 3:4 全幅。
             tab("style")
-            styles = page.locator(".cv-style").count()
-            check("13 种风格全部渲染", styles == 13, f"{styles} 个")
+            n_cards = page.locator(".cv-style").count()
+            n_dots = page.locator(".cv-dot").count()
+            # 归藏三套各自只有一套配色，卡片本身就是那一种，不需要色点
+            n_single = page.evaluate(
+                "() => [...document.querySelectorAll('.cv-style')]"
+                ".filter(c => !c.querySelector('.cv-dot')).length")
+            check("9 个版式卡（结构不同）", n_cards == 9, f"{n_cards} 张")
+            check("25 种配色 = 22 个色点 + 3 张单色卡",
+                  n_dots + n_single == 25 and n_single == 3,
+                  f"色点 {n_dots} + 单色卡 {n_single}")
+            thumb_ratio = page.evaluate(
+                "() => { const i = document.querySelector('.cv-style-thumb');"
+                " if (!i) return 0; const r = i.getBoundingClientRect();"
+                " return r.width ? r.height / r.width : 0; }")
+            check("缩略图 3:4 全幅（不再压成横条）",
+                  abs(thumb_ratio - 4 / 3) < 0.08, f"高宽比 {thumb_ratio:.2f}")
+            # 色点必须落在所属卡片内（防止渲染错位）
+            check("色点都挂在版式卡内部",
+                  page.evaluate("() => [...document.querySelectorAll('.cv-dot')]"
+                                ".every(d => !!d.closest('.cv-style'))"), "")
             check("默认支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3)
-            page.click('.cv-style[data-style="editorial-dune"]')
+            pick_style("editorial-dune")
             check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1)
-            page.click('.cv-style[data-style="editorial"]')
+            pick_style("editorial")
 
             # ── 每种风格必须生成「视觉上不同」的图（2026-10-25 补）──
             # 之前只断言「有 12 个按钮」，漏掉了「10 套模板纯色模式下全变灰白板」的
             # 真实 bug（用户反馈「生成图片都是一样的」）。这里逐个生成并比对底色，
             # 10 套模板的 --accent 各不相同，底色必须互不相同。
             style_ids = page.eval_on_selector_all(
-                ".cv-style", "els => els.map(e => e.dataset.style)")
+                ".cv-dot, .cv-style-pick",
+                "els => [...new Set(els.map(e => e.dataset.style))]")
             tab("content")
             page.fill("#cv-text", "周末去海边\n\n两天的沉默之后，我重新听见了海浪。")
             bg_of = {}
@@ -170,7 +202,7 @@ def main() -> int:
                 if not sid.startswith(("editorial-", "swiss-")):
                     continue        # 只测 10 套模板（归藏两套另有断言）
                 tab("style")
-                page.click(f'.cv-style[data-style="{sid}"]')
+                pick_style(sid)
                 page.wait_for_timeout(400)
                 page.click("#cv-gen")
                 try:
@@ -209,7 +241,39 @@ def main() -> int:
             check("10 套模板（纸色+强调色）组合唯一",
                   not same and len(bg_of) == 10,
                   f"{len(bg_of)} 套 · 重复={same or '无'}")
-            page.click('.cv-style[data-style="editorial"]')
+
+            # ── 新增 4 个版式：必须真出图，且画面彼此不同（2026-10-29）──
+            # 这是「版式」这一维第一次真正进产品，不能只看按钮渲染出来。
+            new_sigs = {}
+            for lid in ("image-led", "quote", "number", "list"):
+                pick_style(f"{lid}-paper")
+                page.wait_for_timeout(300)
+                page.click("#cv-gen")
+                try:
+                    page.wait_for_function(
+                        "document.querySelectorAll('.cv-card').length === 1", timeout=60000)
+                    page.wait_for_function(
+                        "document.querySelector('.cv-card img').naturalWidth === 1080", timeout=20000)
+                    new_sigs[lid] = page.evaluate("""() => {
+                        const img = document.querySelector('.cv-card img');
+                        const cv = document.createElement('canvas');
+                        cv.width = 40; cv.height = 54;
+                        const ctx = cv.getContext('2d');
+                        ctx.drawImage(img, 0, 0, 40, 54);
+                        const d = ctx.getImageData(0, 0, 40, 54).data;
+                        let sum = 0;
+                        for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+                        return [d[0], d[1], d[2], Math.round(sum / (d.length / 4))].join(',');
+                    }""")
+                except Exception as e:
+                    new_sigs[lid] = f"ERR:{type(e).__name__}"
+            check("4 个新版式各出一张 1080×1440",
+                  len(new_sigs) == 4 and not any(str(v).startswith("ERR") for v in new_sigs.values()),
+                  str(new_sigs))
+            check("4 个新版式画面互不相同",
+                  len(set(new_sigs.values())) == 4, f"{len(set(new_sigs.values()))} 种")
+
+            page.click('.cv-style-pick[data-style="editorial"]')
 
             # ── 字体与文字玩法（2026-10-25 新增）──
             tab("text")
@@ -266,7 +330,7 @@ def main() -> int:
 
             # ── 模板：3:4 ──
             tab("style")
-            page.click('.cv-style[data-style="editorial-dune"]')
+            page.click('.cv-dot[data-style="editorial-dune"]')
             page.click("#cv-gen")
             page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
             page.wait_for_function("document.querySelector('.cv-card img').naturalWidth === 1080", timeout=30000)

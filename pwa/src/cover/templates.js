@@ -186,7 +186,11 @@ function fitScript() {
       var max = parseFloat(el.dataset.fitMax) || 96;
       var min = 32;
       // 标题最多占封面高度的 55%（横版 66% 给两栏里的标题更多余量）
-      var maxH = H * (el.classList.contains('wide-title') ? 0.66 : 0.55);
+      // 「大字压阵」玩法（2026-10-29 修）：原来 poster 只改字重字距、没有放大，
+      // 与名字不符。这里给它 84% 的高度预算 —— fitty 会把字号停在更大的值上。
+      var posterMode = !!(document.body && document.body.classList.contains('tm-poster'));
+      var ratio = el.classList.contains('wide-title') ? 0.66 : (posterMode ? 0.84 : 0.55);
+      var maxH = H * ratio;
       el.style.overflowWrap = 'anywhere';
       el.style.wordBreak = 'break-word';
       el.style.flexShrink = '0';

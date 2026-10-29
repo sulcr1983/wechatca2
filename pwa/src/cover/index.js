@@ -2,7 +2,7 @@
  * 纯前端：不传内容、不依赖后端；底图可选纯色、上传、联网搜图（Pexels，BYOK）。
  */
 
-import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, COVER_SIZES, styleById } from './catalog.js';
+import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, LAYOUTS, COVER_SIZES, styleById, layoutOfStyle } from './catalog.js';
 import { renderCoverBlob, buildCoverHtml } from './render.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { searchBackground, fetchImageDataUrl, guessQuery, getStockKeys } from './search.js';
@@ -24,6 +24,9 @@ const state = {
   searchQuery: '',
   busy: false,
   results: [],
+  /* 每张版式卡各自记住上次选的色板（2026-10-29）：
+     切走再切回来不应该把颜色丢掉，否则「换版式保留同名色调」的直觉就断了。 */
+  layoutPick: {},
 };
 
 let toastTimer = null;
@@ -95,13 +98,19 @@ function closeCover() {
 
 /* ── 风格 / 尺寸 ── */
 function selectStyle(id) {
-  if (!styleById(id)) return;
-  state.style = id;
+  if (!ALL_STYLES.some((s) => s.id === id)) return;
   const meta = styleById(id);
+  state.style = id;
+  state.layoutPick[meta.layout] = id;
   if (!meta.sizes.includes(state.size)) state.size = meta.sizes[0];
   savePrefs();
   renderStyles();
   renderSizes();
+}
+
+/** 当前 styleId 是否为 3:4 专属（只用于给卡片打角标） */
+function onlyXhs(meta) {
+  return meta.sizes.length === 1;
 }
 
 function renderFonts() {
@@ -179,54 +188,110 @@ function renderTextModes() {
   }
 }
 
+/* 版式卡（2026-10-29 改版）
+ *
+ * 改版原因：原来是「一个色板一张卡」，13 张里 10 张同结构换色，
+ * 用户在 130px 宽的卡上根本看不出差别，判定「模板都一样/都丢了」。
+ *
+ * 现在：卡片身份 = 版式（结构不同），卡内一排小圆点 = 色板。
+ *   - 点缩略图 → 选中该卡当前色
+ *   - 点色点   → 在同一版式内换色（换 styleId），不重建 DOM 之外的东西
+ *   - 每张卡各自记住上次选的色（state.layoutPick），切走再切回来不丢
+ */
 function renderStyles() {
   const box = $('cv-styles');
   if (!box) return;
   box.textContent = '';
-  const groups = [
-    { label: '归藏 · 支持 3 尺寸', items: GUIZANG_STYLES },
-    { label: '模板 · 仅 3:4', items: TEMPLATE_STYLES },
-  ];
-  for (const g of groups) {
-    const lab = document.createElement('div');
-    lab.className = 'cv-group-label';
-    lab.textContent = g.label;
-    box.appendChild(lab);
-    const grid = document.createElement('div');
-    grid.className = 'cv-style-grid';
-    for (const s of g.items) {
-      const b = document.createElement('button');
-      b.className = 'cv-style';
-      b.dataset.style = s.id;
-      b.setAttribute('aria-pressed', String(s.id === state.style));
-      b.title = s.desc || s.name;
-      if (s.thumb) {
-        const img = document.createElement('img');
-        img.className = 'cv-style-thumb';
-        img.src = s.thumb;
-        img.alt = '';
-        img.loading = 'lazy';
-        b.appendChild(img);
-      } else {
-        const sw = document.createElement('span');
-        sw.className = 'cv-style-swatch';
-        sw.style.background = `linear-gradient(135deg, ${s.swatch} 0 56%, ${s.accent} 56% 100%)`;
-        b.appendChild(sw);
-      }
-      const nm = document.createElement('span');
-      nm.className = 'cv-style-name';
-      nm.textContent = s.name;
-      b.appendChild(nm);
-      if (s.sizes.length === 1) {
-        const bd = document.createElement('span');
-        bd.className = 'cv-style-badge';
-        bd.textContent = '3:4';
-        b.appendChild(bd);
-      }
-      b.addEventListener('click', () => selectStyle(s.id));
-      grid.appendChild(b);
+  const grid = document.createElement('div');
+  grid.className = 'cv-style-grid';
+
+  for (const card of LAYOUTS) {
+    if (!card.members.length) continue;
+    const active = card.members.includes(state.style);
+    const curId = active ? state.style : (state.layoutPick[card.id] || card.members[0]);
+    const cur = styleById(curId);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'cv-style';
+    wrap.dataset.layout = card.id;
+    wrap.dataset.style = curId;
+    wrap.setAttribute('aria-pressed', String(active));
+    wrap.title = card.note;
+
+    // 缩略图 = 按钮（点它 = 选中这张卡的当前色）
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'cv-style-pick';
+    pick.dataset.style = curId;
+    pick.setAttribute('aria-label', `使用「${card.name}」${cur.paletteName || ''}`);
+    const img = document.createElement('img');
+    img.className = 'cv-style-thumb';
+    img.src = cur.thumb;
+    img.alt = '';
+    img.loading = 'lazy';
+    // 缩略图缺失时用色板渐变兜底，别出现破图
+    img.addEventListener('error', () => {
+      img.remove();
+      const sw = document.createElement('span');
+      sw.className = 'cv-style-swatch';
+      sw.style.background = `linear-gradient(135deg, ${cur.swatch} 0 56%, ${cur.accent} 56% 100%)`;
+      pick.insertBefore(sw, pick.firstChild);
+    }, { once: true });
+    pick.appendChild(img);
+    if (onlyXhs(cur)) {
+      const bd = document.createElement('span');
+      bd.className = 'cv-style-badge';
+      bd.textContent = '3:4';
+      pick.appendChild(bd);
     }
-    box.appendChild(grid);
+    pick.addEventListener('click', () => {
+      if (curId !== state.style) selectStyle(curId);
+    });
+    wrap.appendChild(pick);
+
+    // 名称 + 当前色名
+    const metaRow = document.createElement('div');
+    metaRow.className = 'cv-style-meta';
+    const nm = document.createElement('span');
+    nm.className = 'cv-style-name';
+    nm.textContent = card.name;
+    metaRow.appendChild(nm);
+    if (card.members.length > 1) {
+      const pal = document.createElement('span');
+      pal.className = 'cv-style-pal';
+      pal.textContent = cur.paletteName || '';
+      metaRow.appendChild(pal);
+    }
+    wrap.appendChild(metaRow);
+
+    // 色点（只有多色的卡才显示）
+    if (card.members.length > 1) {
+      const dots = document.createElement('div');
+      dots.className = 'cv-dots';
+      for (const mid of card.members) {
+        const m = styleById(mid);
+        const d = document.createElement('button');
+        d.type = 'button';
+        d.className = 'cv-dot';
+        d.dataset.style = mid;
+        d.title = m.paletteName || m.name;
+        d.setAttribute('aria-label', m.paletteName || m.name);
+        d.setAttribute('aria-pressed', String(mid === curId));
+        d.style.background = `linear-gradient(135deg, ${m.swatch} 0 52%, ${m.accent} 52% 100%)`;
+        d.addEventListener('click', () => selectStyle(mid));
+        dots.appendChild(d);
+      }
+      wrap.appendChild(dots);
+    }
+
+    grid.appendChild(wrap);
+  }
+  box.appendChild(grid);
+
+  const hint = $('cv-style-hint');
+  if (hint) {
+    const n = LAYOUTS.filter((c) => c.members.length).length;
+    hint.textContent = `${n} 个版式 · ${ALL_STYLES.length} 种配色`;
   }
 }
 
@@ -252,8 +317,8 @@ function renderSizes() {
     });
     box.appendChild(b);
   }
-  const hint = $('cv-style-hint');
-  if (hint) hint.textContent = meta.sizes.length === 1 ? '此模板仅 3:4' : '支持 3 种尺寸';
+  const hint = $('cv-size-hint');
+  if (hint) hint.textContent = meta.sizes.length === 1 ? '仅 3:4' : '支持 3 种尺寸';
 }
 
 /* ── 底图 ── */
@@ -767,6 +832,7 @@ function savePrefs() {
     localStorage.setItem(PREFS, JSON.stringify({
       style: state.style, size: state.size, mode: state.mode,
       font: state.font, textMode: state.textMode,
+      layoutPick: state.layoutPick,
       author: $('cv-author')?.value || '',
     }));
   } catch { /* 隐私模式不阻断 */ }
@@ -778,11 +844,17 @@ function savePrefs() {
 function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem(PREFS) || '{}');
-    if (p.style && styleById(p.style)) state.style = p.style;
+    if (p.style && ALL_STYLES.some((s) => s.id === p.style)) state.style = p.style;
     if (p.size && COVER_SIZES[p.size]) state.size = p.size;
     if (['color', 'upload', 'search'].includes(p.mode)) state.mode = p.mode;
     if (TEXT_FONTS.some((f) => f.id === p.font)) state.font = p.font;
     if (TEXT_MODES.some((m) => m.id === p.textMode)) state.textMode = p.textMode;
+    if (p.layoutPick && typeof p.layoutPick === 'object') {
+      // 只接受当前 catalog 里真实存在的 styleId，避免旧偏好把界面选到空气上
+      for (const [k, v] of Object.entries(p.layoutPick)) {
+        if (typeof v === 'string' && ALL_STYLES.some((s) => s.id === v)) state.layoutPick[k] = v;
+      }
+    }
     if (p.author && $('cv-author')) $('cv-author').value = p.author;
   } catch { /* 忽略损坏的偏好 */ }
 }
@@ -822,6 +894,22 @@ function mount() {
           <div class="cv-sec-head"><span class="cv-sec-title">文字玩法</span><span class="cv-hint" id="cv-textmode-hint"></span></div>
           <div class="cv-chip-row cv-mode-row" id="cv-textmodes"></div>
         </section>
+        <!-- 2026-10-29 电脑版重排：尺寸与底图属于「素材/输出设置」，和文案同属左栏；
+             右栏只留「挑版式」一件事，卡片才放得大。 -->
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span><span class="cv-hint" id="cv-size-hint"></span></div>
+          <div class="cv-size-row" id="cv-sizes"></div>
+        </section>
+        <section class="cv-sec">
+          <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
+          <div class="cv-modes" id="cv-modes">
+            <button class="cv-mode" type="button" data-mode="color">纯色</button>
+            <button class="cv-mode" type="button" data-mode="upload">上传</button>
+            <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
+          </div>
+          <div class="cv-bg-body" id="cv-bg-body"></div>
+          <div id="cv-bg-preview"></div>
+        </section>
       </aside>
 
       <section class="cv-col cv-col-mid">
@@ -850,17 +938,26 @@ function mount() {
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
           <b>文案 + 风格 = 标题图</b>
-          <span>左边写文案、右边选风格和底图，预览就是成品。<br>点「保存大图」存成 PNG：归藏两套一次出 3 个尺寸，模板出 3:4。</span>
-          <div class="cv-samples" id="cv-samples">
-            <span class="cv-samples-label">示例成品 · 点一张直接选该风格</span>
-            <div class="cv-samples-row">
-              <button class="cv-sample" type="button" data-style="editorial"
-                      title="Editorial 杂志风"><img src="./samples/cover-sample-editorial.jpg" alt="Editorial 杂志风示例封面"></button>
-              <button class="cv-sample" type="button" data-style="editorial-dune"
-                      title="沙丘暖纸"><img src="./samples/cover-sample-editorial-dune.jpg" alt="沙丘暖纸示例封面"></button>
-              <button class="cv-sample" type="button" data-style="editorial-midnight-ink"
-                      title="午夜墨金"><img src="./samples/cover-sample-editorial-midnight-ink.jpg" alt="午夜墨金示例封面"></button>
-            </div>
+          <span>左边写文案、右边选版式，预览就是成品；点「保存大图」存成 PNG。<br>归藏两套一次出 3 个尺寸，其余版式出 3:4。</span>
+        </div>
+        <!-- 示例成品墙（2026-10-29）：原来它埋在空态里，只有「一张都没生成」时才出现，
+             而空态一生成就消失 → 电脑版预览下方那一大片空白永远是空的。
+             现在独立成常驻区块：任何时候都能点一张看成品、直接套用该版式。 -->
+        <div class="cv-samples" id="cv-samples">
+          <span class="cv-samples-label">示例成品 · 点一张直接套用该版式</span>
+          <div class="cv-samples-row">
+            <button class="cv-sample" type="button" data-style="editorial"
+                    title="Editorial 杂志风"><img src="./samples/cover-sample-editorial.jpg" alt="Editorial 杂志风示例封面"></button>
+            <button class="cv-sample" type="button" data-style="image-led-paper"
+                    title="图文封面 · 暖纸"><img src="./samples/cover-sample-image-led-paper.jpg" alt="图文封面示例"></button>
+            <button class="cv-sample" type="button" data-style="quote-ink"
+                    title="金句 · 墨夜"><img src="./samples/cover-sample-quote-ink.jpg" alt="金句示例封面"></button>
+            <button class="cv-sample" type="button" data-style="editorial-dune"
+                    title="沙丘暖纸"><img src="./samples/cover-sample-editorial-dune.jpg" alt="沙丘暖纸示例封面"></button>
+            <button class="cv-sample" type="button" data-style="number-bold"
+                    title="编号大字 · 亮橙"><img src="./samples/cover-sample-number-bold.jpg" alt="编号大字示例封面"></button>
+            <button class="cv-sample" type="button" data-style="editorial-midnight-ink"
+                    title="午夜墨金"><img src="./samples/cover-sample-editorial-midnight-ink.jpg" alt="午夜墨金示例封面"></button>
           </div>
         </div>
         <p class="cv-tip">手机上生成后长按图片即可保存到相册；桌面端点「下载」。</p>
@@ -870,20 +967,6 @@ function mount() {
         <section class="cv-sec">
           <div class="cv-sec-head"><span class="cv-sec-title">风格</span><span class="cv-hint" id="cv-style-hint"></span></div>
           <div id="cv-styles"></div>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span></div>
-          <div class="cv-size-row" id="cv-sizes"></div>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
-          <div class="cv-modes" id="cv-modes">
-            <button class="cv-mode" type="button" data-mode="color">纯色</button>
-            <button class="cv-mode" type="button" data-mode="upload">上传</button>
-            <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
-          </div>
-          <div class="cv-bg-body" id="cv-bg-body"></div>
-          <div id="cv-bg-preview"></div>
         </section>
       </aside>
     </main>
@@ -945,8 +1028,9 @@ function mount() {
   $('cv-samples').addEventListener('click', (e) => {
     const b = e.target.closest('.cv-sample');
     if (!b) return;
-    const card = document.querySelector(`.cv-style[data-style='${b.dataset.style}']`);
-    if (card) card.click();
+    // 2026-10-29：卡片改成「版式卡 + 色点」后，示例图不再对应某个 .cv-style 按钮，
+    // 直接按 styleId 选中（示例里的 editorial-midnight-ink 会落到「杂志模板」卡的第 6 个色点）。
+    if (b.dataset.style) selectStyle(b.dataset.style);
     $('cv-text').focus();
     toast('已选好风格，写句文案试试');
   });

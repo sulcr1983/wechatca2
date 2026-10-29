@@ -2,8 +2,9 @@
  * 纯前端、无后端；同一套代码也用于预览（buildCoverHtml）。
  */
 
-import { COVER_SIZES, GUIZANG_STYLES, styleById } from './catalog.js';
+import { COVER_SIZES, GUIZANG_STYLES, styleById, isLayoutStyle } from './catalog.js';
 import { buildGuizangHtml, prepareTemplateHtml } from './templates.js';
+import { buildLayoutHtml } from './layouts.js';
 import { applyTextStyle } from './textmode.js';
 
 const BASE = new URL('../../', import.meta.url).href;
@@ -45,6 +46,9 @@ export async function buildCoverHtml({ style, size = 'xhs', title, lead = '', au
   let html;
   if (GUIZANG_STYLES.some((s) => s.id === style)) {
     html = buildGuizangHtml({ style, size: realSize, ...opts });
+  } else if (isLayoutStyle(style)) {
+    // 2026-10-29 新增的 4 个版式：骨架渲染（只出 3:4）
+    html = buildLayoutHtml({ style, ...opts });
   } else {
     html = prepareTemplateHtml(await loadTemplate(style), opts);
   }

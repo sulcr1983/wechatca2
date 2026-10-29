@@ -62,6 +62,9 @@ TH = {
     "body_vs_paper": 4.5,     # 正文对纸底：AA
     "accent_vs_paper": 3.0,   # 强调色对纸底：非文字元素最低线
     "title_size": (84, 132),  # 1080×1440 画布
+    # 纯文字大字版（bigtype）单列一档：它的卖点就是「字号压满、不用底图」，
+    # 用信息密度型封面的 84–132 去卡它等于否定这个版式的存在理由（2026-10-29）。
+    "title_size_text": (96, 160),
     "body_size": (26, 42),
     "ratio": (2.6, 4.4),      # 标题字号 / 正文字号
 }
@@ -218,10 +221,11 @@ def check_gz(gz: dict) -> list[Row]:
 
         ts, bs = f.get("titleSize"), f.get("bodySize")
         if isinstance(ts, (int, float)):
-            ok = _in(ts, TH["title_size"])
+            rng = TH["title_size_text"] if style == "bigtype" else TH["title_size"]
+            ok = _in(ts, rng)
             rows.append(Row(where, "标题字号", f"{int(ts)}px",
                             "PASS" if ok else "FAIL",
-                            f"应 {TH['title_size'][0]}–{TH['title_size'][1]}px"))
+                            f"应 {rng[0]}–{rng[1]}px"))
         if isinstance(bs, (int, float)):
             ok = _in(bs, TH["body_size"])
             rows.append(Row(where, "正文字号", f"{int(bs)}px",
@@ -272,10 +276,20 @@ def check_lab(lab: dict) -> list[Row]:
 BANNED_CSS = [
     (re.compile(r"mix-blend-mode\s*:\s*difference"),
      "mix-blend-mode:difference 会毁肤色"),
-    (re.compile(r"inset\s*:\s*0[^}]{0,500}?linear-gradient\(\s*180deg"
-                r"[^}]{0,300}?rgba\(\s*0\s*,\s*0\s*,\s*0", re.S),
-     "全画布均匀黑渐变遮罩（spec §6.4 首条违禁）"),
+    # 2026-10-29 修误报：原来只查「inset:0 + 180deg + rgba(0,0,0」，
+    # 把「按规范做好的局部淡遮罩」也判成 FAIL（它也是 inset:0 + 180deg）。
+    # spec §6.4 真正禁的是「纯黑」与「均匀全画布」，所以改为两条精确判据：
+    #   ① 遮罩用了纯黑 rgba(0,0,0,...) —— spec §6.3 第 2 条硬约束（须取图片色调）
+    #   ② 峰值 alpha > 0.40 —— spec §6.3 第 3 条硬约束（0.15–0.30 才合格）
+    (re.compile(r"linear-gradient\(\s*180deg[^}]{0,400}?rgba\(\s*0\s*,\s*0\s*,\s*0\s*,",
+                re.S),
+     "遮罩用纯黑（spec §6.3 第 2 条：须取图片固有色调）"),
 ]
+
+# 遮罩峰值 alpha 上限（spec §6.3 第 3 条：0.15–0.30；>0.40 必须回 Step 1 换图）
+OVERLAY_PEAK_MAX = 0.40
+OVERLAY_RE = re.compile(r"linear-gradient\(\s*180deg((?:[^}])*?)\)\s*;", re.S)
+ALPHA_RE = re.compile(r"rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(\d*\.?\d+)\s*\)")
 
 
 def check_banned_css() -> list[Row]:
@@ -299,6 +313,17 @@ def check_banned_css() -> list[Row]:
             rows.append(Row(rel, "违禁遮罩写法",
                             "命中" if m else "无",
                             "FAIL" if m else "PASS", why))
+        # 遮罩峰值 alpha：取页面里所有 180deg 渐变里最大的 alpha 值
+        peak = 0.0
+        for gm in OVERLAY_RE.finditer(src):
+            for am in ALPHA_RE.finditer(gm.group(1)):
+                peak = max(peak, float(am.group(1)))
+        if peak > 0:
+            ok = peak <= OVERLAY_PEAK_MAX
+            rows.append(Row(rel, "遮罩峰值", f"{peak:.2f}",
+                            "PASS" if ok else "FAIL",
+                            f"上限 {OVERLAY_PEAK_MAX}（spec §6.3：0.15–0.30 合格，"
+                            f">0.40 须回 Step 1 换图）"))
     return rows
 
 

@@ -72,6 +72,12 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("nine",           [PY, "scripts/pwa_nine_test.py"],          "九宫格切图 15", "local"),
     ("cover",          [PY, "scripts/pwa_cover_test.py"],         "封面 30（含实时预览 3 项）", "local"),
     ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
+    # 2026-10-29 接入：封面风格规范校验（对比度/字号/字重字距/遮罩峰值）。
+    # 此前这把尺子存在但没进门禁 → 10 套模板遮罩峰值 0.70（超规范 2.3 倍）躺了很久。
+    # --src pwa = 只看在用的资产（public/cover-templates + pwa/src/cover）；
+    # 原型（docs/prototypes，已废弃）不计入，避免历史遗留把门禁长期染红。
+    ("cover_spec",     [PY, "scripts/cover_style_check.py", "--src", "pwa", "--strict"],
+                       "封面规范（对比度/字号/遮罩峰值 24）", "in-process"),
     ("ai_plan",        [str(NODE), "scripts/ai_plan_unit.mjs"],   "AI 排版结构单测 20", "in-process"),
     ("theme_spec",     [PY, "scripts/audit_theme_spec.py"],       "模板配色审计（对照归藏规范）", "in-process"),
     ("theme_contrast", [PY, "scripts/theme_contrast_audit.py"],   "标题/正文对比度 164 套", "in-process"),

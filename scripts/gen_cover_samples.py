@@ -28,10 +28,15 @@ DIST = ROOT / "pwa" / "dist"
 OUT = ROOT / "pwa" / "public" / "samples"
 sys.path.insert(0, str(ROOT))
 
-# (风格 id, 文案) —— 覆盖三个观感：归藏杂志 / 暖纸模板 / 暗底模板
+# (风格 id, 文案) —— 2026-10-29 扩到 6 张，覆盖「版式」而不只是「颜色」：
+#   归藏杂志 / 暖纸模板 / 暗底模板（原有三张）+ 图文封面 / 金句 / 编号大字（新版式）。
+#   空态示例墙要让人一眼看出「能做出不同结构的东西」，不是同一张图换 6 个颜色。
 SAMPLES = [
     ("editorial", "把生活过成一首慢诗\n\n不赶路，只感受"),
+    ("image-led-paper", "周末去海边\n\n两天的沉默之后，我重新听见了海浪"),
+    ("quote-ink", "慢下来\n\n不赶路，只感受"),
     ("editorial-dune", "周末去海边\n\n放空一下，咸咸的风"),
+    ("number-bold", "5 个方法\n\n让周末真的属于你"),
     ("editorial-midnight-ink", "深夜书房\n\n一盏灯，一杯茶，一段安静时光"),
 ]
 
@@ -86,7 +91,12 @@ def main() -> int:
                 # 2026-10-27 三栏改版：没有标签了，直接操作
                 page.fill("#cv-text", text)
                 page.wait_for_timeout(150)
-                page.locator(f".cv-style[data-style='{style_id}']").click()
+                # 版式卡：点色点切色板；单色卡点缩略图（2026-10-29 一版式一卡）
+                dot = page.locator(f".cv-dot[data-style='{style_id}']")
+                if dot.count():
+                    dot.first.click()
+                else:
+                    page.locator(f".cv-style-pick[data-style='{style_id}']").first.click()
                 page.wait_for_timeout(150)
                 page.click("#cv-gen")
                 page.wait_for_function(
