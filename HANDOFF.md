@@ -10,7 +10,8 @@
 ## 1. 现状（看完这三行就够了）
 
 - 主产品：**PWA 版** https://supersu.ccwu.cc（Cloudflare Pages 项目 `supersu-pwa`，生产分支 `main`），源码在 `pwa/`
-- 排版引擎两版共用：`core/preprocessor.py` + `core/format_engine.py` + `public/themes/`
+- 排版引擎：`core/preprocessor.py` + `core/format_engine.py` + `public/themes/`
+  （引擎**没有**封存，封存的只是 Flask 外壳；`core/` 只有 4 个模块，构建时拷进 `pwa/dist/py/`）
 - 本地 Flask 版（`app.py` + `templates/index.html`）**已封存**，取回方式见 [`ARCHIVE.md`](ARCHIVE.md)
 
 要**当前**的版本 / 构建号 / 线上状态 / 门禁结果 → 看 [`STATE.md`](STATE.md)。
