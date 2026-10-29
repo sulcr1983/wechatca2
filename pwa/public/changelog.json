@@ -1,23 +1,30 @@
 {
-  "version": "1.6.0",
-  "generatedAt": "2026-10-29T17:37:14+08:00",
-  "totalCommits": 234,
+  "version": "1.7.0",
+  "generatedAt": "2026-10-29T18:00:38+08:00",
+  "totalCommits": 237,
   "releases": [
     {
-      "version": "1.6.0",
-      "date": "2026-10-25",
-      "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
+      "version": "1.7.0",
+      "date": "2026-10-29",
+      "title": "手机端排版大修 · 模板精选与命名重整",
       "counts": {
-        "added": 7,
-        "changed": 6,
-        "fixed": 16,
-        "other": 30
+        "added": 6,
+        "changed": 4,
+        "fixed": 5,
+        "other": 14
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "标题对齐归一 · 命名与排序重整 · 表格不断词",
+              "scope": "theme+mobile",
+              "hash": "8d66d23",
+              "date": "2026-10-29T17:50:12+08:00",
+              "breaking": false
+            },
             {
               "text": "新增「大字版」封面（ROAD-1 纯文字大字，不用底图也不废）",
               "scope": "cover",
@@ -51,20 +58,6 @@
               "scope": "cover",
               "hash": "927acd2",
               "date": "2026-10-27T18:13:51+08:00",
-              "breaking": false
-            },
-            {
-              "text": "得意黑字体 + 7 种文字玩法 + 左栏标签改版 + 图库 Key 配置与教程",
-              "scope": "cover",
-              "hash": "911ac99",
-              "date": "2026-10-25T18:28:32+08:00",
-              "breaking": false
-            },
-            {
-              "text": "四步收口 —— 一键发版 / 两个体验修复 / 单一状态源 / pre-push 钩子",
-              "scope": "",
-              "hash": "6087dd8",
-              "date": "2026-10-25T12:27:10+08:00",
               "breaking": false
             }
           ]
@@ -100,20 +93,6 @@
               "hash": "6ad83df",
               "date": "2026-10-26T09:51:24+08:00",
               "breaking": false
-            },
-            {
-              "text": "Linux 服务器迁移指南（环境初始化/命令对照/平台差异/不可用项）",
-              "scope": "",
-              "hash": "842e161",
-              "date": "2026-10-25T21:06:52+08:00",
-              "breaking": false
-            },
-            {
-              "text": "小红书封面方案调研 + Lab 交互原型 + 配色规范草案 + 风格审计脚本",
-              "scope": "cover",
-              "hash": "fa5ac2c",
-              "date": "2026-10-25T21:06:44+08:00",
-              "breaking": false
             }
           ]
         },
@@ -121,6 +100,20 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "生成物清单补 STATE.md；补 v1.7.0 里程碑边界",
+              "scope": "release",
+              "hash": "8423cb6",
+              "date": "2026-10-29T18:00:24+08:00",
+              "breaking": false
+            },
+            {
+              "text": "把清干净的环境变量真的传给 subprocess",
+              "scope": "release",
+              "hash": "a524064",
+              "date": "2026-10-29T17:52:15+08:00",
+              "breaking": false
+            },
             {
               "text": "删掉打已封存 5000 端口的死探针",
               "scope": "layout_compat",
@@ -140,97 +133,6 @@
               "scope": "cover",
               "hash": "6282376",
               "date": "2026-10-27T19:37:21+08:00",
-              "breaking": false
-            },
-            {
-              "text": "4 套 Swiss 用强调色块区分 + 断言改为「纸色+强调色」组合唯一",
-              "scope": "cover",
-              "hash": "aa657c4",
-              "date": "2026-10-25T20:24:06+08:00",
-              "breaking": false
-            },
-            {
-              "text": "10 套模板色块与真实配色对齐 + 纯色模式改回纸底墨字 + 缩略图重生成",
-              "scope": "cover",
-              "hash": "2e72a39",
-              "date": "2026-10-25T20:06:22+08:00",
-              "breaking": false
-            },
-            {
-              "text": "归藏配色按原版规范校正 + AI 排版提示词按论文重写",
-              "scope": "cover,ai",
-              "hash": "dcede5d",
-              "date": "2026-10-25T19:19:44+08:00",
-              "breaking": false
-            },
-            {
-              "text": "修卡片按钮错位 + 署名在图片里不显示",
-              "scope": "cover",
-              "hash": "63480f4",
-              "date": "2026-10-25T18:48:58+08:00",
-              "breaking": false
-            },
-            {
-              "text": "按底色亮度自动选字色（WCAG 相对亮度），午夜墨金等中等亮度底色不再白字看不清",
-              "scope": "cover",
-              "hash": "77a6086",
-              "date": "2026-10-25T17:37:19+08:00",
-              "breaking": false
-            },
-            {
-              "text": "修 10 套模板纯色模式全是灰白板（用户「生成图片都一样」）",
-              "scope": "cover",
-              "hash": "d425bd8",
-              "date": "2026-10-25T17:26:01+08:00",
-              "breaking": false
-            },
-            {
-              "text": "凭证检测改为直接看文件（whoami 会因代理警告误报未登录）",
-              "scope": "deploy",
-              "hash": "d284a9f",
-              "date": "2026-10-25T17:02:21+08:00",
-              "breaking": false
-            },
-            {
-              "text": "修杂志分栏不生效 + hero/timeline 在 151/163 套主题上无效",
-              "scope": "layout",
-              "hash": "e9b2e59",
-              "date": "2026-10-25T15:58:18+08:00",
-              "breaking": false
-            },
-            {
-              "text": "支持 wrangler 登录态（不再强制要求 opendoor/.env）",
-              "scope": "deploy",
-              "hash": "34a38bf",
-              "date": "2026-10-25T15:03:23+08:00",
-              "breaking": false
-            },
-            {
-              "text": "调用侧去掉 node shim 环境变量（正确修法，不改业务代码）",
-              "scope": "release",
-              "hash": "c3877a7",
-              "date": "2026-10-25T14:55:05+08:00",
-              "breaking": false
-            },
-            {
-              "text": "build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态",
-              "scope": "build,test",
-              "hash": "b8495b8",
-              "date": "2026-10-25T14:41:15+08:00",
-              "breaking": false
-            },
-            {
-              "text": "修「卡片组排版失败」+ 小红书文案/布局 + 新增小红书全量截图测试",
-              "scope": "",
-              "hash": "5672cfa",
-              "date": "2026-10-25T13:34:58+08:00",
-              "breaking": false
-            },
-            {
-              "text": "门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档",
-              "scope": "",
-              "hash": "f37b725",
-              "date": "2026-10-25T01:40:36+08:00",
               "breaking": false
             }
           ]
@@ -336,7 +238,163 @@
               "hash": "e7578d2",
               "date": "2026-10-27T18:19:23+08:00",
               "breaking": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.6.0",
+      "date": "2026-10-25",
+      "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
+      "counts": {
+        "added": 2,
+        "changed": 2,
+        "fixed": 13,
+        "other": 16
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "得意黑字体 + 7 种文字玩法 + 左栏标签改版 + 图库 Key 配置与教程",
+              "scope": "cover",
+              "hash": "911ac99",
+              "date": "2026-10-25T18:28:32+08:00",
+              "breaking": false
             },
+            {
+              "text": "四步收口 —— 一键发版 / 两个体验修复 / 单一状态源 / pre-push 钩子",
+              "scope": "",
+              "hash": "6087dd8",
+              "date": "2026-10-25T12:27:10+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "Linux 服务器迁移指南（环境初始化/命令对照/平台差异/不可用项）",
+              "scope": "",
+              "hash": "842e161",
+              "date": "2026-10-25T21:06:52+08:00",
+              "breaking": false
+            },
+            {
+              "text": "小红书封面方案调研 + Lab 交互原型 + 配色规范草案 + 风格审计脚本",
+              "scope": "cover",
+              "hash": "fa5ac2c",
+              "date": "2026-10-25T21:06:44+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "4 套 Swiss 用强调色块区分 + 断言改为「纸色+强调色」组合唯一",
+              "scope": "cover",
+              "hash": "aa657c4",
+              "date": "2026-10-25T20:24:06+08:00",
+              "breaking": false
+            },
+            {
+              "text": "10 套模板色块与真实配色对齐 + 纯色模式改回纸底墨字 + 缩略图重生成",
+              "scope": "cover",
+              "hash": "2e72a39",
+              "date": "2026-10-25T20:06:22+08:00",
+              "breaking": false
+            },
+            {
+              "text": "归藏配色按原版规范校正 + AI 排版提示词按论文重写",
+              "scope": "cover,ai",
+              "hash": "dcede5d",
+              "date": "2026-10-25T19:19:44+08:00",
+              "breaking": false
+            },
+            {
+              "text": "修卡片按钮错位 + 署名在图片里不显示",
+              "scope": "cover",
+              "hash": "63480f4",
+              "date": "2026-10-25T18:48:58+08:00",
+              "breaking": false
+            },
+            {
+              "text": "按底色亮度自动选字色（WCAG 相对亮度），午夜墨金等中等亮度底色不再白字看不清",
+              "scope": "cover",
+              "hash": "77a6086",
+              "date": "2026-10-25T17:37:19+08:00",
+              "breaking": false
+            },
+            {
+              "text": "修 10 套模板纯色模式全是灰白板（用户「生成图片都一样」）",
+              "scope": "cover",
+              "hash": "d425bd8",
+              "date": "2026-10-25T17:26:01+08:00",
+              "breaking": false
+            },
+            {
+              "text": "凭证检测改为直接看文件（whoami 会因代理警告误报未登录）",
+              "scope": "deploy",
+              "hash": "d284a9f",
+              "date": "2026-10-25T17:02:21+08:00",
+              "breaking": false
+            },
+            {
+              "text": "修杂志分栏不生效 + hero/timeline 在 151/163 套主题上无效",
+              "scope": "layout",
+              "hash": "e9b2e59",
+              "date": "2026-10-25T15:58:18+08:00",
+              "breaking": false
+            },
+            {
+              "text": "支持 wrangler 登录态（不再强制要求 opendoor/.env）",
+              "scope": "deploy",
+              "hash": "34a38bf",
+              "date": "2026-10-25T15:03:23+08:00",
+              "breaking": false
+            },
+            {
+              "text": "调用侧去掉 node shim 环境变量（正确修法，不改业务代码）",
+              "scope": "release",
+              "hash": "c3877a7",
+              "date": "2026-10-25T14:55:05+08:00",
+              "breaking": false
+            },
+            {
+              "text": "build 兼容 safe-delete 环境 + cover 搜图超时后恢复页面状态",
+              "scope": "build,test",
+              "hash": "b8495b8",
+              "date": "2026-10-25T14:41:15+08:00",
+              "breaking": false
+            },
+            {
+              "text": "修「卡片组排版失败」+ 小红书文案/布局 + 新增小红书全量截图测试",
+              "scope": "",
+              "hash": "5672cfa",
+              "date": "2026-10-25T13:34:58+08:00",
+              "breaking": false
+            },
+            {
+              "text": "门禁彻底掰回 PWA-only，修窗口泄漏与多处测试误判；补交接文档",
+              "scope": "",
+              "hash": "f37b725",
+              "date": "2026-10-25T01:40:36+08:00",
+              "breaking": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
             {
               "text": "STATE 同步（归藏配色+AI提示词已上线）",
               "scope": "",
