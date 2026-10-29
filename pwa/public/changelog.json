@@ -1,7 +1,7 @@
 {
   "version": "1.8.0",
-  "generatedAt": "2026-10-29T19:24:17+08:00",
-  "totalCommits": 241,
+  "generatedAt": "2026-10-29T19:24:38+08:00",
+  "totalCommits": 242,
   "releases": [
     {
       "version": "1.8.0",
@@ -14,7 +14,8 @@
       ],
       "counts": {
         "added": 1,
-        "changed": 1
+        "changed": 1,
+        "fixed": 1
       },
       "groups": [
         {
@@ -40,6 +41,20 @@
               "scope": "update",
               "hash": "d3b2fb2",
               "date": "2026-10-29T19:04:09+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "修「上次检查时间」永不显示 + 手机端版本标题被截断 + 启动条压住反馈入口",
+              "scope": "update",
+              "hash": "45aa2b5",
+              "date": "2026-10-29T19:24:25+08:00",
               "breaking": false,
               "dev": false
             }
