@@ -171,6 +171,23 @@
 .cv-search-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 8px;
 }
+/* 搜图翻页（2026-10-30）：用户反馈「只有几张、没有上一页下一页」 */
+.cv-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-top: 8px;
+}
+.cv-pager-btn {
+  flex: none; padding: 4px 10px; border-radius: 5px;
+  font-size: 11.5px; color: var(--text-soft);
+  border: 1px solid var(--border); background: var(--bg-raised);
+  transition: all .15s;
+}
+.cv-pager-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.cv-pager-btn:disabled { opacity: .40; cursor: not-allowed; }
+.cv-pager-label {
+  flex: 1; text-align: center; font-size: 11px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
 .cv-cand {
   padding: 0; border: 1px solid var(--border); border-radius: 5px;
   overflow: hidden; position: relative;

@@ -150,13 +150,19 @@ async function fetchJson(url, { headers = {}, timeout = REQ_TIMEOUT } = {}) {
 }
 
 /** Pexels 搜索。原生支持中文 query，竖图优先。 */
-async function searchPexels(q, limit, key) {
+async function searchPexels(q, limit, key, page = 1) {
+  /* 2026-10-30 加翻页（用户反馈「只有几张、没有上一页下一页」）：
+     Pexels 官方支持 page / per_page（per_page 上限 80）。
+     每页取 12 张（3 列 × 4 行，左栏一屏能看全），翻页由 UI 传 page。 */
   const params = new URLSearchParams({
-    query: q, per_page: String(Math.max(limit, 12)), orientation: 'portrait',
+    query: q,
+    per_page: String(Math.min(80, Math.max(limit, 12))),
+    page: String(Math.max(1, page)),
+    orientation: 'portrait',
   });
   const data = await fetchJson(`${PEXELS_API}?${params}`, { headers: { Authorization: key } });
   const photos = Array.isArray(data?.photos) ? data.photos : [];
-  return photos.map((ph) => ({
+  const items = photos.map((ph) => ({
     id: `px-${ph.id}`,
     title: ph.alt || q,
     url: ph.src?.original || ph.src?.large2x || ph.src?.large || '',
@@ -169,10 +175,17 @@ async function searchPexels(q, limit, key) {
     pageUrl: ph.url || '',
     provider: 'pexels',
   })).filter((it) => it.url && it.width >= 600);
+  // total/next_page 交给 UI 决定「下一页」是否可点
+  return {
+    items,
+    page: Number(data?.page) || page,
+    total: Number(data?.total_results) || 0,
+    hasNext: !!data?.next_page,
+  };
 }
 
 /** 搜图主入口：Pexels 是唯一图源（Wikimedia/Pixabay 都已移除）。 */
-async function searchMultiProvider(q, limit) {
+async function searchMultiProvider(q, limit, page = 1) {
   const keys = getStockKeys();
 
   // 没配 Key 就别发请求了 —— 直接告诉用户去填，比等一下再失败好
@@ -184,9 +197,11 @@ async function searchMultiProvider(q, limit) {
   }
 
   try {
-    const items = await searchPexels(q, limit, keys.pexels);
-    if (items.length) return { items, provider: 'pexels' };
-    const err = new SearchError('没找到底图，换个关键词试试（中文/英文都行，如 海边 / beach / 咖啡）。');
+    const r = await searchPexels(q, limit, keys.pexels, page);
+    if (r.items.length) return { ...r, provider: 'pexels' };
+    const err = new SearchError(page > 1
+      ? '后面没有了，回上一页看看。'
+      : '没找到底图，换个关键词试试（中文/英文都行，如 海边 / beach / 咖啡）。');
     err.detail = ['Pexels 无结果'];
     throw err;
   } catch (e) {
@@ -198,10 +213,10 @@ async function searchMultiProvider(q, limit) {
 }
 
 /** 搜底图。返回 { query, translated, from, items }；失败抛 SearchError。 */
-export async function searchBackground(input, { limit = 6 } = {}) {
+export async function searchBackground(input, { limit = 12, page = 1 } = {}) {
   const guess = guessQuery(input);
   const q = guess.query;
-  if (!q) return { query: '', translated: false, from: '', items: [], provider: '' };
+  if (!q) return { query: '', translated: false, from: '', items: [], provider: '', hasNext: false };
 
   /* 缓存必须绑定「当前用了哪些图源」（2026-10-27 修）。
      原来只用查询词当 key，实测踩到：先配 Pexels 搜 beach（结果入缓存），
@@ -209,34 +224,46 @@ export async function searchBackground(input, { limit = 6 } = {}) {
      返回 Pexels 的图，可用户明明没有 Pexels Key。
      现在 key = 「图源签名:查询词」，换 Key 立刻失效，不会串源。 */
   const sig = availableProviders().join('+') || 'none';
+  // 缓存只缓存第 1 页（翻页结果不进缓存，避免把「第 3 页」当成首屏）
   const ck = `${sig}:${q}`;
   const cache = readCache();
   const hit = cache[ck];
-  if (hit && Date.now() - hit.t < CACHE_TTL && Array.isArray(hit.items)) {
-    return { ...guess, items: hit.items, provider: hit.provider || '' };
+  if (page === 1 && hit && Date.now() - hit.t < CACHE_TTL && Array.isArray(hit.items)) {
+    return { ...guess, items: hit.items, provider: hit.provider || '',
+             hasNext: !!hit.hasNext, total: hit.total || 0, page: 1 };
   }
 
   // 2026-10-27：只保留 Pexels（Wikimedia 国内不可达、Pixabay 不吃中文，均已移除）。
   // Pexels 原生支持中文，guessQuery 的英文映射只作为「更准的关键词」锦上添花。
   let items = [];
   let provider = '';
+  let hasNext = false;
+  let total = 0;
   try {
-    const r = await searchMultiProvider(q, limit);
+    const r = await searchMultiProvider(q, limit, page);
     items = r.items;
     provider = r.provider;
+    hasNext = !!r.hasNext;
+    total = r.total || 0;
   } catch (e) {
     // 英文映射词没命中时，退回原文再试一次（Pexels 直接吃中文，中文往往更准）
-    if (input && q !== input.trim()) {
-      const r2 = await searchMultiProvider(input.trim().slice(0, 60), limit);
+    // 翻页时不重试：第 2 页没结果就是真的没有了，别把「原文第 1 页」当第 2 页返回
+    if (page === 1 && input && q !== input.trim()) {
+      const r2 = await searchMultiProvider(input.trim().slice(0, 60), limit, page);
       items = r2.items;
       provider = r2.provider;
+      hasNext = !!r2.hasNext;
+      total = r2.total || 0;
     } else {
       throw e;
     }
   }
-  cache[ck] = { t: Date.now(), items, provider };
-  writeCache(cache);
-  return { ...guess, items, provider };
+  // 只缓存第 1 页
+  if (page === 1) {
+    cache[ck] = { t: Date.now(), items, provider, hasNext, total };
+    writeCache(cache);
+  }
+  return { ...guess, items, provider, hasNext, total, page };
 }
 
 /** 把远程图片转成 data URL（避免截图时跨域图片被污染）。 */

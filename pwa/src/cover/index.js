@@ -23,6 +23,10 @@ const state = {
   imageMeta: null,        // {title, author, license, pageUrl} | {title, author:'本地上传'}
   candidates: [],
   searchQuery: '',
+  /* 搜图翻页（2026-10-30）：Pexels 支持 page/per_page，一次 12 张 */
+  searchPage: 1,
+  searchHasNext: false,
+  searchTotal: 0,
   busy: false,
   results: [],
   /* 每张版式卡各自记住上次选的色板（2026-10-29）：
@@ -369,7 +373,10 @@ function renderBg() {
     btn.className = 'cv-search-btn';
     btn.id = 'cv-search';
     btn.textContent = '搜索';
-    btn.addEventListener('click', doSearch);
+    /* ⚠️ 必须包一层：doSearch 现在第一个参数是 page（翻页用），
+       直接 addEventListener('click', doSearch) 会把 PointerEvent 当 page 传进去，
+       实测页码变成「第 [object PointerEvent] 页」。 */
+    btn.addEventListener('click', () => doSearch(1));
     row.append(q, btn);
     const grid = document.createElement('div');
     grid.className = 'cv-search-grid';
@@ -429,6 +436,12 @@ async function onFile(e) {
     state.imageMeta = { title: file.name, author: '本地上传', license: '' };
     await refreshAnalysis(data);        // 2026-10-30：上传图同样分析，不只搜图
     renderBgPreview();
+    /* ⚠️ 2026-10-30 修（用户实测反馈）：这里原来只调 renderBgPreview()，
+       那是「左栏那张小缩略图」，**主预览 iframe 不会刷新**。
+       结果：先选版式再上传图 → 预览里根本没有图，用户以为「图没跟上」；
+       而之后随便切一下版式图又出现了（因为切版式走 savePrefs → schedulePreview）。
+       凡是改 state.image 的地方都必须显式刷新主预览。 */
+    schedulePreview(0);
     const a = state.analysis;
     setStatus(a
       ? `底图已选（本地上传）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.needsTint ? '（已补淡遮罩）' : ''}`
@@ -438,22 +451,38 @@ async function onFile(e) {
   }
 }
 
-async function doSearch() {
+/* 搜图 + 翻页（2026-10-30 加翻页，用户反馈「只有几张、没有上一页下一页」）
+   每页 12 张（3 列 × 4 行），底部给「上一页 / 第 N 页 / 下一页」。 */
+async function doSearch(page = 1) {
+  /* 防御：page 必须是正整数。上面 btn 的 click 已包一层传 1，
+     但万一别处再直接挂 doSearch，事件对象会混进来（实测出现过
+     「第 [object PointerEvent] 页」）。这里统一归一化。 */
+  const pageNo = Number.isFinite(+page) && +page > 0 ? Math.floor(+page) : 1;
   const q = ($('cv-q')?.value || '').trim();
   if (!q) { toast('先填一个关键词', 'err'); return; }
   const btn = $('cv-search');
   if (btn) btn.disabled = true;
   state.searchQuery = q;
-  state.candidates = [];
-  renderCandidates();
-  setStatus('正在搜图…（Pexels）');
-  try {
-    const r = await searchBackground(q, { limit: 6 });
-    state.candidates = r.items;
-    renderCandidates();
-    setStatus(r.items.length ? `找到 ${r.items.length} 张，点一张作底图` : '没有找到合适的图，换个关键词或改用上传');
-  } catch (err) {
+  if (pageNo === 1) {
     state.candidates = [];
+    state.searchPage = 1;
+    state.searchHasNext = false;
+    renderCandidates();
+  }
+  setStatus(pageNo > 1 ? `正在翻到第 ${pageNo} 页…` : '正在搜图…（Pexels）');
+  try {
+    const r = await searchBackground(q, { limit: 12, page: pageNo });
+    state.candidates = r.items;
+    state.searchPage = r.page || pageNo;
+    state.searchHasNext = !!r.hasNext;
+    state.searchTotal = r.total || 0;
+    renderCandidates();
+    const total = r.total ? `（共 ${r.total} 张）` : '';
+    setStatus(r.items.length
+      ? `第 ${state.searchPage} 页 · ${r.items.length} 张${total}，点一张作底图`
+      : '没有找到合适的图，换个关键词或改用上传');
+  } catch (err) {
+    if (pageNo === 1) state.candidates = [];
     renderCandidates();
     setStatus(String(err.message || err), true);
     toast(String(err.message || err), 'err');
@@ -482,6 +511,44 @@ function renderCandidates() {
     b.addEventListener('click', () => pickCandidate(it));
     box.appendChild(b);
   }
+  renderPager();
+}
+
+/* 翻页控件（2026-10-30）：只在搜到结果时出现。
+   用户反馈「只有几张图、没有上一页下一页」——Pexels 官方支持 page 参数，
+   一次 12 张（3×4），底部给上一页/下一页 + 当前页与总数。 */
+function renderPager() {
+  const host = $('cv-cands');
+  if (!host) return;
+  const old = $('cv-pager');
+  if (old) old.remove();
+  if (!state.candidates.length) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'cv-pager';
+  bar.id = 'cv-pager';
+
+  const prev = document.createElement('button');
+  prev.type = 'button';
+  prev.className = 'cv-pager-btn';
+  prev.textContent = '上一页';
+  prev.disabled = state.searchPage <= 1;
+  prev.addEventListener('click', () => doSearch(state.searchPage - 1));
+
+  const label = document.createElement('span');
+  label.className = 'cv-pager-label';
+  const total = state.searchTotal ? ` / 共 ${state.searchTotal} 张` : '';
+  label.textContent = `第 ${state.searchPage} 页${total}`;
+
+  const next = document.createElement('button');
+  next.type = 'button';
+  next.className = 'cv-pager-btn';
+  next.textContent = '下一页';
+  next.disabled = !state.searchHasNext;
+  next.addEventListener('click', () => doSearch(state.searchPage + 1));
+
+  bar.append(prev, label, next);
+  host.after(bar);
 }
 
 async function pickCandidate(it) {
@@ -500,6 +567,7 @@ async function pickCandidate(it) {
     await refreshAnalysis(data);        // 2026-10-30：选图即分析，预览立刻用上
     renderCandidates();
     renderBgPreview();
+    schedulePreview(0);                 // 同上：必须显式刷新主预览
     const a = state.analysis;
     setStatus(a
       ? `底图已选（Pexels）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.needsTint ? '（已补淡遮罩）' : ''}`
@@ -607,6 +675,7 @@ function renderBgPreview() {
     state.imageMeta = null;
     state.analysis = null;              // 2026-10-30：清了图就别留着旧分析
     renderBgPreview();
+    schedulePreview(0);                 // 清了图预览也要回到纯色，别留着旧图
     setStatus('已清除底图');
   });
   wrap.append(img, meta, clr);

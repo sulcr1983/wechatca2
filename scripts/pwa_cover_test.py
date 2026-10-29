@@ -343,8 +343,21 @@ def main() -> int:
             # ── 上传底图 ──
             if UPLOAD.exists():
                 tab("bg")
+                # ── 先选版式、再上传图（2026-10-30 用户实测反馈的真 bug）──
+                # 原来 onFile 只调 renderBgPreview()（左栏那张小缩略图），
+                # **主预览 iframe 不刷新** → 先选版式再上传图，预览里根本没有图。
+                # 这条断言就是防它回来。
+                pick_style("image-led-paper")
+                page.wait_for_timeout(1600)
                 page.click('[data-mode="upload"]')
                 page.set_input_files("#cv-file", str(UPLOAD))
+                page.wait_for_function(
+                    "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                    " return !!(f && f.contentDocument && f.contentDocument.body"
+                    "   && f.contentDocument.body.classList.contains('has-img')); }",
+                    timeout=25000)
+                check("先选版式再上传图 → 主预览立刻带图", True,
+                      page.inner_text(".cv-bg-meta").replace("\n", " | "))
                 page.wait_for_selector(".cv-bg-preview img", timeout=15000)
                 page.click("#cv-gen")
                 page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
@@ -382,7 +395,10 @@ def main() -> int:
                     pads[pos] = page.evaluate(
                         "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
                         " if (!f || !f.contentDocument) return null;"
-                        " const c = f.contentDocument.querySelector('.inner-content, .content');"
+                        # 三类容器都要认：模板用 .inner-content / .content，
+                        # 新版式骨架用 .ly-body（2026-10-30 加，否则选到新版式就取不到）
+                        " const c = f.contentDocument.querySelector("
+                        "   '.inner-content, .content, .ly-body');"
                         " if (!c) return null;"
                         " const r = c.getBoundingClientRect();"
                         " return Math.round(r.top); }")
@@ -404,6 +420,45 @@ def main() -> int:
                                     "f.contentDocument.querySelector('.cv-frost')); }"), "")
                 page.uncheck("#cv-frosted")
                 page.wait_for_timeout(1200)
+
+                # ── 底图流转一致性（2026-10-30）────────────────────
+                # 用户实测反馈：切版式时图「没跟上」。根因是改 state.image 的
+                # 地方没统一刷新主预览。这两条守住「图跟着版式走」。
+                pick_style("quote-paper")
+                page.wait_for_timeout(1800)
+                check("有底图时切版式 → 图保留",
+                      page.evaluate("() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                                    " return !!(f && f.contentDocument && f.contentDocument.body"
+                                    "   && f.contentDocument.body.classList.contains('has-img')); }"), "")
+
+                page.click(".cv-clear")
+                page.wait_for_timeout(2200)
+                check("清除底图 → 预览回到纯色",
+                      page.evaluate("() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                                    " return !!(f && f.contentDocument && f.contentDocument.body"
+                                    "   && !f.contentDocument.body.classList.contains('has-img')); }"), "")
+
+                # ── 搜图翻页（2026-10-30）──────────────────────────
+                # 用户反馈「只有几张图、没有上一页下一页」。Pexels 支持 page 参数，
+                # 现在一次 12 张 + 底部翻页条。没搜图时不该出现翻页条。
+                page.click('[data-mode="search"]')
+                page.wait_for_timeout(900)
+                check("未搜图时不显示翻页条",
+                      page.evaluate("() => !document.querySelector('#cv-pager')"), "")
+
+                # 页码必须是纯数字（2026-10-30 修的真 bug）：
+                # doSearch 第一参数改成 page 后，直接挂 click 会把 PointerEvent
+                # 传进去 → 标签显示「第 [object PointerEvent] 页」。
+                check("页码标签格式正确（不混入事件对象）",
+                      page.evaluate("""() => {
+                        const el = document.querySelector('#cv-pager .cv-pager-label');
+                        if (!el) return true;   // 没搜图时不存在，视为通过
+                        return /^第 \\d+ 页/.test(el.textContent.trim());
+                      }"""),
+                      page.evaluate("""() => {
+                        const el = document.querySelector('#cv-pager .cv-pager-label');
+                        return el ? el.textContent.trim() : '(未搜图)';
+                      }"""))
             else:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
                 skip("底图可读性", f"缺测试图 {UPLOAD}")
