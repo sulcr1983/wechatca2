@@ -644,6 +644,10 @@
   font-weight: 600;
 }
 .cv-gen--soft:hover { background: var(--accent-soft); }
+/* 整套图文（2026-10-30）：与「保存大图」并列，但弱化一档
+   —— 单张是主路径，整套是「顺手多出几张」 */
+.cv-gen-story { font-weight: 500; }
+.cv-pv-actions { flex-wrap: wrap; }
 
 /* 预览条上的九宫格入口：小、但不隐形 */
 .cv-nine-entry {

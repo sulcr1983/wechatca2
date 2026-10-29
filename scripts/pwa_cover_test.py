@@ -459,6 +459,50 @@ def main() -> int:
                         const el = document.querySelector('#cv-pager .cv-pager-label');
                         return el ? el.textContent.trim() : '(未搜图)';
                       }"""))
+
+                # ── 大字报支持底图（2026-10-30 用户实测反馈）────────────
+                # 代码里原来写死 `style === 'bigtype' ? '' : image` ——
+                # 选了图也永远不铺，用户看到「大字报没有代入图片预览」。
+                pick_style("bigtype")
+                page.wait_for_timeout(1600)
+                page.click('[data-mode="upload"]')
+                page.set_input_files("#cv-file", str(UPLOAD))
+                page.wait_for_function(
+                    "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
+                    " return !!(f && f.contentDocument && f.contentDocument.body"
+                    "   && f.contentDocument.body.classList.contains('has-img')); }",
+                    timeout=25000)
+                has_img = page.evaluate("""() => { const f = document.querySelector('.cv-preview-scaler iframe');
+                  return !!f.contentDocument.querySelector('.cover-img'); }""")
+                check("大字报选底图后也铺图", bool(has_img), "有 .cover-img" if has_img else "缺 .cover-img")
+
+                # ── 整套图文（2026-10-30 新增）──────────────────────────
+                # 用户反馈「记得之前有标题和正文一起的功能」——查代码从没实现过，
+                # 查竞品（红墨/创客贴/火兔）行业标准是「封面+内页一次出齐」。
+                page.fill("#cv-text",
+                          "周末去海边，我把手机调成了飞行模式\n\n两天的沉默之后，我重新听见了海浪。\n\n"
+                          "1. 早点睡，别熬到两点\n2. 出门走走，别一直刷手机\n3. 给自己煮碗面\n"
+                          "4. 把手机放远一点\n5. 读十页书\n6. 早点回家")
+                page.wait_for_timeout(2000)
+                # 封面引语不能混进列表项（实测踩到过）
+                lead_txt = page.evaluate("""() => { const f = document.querySelector('.cv-preview-scaler iframe');
+                  const l = f.contentDocument.querySelector('.lead, .h-sub, .ly-lead');
+                  return l ? l.textContent.trim() : ''; }""")
+                check("封面引语不混入列表项",
+                      "1." not in lead_txt and "早点睡" not in lead_txt,
+                      lead_txt[:50])
+                page.click("#cv-gen-story")
+                page.wait_for_function(
+                    "() => document.querySelectorAll('.cv-card').length > 1", timeout=150000)
+                page.wait_for_timeout(2500)
+                n_cards = page.evaluate("() => document.querySelectorAll('.cv-card').length")
+                labels = page.evaluate(
+                    "() => [...document.querySelectorAll('.cv-card-label')].map(e => e.textContent)")
+                check("整套图文出「封面 + 内页」", n_cards >= 2 and
+                      any("封面" in l for l in labels) and any("内页" in l for l in labels),
+                      f"{n_cards} 张: {' | '.join(labels)}")
+                check("整套生成后出现「打包整套」",
+                      page.evaluate("() => !document.querySelector('#cv-zip-story').hidden"), "")
             else:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
                 skip("底图可读性", f"缺测试图 {UPLOAD}")

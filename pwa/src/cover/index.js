@@ -5,6 +5,7 @@
 import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, LAYOUTS, COVER_SIZES, styleById, layoutOfStyle } from './catalog.js';
 import { renderCoverBlob, buildCoverHtml } from './render.js';
 import { analyzeImage } from './analyze.js';
+import { buildStorySet } from './story.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { searchBackground, fetchImageDataUrl, guessQuery, getStockKeys } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
@@ -61,10 +62,24 @@ function setStatus(msg, isErr = false) {
 }
 
 /* ── 文案提取（与本地版 _extract_story 同口径） ── */
+/* 从输入框文本抽出「标题 + 引语」。
+   ⚠️ 2026-10-30 修（实测踩到）：原来引语取「第 2、3 行」，
+   而正文里如果第 3 行是列表项「1. 早点睡」，引语就会变成
+   「两天的沉默之后，我重新听见了海浪。 · 1. 早点睡，别熬到两点」——
+   封面上看起来像文案串了。
+   现在：引语只在**第一个列表项之前**取，遇到列表就停。 */
 function extractStory(text) {
   const lines = String(text).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const title = (lines[0] || '').replace(/^#{1,6}\s*/, '').slice(0, 64).trim();
-  const lead = lines.slice(1, 3)
+  const rest = lines.slice(1);
+  // 遇到列表项就停（列表项归内页，不进封面副标）
+  const beforeList = [];
+  for (const l of rest) {
+    if (/^(\d+[.、)]|[-*•·])\s*/.test(l)) break;
+    beforeList.push(l);
+    if (beforeList.length >= 2) break;
+  }
+  const lead = beforeList
     .map((l) => l.replace(/^[-*•>\s]+/, '').trim())
     .filter(Boolean)
     .join(' · ')
@@ -110,12 +125,21 @@ function closeCover() {
 function selectStyle(id) {
   if (!ALL_STYLES.some((s) => s.id === id)) return;
   const meta = styleById(id);
+  const prevZone = JSON.stringify(zoneForStyle(state.style));
   state.style = id;
   state.layoutPick[meta.layout] = id;
   if (!meta.sizes.includes(state.size)) state.size = meta.sizes[0];
   savePrefs();
   renderStyles();
   renderSizes();
+  /* 版式切换会改变文字区域（大字报居中 vs 其他贴底），
+     分析结果要跟着重算，否则 scrim 会压错地方（2026-10-30）。 */
+  if (state.image && prevZone !== JSON.stringify(zoneForStyle(id))) {
+    refreshAnalysis(state.image).then(() => {
+      renderBgPreview();
+      schedulePreview(0);
+    });
+  }
 }
 
 /** 当前 styleId 是否为 3:4 专属（只用于给卡片打角标） */
@@ -582,12 +606,23 @@ async function pickCandidate(it) {
 
 /* 底图可读性分析（2026-10-30）：把 analyze.js 的结论存进 state，
    预览和生成都会用它决定字色与 scrim。分析失败不阻断出图，只是退回原行为。
-   zone 按版式给：所有版式都是贴底排版，文字占底部约 45%。 */
+
+   zone = 文字真实占据的纵向范围，**按版式给**（2026-10-30 修）：
+   · 大多数版式是「贴底排版」→ 底部 45%
+   · 大字报是「垂直居中」→ 中间 50%（原来一律用 0.55–1.0，遮罩会压错地方） */
+const ZONE_BY_STYLE = {
+  bigtype: [0.28, 0.82],
+};
+
+function zoneForStyle(styleId) {
+  return ZONE_BY_STYLE[styleId] || [0.55, 1.0];
+}
+
 async function refreshAnalysis(dataUrl) {
   state.analysis = null;
   if (!dataUrl) return;
   try {
-    state.analysis = await analyzeImage(dataUrl, { zone: [0.55, 1.0] });
+    state.analysis = await analyzeImage(dataUrl, { zone: zoneForStyle(state.style) });
   } catch {
     state.analysis = null;
   }
@@ -736,6 +771,84 @@ async function generate() {
   }
 }
 
+/* ── 整套图文（2026-10-30）─────────────────────────────────────────
+   用户反馈「记得之前有标题和正文一起的功能，现在只剩标题了」。
+   查代码：本项目从来没实现过（docs 里画过「内页类」的饼但没落地）。
+   查竞品（红墨 / 创客贴 / 火兔 / A9）：行业标准是「封面 + 内页一次出齐」。
+
+   实现方式：复用 buildStorySet（story.js），它把正文自动拆页，
+   内页轮换已有骨架（list/number/quote），整套共用同一字体与文字玩法。 */
+async function generateStory() {
+  if (state.busy) return;
+  const text = $('cv-text').value.trim();
+  if (text.length < 2) { toast('先写点文案（第一行作标题，后面作正文）', 'err'); return; }
+  const { title, lead } = extractStory(text);
+  if (!title) { toast('第一行要有一个标题', 'err'); return; }
+
+  /* 正文 = 去掉标题行之后的全部内容。
+     原来 extractStory 只取前两行作引语，剩下的正文直接丢了 ——
+     「标题和正文一起」这个需求的核心就是把后面这些内容也用上。 */
+  const lines = text.split(/\r?\n/);
+  const body = lines.slice(1).join('\n').trim();
+
+  state.busy = true;
+  const btn = $('cv-gen-story');
+  if (btn) btn.disabled = true;
+  // 整套生成前清空旧结果：否则会和上一次的单张封面混在一起，分不清哪套是哪套
+  state.results = [];
+  setStatus('正在生成整套图文…');
+  try {
+    const set = await buildStorySet({
+      style: state.style,
+      title,
+      lead,
+      body,
+      author: $('cv-author').value.trim(),
+      image: state.image || '',
+      analysis: state.analysis,
+      font: state.font,
+      textMode: state.textMode,
+    });
+
+    // 结果进同一个结果区，但标记 role 以便卡片显示「封面/内页 N」
+    for (const r of set) {
+      const url = URL.createObjectURL(r.blob);
+      state.results.push({
+        ...r, url, size: 'xhs',
+        style: r.styleId || state.style,
+      });
+    }
+    renderGallery();
+    // 生成过整套才显示「打包整套」
+    const zipBtn = $('cv-zip-story');
+    if (zipBtn) zipBtn.hidden = false;
+    setStatus(`整套 ${set.length} 张已生成（1 封面 + ${set.length - 1} 内页）`);
+    toast(`整套 ${set.length} 张已生成`, 'ok');
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+    toast(String(err.message || err), 'err');
+  } finally {
+    state.busy = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+/** 整套打包下载（复用九宫格的 ZIP 实现，不重写）。 */
+async function downloadStoryZip() {
+  const set = state.results.filter((r) => r.role === 'cover' || r.role === 'inner');
+  if (!set.length) { toast('先点「整套图文」生成', 'err'); return; }
+  try {
+    const tiles = set.map((r, i) => ({
+      name: `${String(i + 1).padStart(2, '0')}-${r.role === 'cover' ? '封面' : '内页' + r.index}.png`,
+      blob: r.blob,
+    }));
+    const r = await zipTiles(tiles, '小红书整套');
+    toast(`已打包 ${tiles.length} 张：${r.filename}`, 'ok');
+  } catch (err) {
+    toast(String(err.message || err), 'err');
+  }
+}
+
 function renderGallery() {
   const gal = $('cv-gallery');
   const empty = $('cv-empty');
@@ -756,7 +869,11 @@ function renderGallery() {
     foot.className = 'cv-card-foot';
     const label = document.createElement('span');
     label.className = 'cv-card-label';
-    label.textContent = `${COVER_SIZES[r.size].hint} · ${styleById(r.style).name}`;
+    /* 整套图文的结果要标清「封面 / 内页 N」（2026-10-30），
+       否则一屏 5 张卡片分不清哪张是封面。 */
+    label.textContent = r.role
+      ? `${r.label} · ${styleById(r.style).name}`
+      : `${COVER_SIZES[r.size].hint} · ${styleById(r.style).name}`;
     label.title = label.textContent;
     // 按钮包一层容器（2026-10-25）：避免长标签把两个按钮挤到换行
     const acts = document.createElement('div');
@@ -1092,11 +1209,18 @@ function mount() {
           <!-- 语义修正（2026-10-27）：实时预览已经是成品，用户要的是「把它存下来」。
                按钮文字按「动词+对象」写，并按次要按钮处理（预览才是主角）。 -->
           <button class="cv-gen cv-gen--soft" id="cv-gen" type="button">保存大图</button>
+          <!-- 整套图文（2026-10-30）：竞品（红墨/创客贴/火兔）都是「封面+内页一次出齐」，
+               原来只有单张封面。正文会自动拆页，不要求手工分页。 -->
+          <button class="cv-gen cv-gen--soft cv-gen-story" id="cv-gen-story" type="button"
+                  title="一次出「封面 + 内页」，正文自动拆页">整套图文</button>
           <div class="cv-status" id="cv-status"></div>
         </div>
         <div class="cv-out-head">
           <span class="cv-out-title">标题图结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
+          <!-- 整套打包（2026-10-30）：只有生成过整套才显示 -->
+          <button class="cv-mini-btn" id="cv-zip-story" type="button" hidden
+                  title="把整套（封面+内页）打包成 ZIP">打包整套</button>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
@@ -1200,6 +1324,11 @@ function mount() {
   document.querySelectorAll('.cv-mode').forEach((b) => {
     b.addEventListener('click', () => setMode(b.dataset.mode));
   });
+  /* 整套图文（2026-10-30） */
+  const storyBtn = $('cv-gen-story');
+  if (storyBtn) storyBtn.addEventListener('click', generateStory);
+  const zipBtn = $('cv-zip-story');
+  if (zipBtn) zipBtn.addEventListener('click', downloadStoryZip);
   /* 文字位置三档 + 磨砂开关（2026-10-30）：改完立刻重绘预览，用户能马上看到差别 */
   document.querySelectorAll('#cv-textpos-row .cv-chip').forEach((b) => {
     b.addEventListener('click', () => {

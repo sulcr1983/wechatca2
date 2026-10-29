@@ -466,8 +466,13 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
     .h-display { font-size:${f.titleSize}px; line-height:${f.titleLine}; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.04em'}; margin:0 0 20px; }
   `;
 
-  // 大字版**强制不铺底图**：选了图也不铺 —— 它的卖点就是「纯文字、永不图文不符」。
-  const useImg = style === 'bigtype' ? '' : image;
+  /* 大字版底图（2026-10-30 修）：
+     原来写死 `style === 'bigtype' ? '' : image` —— 选了图也**永远不铺**，
+     用户实测反馈「大字报没有代入图片预览」。
+     那个设计的本意是「搜不到图也能出封面」（纯文字兜底），
+     但把「兜底」做成了「禁止」就过头了。
+     现在：选了图就铺（跟其他版式一致），没选图才是纯文字大字报。 */
+  const useImg = image || '';
   const imageHtml = useImg ? `<img class="cover-img" src="{{IMAGE}}" alt=""><div class="img-overlay"></div>` : '';
   /* 遮罩（2026-10-30 改）：此前是无条件深遮罩。现在按 analyze.js 的实测结果：
      · 文字带最亮区够读（worstContrast ≥ 4.5）→ 完全不遮，照片保持原样
