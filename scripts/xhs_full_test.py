@@ -197,7 +197,7 @@ def main() -> int:
             bad_style = []
             for i, sid in enumerate(styles):
                 try:
-                    page.click(f".cv-style[data-style='{sid}']")
+                    page.locator(f".cv-style-pick[data-style='{sid}']").first.click()
                     page.wait_for_timeout(450)
                     pressed = page.evaluate(
                         f"() => document.querySelector(\".cv-style[data-style='{sid}']\")?.getAttribute('aria-pressed')")

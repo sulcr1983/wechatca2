@@ -53,7 +53,7 @@ def main() -> int:
             pg.fill("#cv-author", "阿苏")
             for sid in STYLES:
                 pg.wait_for_timeout(220)
-                pg.click(f".cv-style[data-style='{sid}']")
+                pg.locator(f".cv-style-pick[data-style='{sid}']").first.click()
                 pg.wait_for_timeout(320)
                 pg.click("#cv-gen")
                 try:

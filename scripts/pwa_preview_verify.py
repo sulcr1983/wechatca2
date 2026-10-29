@@ -98,7 +98,7 @@ def main():
             page.wait_for_timeout(500)
 
             # 统一用 3:4，预览与出图才能对齐
-            page.click('.cv-style[data-style="editorial"]')
+            page.click('.cv-style-pick[data-style="editorial"]')
             page.fill("#cv-text", TEXT)
             page.wait_for_timeout(1500)
 

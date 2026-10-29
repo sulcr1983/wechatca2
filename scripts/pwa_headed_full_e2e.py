@@ -557,7 +557,7 @@ def main() -> int:
             page.locator(".cv-sample[data-style='editorial']").click()
             page.wait_for_timeout(600)
             check("点示例选中风格",
-                  page.locator(".cv-style[data-style='editorial']").get_attribute("aria-pressed") == "true",
+                  page.locator(".cv-style[data-layout='magazine']").get_attribute("aria-pressed") == "true",
                   "", "")
             page.click("#btn-cover")
             page.wait_for_timeout(800)

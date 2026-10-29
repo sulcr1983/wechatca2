@@ -382,13 +382,19 @@ def main() -> int:
         check("封面页打开 / 排版页隐藏", page.is_visible("#cover-root") and page.is_hidden("#stage"),
               "排版", "封面", snap(page, "cover"))
         check("进入封面后按钮变「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版", "", page.inner_text("#btn-cover"))
-        check("13 种风格全部渲染", page.locator(".cv-style").count() == 13,
-              "", page.locator(".cv-style").count())
+        # 2026-10-30：卡片模型改为「一版式一卡 + 卡内色点」。
+        # 原来断言 13 张卡（13 个色板各占一张），现在 9 张版式卡。
+        # 25 个风格里，3 个是单色卡（杂志/大字版/瑞士封面，只有 1 套色板 → 不显示色点），
+        # 其余 6 张卡共 22 个色点。别写成 25 —— 单色卡本来就没有可换的颜色。
+        n_cards = page.locator(".cv-style").count()
+        n_dots = page.locator(".cv-dot").count()
+        check("9 个版式卡（结构不同）", n_cards == 9, "13 张卡", f"{n_cards} 张")
+        check("22 个色点（25 风格 - 3 张单色卡）", n_dots == 22, "", f"{n_dots} 个")
 
-        page.click('.cv-style[data-style="editorial-dune"]')
+        page.click('.cv-dot[data-style="editorial-dune"]')
         check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1,
               "3 尺寸", "1 尺寸")
-        page.click('.cv-style[data-style="editorial"]')
+        page.click('.cv-style-pick[data-style="editorial"]')
         check("归藏支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3,
               "1 尺寸", "3 尺寸")
 

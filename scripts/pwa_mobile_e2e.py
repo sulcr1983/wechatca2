@@ -193,7 +193,7 @@ def main():
                   f"{int(order['pv'])}<{int(order['txt'])}<{int(order['sty'])}<{int(order['res'])}")
             page.screenshot(path=str(SHOTS / "cover-1-mobile.png"))
 
-            page.evaluate("() => document.querySelector('.cv-style[data-style=\"editorial-midnight-ink\"]').click()")
+            page.evaluate("() => document.querySelector('.cv-dot[data-style=\"editorial-midnight-ink\"]').click()")
             try:
                 page.wait_for_function(
                     "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
@@ -205,7 +205,7 @@ def main():
             except Exception as e:
                 check("切风格预览实时换色", False, "", str(e)[:60])
 
-            page.evaluate("() => document.querySelector('.cv-style[data-style=\"editorial\"]').click()")
+            page.evaluate("() => document.querySelector('.cv-style-pick[data-style=\"editorial\"]').click()")
             page.wait_for_timeout(600)
             page.click("#cv-gen")
             try:
