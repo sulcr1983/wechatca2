@@ -615,8 +615,12 @@ function renderFilters() {
   const fams = [...new Set(themes.map((t) => t.family).filter(Boolean))];
   // 族视图里家族 chip 与上方「版式」条重复，只保留「全部 / 收藏」；切族交给版式条
   const inFamily = drawerFam !== 'all' && drawerFam !== 'fav';
-  const chips = [['all', '全部'], ['fav', '收藏']]
-    .concat(inFamily ? [] : fams.map((f) => [f, FAMS[f] || f]));
+  // chip 上直接写总数：「全部」视图只渲染精选 + 族代表卡，不给数字会被误以为模板变少了
+  const chips = [['all', `全部 ${themes.length}`], ['fav', `收藏 ${favList().length}`]]
+    .concat(inFamily ? [] : fams.map((f) => {
+      const n = themes.filter((t) => t.family === f).length;
+      return [f, `${FAMS[f] || f} ${n}`];
+    }));
   $('drawer-filters').innerHTML = chips.map(([k, label]) => `
     <button class="fchip" data-fam="${k}" aria-pressed="${drawerFam === k}">${label}</button>`).join('');
 }
@@ -722,11 +726,16 @@ function renderAllFolded(fav) {
   const head = featured.length
     ? `<div class="d-sec"><b>编辑精选</b><span>先看这 ${featured.length} 套 · 覆盖商务 / 随笔 / 行业 / 技术 / 节庆</span></div>`
       + featured.map((t) => drawerCard(t, fav)).join('')
-      + '<div class="d-sec"><b>按族浏览</b><span>同一版式换色，点进去可选 10–12 色</span></div>'
+      + `<div class="d-sec"><b>按族浏览</b><span>${fams.length} 种版式 · ${fams.reduce((n, f) => n + byFam[f].length, 0)} 套在族内，点进去换色</span></div>`
     : '';
   const ranked = [...classic].filter((t) => !featIds.has(t.id))
     .sort((a, b) => (fav.has(b.id) ? 1 : 0) - (fav.has(a.id) ? 1 : 0));
-  $('drawer-grid').innerHTML = head + reps + ranked.map((t) => drawerCard(t, fav)).join('');
+  // 精选 + 族卡之后还有几十套「单套主题」平铺在下方，不给标题的话滑到这里像到尽头了
+  const rest = ranked.length
+    ? `<div class="d-sec"><b>其他风格</b><span>${ranked.length} 套 · 每个都是一套独立版式</span></div>`
+      + ranked.map((t) => drawerCard(t, fav)).join('')
+    : '';
+  $('drawer-grid').innerHTML = head + reps + rest;
 }
 // 族视图：版式 × 色调二维选择（2026-10-24）
 // 版式条只列有色调可选的族；换版式时**保留同名色调**（素页·竹青 → 公文·竹青）。

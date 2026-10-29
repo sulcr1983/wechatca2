@@ -1,7 +1,7 @@
 {
   "version": "1.8.0",
-  "generatedAt": "2026-10-29T19:24:38+08:00",
-  "totalCommits": 242,
+  "generatedAt": "2026-10-29T19:46:56+08:00",
+  "totalCommits": 243,
   "releases": [
     {
       "version": "1.8.0",
@@ -14,7 +14,7 @@
       ],
       "counts": {
         "added": 1,
-        "changed": 1,
+        "changed": 2,
         "fixed": 1
       },
       "groups": [
@@ -36,6 +36,14 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "坑表补 11–14（checkedAt 未赋值 / 复用窗口挡住主动查 / 手机标题截断 / 启动条压页脚）；STATE 同步 b266 线上已同步",
+              "scope": "update",
+              "hash": "8ed6c51",
+              "date": "2026-10-29T19:27:11+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "性能：壳层增量真正落地——固定缓存名 + 逐文件内容哈希键",
               "scope": "update",
