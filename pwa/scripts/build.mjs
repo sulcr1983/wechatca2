@@ -493,7 +493,7 @@ function main() {
   writeHeaders();
   const assetManifest = buildAssetManifest();
   const shellManifest = buildShellManifest();
-  const buildId = computeBuildId(shellManifest, assetManifest);
+  const buildId = computeBuildId(shellManifest, assetManifest, ver.version);
   stampSw(buildId, manifest, assetManifest, shellManifest);
   log(`  ✓ SW 指纹 BUILD_ID=${buildId} + 清单 shell ${Object.keys(shellManifest).length} / data ${Object.keys(manifest).length} / assets ${Object.keys(assetManifest).length} + _headers`);
 
@@ -585,8 +585,12 @@ function buildDataManifest() {
 /** BUILD_ID = shell 清单 + 资产清单的摘要。
  *  任何文件变化都会让它变 → sw.js 字节变 → 浏览器触发更新；
  *  但 install 时按 ?h= 键逐文件比对，用户只下真变了的那几个。 */
-function computeBuildId(shellManifest, assetManifest) {
-  return sha256(JSON.stringify(shellManifest) + '|' + JSON.stringify(assetManifest || {}));
+function computeBuildId(shellManifest, assetManifest, version) {
+  // 版本号也算进指纹：只改数据/文案的 patch（代码文件没动）也要换一个新 sw.js，
+  // 否则浏览器认为 SW 字节没变 → 永远没有 waiting worker → 用户点「检查更新」只能看到
+  // 「内容已同步，无需重启」，看起来就像"根本没更新"。多几个字节的代价，换来一次明确的"已就绪"。
+  return sha256(JSON.stringify(shellManifest) + '|' + JSON.stringify(assetManifest || {})
+    + '|v' + (version || ''));
 }
 
 /** 把 sw.js 里的占位符替换成本次构建指纹 + 三份内联清单 */

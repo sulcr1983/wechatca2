@@ -1,8 +1,37 @@
 {
-  "version": "1.8.0",
-  "generatedAt": "2026-10-29T19:47:13+08:00",
+  "version": "1.8.1",
+  "generatedAt": "2026-10-29T19:58:17+08:00",
   "totalCommits": 244,
   "releases": [
+    {
+      "version": "1.8.1",
+      "date": "2026-10-29",
+      "title": "改名后的旧名也能搜到 · 模板数量一眼可见",
+      "highlights": [
+        "模板一套没少：总数直接写在筛选条上，点「全部 164」就知道",
+        "改名前的旧名字也能搜了：输入 Monocle、Vogue、字节、庙会，照样找得到现在的名字",
+        "按颜色搜更准：搜「绿」从 13 套变成 29 套，茶青、竹青这类自造色名不会漏"
+      ],
+      "counts": {
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "改名后旧名一律搜不到，看起来像主题丢了——补旧名别名与旧族名",
+              "scope": "theme",
+              "hash": "c072b14",
+              "date": "2026-10-29T19:47:07+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.8.0",
       "date": "2026-10-29",
@@ -15,7 +44,7 @@
       "counts": {
         "added": 1,
         "changed": 2,
-        "fixed": 2
+        "fixed": 1
       },
       "groups": [
         {
@@ -58,14 +87,6 @@
           "type": "fixed",
           "label": "修复",
           "items": [
-            {
-              "text": "改名后旧名一律搜不到，看起来像主题丢了——补旧名别名与旧族名",
-              "scope": "theme",
-              "hash": "c072b14",
-              "date": "2026-10-29T19:47:07+08:00",
-              "breaking": false,
-              "dev": false
-            },
             {
               "text": "修「上次检查时间」永不显示 + 手机端版本标题被截断 + 启动条压住反馈入口",
               "scope": "update",
