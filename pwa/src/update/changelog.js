@@ -548,26 +548,27 @@ export function createChangelog(options = {}) {
 
   /* ── 顶部提示条 ────────────────────────────────────────────── */
   function updateBanner() {
-    const hasHighlight = Boolean(state.since) || state.mode === 'update';
-    if (!hasHighlight) {
-      els.banner.hidden = true;
-      els.banner.textContent = '';
-      return;
-    }
+    // 「上次用过的版本」和当前版本相同 = 没有可回顾的更新（首次访问就是这种情况），
+    // 此时不要摆一句「你之前用的是 v当前版本，已是最新」——纯噪音。
+    const sameAsCurrent = Boolean(state.since && state.currentVersion)
+      && cmpVersion(state.since, state.currentVersion) === 0;
+    const hasHighlight = (Boolean(state.since) && !sameAsCurrent) || state.mode === 'update';
 
     const n = state.view.reduce(
       (sum, rv) => sum + (rv.isNew ? countEntries(rv.release) : 0),
       0,
     );
 
-    let text;
-    if (state.since) {
-      text = n > 0
-        ? `你之前用的是 v${state.since.replace(/^v/i, '')}，这次更新了 ${n} 条`
-        : `你之前用的是 v${state.since.replace(/^v/i, '')}，当前已是最新版本`;
-    } else {
-      text = `这次更新了 ${n} 条`;
+    if (!hasHighlight || n === 0) {
+      els.banner.hidden = true;
+      els.banner.textContent = '';
+      return;
     }
+
+    const prev = String(state.since || '').replace(/^v/i, '');
+    const text = (prev && !sameAsCurrent)
+      ? `你之前用的是 v${prev}，这次更新了 ${n} 条`
+      : `这次更新了 ${n} 条`;
 
     els.banner.textContent = text;
     els.banner.hidden = false;
@@ -648,16 +649,25 @@ export function createChangelog(options = {}) {
       const pr = s.progress;
       const doneN = pr ? pr.done : 0;
       const totalN = pr ? pr.total : 0;
+      const fetched = pr ? (pr.fetched || 0) : 0;
       const kb = pr ? Math.round((pr.bytes || 0) / 1024) : 0;
       const pct = totalN ? Math.min(100, Math.round((doneN / totalN) * 100)) : 8;
+      // 显示「真实下载了几个文件」而不是「检查了几个」——增量是否生效，用户一眼能看出来
+      const fine = fetched
+        ? `已下载 ${fetched} 个文件 · ${kb}KB`
+        : (totalN ? `比对本地缓存 ${doneN}/${totalN}` : '准备中…');
       html = `<span class="cl-spin"></span>
         <span class="cl-st-txt">正在下载 ${tag || '更新'}</span>
-        <span class="cl-st-sub">${totalN ? `${doneN}/${totalN} 个文件 · ${kb}KB` : '准备中…'}</span>
+        <span class="cl-st-sub">${fine}</span>
         <div class="cl-bar"><i style="width:${pct}%"></i></div>`;
     } else if (p === 'ready') {
       cls = 's-ready';
+      const pr = s.progress;
+      const download = pr && pr.bytes
+        ? `已下载 ${pr.fetched || 0} 个文件 · ${Math.round(pr.bytes / 1024)}KB`
+        : '点一下即可完成';
       html = `<i class="cl-st-dot"></i><span class="cl-st-txt">新版本 ${tag} 已就绪</span>
-        <span class="cl-st-sub">${s.progress && s.progress.bytes ? `已下载 ${Math.round(s.progress.bytes / 1024)}KB` : '点一下即可完成'}</span>
+        <span class="cl-st-sub">${download}</span>
         <button class="cl-st-btn primary" data-act="apply">立即重启</button>`;
     } else if (p === 'applying') {
       cls = 's-busy';

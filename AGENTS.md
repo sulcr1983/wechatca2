@@ -85,7 +85,7 @@ pwa/                    ★ 主产品（PWA 版，线上 supersu.ccwu.cc）
     light.js            轻量即时预览
     style.css           全部样式（含 .ai-field / 抽屉让位等）
     cover/              小红书封面（catalog/render/search/index 等，modern-screenshot 单管线）
-    update/             更新模块（index/ui/changelog/update.css；静默自动升级 + 小提示）
+    update/             更新模块（index/ui/changelog/update.css；静默自动升级 + 面板内主动检查/一键更新 + 反馈入口）
   public/               sw.js（SW + 缓存分层）/ changelog.json（生成物）/ manifest / icons / fonts / runtime/
   scripts/              build.mjs（构建+断言）/ deploy.sh / gen_changelog.py /
                        changelog_milestones.json / fetch_fonts.py / make_icons.py / smoke.py
@@ -178,6 +178,8 @@ python scripts/pwa_release_card_test.py   # 更新「发布小票」9/9（版本
                                           # #upd-demo 可预览；SUPERSU_URL 可指向本地 dist 做部署前预检）
 python scripts/pwa_auto_update_test.py    # 静默自动更新 8/8（本地 dist 真 SW：改写探针 sw.js 触发新版本 →
                                           # 自动应用并刷新、全程无大卡片、右下角「已升级」小提示 8s 消失）
+python scripts/pwa_update_panel_test.py   # 更新面板 11/11（本地 dist 真 SW：打开面板即自动查 → 出现新版本 →
+                                          # 点「立即重启」自动完成并刷新 → 更新记录「本次 N 条」N>0 → 反馈入口指向邮箱）
 python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
 python scripts/pwa_image_localize_test.py # PWA 外链图本地化 12/12（渲染后抓取转 data URI；失败必给原因）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
@@ -201,12 +203,23 @@ python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排
 #   AI 排版只出结构决策 JSON（title/sections/lists/bold/splits/merges/tables/callouts/hrs/pullquotes），
 #   正文一字不改；未配置/HTTP 失败/非 JSON/空结构 → 本地 preprocess 兜底并说明原因；支持一键撤销。
 #   ⚠️ 真实 Key 只放本地 `.env`（已 gitignore，不进部署产物）；线上仍由用户自己填。
-# · 更新（2026-10-24 用户要求：静默自动）：打开 3s 后主动查 → 后台下载 → **自动应用**
-#   （另有每小时定时查 + version.json 独立轮询两条线索，见 pwa/src/update/index.js）
-#   （不可见 / 空稿 / 30s 无输入且失焦 → 立即；用户一直在打字也最多等 30s，reload 前先落盘草稿）
-#   → 升级完成只在右下角弹小提示「已升级到 vX · bN」（8s 自动消失，点它看更新记录）。
+# · 更新（2026-10-29 v1.8.0 改造，取代 2026-10-24 的「纯静默」）：
+#   **被动自动 + 主动可查**两条路并存：
+#   ① 静默自动：打开 3s 后主动查 → 后台下载 → 满足条件才自动应用
+#      （**方案 A**：页面不可见 或 已空闲满 10 分钟；用户刚点过检查则 60s 内不自动重启）
+#      → 完成后只在右下角弹小提示「已升级到 vX · bN」（8s 消失，点它看更新记录）。
+#   ② 主动检查：**打开更新记录面板即自动查服务器**，顶部状态条四态
+#      （正在检查 ≥320ms / 已是最新 / 新版本已就绪「立即重启」/ 下载中带进度），点按钮一键完成。
+#      另保留每小时定时查 + version.json 独立轮询两条线索，见 pwa/src/update/index.js。
+#   更新记录面板同时承载：亮点列表（highlights）、开发者细节折叠（dev 条目，默认收起）、
+#   **反馈入口**（报告问题 / 提个需求 / 复制邮箱 → sulcr@qq.com，mailto 预填版本+浏览器）、最近 5 次更新诊断。
 #   大卡片「发布小票」**只在 `#upd-demo` 预览**，正常流程不需要用户确认。
 #   `?reset-sw` 注销 SW + 清本站缓存并重载（卡住时的自救开关）。
+# · 增量更新（2026-10-29）：`SHELL_CACHE` 用**固定名** `supersu-store-shell-v1`，每个静态文件带
+#   **内容哈希键** `?h=<sha256>`，命中即 0 请求；BUILD_ID 只作指纹不参与缓存名。
+#   三份清单（SHELL/ASSETS/DATA）由 build.mjs **扫描目录生成**并注入 sw.js，加文件不必手工同步。
+#   实测：只改一行 app.js → 下 6 个文件 / 62KB（改造前 1.29MB / 59 请求）。
+#   回归 `scripts/pwa_update_panel_test.py`（11 项，已进 run_gates 本地层）。
 # · 首屏不阻塞：`#boot` 是底部自适应小条（胶囊、pointer-events:none），引擎没就绪也能先输入。
 # · 模板库抽屉：打开时 `body.browsing` → 桌面端主区 `padding-right:500px` 让位（不遮挡预览）、
 #   编辑器收起、抽屉 500px；<900px 仍是浮层。**选模板不关闭抽屉**（可连续对比）。

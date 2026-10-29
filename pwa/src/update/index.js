@@ -203,42 +203,45 @@ export function createUpdater({ changelog } = {}) {
 
     // 用户正看着面板：这段时间内不要自动重启（否则一点检查就刷新，体验极差）
     state.suppressUntil = Date.now() + MANUAL_SUPPRESS_MS;
+    const startedAt = Date.now();
     setPhase('checking');
+
+    // 「检查中」至少显示 320ms：本地/好网下 version.json 几毫秒就回来了，
+    // 状态条一闪而过反而像没检查（自动化也观测不到）
+    const settle = async (phase) => {
+      const wait = 320 - (Date.now() - startedAt);
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      setPhase(phase);
+      return emit();
+    };
 
     let v;
     try {
       v = await fetchJSON('./version.json');
     } catch {
-      setPhase('offline');
-      return emit();
+      return settle('offline');
     }
 
     state.remote = v.version || '';
     state.remoteBuild = Number(v.build) || 0;
 
-    if (!isNewer()) {
-      setPhase('latest');
-      return emit();
-    }
+    if (!isNewer()) return settle('latest');
 
     // 有新版本：已有 waiting 的直接报 ready；否则让 SW 去下载
     if (state.waiting) {
       state.detectedAt = 0;
-      setPhase('ready');
-      return emit();
+      return settle('ready');
     }
 
-    setPhase('available');
+    await settle('available');
     const ready = await ensureDownload();
     if (ready) {
       state.waiting = ready;
       state.detectedAt = 0;
-      setPhase('ready');
-    } else {
-      // 版本号变了但壳没变（只改了主题/更新记录）→ 数据已同步，不需要重启
-      setPhase('data-only');
+      return settle('ready');
     }
-    return emit();
+    // 版本号变了但壳没变（只改了主题/更新记录）→ 数据已同步，不需要重启
+    return settle('data-only');
   }
 
   /** 触发 SW 检查并等新 worker 进入 installed；返回 waiting worker 或 null */
@@ -360,12 +363,19 @@ export function createUpdater({ changelog } = {}) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       const d = event.data || {};
       if (d.type !== 'PRECACHE_PROGRESS') return;
-      state.progress = { done: d.done || 0, total: d.total || 0, bytes: d.bytes || 0 };
+      // 首次安装（页面还没被 SW 接管）不是「更新」，别把安装进度说成更新下载
+      if (!navigator.serviceWorker.controller) return;
+      state.progress = {
+        done: d.done || 0,
+        total: d.total || 0,
+        fetched: d.fetched || 0,
+        bytes: d.bytes || 0,
+      };
       if (d.finished) {
         // 下载结束：把真实统计存起来，reload 之后补进「更新诊断」
         writeLS(LS_PENDING, JSON.stringify({
           from: state.running,
-          files: d.total || 0,
+          files: d.fetched || 0,
           bytes: d.bytes || 0,
           ms: d.ms || 0,
         }));

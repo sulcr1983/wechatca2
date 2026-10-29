@@ -28,36 +28,35 @@ const rel = (p) => path.relative(ROOT, p).replace(/\\/g, '/');
 /** 内容指纹（16 位十六进制足够；用来做增量缓存键与 BUILD_ID） */
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 16);
 
-// 与 sw.js 的 SHELL_CRITICAL + SHELL_OPTIONAL 保持一致：
-// 这些文件决定 BUILD_ID，任何变化都应该让浏览器认为 sw.js 是新的。
-// ⚠️ 2026-10-29：图标/品牌/示例图/封面模板/vendor/字体**不在**这里了 ——
-//    它们走 ASSETS_MANIFEST（内容哈希 + 稳定缓存），改了会让清单变、BUILD_ID 跟着变，
-//    但用户只需下载那几个真变了的文件，而不是整包 1MB。
-const SHELL_FILES = [
-  'index.html',
-  'src/app.js',
-  'src/style.css',
-  'src/bridge.js',
-  'src/engine.worker.js',
-  'src/update/index.js',
-  'src/update/ui.js',
-  'src/ai.js',
-  'src/export.js',
-  'src/images.js',
-  'src/nine.js',
-  'src/light.js',
-  'src/cover/index.js',
-  'src/cover/catalog.js',
-  'src/cover/templates.js',
-  'src/cover/render.js',
-  'src/cover/search.js',
-  'src/cover/cover.css',
-  'src/update/changelog.js',
-  'src/update/update.css',
-  'manifest.webmanifest',
-  'fonts/fonts.css',
-  'fonts/cover-fonts.css',
-];
+// Shell 清单不再手写白名单：buildShellManifest() 直接扫描 dist/src/** + index.html +
+// manifest + fonts/*.css。手写列表必然漏（2026-10-29 就漏了 src/cover/textmode.js），
+// 漏一个文件的后果是「更新后该文件仍是旧的」，很难查。
+// CRITICAL 子集（失败即 install 失败）由 sw.js 自己定义。
+
+/** Shell 清单：随版本变的代码/HTML/样式 → sha256
+ *  SW 用「稳定缓存 + ?h= 键」，改一行 app.js 只下 app.js，而不是整包 390KB。 */
+function buildShellManifest() {
+  const manifest = {};
+  const add = (relPath) => {
+    const abs = path.join(DIST, relPath);
+    if (fs.existsSync(abs)) manifest[relPath] = sha256(fs.readFileSync(abs));
+  };
+  add('index.html');
+  add('manifest.webmanifest');
+  const walk = (relDir) => {
+    const abs = path.join(DIST, relDir);
+    if (!fs.existsSync(abs)) return;
+    for (const ent of fs.readdirSync(abs, { withFileTypes: true })) {
+      const relPath = `${relDir}/${ent.name}`;
+      if (ent.isDirectory()) { walk(relPath); continue; }
+      if (/\.(js|css)$/.test(ent.name)) add(relPath);
+    }
+  };
+  walk('src');
+  add('fonts/fonts.css');
+  add('fonts/cover-fonts.css');
+  return manifest;
+}
 
 /* ── 文件操作 ─────────────────────────────────────────────────── */
 function rmrf(p) { fs.rmSync(p, { recursive: true, force: true }); }
@@ -451,9 +450,10 @@ function main() {
   /* 7.5 响应头 + Service Worker 指纹注入（增量更新的两个前提） */
   writeHeaders();
   const assetManifest = buildAssetManifest();
-  const buildId = computeBuildId(assetManifest);
-  stampSw(buildId, manifest, assetManifest);
-  log(`  ✓ SW 指纹 BUILD_ID=${buildId} + 清单 data ${Object.keys(manifest).length} / assets ${Object.keys(assetManifest).length} 项 + _headers`);
+  const shellManifest = buildShellManifest();
+  const buildId = computeBuildId(shellManifest, assetManifest);
+  stampSw(buildId, manifest, assetManifest, shellManifest);
+  log(`  ✓ SW 指纹 BUILD_ID=${buildId} + 清单 shell ${Object.keys(shellManifest).length} / data ${Object.keys(manifest).length} / assets ${Object.keys(assetManifest).length} + _headers`);
 
   /* 8. 断言 */
   if (!process.argv.includes('--skip-assert')) assertDist(index.length);
@@ -540,36 +540,30 @@ function buildDataManifest() {
   return manifest;
 }
 
-/** BUILD_ID = shell 文件内容哈希 + 资产清单摘要。
- *  文件不变 → sw.js 字节不变 → 不触发无谓更新；
- *  只换了一个图标 → 清单变 → BUILD_ID 变 → 触发更新，但用户只下那一个图标。 */
-function computeBuildId(assetManifest) {
-  const parts = [];
-  for (const f of SHELL_FILES) {
-    const p = path.join(DIST, f);
-    if (fs.existsSync(p)) parts.push(f + ':' + sha256(fs.readFileSync(p)));
-  }
-  parts.push('assets:' + sha256(JSON.stringify(assetManifest || {})));
-  return sha256(parts.join('|'));
+/** BUILD_ID = shell 清单 + 资产清单的摘要。
+ *  任何文件变化都会让它变 → sw.js 字节变 → 浏览器触发更新；
+ *  但 install 时按 ?h= 键逐文件比对，用户只下真变了的那几个。 */
+function computeBuildId(shellManifest, assetManifest) {
+  return sha256(JSON.stringify(shellManifest) + '|' + JSON.stringify(assetManifest || {}));
 }
 
-/** 把 sw.js 里的占位符替换成本次构建指纹 + 内联数据清单 + 资产清单 */
-function stampSw(buildId, manifest, assetManifest) {
+/** 把 sw.js 里的占位符替换成本次构建指纹 + 三份内联清单 */
+function stampSw(buildId, dataManifest, assetManifest, shellManifest) {
   const p = path.join(DIST, 'sw.js');
   let src = fs.readFileSync(p, 'utf8');
-  if (!src.includes('__BUILD_ID__')) {
-    throw new Error('sw.js 缺少 __BUILD_ID__ 占位符，无法注入构建指纹');
-  }
-  if (!src.includes('/*__DATA_MANIFEST__*/')) {
-    throw new Error('sw.js 缺少 /*__DATA_MANIFEST__*/ 占位符，无法内联数据清单');
-  }
-  if (!src.includes('/*__ASSETS_MANIFEST__*/')) {
-    throw new Error('sw.js 缺少 /*__ASSETS_MANIFEST__*/ 占位符，无法内联资产清单');
+  for (const [token, name] of [['__BUILD_ID__', 'BUILD_ID'],
+                               ['/*__DATA_MANIFEST__*/', 'DATA_MANIFEST'],
+                               ['/*__ASSETS_MANIFEST__*/', 'ASSETS_MANIFEST'],
+                               ['/*__SHELL_MANIFEST__*/', 'SHELL_MANIFEST']]) {
+    if (!src.includes(token)) {
+      throw new Error(`sw.js 缺少 ${token} 占位符（${name} 无法注入）`);
+    }
   }
   // 内联而不是运行时 fetch：SW 被回收后离线重启时，manifest 请求必然失败，
   // 拿不到清单就会退回普通键 → 与 ?h= 键不匹配 → 离线主题/引擎全废
-  src = src.replace('/*__DATA_MANIFEST__*/', `DATA_MANIFEST = ${JSON.stringify(manifest)};`);
+  src = src.replace('/*__DATA_MANIFEST__*/', `DATA_MANIFEST = ${JSON.stringify(dataManifest)};`);
   src = src.replace('/*__ASSETS_MANIFEST__*/', `ASSETS_MANIFEST = ${JSON.stringify(assetManifest || {})};`);
+  src = src.replace('/*__SHELL_MANIFEST__*/', `SHELL_MANIFEST = ${JSON.stringify(shellManifest || {})};`);
   src = src.replace(/__BUILD_ID__/g, buildId);
   fs.writeFileSync(p, src, 'utf8');
 }
@@ -695,6 +689,11 @@ function assertDist(themeCount) {
   if (swSrc.includes('__BUILD_ID__')) problems.push('sw.js 的 __BUILD_ID__ 未注入（BUILD_ID 不生效）');
   if (swSrc.includes('__DATA_MANIFEST__')) problems.push('sw.js 的数据清单未内联（离线重启会拿不到 manifest）');
   if (swSrc.includes('__ASSETS_MANIFEST__')) problems.push('sw.js 的资产清单未内联（静态资产会退化成全量重下）');
+  if (swSrc.includes('__SHELL_MANIFEST__')) problems.push('sw.js 的 shell 清单未内联（改一行 JS 仍要重下整包）');
+  if (!/SHELL_MANIFEST = \{[^}]*"src\/app\.js"/.test(swSrc)) {
+    problems.push('sw.js 里的 SHELL_MANIFEST 不含 src/app.js（清单不完整）');
+  }
+  if (/SHELL_OPTIONAL/.test(swSrc)) problems.push('sw.js 仍在用硬编码 SHELL_OPTIONAL 清单');
 
   // 6.5 静态资产清单：图标/品牌/示例/封面模板/vendor/字体都该在里面
   const amPath = path.join(DIST, 'assets-manifest.json');
