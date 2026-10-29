@@ -491,6 +491,9 @@ function main() {
 
   /* 7.5 响应头 + Service Worker 指纹注入（增量更新的两个前提） */
   writeHeaders();
+  // 版本号先注入进 src/update/index.js，再算 shell 清单——
+  // 顺序不能反：清单里的哈希必须对应注入后的内容，否则页面读到旧版本号又不判更新
+  stampAppVersion(ver);
   const assetManifest = buildAssetManifest();
   const shellManifest = buildShellManifest();
   const buildId = computeBuildId(shellManifest, assetManifest, ver.version);
@@ -591,6 +594,20 @@ function computeBuildId(shellManifest, assetManifest, version) {
   // 「内容已同步，无需重启」，看起来就像"根本没更新"。多几个字节的代价，换来一次明确的"已就绪"。
   return sha256(JSON.stringify(shellManifest) + '|' + JSON.stringify(assetManifest || {})
     + '|v' + (version || ''));
+}
+
+/** 把版本号注入 dist 里的更新模块。
+ *  页面靠这两个常量回答「我这份代码是什么版本」——必须编译进代码，
+ *  不能在运行期读 version.json（那永远是服务器最新值 → 永远判「已是最新」）。 */
+function stampAppVersion(ver) {
+  const p = path.join(DIST, 'src', 'update', 'index.js');
+  let src = fs.readFileSync(p, 'utf8');
+  if (!src.includes("'__APP_VERSION__'") || !src.includes("'__APP_BUILD__'")) {
+    throw new Error('src/update/index.js 缺少 __APP_VERSION__ / __APP_BUILD__ 占位符（版本号无法注入）');
+  }
+  src = src.split("'__APP_VERSION__'").join(JSON.stringify(ver.version))
+    .split("'__APP_BUILD__'").join(JSON.stringify(String(ver.build)));
+  fs.writeFileSync(p, src, 'utf8');
 }
 
 /** 把 sw.js 里的占位符替换成本次构建指纹 + 三份内联清单 */
@@ -740,6 +757,16 @@ function assertDist(themeCount) {
     problems.push('sw.js 里的 SHELL_MANIFEST 不含 src/app.js（清单不完整）');
   }
   if (/SHELL_OPTIONAL/.test(swSrc)) problems.push('sw.js 仍在用硬编码 SHELL_OPTIONAL 清单');
+
+  // 7) 版本号必须注入进更新模块：残留占位符 = 页面永远不知道自己在哪个版本
+  //    （2026-10-29 事故：running 读的是服务器 version.json，导致永远判「已是最新」）
+  const updSrc = fs.readFileSync(path.join(DIST, 'src', 'update', 'index.js'), 'utf8');
+  if (updSrc.includes('__APP_VERSION__') || updSrc.includes('__APP_BUILD__')) {
+    problems.push('src/update/index.js 的版本号占位符未注入（更新检查会永远认为已是最新）');
+  }
+  if (!/const APP_VERSION = "\d/.test(updSrc)) {
+    problems.push('src/update/index.js 的 APP_VERSION 不是语义化版本（注入失败）');
+  }
 
   // 6.5 静态资产清单：图标/品牌/示例/封面模板/vendor/字体都该在里面
   const amPath = path.join(DIST, 'assets-manifest.json');

@@ -36,6 +36,14 @@ const MANUAL_SUPPRESS_MS = 60 * 1000;    // 用户刚手动检查/看面板时�
 const DONE_MS = 8000;                    // 「已升级」小提示自动消失
 const TAB_ID = Math.random().toString(36).slice(2);
 
+/* 当前**这份代码**的版本，由 build.mjs 在拷贝到 dist 后替换掉占位符。
+   ⚠️ 绝对不能用 fetch('./version.json') 当「我在跑的版本」——那读的是服务器上的最新值：
+   一旦发版，老页面的 running 会立刻变成新版本号，isNewer() 就永远判「已是最新」，
+   用户点检查更新什么也看不到（2026-10-29 事故，就是这个原因）。 */
+const APP_VERSION = '__APP_VERSION__';
+const APP_BUILD = '__APP_BUILD__';
+const hasInjectedVersion = APP_VERSION && APP_VERSION.charCodeAt(0) !== 95; // 首字符不是 '_'
+
 /* SemVer 比较：只看主.次.修订，忽略预发布后缀（个人项目用不上） */
 export function cmpVersion(a, b) {
   const pa = String(a || '0').split('.').map((n) => parseInt(n, 10) || 0);
@@ -155,15 +163,12 @@ export function createUpdater({ changelog } = {}) {
   }
 
   async function loadVersion() {
-    try {
-      const v = await fetchJSON('./version.json');
-      state.running = v.version || '';
-      state.runningBuild = Number(v.build) || 0;
-      // 入口按钮文案由 renderEntry() 统一管，这里只负责把入口亮出来
-      if (state.running && el.btn) el.btn.hidden = false;
-    } catch {
-      // 版本文件拉不到：入口不出现即可，不影响排版与复制
-    }
+    // 用构建期注入的常量，**不**读 version.json（那就是服务器的版本，见文件头常量注释）
+    if (!hasInjectedVersion) return;
+    state.running = APP_VERSION;
+    state.runningBuild = Number(APP_BUILD) || 0;
+    // 入口按钮文案由 renderEntry() 统一管，这里只负责把入口亮出来
+    if (state.running && el.btn) el.btn.hidden = false;
   }
 
   async function loadChangelog() {
@@ -228,13 +233,15 @@ export function createUpdater({ changelog } = {}) {
     // 也用于 60s 内复用结果（离线时**不**记，否则会谎报刚检查过）
     state.checkedAt = Date.now();
 
-    if (!isNewer()) return settle('latest');
-
-    // 有新版本：已有 waiting 的直接报 ready；否则让 SW 去下载
+    // 先看有没有已经装好、只等重启的 worker：
+    // 这是**唯一的真凭据**（真的有新代码躺在硬盘上）。版本号比较只是快路径，
+    // 一旦 running 被污染成服务器值，只看版本号就会把「已就绪」错报成「已是最新」。
     if (state.waiting) {
       state.detectedAt = 0;
       return settle('ready');
     }
+
+    if (!isNewer()) return settle('latest');
 
     await settle('available');
     const ready = await ensureDownload();
