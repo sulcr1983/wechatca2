@@ -102,6 +102,9 @@ export function createChangelog(options = {}) {
     view: [],                 // [{ version, node, groups: [{ type, el, entries }] }]
     mounted: false,
     lastFocus: null,
+    snap: null,               // 更新状态快照（来自 update/index.js）：状态条吃它
+    handlers: null,           // { check, apply, subscribe, onSeen, getDiagnostics }
+    unsubscribe: null,
   };
 
   const els = {};
@@ -156,6 +159,13 @@ export function createChangelog(options = {}) {
     mark.alt = '';
     head.append(mark, titleWrap, closeBtn);
 
+    /* 版本状态条：回答「服务器上有没有更新包」，打开面板就自动查一次。
+       放在工具栏之上、头部之下 —— 永远第一眼能看到，且固定高度不跳版。 */
+    const status = el('div');
+    status.id = 'cl-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+
     /* 工具条 */
     const toolbar = el('div');
     toolbar.id = 'cl-toolbar';
@@ -194,11 +204,25 @@ export function createChangelog(options = {}) {
     empty.hidden = true;
     scroll.append(timeline, empty);
 
-    /* 页脚 */
+    /* 页脚：一行元信息 + 一行反馈入口（用户提 bug / 提需求的唯一固定入口） */
     const foot = el('footer');
     foot.id = 'cl-foot';
+    const footMeta = el('div', 'cl-foot-row');
+    footMeta.id = 'cl-foot-meta';
+    const fb = el('div', 'cl-foot-row cl-feedback');
+    const fbLabel = el('span', 'cl-fb-label', '有问题或想法？');
+    const fbBug = el('a', 'cl-fb-link', '报告问题');
+    fbBug.href = 'mailto:sulcr@qq.com';
+    fbBug.dataset.kind = 'bug';
+    const fbIdea = el('a', 'cl-fb-link', '提个需求');
+    fbIdea.href = 'mailto:sulcr@qq.com';
+    fbIdea.dataset.kind = 'idea';
+    const fbCopy = el('button', 'cl-fb-copy', '复制邮箱');
+    fbCopy.type = 'button';
+    fb.append(fbLabel, fbBug, fbIdea, fbCopy);
+    foot.append(footMeta, fb);
 
-    panel.append(head, toolbar, banner, scroll, foot);
+    panel.append(head, status, toolbar, banner, scroll, foot);
     layer.append(mask, panel);
     container.append(layer);
 
@@ -207,6 +231,7 @@ export function createChangelog(options = {}) {
     els.panel = panel;
     els.pill = pill;
     els.close = closeBtn;
+    els.status = status;
     els.search = search;
     els.count = count;
     els.chips = chips;
@@ -215,18 +240,25 @@ export function createChangelog(options = {}) {
     els.timeline = timeline;
     els.empty = empty;
     els.foot = foot;
+    els.footMeta = footMeta;
+    els.fbBug = fbBug;
+    els.fbIdea = fbIdea;
+    els.fbCopy = fbCopy;
 
     /* 事件：全部显式监听，不用内联属性 */
     closeBtn.addEventListener('click', close);
     mask.addEventListener('click', close);
     search.addEventListener('input', onSearchInput);
     chips.addEventListener('click', onChipClick);
+    status.addEventListener('click', onStatusClick);
+    fbCopy.addEventListener('click', copyEmail);
 
     state.mounted = true;
 
     // setData / setCurrentVersion 可能早于 mount，补一次渲染
     if (state.data) render();
     else markCurrent();
+    renderStatus();
   }
 
   /* ── 搜索：120ms 防抖 ──────────────────────────────────────── */
@@ -300,7 +332,8 @@ export function createChangelog(options = {}) {
     /* 版本徽标：优先用 setCurrentVersion 的值，其次 data.version */
     renderPill(data.version);
 
-    els.foot.textContent = `更新记录由 git 提交自动生成 · 共 ${Number(data.totalCommits) || state.totalEntries} 次提交 · 最后更新 ${fmtTime(data.generatedAt)}`;
+    els.footMeta.textContent = `持续更新中 · ${releases.length} 个版本 · ${Number(data.totalCommits) || state.totalEntries} 项改动 · 最近更新 ${fmtTime(data.generatedAt)}`;
+    buildFeedbackLinks();
 
     /* 时间线：DocumentFragment 一次性插入 */
     const frag = document.createDocumentFragment();
@@ -362,13 +395,25 @@ export function createChangelog(options = {}) {
     head.append(verEl, dateEl, titleEl, latestTag, countEl);
     body.append(head);
 
+    // 发版时手写的亮点（3 条人话）：放在版本标题下第一屏，用户三秒能看完
+    const highlights = Array.isArray(release.highlights) ? release.highlights.filter(Boolean) : [];
+    if (highlights.length) {
+      const hl = el('ul', 'cl-highlights');
+      for (const t of highlights) hl.append(el('li', null, String(t)));
+      body.append(hl);
+    }
+
     const groups = [];
+    const devPool = [];
     for (const g of release.groups || []) {
       if (!g) continue;
-      const items = Array.isArray(g.items) ? g.items.filter(Boolean) : [];
+      const all = Array.isArray(g.items) ? g.items.filter(Boolean) : [];
+      const type = String(g.type || 'other');
+      // 内部改动（test/chore/docs 等）不进主视图，折叠进「开发者细节」
+      const items = all.filter((it) => !it.dev);
+      for (const it of all) if (it.dev) devPool.push({ type, label: g.label || TYPE_LABELS[type] || type, item: it });
       if (!items.length) continue;             // 空分组不渲染，避免孤零零的小标题
 
-      const type = String(g.type || 'other');
       const groupEl = el('div', 'cl-group');
       groupEl.dataset.type = type;
 
@@ -392,6 +437,26 @@ export function createChangelog(options = {}) {
       groupEl.append(groupHead, list);
       body.append(groupEl);
       groups.push({ type, el: groupEl, entries });
+    }
+
+    /* 开发者细节：默认收起，搜索命中时自动展开（见 applyFilter） */
+    if (devPool.length) {
+      const det = el('details', 'cl-dev');
+      const sum = el('summary', 'cl-dev-sum');
+      sum.append(el('span', null, '开发者细节'), el('span', 'cl-dev-n', `${devPool.length} 条`));
+      det.append(sum);
+      const list = el('ul', 'cl-items cl-dev-items');
+      const entries = [];
+      for (const d of devPool) {
+        const entry = buildItem(d.item, d.type, version);
+        entry.el.classList.add('is-dev');
+        entries.push(entry);
+        list.append(entry.el);
+        state.totalEntries += 1;
+      }
+      det.append(list);
+      body.append(det);
+      groups.push({ type: 'dev', el: det, entries, isDev: true });
     }
 
     node.append(dot, body);
@@ -446,6 +511,8 @@ export function createChangelog(options = {}) {
           if (show) groupTotal += 1;
         }
         group.el.hidden = groupTotal === 0;
+        // 搜到开发者细节里才临时展开，否则保持收起
+        if (group.isDev) group.el.open = groupTotal > 0 && Boolean(q);
         relTotal += groupTotal;
       }
       rv.node.hidden = relTotal === 0;
@@ -506,6 +573,152 @@ export function createChangelog(options = {}) {
     els.banner.hidden = false;
   }
 
+  /* ── 版本状态条 + 反馈入口 ─────────────────────────────────── */
+
+  const EMAIL = 'sulcr@qq.com';
+
+  /** 反馈链接：把版本、页面、浏览器一起带进邮件正文，对方不用再问一遍 */
+  function buildFeedbackLinks() {
+    if (!els.fbBug) return;
+    const v = state.currentVersion ? `v${state.currentVersion}` : '';
+    const b = state.currentBuild ? ` b${state.currentBuild}` : '';
+    const env = [
+      `版本：${(v + b).trim() || '未知'}`,
+      `页面：${location.href.split('#')[0]}`,
+      `浏览器：${navigator.userAgent}`,
+    ].join('\n');
+    const mk = (subject, body) =>
+      `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    els.fbBug.href = mk(`[SuperSu 问题] ${v}${b}`.trim(), `发生了什么：\n\n\n你期望的结果：\n\n\n---\n${env}\n`);
+    els.fbIdea.href = mk(`[SuperSu 需求] ${v}${b}`.trim(), `想要的功能：\n\n\n为什么需要它：\n\n\n---\n${env}\n`);
+    els.fbBug.title = `发邮件到 ${EMAIL}`;
+    els.fbIdea.title = `发邮件到 ${EMAIL}`;
+  }
+
+  async function copyEmail() {
+    try {
+      await navigator.clipboard.writeText(EMAIL);
+      flashCopy('已复制');
+    } catch {
+      // 不支持剪贴板（http / 老浏览器）→ 选中让用户自己复制
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(els.fbCopy);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        flashCopy('已选中');
+      } catch { flashCopy(EMAIL); }
+    }
+  }
+
+  function flashCopy(text) {
+    if (!els.fbCopy) return;
+    els.fbCopy.textContent = text;
+    window.setTimeout(() => { els.fbCopy.textContent = '复制邮箱'; }, 1600);
+  }
+
+  /* 状态条：只认 update/index.js 给的快照，自己不猜 */
+  function renderStatus() {
+    if (!els.status) return;
+    const s = state.snap;
+    if (!s) { els.status.hidden = true; return; }
+
+    const ver = s.remote || s.running || '';
+    const build = s.remoteBuild || s.runningBuild || 0;
+    const tag = ver ? `v${ver}${build ? ` · b${build}` : ''}` : '';
+    const p = s.phase;
+    const ago = s.checkedAt ? relTime(s.checkedAt) : '';
+    let cls = 's-latest';
+    let html = '';
+
+    if (p === 'checking') {
+      cls = 's-check';
+      html = '<span class="cl-spin"></span><span class="cl-st-txt">正在检查更新…</span>';
+    } else if (p === 'latest' || p === 'idle') {
+      html = `<i class="cl-st-dot"></i><span class="cl-st-txt">已是最新</span>
+        <span class="cl-st-sub">${tag}${ago ? ` · ${ago}检查` : ''}</span>
+        <button class="cl-st-btn" data-act="check">再查一次</button>`;
+    } else if (p === 'data-only') {
+      html = `<i class="cl-st-dot"></i><span class="cl-st-txt">内容已同步</span>
+        <span class="cl-st-sub">主题与更新记录已是最新，无需重启</span>
+        <button class="cl-st-btn" data-act="check">再查一次</button>`;
+    } else if (p === 'available' || p === 'downloading') {
+      cls = 's-busy';
+      const pr = s.progress;
+      const doneN = pr ? pr.done : 0;
+      const totalN = pr ? pr.total : 0;
+      const kb = pr ? Math.round((pr.bytes || 0) / 1024) : 0;
+      const pct = totalN ? Math.min(100, Math.round((doneN / totalN) * 100)) : 8;
+      html = `<span class="cl-spin"></span>
+        <span class="cl-st-txt">正在下载 ${tag || '更新'}</span>
+        <span class="cl-st-sub">${totalN ? `${doneN}/${totalN} 个文件 · ${kb}KB` : '准备中…'}</span>
+        <div class="cl-bar"><i style="width:${pct}%"></i></div>`;
+    } else if (p === 'ready') {
+      cls = 's-ready';
+      html = `<i class="cl-st-dot"></i><span class="cl-st-txt">新版本 ${tag} 已就绪</span>
+        <span class="cl-st-sub">${s.progress && s.progress.bytes ? `已下载 ${Math.round(s.progress.bytes / 1024)}KB` : '点一下即可完成'}</span>
+        <button class="cl-st-btn primary" data-act="apply">立即重启</button>`;
+    } else if (p === 'applying') {
+      cls = 's-busy';
+      html = '<span class="cl-spin"></span><span class="cl-st-txt">正在切换版本…</span>';
+    } else if (p === 'offline') {
+      cls = 's-offline';
+      html = `<i class="cl-st-dot"></i><span class="cl-st-txt">离线，暂时无法检查更新</span>
+        <span class="cl-st-sub">联网后会自动重试</span>
+        <button class="cl-st-btn" data-act="check">重试</button>`;
+    } else if (p === 'done') {
+      cls = 's-done';
+      const fresh = state.since && state.currentVersion
+        && cmpVersion(state.currentVersion, state.since) > 0;
+      html = `<i class="cl-st-dot"></i><span class="cl-st-txt">已更新到 ${tag}</span>
+        <span class="cl-st-sub">${fresh ? '本次更新见下方高亮' : '当前已是最新版本'}</span>`;
+    } else {
+      html = `<span class="cl-st-txt">更新记录</span><button class="cl-st-btn" data-act="check">检查更新</button>`;
+    }
+
+    els.status.className = cls;
+    els.status.innerHTML = html;
+    els.status.hidden = false;
+  }
+
+  function relTime(ts) {
+    const d = Date.now() - ts;
+    if (d < 60 * 1000) return '刚刚';
+    if (d < 60 * 60 * 1000) return `${Math.floor(d / 60000)} 分钟前`;
+    if (d < 24 * 60 * 60 * 1000) return `${Math.floor(d / 3600000)} 小时前`;
+    return `${Math.floor(d / 86400000)} 天前`;
+  }
+
+  function onStatusClick(event) {
+    const btn = event.target && event.target.closest
+      ? event.target.closest('button[data-act]')
+      : null;
+    if (!btn || !state.handlers) return;
+    const act = btn.dataset.act;
+    if (act === 'check') {
+      btn.disabled = true;
+      Promise.resolve(state.handlers.check(true)).finally(() => { btn.disabled = false; });
+    } else if (act === 'apply') {
+      btn.disabled = true;
+      btn.textContent = '正在重启…';
+      state.handlers.apply();
+    }
+  }
+
+  /** 与 update/index.js 接线：状态条由它驱动，检查/重启也由它执行 */
+  function bindUpdate(handlers) {
+    state.handlers = handlers || null;
+    if (state.unsubscribe) { state.unsubscribe(); state.unsubscribe = null; }
+    if (handlers && typeof handlers.subscribe === 'function') {
+      state.unsubscribe = handlers.subscribe((snap) => {
+        state.snap = snap;
+        if (state.mounted) renderStatus();
+      });
+    }
+    if (state.mounted) renderStatus();
+  }
+
   /* ── 当前版本标记 ──────────────────────────────────────────── */
   function markCurrent() {
     const current = state.currentVersion;
@@ -521,6 +734,7 @@ export function createChangelog(options = {}) {
 
     renderPill();
     markCurrent();
+    buildFeedbackLinks();
   }
 
   /* ── 打开 / 关闭 ───────────────────────────────────────────── */
@@ -548,6 +762,19 @@ export function createChangelog(options = {}) {
     els.layer.hidden = false;
     document.addEventListener('keydown', onKeyDown, true);
 
+    buildFeedbackLinks();
+    renderStatus();
+
+    // 「点一下更新记录，就去问服务器有没有更新包」——用户诉求的核心一句
+    if (state.handlers && typeof state.handlers.check === 'function') {
+      Promise.resolve(state.handlers.check(false)).catch(() => { /* 离线等异常由状态条兜底 */ });
+    }
+
+    // 桌面端聚焦搜索框方便直接输入；触屏不聚焦（否则一开面板就弹键盘挡内容）
+    const coarse = typeof window.matchMedia === 'function'
+      && window.matchMedia('(pointer: coarse)').matches;
+    if (coarse) return;
+
     // 等一帧再聚焦：display 刚翻转时部分浏览器会忽略 focus()
     if (typeof window.requestAnimationFrame === 'function') {
       window.requestAnimationFrame(() => {
@@ -564,6 +791,11 @@ export function createChangelog(options = {}) {
     els.layer.hidden = true;
     document.removeEventListener('keydown', onKeyDown, true);
     window.clearTimeout(searchTimer);
+
+    // 用户至少打开看过一眼 → 记「已读到当前版本」，下次只提示更新的部分
+    if (state.handlers && typeof state.handlers.onSeen === 'function') {
+      try { state.handlers.onSeen(); } catch { /* 忽略 */ }
+    }
 
     const target = state.lastFocus;
     state.lastFocus = null;
@@ -635,5 +867,6 @@ export function createChangelog(options = {}) {
     close,
     setCurrentVersion,
     hasUnseen,
+    bindUpdate,
   };
 }

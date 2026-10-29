@@ -31,6 +31,7 @@ const SHELL_CACHE = 'supersu-shell-' + BUILD_ID;
 // 稳定缓存统一 store- 前缀：旧版本已经用过 supersu-data-v1 / supersu-data-v2 / supersu-cdn-v2，
 // 沿用同名会让 activate 的 keep 判断短路，导致旧缓存迁移/清理逻辑永远不执行。
 const DATA_CACHE = 'supersu-store-data-v1';
+const ASSETS_CACHE = 'supersu-store-assets-v1';
 const RUNTIME_CACHE = 'supersu-store-runtime-v1';
 const MEDIA_CACHE = 'supersu-store-media-v1';
 const CACHE_PREFIX = 'supersu-';
@@ -40,6 +41,12 @@ const CACHE_PREFIX = 'supersu-';
 // 一旦拿不到清单，所有 /themes、/py 都会退回普通键 → 与缓存里的 ?h= 键不匹配 → 离线全废。
 let DATA_MANIFEST = {};
 /*__DATA_MANIFEST__*/
+
+// 静态资产清单（2026-10-29 增量补齐）：图标 / 品牌 / 示例图 / 封面模板 / vendor / 字体。
+// 这些文件**不随版本变**，放进稳定缓存 + 内容哈希键，跨版本零下载。
+// 以前它们躺在版本化的 SHELL 缓存里 → 改一行 JS 也要把这 1MB 重下一遍。
+let ASSETS_MANIFEST = {};
+/*__ASSETS_MANIFEST__*/
 
 // 导航请求等待网络的上限，超时就直接走缓存，避免弱网白屏
 const NAV_TIMEOUT = 3500;
@@ -55,51 +62,29 @@ const SHELL_CRITICAL = [
 ];
 
 // optional：缺失只记日志，不影响安装（图标/字体/更新记录都能降级）
+// ⚠️ 2026-10-29：只放「随版本变」的代码与样式。
+//    图标 / 品牌 / 示例图 / 封面模板 / vendor / 字体 全部移到 ASSETS_MANIFEST（见下），
+//    否则每次发版都要把这 1MB 重下一遍 —— 那正是「增量只做了一半」的根因。
 const SHELL_OPTIONAL = [
   './manifest.webmanifest',
   './src/ai.js',
   './src/export.js',
   './src/images.js',
   './src/light.js',
-  './vendor/marked.min.js',
   './src/update/ui.js',
   './src/update/changelog.js',
   './src/update/update.css',
-  './changelog.json',
   './fonts/fonts.css',
-  // 封面页（按需进入；预缓存模块与 10 套模板，字体/缩略图走运行时缓存）
+  './fonts/cover-fonts.css',
+  // 封面页模块（代码，随版本变）
   './src/cover/index.js',
   './src/cover/catalog.js',
   './src/cover/templates.js',
   './src/cover/render.js',
   './src/cover/search.js',
   './src/cover/cover.css',
-  './vendor/modern-screenshot.js',
-  // 封面页空态示例成品（U-9）：小且常露脸，进预缓存（缺失仅空态无图，不阻断页面）
-  './samples/cover-sample-editorial.jpg',
-  './samples/cover-sample-editorial-dune.jpg',
-  './samples/cover-sample-editorial-midnight-ink.jpg',
-  // 九宫格切图（B2 #7）：模块 + ZIP 打包库，首次点击才 import/加载
+  // 九宫格切图（B2 #7）：模块，首次点击才 import
   './src/nine.js',
-  './vendor/fflate.min.js',
-  './fonts/cover-fonts.css',
-  './cover-templates/editorial-dune.html',
-  './cover-templates/editorial-forest-ink.html',
-  './cover-templates/editorial-indigo-porcelain.html',
-  './cover-templates/editorial-ink-classic.html',
-  './cover-templates/editorial-kraft-paper.html',
-  './cover-templates/editorial-midnight-ink.html',
-  './cover-templates/swiss-ikb.html',
-  './cover-templates/swiss-lemon-green.html',
-  './cover-templates/swiss-lemon-yellow.html',
-  './cover-templates/swiss-safety-orange.html',
-  './icons/favicon-32.png',
-  './icons/apple-touch-icon.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png',
-  './brand/logo-64.png',
-  './brand/logo-256.png',
 ];
 
 // 数据类资源：体积大、变动少，按需 + install 时按 manifest 增量预取
@@ -109,13 +94,52 @@ const CDN_HOST_RE = /(^|\.)jsdelivr\.net$/;
 // 同源自托管的 Pyodide 运行时（路径固定、内容不可变）
 const RUNTIME_PATH_RE = /^\/runtime\//;
 
-/* ── install：预缓存 shell + 数据（增量） ───────────────────── */
+/* ── install：预缓存 shell + 静态资产 + 数据（全部增量） ─────── */
+
+// 下载统计：上报给页面，状态条显示的是**真实**文件数与字节，不伪造进度
+const progress = { done: 0, total: 0, fetched: 0, bytes: 0, t0: 0 };
+let lastReportAt = 0;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(precacheAll());
 });
 
+/** 广播进度（120ms 节流；结束那次强制发） */
+function report(force) {
+  const now = Date.now();
+  if (!force && now - lastReportAt < 120) return;
+  lastReportAt = now;
+  const payload = {
+    type: 'PRECACHE_PROGRESS',
+    done: progress.done,
+    total: progress.total,
+    fetched: progress.fetched,
+    bytes: progress.bytes,
+    ms: now - progress.t0,
+    finished: Boolean(force),
+  };
+  self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+    .then((list) => {
+      for (const client of list) {
+        try { client.postMessage(payload); } catch (err) { /* 客户端已关 */ }
+      }
+    })
+    .catch(() => { /* 无法广播不影响安装 */ });
+}
+
 async function precacheAll() {
+  progress.t0 = Date.now();
+  progress.done = 0;
+  progress.fetched = 0;
+  progress.bytes = 0;
+  progress.total = SHELL_CRITICAL.length
+    + SHELL_OPTIONAL.length
+    + Object.keys(getAssetManifest()).length;
+
+  // 老用户：先把旧 shell 缓存里的静态资产按新哈希键搬进稳定缓存，
+  // 否则「第一次升级」反而要重下 1MB —— 迁移比重新下载便宜得多。
+  await migrateShellAssets();
+
   const cache = await caches.open(SHELL_CACHE);
 
   // critical 串行：第一条失败就 throw，让整个 install 失败（旧 SW 继续服务）
@@ -125,13 +149,16 @@ async function precacheAll() {
   // optional 并行：单条失败忽略
   await Promise.all(SHELL_OPTIONAL.map((url) => addToCache(cache, url, false)));
 
-  // fonts.css 里的 @font-face 引用的 woff2 无法在 SW 里 glob，解析一遍 url()
-  await precacheFonts(cache);
+  // 静态资产（图标/品牌/示例/封面模板/vendor/字体）：按 sha256 清单，命中就 0 请求
+  await precacheAssets();
+  await pruneAssets();
 
   // 主题 + py 引擎：按 sha256 manifest 只取变化的
   await precacheData();
   // 清掉上一版残留的 ?h= 键（否则每改一次主题就多留一份）
   await pruneDataCache();
+
+  report(true);
 }
 
 async function addToCache(cache, url, required) {
@@ -148,32 +175,102 @@ async function addToCache(cache, url, required) {
       statusText: res.statusText,
       headers: res.headers,
     }));
+    progress.fetched += 1;
+    progress.bytes += body.byteLength;
   } catch (err) {
     if (required) throw err;
+  } finally {
+    progress.done += 1;
+    report(false);
   }
 }
 
-async function precacheFonts(cache) {
-  try {
-    const css = await cache.match('./fonts/fonts.css');
-    if (!css) return;
-    const text = await css.text();
-    const re = /url\(\s*['"]?([^'")]+\.woff2[^'")]*)['"]?\s*\)/g;
-    const urls = [];
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      let href = m[1];
-      if (/^(data:|https?:)/.test(href)) continue;
+/* ── 静态资产：稳定缓存 + 内容哈希键（跨版本零下载） ────────── */
+
+function getAssetManifest() {
+  return ASSETS_MANIFEST && typeof ASSETS_MANIFEST === 'object' ? ASSETS_MANIFEST : {};
+}
+
+/** 资产路径 → 带哈希的缓存键（清单里没有就返回 null） */
+function assetKey(path) {
+  const hash = getAssetManifest()[path];
+  return hash ? './' + path + '?h=' + hash : null;
+}
+
+async function precacheAssets() {
+  const entries = Object.entries(getAssetManifest());
+  if (!entries.length) return;
+  const cache = await caches.open(ASSETS_CACHE);
+
+  // 每批 16 个，避免同时打出上百条请求把弱网打满
+  for (let i = 0; i < entries.length; i += 16) {
+    const batch = entries.slice(i, i + 16);
+    await Promise.all(batch.map(async ([path, hash]) => {
+      const key = './' + path + '?h=' + hash;
       try {
-        href = new URL(href, new URL('./fonts/fonts.css', self.registration.scope)).href;
-        urls.push(href);
+        // 命中说明内容没变 → 一个字节都不用下（这就是跨版本增量的来源）
+        if (await cache.match(key)) return;
+        const res = await fetch(new Request(key, { cache: 'no-cache' }));
+        if (res && res.ok) {
+          const body = await res.arrayBuffer();
+          await cache.put(key, new Response(body, {
+            status: res.status,
+            statusText: res.statusText,
+            headers: res.headers,
+          }));
+          progress.fetched += 1;
+          progress.bytes += body.byteLength;
+        }
       } catch (err) {
-        /* 忽略无法解析的 url */
+        /* 单条失败忽略：运行时还会再试 */
+      } finally {
+        progress.done += 1;
+        report(false);
+      }
+    }));
+  }
+}
+
+/** 清掉不再被清单引用的资产键（改名/删除的文件） */
+async function pruneAssets() {
+  try {
+    if (!Object.keys(getAssetManifest()).length) return;
+    const allow = new Set();
+    for (const [path, hash] of Object.entries(getAssetManifest())) {
+      allow.add(new URL('./' + path + '?h=' + hash, self.registration.scope).href);
+    }
+    const cache = await caches.open(ASSETS_CACHE);
+    const keys = await cache.keys();
+    await Promise.all(keys.map((req) => (allow.has(req.url) ? null : cache.delete(req))));
+  } catch (err) {
+    /* 清理失败不影响功能 */
+  }
+}
+
+/** 老版本把资产放在版本化 shell 缓存里：搬进稳定缓存，避免第一次升级重下 1MB */
+async function migrateShellAssets() {
+  const entries = Object.entries(getAssetManifest());
+  if (!entries.length) return;
+  try {
+    const names = (await caches.keys())
+      .filter((k) => k.startsWith('supersu-shell-') && k !== SHELL_CACHE);
+    if (!names.length) return;
+    const to = await caches.open(ASSETS_CACHE);
+    for (const name of names) {
+      const from = await caches.open(name);
+      for (const [path, hash] of entries) {
+        const key = './' + path + '?h=' + hash;
+        try {
+          if (await to.match(key)) continue;
+          const hit = await from.match('./' + path);
+          if (hit) await to.put(key, hit);
+        } catch (err) {
+          /* 单条迁移失败不影响其他 */
+        }
       }
     }
-    await Promise.all(urls.map((href) => addToCache(cache, href, false)));
   } catch (err) {
-    // 字体预缓存只是锦上添花，失败不影响 install
+    /* 迁移整体失败也不阻塞安装 */
   }
 }
 
@@ -242,7 +339,7 @@ async function precacheData() {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      const keep = new Set([SHELL_CACHE, DATA_CACHE, RUNTIME_CACHE, MEDIA_CACHE]);
+      const keep = new Set([SHELL_CACHE, DATA_CACHE, ASSETS_CACHE, RUNTIME_CACHE, MEDIA_CACHE]);
       const keys = await caches.keys();
       await Promise.all(
         keys.map(async (key) => {
@@ -329,9 +426,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2) 版本/更新记录：完全放行给浏览器（更新检测必须读到网络真值，
+  // 2) version.json：完全放行给浏览器（更新检测必须读到网络真值，
   //    否则会被 StaleWhileRevalidate 缓存住，永远显示旧版本）
-  if (sameOrigin && /\/(version|changelog)\.json$/.test(url.pathname)) return;
+  if (sameOrigin && /\/version\.json$/.test(url.pathname)) return;
+
+  // 2.5) changelog.json：网络优先、离线回退缓存。
+  //    不放行是为了离线也能翻更新记录；不做预缓存是为了别每次发版都重下 73KB。
+  if (sameOrigin && /\/changelog\.json$/.test(url.pathname)) {
+    event.respondWith(networkFirstCache(request, DATA_CACHE));
+    return;
+  }
 
   // 3) 同源 Pyodide 运行时：CacheFirst（稳定缓存，跨版本保留、一次下载永久命中）
   if (sameOrigin && RUNTIME_PATH_RE.test(url.pathname)) {
@@ -357,6 +461,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 4.5) 静态资产（图标/品牌/示例图/封面模板/vendor/字体）：
+  //      稳定缓存 + 内容哈希键，跨版本 0 请求 —— 这是「改一行 JS 不用重下 1MB」的关键
+  if (sameOrigin && assetKey(url.pathname.replace(/^\//, ''))) {
+    event.respondWith(assetFirst(request, url));
+    return;
+  }
+
   // 5) 主题 JSON / py 引擎：按清单哈希键 CacheFirst（增量核心）
   //    清单文件本身放行（它只是构建产物，不该被当成数据缓存）
   if (sameOrigin && DATA_PATH_RE.test(url.pathname)) {
@@ -370,6 +481,34 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(staleWhileRevalidate(request, SHELL_CACHE));
   }
 });
+
+/** 静态资产：按内容哈希键取（命中即返，未命中才联网并写入） */
+async function assetFirst(request, url) {
+  const key = assetKey(url.pathname.replace(/^\//, ''));
+  if (!key) return fetch(request);
+  return cacheFirstByKey(request, new URL(key, self.registration.scope).href, ASSETS_CACHE);
+}
+
+/**
+ * 网络优先、离线回退缓存（给 changelog.json 用）：
+ * 在线永远读网络真值，断网时还能翻更新记录。
+ */
+async function networkFirstCache(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const res = await fetch(new Request(request, { cache: 'no-cache' }));
+    if (res && res.ok) {
+      cache.put(request, res.clone()).catch(() => {});
+      return res;
+    }
+    const cached = await cache.match(request);
+    return cached || res;
+  } catch (err) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return new Response('', { status: 504, statusText: 'Offline' });
+  }
+}
 
 /** 数据资源：哈希键命中即返，未命中走网络并按哈希键写入 */
 async function dataFirst(request, url) {

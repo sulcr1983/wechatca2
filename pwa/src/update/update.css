@@ -606,19 +606,234 @@ body.browsing .upd-btn { display: none; }
   line-height: 1.7;
 }
 
-/* ── 页脚 ─────────────────────────────────────────────────────── */
+/* ── 页脚：元信息 + 反馈入口 ───────────────────────────────────── */
 #cl-foot {
   flex: none;
-  padding: 9px 20px;
+  padding: 8px 20px 9px;
   background: var(--bg-surface);
   border-top: 1px solid var(--border);
   color: var(--text-muted);
   font-size: 11px;
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cl-foot-row {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.cl-feedback {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+}
+
+.cl-fb-label { color: var(--text-muted); }
+
+.cl-fb-link {
+  color: var(--accent);
+  font-weight: 500;
+  border-bottom: 1px dotted rgba(175, 62, 43, .45);
+  padding-bottom: 1px;
+  cursor: pointer;
+}
+
+.cl-fb-link:hover { border-bottom-style: solid; }
+
+.cl-fb-copy {
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 10.5px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  cursor: pointer;
+}
+
+.cl-fb-copy:hover { border-color: var(--border-hi); color: var(--text); }
+
+/* ── 版本状态条（面板最上方，回答「服务器上有没有更新包」）─────── */
+#cl-status {
+  flex: none;
+  min-height: 44px;
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+#cl-status[hidden] { display: none !important; }
+
+.cl-st-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2F6B4F;
+  flex: none;
+}
+
+.cl-st-txt { color: var(--text); font-weight: 600; }
+.cl-st-sub { color: var(--text-muted); font-size: 11.5px; }
+
+.cl-st-btn {
+  margin-left: auto;
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-canvas);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+
+.cl-st-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.cl-st-btn:disabled { opacity: .55; cursor: default; }
+
+.cl-st-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFFDF9;
+}
+
+.cl-st-btn.primary:hover { background: var(--accent); color: #FFFDF9; filter: brightness(1.05); }
+
+/* 检查中 / 下载中 */
+#cl-status.s-check,
+#cl-status.s-busy { background: var(--bg-surface); }
+
+#cl-status.s-busy .cl-st-txt,
+#cl-status.s-ready .cl-st-txt { color: var(--accent); }
+
+#cl-status.s-ready { background: var(--accent-soft); }
+#cl-status.s-ready .cl-st-dot { background: var(--accent); }
+
+#cl-status.s-done { background: rgba(47, 107, 79, .09); }
+#cl-status.s-done .cl-st-txt { color: #2F6B4F; }
+
+#cl-status.s-offline .cl-st-dot { background: var(--text-muted); }
+#cl-status.s-offline .cl-st-txt { color: var(--text-soft); font-weight: 500; }
+
+.cl-spin {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border: 1.5px solid var(--border-hi);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: cl-spin .8s linear infinite;
+}
+
+@keyframes cl-spin { to { transform: rotate(360deg); } }
+
+.cl-bar {
+  flex: 1 1 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.cl-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width .25s linear;
+}
+
+/* ── 亮点（发版时手写的 3 条人话）──────────────────────────────── */
+#cl-panel .cl-highlights {
+  list-style: none;
+  margin: 4px 0 9px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#cl-panel .cl-highlights li {
+  position: relative;
+  padding-left: 15px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+#cl-panel .cl-highlights li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ── 开发者细节（默认收起）───────────────────────────────────── */
+#cl-panel .cl-dev {
+  margin: 6px 0 2px;
+  border-top: 1px dashed var(--border);
+  padding-top: 5px;
+}
+
+#cl-panel .cl-dev-sum {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+#cl-panel .cl-dev-sum::-webkit-details-marker { display: none; }
+
+#cl-panel .cl-dev-sum::before {
+  content: "▸";
+  font-size: 9px;
+  transition: transform .15s;
+}
+
+#cl-panel .cl-dev[open] .cl-dev-sum::before { transform: rotate(90deg); }
+#cl-panel .cl-dev-sum:hover { color: var(--text); }
+
+#cl-panel .cl-dev-n {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+}
+
+#cl-panel .cl-dev-items .cl-item { opacity: .82; }
+
+/* ── 入口：有新版本时主色填充（区别于「更新记录」的中性态）────── */
+.upd-btn.hot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFFDF9;
+}
+
+.upd-btn.hot:hover { background: var(--accent); color: #FFFDF9; filter: brightness(1.05); }
+.upd-btn.hot .upd-dot { background: #FFFDF9; box-shadow: 0 0 0 3px rgba(255, 253, 249, .35); }
 
 /* ── 窄屏 ─────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
@@ -632,8 +847,9 @@ body.browsing .upd-btn { display: none; }
   #cl-head { padding: 0 8px 0 16px; }
   #cl-toolbar { padding: 10px 14px 10px; }
   #cl-banner { padding: 9px 14px; }
+  #cl-status { padding: 6px 14px; }
   #cl-scroll { padding: 16px 14px 24px; }
-  #cl-foot { padding: 9px 14px; }
+  #cl-foot { padding: 8px 14px; }
 
   #cl-panel .cl-item { flex-wrap: wrap; row-gap: 2px; }
   #cl-panel .cl-item-text { flex: 1 1 100%; }

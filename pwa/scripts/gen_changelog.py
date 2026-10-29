@@ -38,6 +38,10 @@ GIT_PRETTY = "--pretty=format:%H%x1f%ad%x1f%s%x1f%b%x1e"
 
 TYPE_WHITELIST = {"feat", "fix", "docs", "chore", "test", "refactor", "perf", "style"}
 
+# 内部改动：默认折叠进「开发者细节」，不占用用户的第一屏
+# （refactor / perf 保留在正文 —— 它们对用户有体感，比如"排版更快了"）
+DEV_TYPES = {"test", "chore", "docs", "style", "build", "ci"}
+
 GROUP_ORDER = ["added", "changed", "deprecated", "removed", "fixed", "security", "other"]
 GROUP_LABELS = {
     "added": "新增",
@@ -172,6 +176,8 @@ def build_payload(commits: list[dict], milestones: list[dict]) -> tuple[dict, di
                         "hash": commit["hash"],
                         "date": commit["date"],
                         "breaking": commit["breaking"],
+                        # 内部改动（test/chore/docs/style）：前端默认折叠，搜索时才展开
+                        "dev": commit["type"] in DEV_TYPES,
                     }
                 )
             groups.append({"type": group_key, "label": GROUP_LABELS[group_key], "items": out_items})
@@ -181,6 +187,8 @@ def build_payload(commits: list[dict], milestones: list[dict]) -> tuple[dict, di
                 "version": milestone["version"],
                 "date": milestone["date"],
                 "title": milestone["title"],
+                # 发版时手写的 3 条「人话」亮点：更新记录与发布小票优先展示它们
+                "highlights": milestone.get("highlights") or [],
                 "counts": counts,
                 "groups": groups,
             }
@@ -209,6 +217,12 @@ def render_markdown(payload: dict) -> str:
         lines.append("")
         if release["title"]:
             lines.append(f"{release['title']}")
+            lines.append("")
+        if release.get("highlights"):
+            lines.append("**本次亮点**")
+            lines.append("")
+            for h in release["highlights"]:
+                lines.append(f"- {h}")
             lines.append("")
         for group in release["groups"]:
             lines.append(f"### {group['label']}")

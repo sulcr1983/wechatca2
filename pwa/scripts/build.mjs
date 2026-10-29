@@ -29,7 +29,10 @@ const rel = (p) => path.relative(ROOT, p).replace(/\\/g, '/');
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 16);
 
 // 与 sw.js 的 SHELL_CRITICAL + SHELL_OPTIONAL 保持一致：
-// 这些文件决定 BUILD_ID，任何变化都应该让浏览器认为 sw.js 是新的
+// 这些文件决定 BUILD_ID，任何变化都应该让浏览器认为 sw.js 是新的。
+// ⚠️ 2026-10-29：图标/品牌/示例图/封面模板/vendor/字体**不在**这里了 ——
+//    它们走 ASSETS_MANIFEST（内容哈希 + 稳定缓存），改了会让清单变、BUILD_ID 跟着变，
+//    但用户只需下载那几个真变了的文件，而不是整包 1MB。
 const SHELL_FILES = [
   'index.html',
   'src/app.js',
@@ -49,26 +52,11 @@ const SHELL_FILES = [
   'src/cover/render.js',
   'src/cover/search.js',
   'src/cover/cover.css',
-  'vendor/modern-screenshot.js',
-  // 封面页空态示例成品（U-9）：与 sw.js 的 SHELL_OPTIONAL 对应
-  'samples/cover-sample-editorial.jpg',
-  'samples/cover-sample-editorial-dune.jpg',
-  'samples/cover-sample-editorial-midnight-ink.jpg',
-  'vendor/fflate.min.js',
   'src/update/changelog.js',
   'src/update/update.css',
   'manifest.webmanifest',
   'fonts/fonts.css',
   'fonts/cover-fonts.css',
-  // 图标也算：只换图标像素时 sw.js 必须变，否则永远不触发更新
-  'icons/favicon-32.png',
-  'icons/apple-touch-icon.png',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-512-maskable.png',
-  // 品牌徽标（顶栏 / 启动条 / 更新区用）：公共源在 public/brand，构建时拷进 dist/brand
-  'brand/logo-64.png',
-  'brand/logo-256.png',
 ];
 
 /* ── 文件操作 ─────────────────────────────────────────────────── */
@@ -462,9 +450,10 @@ function main() {
 
   /* 7.5 响应头 + Service Worker 指纹注入（增量更新的两个前提） */
   writeHeaders();
-  const buildId = computeBuildId();
-  stampSw(buildId, manifest);
-  log(`  ✓ SW 构建指纹 BUILD_ID=${buildId} + 内联清单 ${Object.keys(manifest).length} 项 + _headers`);
+  const assetManifest = buildAssetManifest();
+  const buildId = computeBuildId(assetManifest);
+  stampSw(buildId, manifest, assetManifest);
+  log(`  ✓ SW 指纹 BUILD_ID=${buildId} + 清单 data ${Object.keys(manifest).length} / assets ${Object.keys(assetManifest).length} 项 + _headers`);
 
   /* 8. 断言 */
   if (!process.argv.includes('--skip-assert')) assertDist(index.length);
@@ -551,18 +540,21 @@ function buildDataManifest() {
   return manifest;
 }
 
-/** BUILD_ID = shell 文件内容哈希；文件不变 → sw.js 字节不变 → 不触发无谓更新 */
-function computeBuildId() {
+/** BUILD_ID = shell 文件内容哈希 + 资产清单摘要。
+ *  文件不变 → sw.js 字节不变 → 不触发无谓更新；
+ *  只换了一个图标 → 清单变 → BUILD_ID 变 → 触发更新，但用户只下那一个图标。 */
+function computeBuildId(assetManifest) {
   const parts = [];
   for (const f of SHELL_FILES) {
     const p = path.join(DIST, f);
     if (fs.existsSync(p)) parts.push(f + ':' + sha256(fs.readFileSync(p)));
   }
+  parts.push('assets:' + sha256(JSON.stringify(assetManifest || {})));
   return sha256(parts.join('|'));
 }
 
-/** 把 sw.js 里的占位符替换成本次构建指纹 + 内联数据清单 */
-function stampSw(buildId, manifest) {
+/** 把 sw.js 里的占位符替换成本次构建指纹 + 内联数据清单 + 资产清单 */
+function stampSw(buildId, manifest, assetManifest) {
   const p = path.join(DIST, 'sw.js');
   let src = fs.readFileSync(p, 'utf8');
   if (!src.includes('__BUILD_ID__')) {
@@ -571,11 +563,41 @@ function stampSw(buildId, manifest) {
   if (!src.includes('/*__DATA_MANIFEST__*/')) {
     throw new Error('sw.js 缺少 /*__DATA_MANIFEST__*/ 占位符，无法内联数据清单');
   }
+  if (!src.includes('/*__ASSETS_MANIFEST__*/')) {
+    throw new Error('sw.js 缺少 /*__ASSETS_MANIFEST__*/ 占位符，无法内联资产清单');
+  }
   // 内联而不是运行时 fetch：SW 被回收后离线重启时，manifest 请求必然失败，
   // 拿不到清单就会退回普通键 → 与 ?h= 键不匹配 → 离线主题/引擎全废
   src = src.replace('/*__DATA_MANIFEST__*/', `DATA_MANIFEST = ${JSON.stringify(manifest)};`);
+  src = src.replace('/*__ASSETS_MANIFEST__*/', `ASSETS_MANIFEST = ${JSON.stringify(assetManifest || {})};`);
   src = src.replace(/__BUILD_ID__/g, buildId);
   fs.writeFileSync(p, src, 'utf8');
+}
+
+/** 静态资产清单：图标 / 品牌 / 示例图 / 封面模板 / vendor / 字体 → sha256
+ *  这些文件不随版本变，SW 用稳定缓存 + ?h= 键跨版本复用，改一行 JS 时 0 下载。 */
+function buildAssetManifest() {
+  const manifest = {};
+  const addDir = (relDir, accept) => {
+    const abs = path.join(DIST, relDir);
+    if (!fs.existsSync(abs)) return;
+    for (const ent of fs.readdirSync(abs, { withFileTypes: true })) {
+      if (ent.isDirectory()) continue;
+      if (accept && !accept(ent.name)) continue;
+      const relPath = `${relDir}/${ent.name}`;
+      manifest[relPath] = sha256(fs.readFileSync(path.join(DIST, relPath)));
+    }
+  };
+  addDir('icons', (f) => f.endsWith('.png'));
+  addDir('brand', (f) => f.endsWith('.png'));
+  addDir('samples', (f) => f.endsWith('.jpg'));
+  addDir('cover-templates', (f) => f.endsWith('.html'));
+  addDir('vendor', (f) => /\.(js|css)$/.test(f));
+  // 只收 fonts 根目录的 woff2（主界面字体，160KB）；
+  // fonts/cover/* 有 3.6MB，封面页才用，保持按需下载、不进预缓存。
+  addDir('fonts', (f) => f.endsWith('.woff2'));
+  fs.writeFileSync(path.join(DIST, 'assets-manifest.json'), JSON.stringify(manifest), 'utf8');
+  return manifest;
 }
 
 /* ── Cloudflare Pages 响应头 ──────────────────────────────────── */
@@ -672,6 +694,20 @@ function assertDist(themeCount) {
   const swSrc = fs.readFileSync(path.join(DIST, 'sw.js'), 'utf8');
   if (swSrc.includes('__BUILD_ID__')) problems.push('sw.js 的 __BUILD_ID__ 未注入（BUILD_ID 不生效）');
   if (swSrc.includes('__DATA_MANIFEST__')) problems.push('sw.js 的数据清单未内联（离线重启会拿不到 manifest）');
+  if (swSrc.includes('__ASSETS_MANIFEST__')) problems.push('sw.js 的资产清单未内联（静态资产会退化成全量重下）');
+
+  // 6.5 静态资产清单：图标/品牌/示例/封面模板/vendor/字体都该在里面
+  const amPath = path.join(DIST, 'assets-manifest.json');
+  if (!fs.existsSync(amPath)) {
+    problems.push('缺文件：assets-manifest.json（静态资产无法增量）');
+  } else {
+    const am = JSON.parse(fs.readFileSync(amPath, 'utf8'));
+    const keys = Object.keys(am);
+    if (keys.length < 20) problems.push(`资产清单只有 ${keys.length} 项，明显不全`);
+    for (const need of ['icons/icon-192.png', 'brand/logo-64.png', 'vendor/fflate.min.js']) {
+      if (!am[need]) problems.push(`资产清单缺：${need}`);
+    }
+  }
   if (/cache:\s*'reload'/.test(swSrc)) problems.push("sw.js 仍在使用 cache:'reload'（会绕过 ETag 304）");
   if (swSrc.includes('cover.js')) problems.push('sw.js 仍在预缓存不存在的 src/cover.js');
 
