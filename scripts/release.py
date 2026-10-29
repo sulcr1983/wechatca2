@@ -97,7 +97,10 @@ def run(cmd: list[str], desc: str, *, check: bool = True,
               "CODEBUDDY_SAFE_DELETE_SANDBOX"):
         env.pop(k, None)
     try:
-        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
+        # ⚠️ 必须把上面清干净后的 env 真的传下去：漏传过一次（2026-10-29），
+        # 结果 NODE_OPTIONS 里的 node-shim 仍生效，build.mjs 的 rmrf 被
+        # 「bulk delete guard」拦下，发版卡在第 4 步，且报错信息看起来像磁盘问题。
+        r = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=timeout)
         out = (r.stdout or "") + (r.stderr or "")
         ok = r.returncode == 0
