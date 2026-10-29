@@ -86,63 +86,96 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/* ── 底图可读性：文字位置 + 自动字色（2026-10-30）──────────────────────
+/* ── 底图可读性：按 Material Design 官方 scrim 规范重写（2026-10-30）──────
  *
- * 此前有底图时一律「文字贴底 + 白字 + 全画布深遮罩」。
- * 实测 7 张真实图，白字压在最亮区只有 1.08–1.99:1（下限 4.5）；
- * 遮罩加到 50% 也只 2.51:1，要到 4.5 得 80%，照片就成灰板了。
+ * 上一版的做法是错的：用 position:absolute 把文字块顶到 bandTop，
+ * 结果归藏/模板原本的版面被破坏 —— 照片被挤成中间一条横带，整张像半成品。
+ * 而且黑字配白色光晕投影，笔画边缘发虚，比不加还糊。
  *
- * 现在按 analyze.js 的实测结果：
- *   - 文字块按 bandTop 定位（跟着图里最安静的那条带走，不再死钉底部）
- *   - 字色按实测亮度自动黑白（不再固定白字）
- *   - 只有 worstContrast 不达标时才补局部渐变（峰值 ≤0.30，spec §6.3 Step 3）
+ * 现在按 Material Design 官方「Text protection」规范（m1.material.io/style/imagery.html）：
+ *   1. **不整图满铺**（官方明令 Don't over-scrim）：scrim 只盖文字所在区域
+ *   2. **多档渐变防色带**：官方要求「渐变要够长、中点偏暗端 3/10」，
+ *      两档渐变会出现 Mach band（肉眼可见的暗带边缘）→ 用 4 档以上
+ *   3. **深色 scrim 20–40%**（官方 Do 区间；60% 只是示例图，超过即 over-scrim）
+ *   4. **text-shadow 只做辅助**：官方社区实践是「scrim 管 90% 场景，
+ *      投影补边缘情况」，且「重投影会让字显得廉价、发虚」
  *
- * 传 analysis=null 时返回空串 → 完全退回原来的行为（回归安全）。
+ * 版面定位改成**不动结构**：不再 absolute，只在需要时给文字块加 padding-bottom
+ * 让它整体上移 —— 模板原本的 flex 布局、间距节奏全部保留。
+ *
+ * 传 analysis=null 时返回空串 → 完全退回原行为（回归安全）。
  */
 function readableCss(analysis, textPos) {
   if (!analysis) return '';
   const ink = analysis.ink === '#141110' ? '#141110' : '#ffffff';
   const isDark = ink === '#ffffff';
-  // 投影方向跟着字色走：白字用黑投影，黑字用白投影
-  const shadow = isDark ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.55)';
 
-  // 文字位置：auto = 用分析出的 bandTop；三档微调则覆盖
-  const POS = { top: 0.22, center: 0.42, bottom: 0.62 };
-  const top = textPos && textPos !== 'auto'
-    ? (POS[textPos] ?? analysis.bandTop)
-    : analysis.bandTop;
+  /* 文字区域：模板是「贴底排版」，文字固定在底部。
+     分析必须对齐这个真实区域（zone），不能按「可以自由移动」假设
+     —— 上一版按 bandTop 压暗，结果压暗了画面中部，文字所在底部没被压，白做。 */
+  const zone = analysis.zone || [0.55, 1.0];
+  const bandLo = Math.round(zone[0] * 100);
+  const bandHi = Math.round(zone[1] * 100);
 
-  // 局部渐变：只在需要时加，只盖文字带，峰值受规范约束
-  const tint = analysis.needsTint
-    ? `background:linear-gradient(180deg,rgba(10,10,11,0) ${Math.max(0, Math.round(top * 100 - 12))}%,`
-      + `rgba(10,10,11,${(analysis.tintPeak * 0.5).toFixed(2)}) ${Math.round(top * 100 + 10)}%,`
-      + `rgba(10,10,11,${analysis.tintPeak.toFixed(2)}) 100%);`
-    : '';
+  /* 局部 scrim（Material Design 规范）：
+     - 4 档渐变，中点落在靠暗端 3/10 处（官方 anti-banding 要求）
+     - 峰值：达标时用 0.22（官方深色区间下限，几乎看不出压暗）
+             不达标时按需算，但上限 0.40（官方 Do 区间上限，超过即 over-scrim）
+     - 渐变只覆盖文字区域，不碰画面上部 */
+  const peak = analysis.needsTint
+    ? Math.min(0.40, Math.max(0.22, analysis.tintPeak))
+    : 0.22;
+  // 中点偏暗端 3/10：把最强处放在文字区靠下 30% 的位置
+  const mid = Math.round(bandLo + (bandHi - bandLo) * 0.7);
+  const scrim = `linear-gradient(180deg,`
+    + `rgba(12,11,10,0) ${bandLo}%,`
+    + `rgba(12,11,10,${(peak * 0.35).toFixed(3)}) ${Math.round(bandLo + (mid - bandLo) * 0.5)}%,`
+    + `rgba(12,11,10,${(peak * 0.78).toFixed(3)}) ${mid}%,`
+    + `rgba(12,11,10,${peak.toFixed(3)}) ${bandHi}%,`
+    + `rgba(12,11,10,${peak.toFixed(3)}) 100%)`;
+
+  /* 投影只做辅助（社区共识：scrim 管 90%，投影补边缘）：
+     白字用极轻的黑色描边式投影；黑字不加白色光晕（那会让笔画发虚，
+     改用「减淡周围」—— 直接把字压深并靠 scrim 提亮背景）。 */
+  const shadow = isDark
+    ? '0 1px 3px rgba(0,0,0,.42), 0 0 1px rgba(0,0,0,.30)'
+    : 'none';
 
   return `
-  /* 底图可读性（analyze.js 实测：${(analysis.worstContrast || 0).toFixed(2)}:1）*/
-  body.has-img .cover-img { object-position: center ${Math.round(top * 100)}%; }
-  /* 定位用绝对定位，不用 padding-top 百分比：
-     模板的 .inner-content 自带 padding: 96px 88px（短属性），
-     padding-top: X% 的百分比按「父元素宽度」算，实测三档都停在 96px 没动。
-     改成 top + transform 之后，三档真的分开了。 */
-  body.has-img .content { justify-content: flex-start !important; }
-  body.has-img .inner-content {
-    position: absolute !important;
-    left: 0; right: 0;
-    top: ${Math.round(top * 100)}% !important;
-    padding: 0 88px 96px !important;
-    justify-content: flex-start !important;
-  }
-  ${tint ? `.img-overlay{${tint}}` : '.img-overlay{background:none !important;}'}
+  /* 底图可读性（analyze.js 实测最坏 ${(analysis.worstContrast || 0).toFixed(2)}:1 ·
+     scrim 峰值 ${peak.toFixed(2)} · Material Design 局部 scrim 规范）*/
+  /* ⚠️ 不动版面结构：只换 object-position（让主体不被裁掉），
+     不用 position:absolute 重排文字块 —— 那会把版面挤成一条横带。 */
+  /* object-position 保持居中：模板靠 cover 裁切，改它会裁掉画面主体 */
+  body.has-img .cover-img { object-position: center center !important; }
+  /* ⚠️ !important 必须写在值末尾的分号之前 ——
+     上一版把 !important 写在分号外面，整条声明被浏览器丢弃，scrim 完全没生效 */
+  .img-overlay { background: ${scrim} !important; }
   body.has-img .kicker, body.has-img .h-display, body.has-img .h-sub,
   body.has-img .lead, body.has-img .issue-row, body.has-img .issue-strip span,
   body.has-img .h-statement, body.has-img .t-meta, body.has-img .t-cat,
-  body.has-img .square-title, body.has-img .wide-title,
-  body.has-img .h-sub, body.has-img .lead {
+  body.has-img .square-title, body.has-img .wide-title {
     color: ${ink} !important;
-    text-shadow: 0 2px 10px ${shadow}, 0 1px 3px ${shadow} !important;
+    text-shadow: ${shadow} !important;
   }
+  /* 黑字时正文/副标题压深一档，保证在浅底上也立得住（不用光晕） */
+  ${isDark ? '' : `
+  body.has-img .lead, body.has-img .h-sub { color: rgba(20,17,16,.86) !important; }
+  body.has-img .kicker, body.has-img .issue-row,
+  body.has-img .t-meta { color: rgba(20,17,16,.78) !important; }
+  `}
+  /* 文字位置微调：不改结构，只平移整块。
+     模板原本是 flex 布局、文字贴底（justify-content:flex-end 或靠 .grow 撑开），
+     直接改 justify-content 会打乱它自己的间距节奏（上一版就是这么把版面搞坏的）。
+     这里用 transform 平移 —— 纯视觉位移，不参与布局计算，版面节奏完全保留。
+     auto 时不平移（用模板原本的位置）。 */
+  ${textPos && textPos !== 'auto' ? (() => {
+    const dy = { top: '-34%', center: '-12%', bottom: '0%' }[textPos] || '0%';
+    return `
+  body.has-img .content, body.has-img .inner-content {
+    transform: translateY(${dy});
+  }`;
+  })() : ''}
   `;
 }
 
@@ -378,7 +411,7 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl, an
   const inkColor = inkForAccent(accentHex);
   // 底图可读性（2026-10-30）：只有真的选了底图才注入；analysis 为空时是空串，行为不变
   const readable = image ? readableCss(analysis, textPos) : '';
-  const frostCss = image ? frostedCss(frosted, analysis ? analysis.bandTop : 0.6) : '';
+  const frostCss = image ? frostedCss(frosted, (analysis?.zone || [0.55, 1])[0]) : '';
   const frostEl = (image && frosted) ? '<div class="cv-frost"></div>' : '';
   const head = `<link rel="stylesheet" href="${baseUrl}fonts/cover-fonts.css">`
     + `<style>:root{--cover-ink:${inkColor}}</style><style>${OVERRIDE_CSS}${readable}${frostCss}</style>`;
@@ -432,14 +465,17 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
      没有 analysis 时（老调用路径）退回原来的写法，行为不变。 */
   let overlayCss;
   if (useImg && analysis) {
-    const top = textPos && textPos !== 'auto'
-      ? ({ top: 0.22, center: 0.42, bottom: 0.62 }[textPos] ?? analysis.bandTop)
-      : analysis.bandTop;
-    overlayCss = analysis.needsTint
-      ? `background: linear-gradient(180deg, rgba(10,10,11,0) ${Math.max(0, Math.round(top * 100 - 12))}%,`
-        + ` rgba(10,10,11,${(analysis.tintPeak * 0.5).toFixed(2)}) ${Math.round(top * 100 + 10)}%,`
-        + ` rgba(10,10,11,${analysis.tintPeak.toFixed(2)}) 100%);`
-      : 'background: none;';
+    /* 归藏三套同样是贴底排版 → 按 zone 压暗，不按 bandTop */
+    const zone = analysis.zone || [0.55, 1.0];
+    const lo = Math.round(zone[0] * 100);
+    const hi = Math.round(zone[1] * 100);
+    const pk = analysis.needsTint
+      ? Math.min(0.40, Math.max(0.22, analysis.tintPeak)) : 0.22;
+    overlayCss = `background: linear-gradient(180deg, rgba(12,11,10,0) ${lo}%,`
+      + ` rgba(12,11,10,${(pk * 0.35).toFixed(3)}) ${Math.round(lo + (hi - lo) * 0.5)}%,`
+      + ` rgba(12,11,10,${(pk * 0.78).toFixed(3)}) ${Math.round(lo + (hi - lo) * 0.7)}%,`
+      + ` rgba(12,11,10,${pk.toFixed(3)}) ${hi}%,`
+      + ` rgba(12,11,10,${pk.toFixed(3)}) 100%);`;
   } else {
     overlayCss = isSquare
       ? 'background: radial-gradient(72% 60% at 50% 50%, rgba(10,10,11,.30) 0%, rgba(10,10,11,0) 100%);'

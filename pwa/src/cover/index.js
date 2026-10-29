@@ -513,12 +513,13 @@ async function pickCandidate(it) {
 }
 
 /* 底图可读性分析（2026-10-30）：把 analyze.js 的结论存进 state，
-   预览和生成都会用它决定文字位置与字色。分析失败不阻断出图，只是退回原行为。 */
+   预览和生成都会用它决定字色与 scrim。分析失败不阻断出图，只是退回原行为。
+   zone 按版式给：所有版式都是贴底排版，文字占底部约 45%。 */
 async function refreshAnalysis(dataUrl) {
   state.analysis = null;
   if (!dataUrl) return;
   try {
-    state.analysis = await analyzeImage(dataUrl);
+    state.analysis = await analyzeImage(dataUrl, { zone: [0.55, 1.0] });
   } catch {
     state.analysis = null;
   }
@@ -536,7 +537,8 @@ function syncTextPosUI() {
       hint.textContent = '手动';
     } else if (a) {
       // 说清「自动」到底把文字放哪了，别让用户以为它没生效
-      hint.textContent = `自动 · ${Math.round(a.bandTop * 100)}%`;
+      const z = a.zone || [0.55, 1];
+      hint.textContent = `自动 · ${Math.round(z[0] * 100)}–${Math.round(z[1] * 100)}%`;
     } else {
       hint.textContent = '自动';
     }

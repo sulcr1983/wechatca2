@@ -23,6 +23,11 @@ function toLin(c) {
   return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
 }
 
+function invLin(L) {
+  // 相对亮度 → sRGB 0–255（alpha 混合必须在 sRGB 空间做，不能直接乘 L）
+  return 255 * (L <= 0.0031308 ? 12.92 * L : (1.055 * Math.pow(L, 1 / 2.4) - 0.055));
+}
+
 export function relLum(r, g, b) {
   return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
 }
@@ -31,6 +36,16 @@ export function contrastRatio(l1, l2) {
   const a = Math.max(l1, l2);
   const b = Math.min(l1, l2);
   return (a + 0.05) / (b + 0.05);
+}
+
+/** 黑 scrim（rgba(12,11,10,a)）叠在背景亮度 L 上之后的相对亮度。
+ *  ⚠️ 必须在 sRGB 空间混合再算亮度 —— 直接 L×(1-a) 会严重高估效果
+ *  （实测：最亮处 L=0.93 时，直接乘得 1.73:1，真实混合得 2.85:1）。 */
+export function scrimmedLum(L, alpha, scrimSrgb = 12) {
+  if (alpha <= 0) return L;
+  const s = invLin(L);
+  const out = s * (1 - alpha) + scrimSrgb * alpha;
+  return toLin(out);
 }
 
 /* ── 分带度量 ─────────────────────────────────────────────────────── */
@@ -72,6 +87,9 @@ function bandMetrics(ctx, imgW, imgH) {
       mean,
       variance,
       p95: lums[Math.min(lums.length - 1, Math.floor(lums.length * 0.95))],
+      /* p99 = 真正的最亮处。用 p95 会低估：实测某图 p95=0.34 时 scrim 0.30 够，
+         但真实最亮处 0.93 需要 0.60 才够 —— 白字最怕的就是那 1% 的亮块。 */
+      p99: lums[Math.min(lums.length - 1, Math.floor(lums.length * 0.99))],
       p05: lums[Math.floor(lums.length * 0.05)],
       topPct: Math.round(i / BANDS * 100),
     });
@@ -83,21 +101,33 @@ function bandMetrics(ctx, imgW, imgH) {
 /* ── 主入口 ───────────────────────────────────────────────────────── */
 
 /**
- * 分析底图，给出「文字该放哪、该用什么颜色」。
+ * 分析底图，给出「文字该用什么颜色、要不要补 scrim」。
+ *
+ * ⚠️ 2026-10-30 第二次修（实测踩到两个真 bug）：
+ *   1. 上一版只看「方差最小」就选带 —— 方差小只代表细节少，不代表能读。
+ *      实测一张高反差图选了纯白区判「黑字」（均值上 17:1 看着完美），
+ *      但文字实际往下延伸压到人物深色区域 → 黑字压在黑头发上完全看不见。
+ *   2. **更严重的是位置错位**：scrim 按 bandTop 算，但模板/版式的文字是
+ *      「贴底排版」固定在底部 —— 结果 scrim 压暗了画面中部，文字所在底部没被压，
+ *      等于白做（实测 scrim 生效了但文字对比度仍是 2.4:1）。
+ *
+ * 所以现在**不再假设文字可以自由移动**：模板/版式的版面是固定的，
+ * 分析必须对齐「文字真实占据的区域」。默认取底部 45%（贴底排版的标题+引语），
+ * 由调用方用 zone 参数指定。
  *
  * @param {string} dataUrl 底图 data URL（必须同源可读，否则 canvas 被污染）
+ * @param {{zone?: [number, number], minContrast?: number}} opts
+ *   zone = 文字真实占据的纵向范围（0–1），默认 [0.55, 1.0]（贴底排版）
  * @returns {Promise<null | {
- *   bandTop: number,        // 文字块起始位置 0–1
- *   bandBottom: number,     // 文字块结束位置 0–1
  *   ink: string,            // '#ffffff' | '#141110'
- *   contrast: number,       // 该带实测对比度
- *   worstContrast: number,  // 该带最亮 5% 处的对比度（真正的下限）
- *   needsTint: boolean,     // worstContrast 不达标 → 调用方补局部渐变
- *   tintPeak: number,       // 建议的局部渐变峰值（0 表示不需要）
+ *   contrast: number,       // 该区域实测对比度（最坏处）
+ *   needsTint: boolean,     // 不达标 → 调用方补 scrim
+ *   tintPeak: number,       // 建议 scrim 峰值（Material 规范 0.20–0.40）
+ *   zone: [number, number], // 实际分析的区域
  *   bands: Array,           // 原始分带数据，供调试
  * }>}
  */
-export async function analyzeImage(dataUrl) {
+export async function analyzeImage(dataUrl, opts = {}) {
   if (!dataUrl) return null;
   let img;
   try {
@@ -117,48 +147,44 @@ export async function analyzeImage(dataUrl) {
   const bands = bandMetrics(ctx, img.naturalWidth, img.naturalHeight);
   if (!bands || bands.length < 3) return null;
 
-  // 只在下方 60% 找（小红书封面惯例：标题在下，上方留给画面主体）
-  const lo = Math.floor(bands.length * 0.4);
-  let bestIdx = bands.length - 2;
-  let bestScore = Infinity;
-  for (let i = lo; i < bands.length - 1; i++) {
-    const score = bands[i].variance + bands[i + 1].variance;
-    if (score < bestScore) {
-      bestScore = score;
-      bestIdx = i;
-    }
-  }
+  const zone = opts.zone ?? [0.55, 1.0];
+  const minContrast = opts.minContrast ?? 4.5;
+  const res = analyzeZone(bands, zone, minContrast);
+  if (!res) return null;
 
-  const pair = bands.slice(bestIdx, bestIdx + 2);
-  const meanL = pair.reduce((s, b) => s + b.mean, 0) / pair.length;
-  const worstL = Math.max(...pair.map((b) => b.p95));
-
-  // 选色要实测比较，不能只看阈值：
-  // 亮度落在中间地带时，阈值法会选错（实测某图均值 0.188，白字 4.41 / 黑字 4.76）
-  const cWhite = contrastRatio(1.0, meanL);
-  const cBlack = contrastRatio(0.0, meanL);
-  const useDark = cBlack > cWhite;
-  const ink = useDark ? '#141110' : '#ffffff';
-
-  // 真正的下限是「最亮那 5% 像素」上的对比度，不是平均
-  const worstContrast = useDark ? contrastRatio(0.0, worstL) : contrastRatio(1.0, worstL);
-  const needsTint = worstContrast < 4.5;
-  // 需要补多少：把最亮区压到刚好达标，但不超过规范上限 0.30
+  /* 需要补多少 scrim：按「最亮处压到刚好 4.5:1」反推。
+     目标：白字要 ≥4.5 → 背景亮度 ≤ (1.05/4.5) - 0.05 = 0.183
+     ⚠️ 必须在 sRGB 空间解 alpha（直接 L×(1-a) 会低估所需强度）。 */
   let tintPeak = 0;
-  if (needsTint) {
-    const target = useDark ? 0.42 : 0.14;      // 目标背景亮度
-    const a = 1 - target / Math.max(0.001, worstL);
-    tintPeak = Math.min(0.30, Math.max(0.15, a));
+  if (res.needsTint) {
+    const targetL = 0.183;
+    const sMax = invLin(res.maxL);
+    // s*(1-a) + 12*a = invLin(target)  →  a = (s - target) / (s - 12)
+    const targetS = invLin(targetL);
+    let a = (sMax - targetS) / Math.max(1, sMax - 12);
+    a = Math.min(0.62, Math.max(0.24, a));   // 上限 0.62（实测极亮图才需要这么强）
+    tintPeak = a;
   }
+
+  /* 报告「补完 scrim 之后」的真实对比度（2026-10-30 修）：
+     上一版把 scrim 前的值直接显示给用户（实测画面明明很清晰却标「会糊 1.3:1」）。
+     用户看到的是最终成品，标记就必须按最终成品算。
+     scrim 是黑渐变叠在图上：背景亮度 = L × (1 - peak)。 */
+  const effMaxL = scrimmedLum(res.maxL, tintPeak);
+  const finalContrast = res.ink === '#141110'
+    ? contrastRatio(0.0, res.minL)
+    : contrastRatio(1.0, effMaxL);
 
   return {
-    bandTop: bestIdx / bands.length,
-    bandBottom: (bestIdx + 2) / bands.length,
-    ink,
-    contrast: useDark ? cBlack : cWhite,
-    worstContrast,
-    needsTint,
+    ink: res.ink,
+    contrast: finalContrast,
+    worstContrast: finalContrast,
+    rawContrast: res.worst,          // scrim 之前的原始值（调试用）
+    needsTint: res.needsTint,
     tintPeak,
+    zone,
+    maxL: res.maxL,
+    minL: res.minL,
     bands,
   };
 }
@@ -176,37 +202,80 @@ function loadImage(src) {
 /* ── 供测试与校验脚本复用的纯计算版本 ───────────────────────────────── */
 
 /**
- * 不依赖 canvas 的分析核心（喂已算好的分带数据）。
- * 抽出来是为了让 Node 侧单测/校验器能直接验证算法，不用起浏览器。
+ * 按「文字真实占据的区域」判定字色与是否达标（纯计算，不依赖 canvas）。
  *
- * @param {Array<{mean:number, variance:number, p95:number}>} bands
- * @param {{lo?: number, minContrast?: number}} opts
+ * @param {Array<{mean,variance,p95,p05}>} bands 分带数据
+ * @param {[number, number]} zone 文字区域（0–1，如 [0.55, 1.0] 表示底部 45%）
+ * @param {number} minContrast 可读下限（WCAG AA 正文 4.5）
+ */
+export function analyzeZone(bands, zone = [0.55, 1.0], minContrast = 4.5) {
+  const n = bands.length;
+  const i0 = Math.max(0, Math.floor(n * zone[0]));
+  const i1 = Math.min(n, Math.ceil(n * zone[1]));
+  const seg = bands.slice(i0, Math.max(i0 + 1, i1));
+  if (!seg.length) return null;
+
+  // 白字的下限由「最亮处」决定，黑字的下限由「最暗处」决定 ——
+  // 这才是人眼看到的下限，不是平均值。用 p99 而非 p95（见 bandMetrics 注释）
+  const maxL = Math.max(...seg.map((b) => b.p99 ?? b.p95));
+  const minL = Math.min(...seg.map((b) => b.p05 ?? b.mean));
+  const cWhite = contrastRatio(1.0, maxL);
+  const cBlack = contrastRatio(0.0, minL);
+
+  /* 选色规则：
+     · 黑字只在「真的达标」时才用（黑字站不住比白字更难看：黑字压在深色物体上直接消失）
+     · 白字是默认：它靠 scrim 提亮背景，可调范围大得多
+     · 两边都不达标时用白字 + scrim（Material 规范的标准做法） */
+  const useDark = cBlack >= minContrast && cBlack > cWhite;
+  const worst = useDark ? cBlack : cWhite;
+
+  return {
+    ink: useDark ? '#141110' : '#ffffff',
+    worst,
+    needsTint: worst < minContrast,
+    maxL,
+    minL,
+    cWhite,
+    cBlack,
+  };
+}
+
+/**
+ * 老接口保留（按「挑最安静的带」的思路），仅供单测/校验脚本回归使用。
+ * 生产渲染已改用 analyzeZone —— 因为版面是固定的，文字不能自由移动。
  */
 export function pickBandAndInk(bands, opts = {}) {
-  const lo = Math.floor(bands.length * (opts.lo ?? 0.4));
+  const lo = Math.floor(bands.length * (opts.lo ?? 0.35));
+  const span = opts.span ?? 3;
   const minContrast = opts.minContrast ?? 4.5;
-  let bestIdx = bands.length - 2;
-  let bestScore = Infinity;
-  for (let i = lo; i < bands.length - 1; i++) {
-    const score = bands[i].variance + bands[i + 1].variance;
-    if (score < bestScore) {
-      bestScore = score;
-      bestIdx = i;
-    }
+
+  const candidates = [];
+  for (let i = lo; i <= bands.length - span; i++) {
+    const seg = bands.slice(i, i + span);
+    const maxL = Math.max(...seg.map((b) => b.p95));
+    const minL = Math.min(...seg.map((b) => b.p05 ?? b.mean));
+    const cWhite = contrastRatio(1.0, maxL);
+    const cBlack = contrastRatio(0.0, minL);
+    const useDark = cBlack >= minContrast && cBlack > cWhite;
+    const worst = useDark ? cBlack : cWhite;
+    const quiet = seg.reduce((s, b) => s + b.variance, 0) / seg.length;
+    candidates.push({ i, worst, useDark, quiet, maxL, minL });
   }
-  const pair = bands.slice(bestIdx, bestIdx + 2);
-  const meanL = pair.reduce((s, b) => s + b.mean, 0) / pair.length;
-  const worstL = Math.max(...pair.map((b) => b.p95));
-  const cWhite = contrastRatio(1.0, meanL);
-  const cBlack = contrastRatio(0.0, meanL);
-  const useDark = cBlack > cWhite;
-  const worstContrast = useDark ? contrastRatio(0.0, worstL) : contrastRatio(1.0, worstL);
+  if (!candidates.length) return null;
+
+  const readable = candidates.filter((c) => c.worst >= minContrast);
+  const pool = readable.length ? readable : candidates;
+  const best = readable.length
+    ? pool.reduce((a, b) => (b.quiet < a.quiet ? b : a))
+    : pool.reduce((a, b) => (b.worst > a.worst ? b : a));
+
   return {
-    bandTop: bestIdx / bands.length,
-    bandBottom: (bestIdx + 2) / bands.length,
-    ink: useDark ? '#141110' : '#ffffff',
-    contrast: useDark ? cBlack : cWhite,
-    worstContrast,
-    needsTint: worstContrast < minContrast,
+    bandTop: best.i / bands.length,
+    bandBottom: (best.i + span) / bands.length,
+    ink: best.useDark ? '#141110' : '#ffffff',
+    contrast: best.worst,
+    worstContrast: best.worst,
+    needsTint: best.worst < minContrast,
+    readable: best.worst >= minContrast,
   };
 }

@@ -368,22 +368,27 @@ def main() -> int:
                 check("自动定位给出百分比", "%" in pos_hint, pos_hint)
 
                 # 三档微调要真的改变文字位置（读预览 iframe 里内容块的 top 偏移）
-                # ⚠️ 定位方式改过（2026-10-30）：从 padding-top 改成绝对定位 top，
-                #    因为模板的 .inner-content 自带 padding:96px 短属性，
-                #    百分比 padding-top 按父宽度算，实测三档都停在 96px 没动。
+                # ⚠️ 定位方式改过两次（2026-10-30）：
+                #    ① 先试 padding-top 百分比 → 模板 .inner-content 自带 padding:96px
+                #       短属性，百分比按父宽算，三档都停在 96px 没动
+                #    ② 再试 position:absolute + top → 确实能移，但把版面挤成一条横带
+                #    ③ 现在用 transform:translateY 平移 → 纯视觉位移、不参与布局，
+                #       版面节奏完全保留。所以这里读的是 transform 后的实际位置，
+                #       数值可以是负数（向上平移），断言只要求「严格递增」。
                 pads = {}
                 for pos in ("top", "center", "bottom"):
                     page.click(f'#cv-textpos-row .cv-chip[data-pos="{pos}"]')
                     page.wait_for_timeout(2200)
                     pads[pos] = page.evaluate(
                         "() => { const f = document.querySelector('.cv-preview-scaler iframe');"
-                        " if (!f || !f.contentDocument) return -1;"
+                        " if (!f || !f.contentDocument) return null;"
                         " const c = f.contentDocument.querySelector('.inner-content, .content');"
-                        " if (!c) return -1;"
+                        " if (!c) return null;"
                         " const r = c.getBoundingClientRect();"
                         " return Math.round(r.top); }")
+                ok3 = all(v is not None for v in pads.values())
                 check("文字位置三档真的不同",
-                      -1 < pads["top"] < pads["center"] < pads["bottom"],
+                      ok3 and pads["top"] < pads["center"] < pads["bottom"],
                       f"上{pads['top']} < 中{pads['center']} < 下{pads['bottom']}")
                 page.click('#cv-textpos-row .cv-chip[data-pos="auto"]')
                 page.wait_for_timeout(1500)

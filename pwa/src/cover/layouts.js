@@ -53,10 +53,15 @@ function splitItems(lead) {
 
 
 /** 有底图时的字色与投影（2026-10-30）：各骨架共用，避免重复算又漏定义。
- *  ink 来自 analyze.js 的实测结果；没有 analysis 时退回白字（原行为）。 */
+ *  ink 来自 analyze.js 的实测结果；没有 analysis 时退回白字（原行为）。
+ *  ⚠️ 黑字不要加白色光晕投影 —— 那会让笔画边缘发虚，比不加还糊
+ *     （社区共识：scrim 管 90% 场景，投影只做辅助且要极轻）。 */
 function imgInk(analysis) {
   const ink = analysis?.ink === '#141110' ? '#141110' : '#ffffff';
-  return { ink, shadow: ink === '#ffffff' ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.55)' };
+  const shadow = ink === '#ffffff'
+    ? '0 1px 3px rgba(0,0,0,.42), 0 0 1px rgba(0,0,0,.30)'
+    : 'none';
+  return { ink, shadow };
 }
 
 /* ── 外壳：两套版式共用的文档骨架 ───────────────────────────────────── */
@@ -70,18 +75,29 @@ function shell({ pal, cls, css, body, hasImage, serif, analysis, textPos }) {
        · 只在最亮区不达标时才补局部渐变（峰值 ≤0.30）
      没有 analysis 时退回原来的「固定白字 + 深遮罩」——行为不变。 */
   const { ink, shadow } = imgInk(analysis);
-  const top = (textPos && textPos !== 'auto')
-    ? ({ top: 0.22, center: 0.42, bottom: 0.62 }[textPos] ?? (analysis?.bandTop ?? 0.6))
-    : (analysis?.bandTop ?? 0.6);
+  /* 文字区域：新版式骨架是 .ly-body 贴底（justify-content:flex-end），
+     文字固定在底部 → 分析区域必须对齐底部，不能按「文字可自由移动」假设。 */
+  const zone = analysis?.zone || [0.55, 1.0];
+  /* 局部 scrim（Material Design 官方规范 m1.material.io/style/imagery.html）：
+     · 只盖文字区域，不整图满铺（官方明令 Don't over-scrim）
+     · 4 档渐变、中点偏暗端 3/10（官方 anti-banding 要求；
+       两档渐变会出现肉眼可见的暗带边缘 Mach band）
+     · 峰值 0.22–0.40（官方深色 scrim Do 区间；>0.40 即 over-scrim）
+     无 analysis 时退回原来那条固定渐变（回归安全）。 */
   const needTint = !!analysis?.needsTint;
-  const tintPeak = analysis?.tintPeak ?? 0.26;
+  const peak = analysis
+    ? (needTint ? Math.min(0.40, Math.max(0.22, analysis.tintPeak)) : 0.22)
+    : 0.26;
+  const bandLo = Math.round(zone[0] * 100);
+  const bandHi = Math.round(zone[1] * 100);
+  const mid = Math.round(bandLo + (bandHi - bandLo) * 0.7);   // 中点偏暗端 3/10
   const scrim = hasImage
-    ? (needTint
-      ? `.ly-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(180deg, rgba(10,10,11,0) ${Math.max(0, Math.round(top * 100 - 12))}%,
-      rgba(10,10,11,${(tintPeak * 0.5).toFixed(2)}) ${Math.round(top * 100 + 10)}%,
-      rgba(10,10,11,${tintPeak.toFixed(2)}) 100%)}`
-      : '.ly-scrim{display:none}')
+    ? `.ly-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(180deg, rgba(12,11,10,0) ${bandLo}%,
+      rgba(12,11,10,${(peak * 0.35).toFixed(3)}) ${Math.round(bandLo + (mid - bandLo) * 0.5)}%,
+      rgba(12,11,10,${(peak * 0.78).toFixed(3)}) ${mid}%,
+      rgba(12,11,10,${peak.toFixed(3)}) ${bandHi}%,
+      rgba(12,11,10,${peak.toFixed(3)}) 100%)}`
     : '';
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>封面</title>
@@ -112,16 +128,21 @@ function shell({ pal, cls, css, body, hasImage, serif, analysis, textPos }) {
            font:400 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
            letter-spacing:.18em;color:var(--muted)}
   ${hasImage ? `
-  /* 底图可读性（2026-10-30）：遮罩只在实测不达标时才出现（见 shell 里的 scrim），
-     字色由 analyze.js 按该带实测亮度决定，不再固定白字。 */
+  /* 底图可读性（2026-10-30 · Material Design 局部 scrim 规范）：
+     scrim 只盖文字带（4 档渐变防色带，峰值 0.22–0.40），不整图满铺。
+     字色由 analyze.js 按该带实测亮度决定；投影只做辅助（scrim 管 90% 场景）。 */
   ${scrim}
-  body.has-img .ly-title{color:${ink};text-shadow:0 3px 18px ${shadow}}
-  body.has-img .ly-lead{color:${ink};opacity:.94;text-shadow:0 2px 10px ${shadow}}
+  body.has-img .ly-title{color:${ink};text-shadow:${shadow}}
+  body.has-img .ly-lead{color:${ink};opacity:.94;text-shadow:${shadow}}
   body.has-img .ly-kick,body.has-img .ly-foot{color:${ink};opacity:.92;
-    text-shadow:0 2px 10px ${shadow};border-color:rgba(128,128,128,.42)}
+    text-shadow:${shadow};border-color:${ink === '#ffffff' ? 'rgba(255,255,255,.34)' : 'rgba(20,17,16,.28)'}}
   body.has-img .ly-grain{display:none}
-  /* 文字块按分析出的安静带定位：原来死钉底部，图里最安静的地方在上面时就会压到主体 */
-  body.has-img .ly-body{justify-content:flex-start;padding-top:${Math.round(top * 100)}%}
+  /* ⚠️ 不动 .ly-body 的 justify-content / padding-top ——
+     那会把整块文字顶到某个位置，破坏各版式自己的垂直节奏。
+     文字位置微调用 transform 平移（纯视觉位移，不参与布局计算）。 */
+  ${textPos && textPos !== 'auto'
+    ? `body.has-img .ly-body{transform:translateY(${{top: '-28%', center: '-10%', bottom: '0%'}[textPos] || '0%'})}`
+    : ''}
   ` : ''}
   ${css}
 </style></head>
