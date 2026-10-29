@@ -297,7 +297,6 @@
       "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"
     }
   },
-  "layout": "card",
   "card": {
     "bg": "#f0f4f8",
     "card_bg": "#ffffff",

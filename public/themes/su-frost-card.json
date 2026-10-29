@@ -281,7 +281,6 @@
       "line_height": "1.8"
     }
   },
-  "layout": "card",
   "card": {
     "bg": "#EEEEF0",
     "card_bg": "#FBFBFD",

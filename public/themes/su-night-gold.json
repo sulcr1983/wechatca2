@@ -297,7 +297,6 @@
       "line_height": "1.8"
     }
   },
-  "layout": "cardflow",
   "blocks": {
     "quote": true,
     "data": true,

@@ -289,7 +289,6 @@
       "line_height": "1.8"
     }
   },
-  "layout": "magazine",
   "blocks": {
     "quote": true,
     "data": false,

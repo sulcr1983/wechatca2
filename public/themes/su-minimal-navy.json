@@ -286,7 +286,6 @@
       "line_height": "1.8"
     }
   },
-  "layout": "rhythm",
   "blocks": {
     "quote": false,
     "data": true,

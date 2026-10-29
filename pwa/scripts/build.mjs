@@ -305,9 +305,11 @@ function buildThemeIndex() {
       accent: c.accent || '#AF3E2B',
       background: c.background || '#FFFFFF',
       family,
-      // 主题自带的版式（rhythm/cardflow/magazine/hero/card/timeline）。
-      // 必须带进索引：抽屉的「版式」条读的是这份索引，缺字段就会把什么都显示成
-      // 「默认」——2026-10-29 的「选着默认却自动出目录」就是这么来的（公文族自带 outline）。
+      // 主题自带的版式。2026-10-29 起**所有主题的默认版式都是空（= 默认）**，
+      // 卡片/分块/双栏/目录都属于用户主动选的额外结构，不再预设。
+      // 字段仍保留：版式条读的就是这份索引，若将来某套主题显式指定版式，
+      // 这里会自动带出去，UI 才如实高亮（历史上曾因索引缺字段，界面显示「默认」
+      // 实际跑着「目录导航」——见 docs/update-handoff.md）。
       layout: theme.layout || '',
     };
     entry.tags = tagsFor(entry, family);

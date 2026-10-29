@@ -421,23 +421,44 @@ FAMILIES = {
                   patch=_patch_feast),
 }
 
-# 族 → 专属版式（A 方案，2026-10-24）
-# 目的：让「换族」不只是换颜色，而是换结构。对应关系取自各族的性格：
-#   stamp  钢印 —— cardflow 卡片流：粗野风配硬边分块，每节独立成卡
-#   minimal 素页 —— rhythm 图文节奏：极简不装饰，只靠留白制造呼吸
-#   biz    公文 —— 不给默认版式：2026-10-29 用户反馈「默认就自动加目录」，
-#                   商务稿大多不需要目录，目录该由用户主动选（版式条点「目录导航」）
-#   letter 信笺 —— magazine 杂志分栏：衬线 + 双栏，最像纸媒内页
-#   night  夜航 —— cardflow 卡片流：深底上用浅色卡片分块，层次最清楚
-#   feast  节庆 —— rhythm 图文节奏：节庆感靠标题强调条 + 宽松间距
-# ⚠️ 这里不要给 biz 加回 "outline"：主题自带的版式用户无法在「默认」态下关掉，
-#    会变成“选着默认却出目录”的假象（见 docs/update-handoff.md 与 pwa/src/app.js layoutOf）。
-FAMILY_LAYOUT = {
-    "stamp": "cardflow",
-    "minimal": "rhythm",
-    "letter": "magazine",
-    "night": "cardflow",
-    "feast": "rhythm",
+# 族 → 专属版式（**2026-10-29 起全部置空**）
+#
+# 历史：2026-10-24 曾给每个族配了默认版式（钢印/夜航→卡片流、素页/节庆→图文节奏、
+# 信笺→杂志分栏、公文→目录导航），想让「换族」同时换结构。
+#
+# 2026-10-29 用户拍板取消：**卡片、分块、双栏、目录都是「额外」的东西**，
+# 打开模板应该先看到干净正文，用户想要结构再自己去版式条点。
+# 保留旧族默认带来的实际后果（用户已遇到过）：
+#   1. 公文族自动插「本文目录」——用户明确说“很多时候不需要目录”；
+#   2. 抽屉版式条读的索引没有 layout 字段，界面显示「默认」实际却跑着别的版式，
+#      UI 在说谎，用户以为自己点错了；
+#   3. 想关掉得先知道去版式条点一次「默认」，多数人不会。
+#
+# ⚠️ 铁律：**不要给这里加回任何值**。默认版式必须为空，
+#    否则「打开就是干净正文」这个承诺会再次破掉。
+#    需要某族默认带结构 → 改产品决策，同时让 UI 如实显示。
+FAMILY_LAYOUT: dict[str, str] = {}
+
+# 说明：下面 `layout` 只用来决定要不要为「用户主动点版式」预置配套样式
+#（card / hero / timeline 的配色、圆角、色带等），**不再写回 theme["layout"]**。见 L638 注释。
+
+# 个别主题的「配套样式」（**不是默认版式**）。
+# 2026-10-29 把默认版式清空后，这些字段必须留下：它们是「首屏 / 卡片组 / 时间线」
+# 三种版式的主题化参数（色带取 accent、卡片圆角、时间线颜色……）。
+# 缺了不会报错（引擎有 HERO_DEFAULTS 等兜底），但效果会退化成通用配色，跟主题不搭。
+# 这里集中声明，是因为 theme_specs.py 里没有 layout 字段、而族默认已全部置空。
+PRESET_LAYOUT_BY_ID: dict[str, str] = {
+    # 首屏：标题色带 + 大序号
+    "su-countdown": "hero",
+    "su-deepwater": "hero",
+    "su-ribbon": "hero",
+    **{f"su-dusk-{tone}": "hero"
+       for tone in ("amber", "azure", "coral", "indigo", "mauve",
+                    "mint", "ochre", "sage", "slate", "taupe")},
+    # 卡片组
+    "su-frost-card": "card",
+    # 时间线
+    "su-milestone": "timeline",
 }
 
 # 族 → 段落色块默认开关（C 方案）：哪些族默认开启哪种强调
@@ -635,12 +656,15 @@ def build_theme(spec: dict) -> dict:
         "styles": styles,
     }
 
-    layout = spec.get("layout")
-    # 族级默认版式（A 方案）：spec 显式指定优先，其次族默认
-    if not layout and fam:
-        layout = FAMILY_LAYOUT.get(spec.get("family"))
+    # ── 默认版式（2026-10-29 用户拍板：一律为空）────────────────────────────
+    # 这里**绝不写 theme["layout"]**。默认版式必须是「默认」——打开模板即干净正文，
+    # 卡片 / 分块 / 双栏 / 目录都属于「用户主动选」的额外东西。
+    # `layout` 变量只用来决定是否预置配套样式（用户日后点「卡片组/首屏/时间线」时更贴合），
+    # 预设样式不影响默认渲染：引擎只在 theme["layout"] 命中时才读这些字段。
+    layout = (spec.get("layout")
+              or PRESET_LAYOUT_BY_ID.get(spec.get("id"))
+              or (FAMILY_LAYOUT.get(spec.get("family")) if fam else None))
     if layout == "card":
-        theme["layout"] = "card"
         theme["card"] = {
             "bg": mix(bg, ink, 0.06),
             "card_bg": bg,
@@ -651,7 +675,6 @@ def build_theme(spec: dict) -> dict:
             "card_shadow": f"0 6px 20px {tint(ink, 0.08)}",
         }
     elif layout == "hero":
-        theme["layout"] = "hero"
         hero = {
             "accent": accent,
             "accent_light": mix(accent, bg, 0.35),
@@ -669,7 +692,6 @@ def build_theme(spec: dict) -> dict:
         )
         theme["hero"] = hero
     elif layout == "timeline":
-        theme["layout"] = "timeline"
         theme["timeline"] = {
             "accent": accent,
             "accent_light": mix(accent, bg, 0.6),
@@ -677,9 +699,8 @@ def build_theme(spec: dict) -> dict:
             "heading_color": ink,
             "line_color": accent,
         }
-    elif layout in ("magazine", "rhythm", "cardflow", "outline"):
-        # 新版式（B 方案）：引擎按 theme.colors 派生全部颜色，这里只登记 id
-        theme["layout"] = layout
+    # magazine / rhythm / cardflow / outline 四种新版式由引擎按 theme.colors 派生配色，
+    # 无需任何配套字段，也不用登记 id —— 用户点版式条时由前端把 layout 传进主题即可。
 
     # 段落色块开关（C 方案）：族级默认，spec 可覆盖
     blocks = spec.get("blocks")
@@ -718,7 +739,9 @@ def main():
             overwritten.append(spec["id"])
         built.add(spec["id"])
         if args.dry_run:
-            print(f"  将写出 {out.name}  「{theme['name']}」  layout={theme.get('layout', '-')}")
+            # 默认版式恒为「默认」；这里顺带报一下预置了哪种配套样式，便于排查
+            preset = next((k for k in ("card", "hero", "timeline") if k in theme), "-")
+            print(f"  将写出 {out.name}  「{theme['name']}」  layout=默认  preset={preset}")
         else:
             # 显式 LF：仓库里主题 JSON 是 LF，Windows 默认 CRLF 会让 119 套全变「假改动」
             out.write_text(json.dumps(theme, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")

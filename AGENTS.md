@@ -441,6 +441,11 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - **改名**：族名 `卷宗 → 公文`、`庙会 → 节庆`（`theme_specs.py` 的 `_FAMILIES`，重跑生成器；只动 name 行，24 套一字不差）；6 套品牌名主题改名（Monocle·生活→**雅集·墨绿** / Vogue·时尚→**风尚·玄黑** / GitHub→**极客·钴蓝** / 少数派→**效率·朱红** / 字节蓝→**科技·天蓝** / 微信原生→**原生·青绿**），描述里的品牌字样一并去掉。**id 不改**（localStorage 收藏、文档、测试都按 id 走）。
   - **⚠️ 当晚回滚（2026-10-29 20:0x，用户拍板）**：用户反馈「名字不好听，英文的反而好看，我们开源免费不怕版权」→ **6 套全部恢复原名**（`pwa/public/themes/<id>.json` 的 `name` 一行，id 不动）。**族名保留 `公文 / 节庆`**（更好懂，用户没要求改回）。名字在 `build.mjs` 的 `LEGACY_ALIAS` 里双向往返登记：搜 `Monocle` / `雅集` / `墨绿` 都能命中同一套。**教训：改名两个方向都要留别名**，否则用户按记忆搜 → 0 命中 → 判定「模板丢了」（当晚真实发生）。
   - **族的 UI 标签**在 `pwa/src/app.js` 的 `FAMS`：`dusk` 原写成「首屏」（那是版式名，`gen_state.py` 的版式清单里才有「首屏」），已改「暮色」；删掉只挂 1 套主题的 `frost`「卡片族」（`build.mjs` 的 `FAMILIES` 同步删）。
+- **默认版式全部清空（2026-10-29 晚，用户拍板）**：用户反馈「很多模板默认会自动加一个目录，但我们很多时候不需要」「分块、卡片、双栏加目录，那些都是额外的东西」。查出根因不只是公文族 12 套写死 `"layout": "outline"`，而是**整套 A 方案让每个族自带结构**（钢印·夜航→cardflow、素页·节庆→rhythm、信笺→magazine、公文→outline），共 **78/164 套**。
+  - **改法**：删掉 `public/themes/*.json` 全部 `layout` 字段 → 164 套都是「默认」，打开即干净正文。`scripts/build_themes.py` 的 `FAMILY_LAYOUT` 置空并写死「禁止加回」注释；`theme["layout"] = …` 三处赋值全删。
+  - **配套样式仍保留**：新增 `PRESET_LAYOUT_BY_ID`（15 套：hero 13 / card 1 / timeline 1），只决定要不要预置 `card/hero/timeline` 参数，**不写回 layout** —— 用户主动点「首屏/卡片组/时间线」时仍按主题配色生效（否则会退化成引擎通用样式）。
+  - **UI 不再说谎**：`build.mjs` 索引里的 `layout` 现恒为空 → 版式条如实高亮「默认」。历史坑：索引缺该字段时界面显示「默认」而引擎跑着「目录导航」。
+  - **验收**：`output/_probe/default_readability_audit.py` 全量 164 套（不丢字 / 无目录 / 无分栏 / 文字对比度），`layout_flatten_audit.py` 做改前改后 A/B 对照。顺带发现 **14 套标题对比度偏低**（<3.0，多为渐变标题条上的白字，如 aurora/bauhaus/bytedance/sakura/feast 三套）—— **与本次改动无关**（这些主题样式没动），待单独评估是否修。
   - **排序单一真源**：`pwa/theme-curation.json`（`featured` 12 套 + `order` 164 条）→ `pwa/scripts/build.mjs` 的 `buildThemeIndex` 按它排 `themes/index.json`。不在 order 里的新主题按 id 兜底排最后（不会消失）。要调整模板库顺序**只改这个文件**，不碰主题数据。
   - **可搜索标签**：`buildThemeIndex` 给每套算 `tags`（accent 色相 → 红/橙/黄/绿/青/蓝/紫/粉/灰/黑；底色 → 浅色/深色；族 → 商务/周报/随笔/技术…；描述里的「适合 A、B」直接拆词），前端搜索把它和 name/id/desc 一起匹配。实测搜「绿」23 套、「商务」15 套、「周报」13 套。
 - **暗底主题表格斑马纹修复（2026-10-13，六族验收暴露）**：`inject_inline_styles` 的斑马纹原为硬编码浅灰 `#f9f9f9`，压在暗底主题上浅字行读不出来（既有全部暗底主题同样受影响）。现按页面底色明暗派生：亮底沿用浅灰（**渲染输出字节不变**，实测 4 套亮底主题前后哈希一致）；暗底从底色向白微混 6%（夜航族表格读数恢复，`<tr style="">` 归因说明见审计脚本 `output/theme-review/gen_review.py`）。
