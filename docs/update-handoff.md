@@ -225,6 +225,10 @@ cd pwa/dist && python -m http.server 8901 --bind 127.0.0.1
 | 8 | 升级后点「查看更新」恒为 0 条 | reload 后 `reconcileSeenVersion()` 把新版本写成已读，`since` 无差值 | `applyUpdate()` / `controllerchange` 里 reload **前**写 `LS_PREV` |
 | 9 | git diff 里某个文件整篇 +/-（内容其实没变） | 编辑器把 LF 存成了 CRLF | `git checkout -- <file>` 回滚，或确认 `core.autocrlf=false` 下不要引入 `\r\n` |
 | 10 | 状态条「正在检查」截图/自动化抓不到 | `version.json` 几毫秒返回，一闪而过 | `checkNow` 的 `settle()` 保证「检查中」至少停留 320ms |
+| 11 | 状态条永远只有「已是最新」，从不显示「N 分钟前检查」 | `state.checkedAt` 初始化 0 后再没赋值 | 成功拿到 `version.json` 后写 `state.checkedAt = Date.now()`；离线**不**写（否则谎报刚查过） |
+| 12 | 刚查过 30s 再打开面板，看不到服务器刚发的新版 | `CHECK_REUSE_MS`（60s）复用窗口把用户主动打开也挡了 | `open()` 调 `handlers.check(true)` 强制真查；复用窗口只兜后台轮询 |
+| 13 | 手机端版本标题显示成「更新体验重…」 | 版本头一行塞了 ver+date+title+最新+N 条 | ≤600px 时 `.cl-rel-head` 换行，标题 `order:3; flex:1 1 100%` 独占第二行 |
+| 14 | 首次访问时启动条压住面板页脚的反馈入口 | `#boot` z-index 100 > `#cl-layer` 75 | 面板 open/close 时给 body 加/去 `.cl-open`，`body.cl-open .boot` 收起 |
 
 ---
 
