@@ -56,7 +56,8 @@ scripts/
   pwa_*_test.py             PWA 专项有头测试（见 §4 测试清单；15 个）
   ux_verify_p0/p1/tutorial.py  UX 验收脚本（15/15 · 15/15 · 13/13）
   run_headed_test.bat       有头套件快捷入口（自起服务，需 5000 空闲）
-  legacy/                   历史审计脚本（audit_e2e / gen_review / output-audit）
+  （历史审计脚本 audit_e2e / gen_review / output-audit 已于 2026-10-30 归档
+   到 docs/archive/legacy-scripts/，不再属于本目录）
 templates/
   index.html            单页前端（公众号 + 小红书双页面；色卡条 + Lightbox）——仅本地弃用版
 public/                 静态资源（原 assets/，由 /assets/* 路由提供）
@@ -94,8 +95,11 @@ references/             归藏设计系统参考文档
 data/                   运行时数据（配置/账号/历史/bg_cache 图片缓存）
 output/                 封面渲染输出
 docs/
+  testing/              ★ 测试文档四件套：TEST_PLAN / TEST_CASES / TEST_REPORT / BUG_REPORT
   screenshots/          README 配图
-  prototypes/           早期 HTML 原型（已废弃）
+  prototypes/           早期 HTML 原型（已废弃，但 cover-style-spec.md 仍引用其示例）
+  archive/              历史归档（方案稿 / 旧交接 / 审计快照 / legacy-scripts），
+                        每份开头必须有「已归档/已过期」声明（doc_sync [C] 段自动检查）
 ```
 
 ## 4. 启动与停止

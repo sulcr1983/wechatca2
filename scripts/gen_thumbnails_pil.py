@@ -4,8 +4,6 @@
 When Playwright is unavailable, this script creates styled placeholder
 thumbnails that match the guizang design system color palettes.
 """
-import os
-import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 

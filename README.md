@@ -431,6 +431,10 @@ wechatca2/
 | [docs/runbook.md](docs/runbook.md) | 运行手册：装/起/停/清、数据在哪、12 条常见故障的处置 |
 | [docs/api-reference.md](docs/api-reference.md) | 28 个路由一览 + 三个高频接口的参数契约 |
 | [docs/testing.md](docs/testing.md) | 测试跑法：`run_gates.py` 分层门禁、各道门挡什么、有头 E2E 的取舍 |
+| [docs/testing/TEST_REPORT.md](docs/testing/TEST_REPORT.md) | **质量诊断报告**：本轮实测结论、核心功能证据、未验证项 |
+| [docs/testing/TEST_CASES.md](docs/testing/TEST_CASES.md) | 功能地图 + 71 条可执行用例（含验收标准与实际结果） |
+| [docs/testing/BUG_REPORT.md](docs/testing/BUG_REPORT.md) | 缺陷清单、根因定位、修复状态与回归用例 |
+| [docs/testing/TEST_PLAN.md](docs/testing/TEST_PLAN.md) | 测试范围、分层策略、优先级定义、明确不测的项 |
 | [docs/project-conventions.md](docs/project-conventions.md) | 产出物规范：三类东西三个家、Git 约定、清理计划 |
 | [docs/audit-playbook.md](docs/audit-playbook.md) | 36 项审计清单，每项含命令 / 判定标准 / 处置方式 |
 | [docs/pwa-build-plan.md](docs/pwa-build-plan.md) | **PWA 施工图（历史文档，D1–D10 已全部完成）**：范围、10 条定稿决策、文件级任务、验收表、部署 |

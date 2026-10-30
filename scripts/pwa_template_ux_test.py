@@ -6,7 +6,6 @@
 3) 预览里的「写留言 / 赞 / 在看」已移除
 4) 版本号随构建自动变化（不再是写死的 1.0.0）
 """
-import json
 import sys
 
 from playwright.sync_api import sync_playwright

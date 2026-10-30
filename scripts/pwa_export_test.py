@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import functools
 import http.server
-import os
 import socket
 import socketserver
 import struct

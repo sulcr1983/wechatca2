@@ -20,7 +20,6 @@ output/ 里全是**可再生**的测试产物与截图（渲染结果、E2E 截�
 from __future__ import annotations
 
 import argparse
-import shutil
 import sys
 import time
 from pathlib import Path

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import functools
-import hashlib
 import http.server
 import json
 import socket
