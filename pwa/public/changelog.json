@@ -1,7 +1,7 @@
 {
   "version": "1.9.5",
-  "generatedAt": "2026-10-30T11:58:22+08:00",
-  "totalCommits": 264,
+  "generatedAt": "2026-10-30T12:07:44+08:00",
+  "totalCommits": 265,
   "releases": [
     {
       "version": "1.9.5",
@@ -17,7 +17,7 @@
       "counts": {
         "added": 1,
         "fixed": 1,
-        "other": 3
+        "other": 4
       },
       "groups": [
         {
@@ -52,6 +52,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "收尾洁癖 — 归档过期方案稿与历史脚本、删除冗余副本、清理未用导入",
+              "scope": "cleanup",
+              "hash": "0193345",
+              "date": "2026-10-30T12:06:06+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "同步 STATE.md（修复后 HEAD 284e9df）",
               "scope": "state",
