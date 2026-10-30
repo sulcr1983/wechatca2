@@ -1,7 +1,7 @@
 {
   "version": "1.9.5",
-  "generatedAt": "2026-10-30T11:23:30+08:00",
-  "totalCommits": 262,
+  "generatedAt": "2026-10-30T11:38:21+08:00",
+  "totalCommits": 264,
   "releases": [
     {
       "version": "1.9.5",
@@ -16,7 +16,8 @@
       ],
       "counts": {
         "added": 1,
-        "other": 2
+        "fixed": 1,
+        "other": 3
       },
       "groups": [
         {
@@ -34,9 +35,31 @@
           ]
         },
         {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "修复 3 个诊断缺陷 + 新增产物级断言门禁（17/17 全绿）",
+              "scope": "qa",
+              "hash": "284e9df",
+              "date": "2026-10-30T11:37:17+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "同步 STATE.md（修复后 HEAD 284e9df）",
+              "scope": "state",
+              "hash": "2c88f9e",
+              "date": "2026-10-30T11:37:32+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "同步 STATE.md 与 changelog 时间戳（门禁 16/16，HEAD 2005fea）",
               "scope": "state",
