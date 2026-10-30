@@ -1,7 +1,7 @@
 {
   "version": "1.9.5",
-  "generatedAt": "2026-10-30T06:41:35+08:00",
-  "totalCommits": 260,
+  "generatedAt": "2026-10-30T11:23:30+08:00",
+  "totalCommits": 262,
   "releases": [
     {
       "version": "1.9.5",
@@ -15,7 +15,8 @@
         "顺手修了两个内容 bug：封面副标会混进列表项（「…海浪。 · 1. 早点睡」）、清单条目被逗号切成两句无关的话"
       ],
       "counts": {
-        "added": 1
+        "added": 1,
+        "other": 2
       },
       "groups": [
         {
@@ -29,6 +30,28 @@
               "date": "2026-10-30T06:15:56+08:00",
               "breaking": false,
               "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "同步 STATE.md 与 changelog 时间戳（门禁 16/16，HEAD 2005fea）",
+              "scope": "state",
+              "hash": "86ca65c",
+              "date": "2026-10-30T10:40:36+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "独立质量诊断（v1.9.5）+ 4 份测试文档 + 6 个诊断脚本",
+              "scope": "qa",
+              "hash": "2005fea",
+              "date": "2026-10-30T07:00:27+08:00",
+              "breaking": false,
+              "dev": true
             }
           ]
         }

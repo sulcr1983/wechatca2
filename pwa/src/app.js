@@ -30,6 +30,37 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); retu
 const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* 同上 */ } };
 const kb = (n) => (n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B');
 
+/* ── 本机存储的统一前缀与「清干净」工具（2026-10-30）─────────────
+ * 背景：本机数据的键分散在五个模块里 —— app.js（草稿/主题/收藏/版式…）、
+ * ai.js（AI 配置 + Key）、cover/index.js（封面偏好）、cover/search.js
+ * （图库 Key + 搜图缓存）、update/index.js（更新诊断）。
+ * 此前 clearAll() 是**手写清单**只删 5 个键，实测漏掉 13 个（含两个 API Key 明文），
+ * 用户点「清除本地数据」后 Key 还留在浏览器里 —— 与确认框的承诺相反。
+ * 改成按前缀扫：不需要维护清单，任何模块以后新增 supersu.* 键都自动覆盖。 */
+const LS_PREFIX = 'supersu.';
+
+/** 列出当前所有本机数据键（用于清除与自检） */
+function supersuKeys() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(LS_PREFIX)) out.push(k);
+    }
+  } catch { /* 隐私模式：读不到就当没有 */ }
+  return out;
+}
+
+/** 删掉所有本机数据键，返回删除个数。先收集再删，避免边遍历边删导致漏项 */
+function clearSupersuStorage() {
+  const keys = supersuKeys();
+  let n = 0;
+  for (const k of keys) {
+    try { localStorage.removeItem(k); n++; } catch { /* 忽略单键失败 */ }
+  }
+  return n;
+}
+
 let toastTimer = null;
 function toast(msg, kind = '') {
   const el = $('toast');
@@ -1499,15 +1530,34 @@ function openAbout() { $('about').hidden = false; $('about-mask').hidden = false
 function closeAbout() { $('about').hidden = true; $('about-mask').hidden = true; }
 
 async function clearAll() {
-  if (!confirm('清除本机保存的草稿、收藏与风格偏好？文章内容不会上传，删了就找不回。')) return;
-  lsDel(LS.draft); lsDel(LS.fav); lsDel(LS.recent); lsDel(LS.theme); lsDel(LS.mode);
+  if (!confirm(
+    '清除本机保存的全部数据？包括：\n'
+    + '· 草稿、收藏、最近使用、风格偏好\n'
+    + '· 你填过的 AI API Key 与图库（Pexels）Key\n'
+    + '· 自定义配色、版式与段落样式\n'
+    + '· 离线缓存\n\n'
+    + '文章内容不会上传，删了就找不回。')) return;
+
+  // 按 supersu. 前缀统一清除（不再维护手写清单，见文件头 LS_PREFIX 注释）
+  const removed = clearSupersuStorage();
+
+  // 删除后自检：还有残留就说明有模块用了别的前缀，立刻暴露出来，
+  // 不要像 2026-10-30 那次一样「以为清干净了、其实 Key 还在」
+  const left = supersuKeys();
+  if (left.length) {
+    console.warn('[clearAll] 仍有本机数据残留：', left);
+    toast(`已清除 ${removed} 项，但仍有 ${left.length} 项未能删除（见控制台）`, 'err');
+    return;
+  }
+
   try {
     if (window.caches) {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));
     }
   } catch { /* 清缓存失败不影响数据清理 */ }
-  toast('本地数据已清除，刷新后回到初始状态');
+
+  toast(`本地数据已清除（${removed} 项），刷新后回到初始状态`);
 }
 
 function escapeHtml(s) {

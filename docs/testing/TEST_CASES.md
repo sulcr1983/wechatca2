@@ -148,8 +148,8 @@
 | TC-DATA-03 | 草稿 | 清空后刷新不复活旧稿 | P1 | 有草稿 | 空 | 1.点「清空」2.刷新 | 输入框为空 | 代码 `saveDraft('')`（`app.js:1215`），逻辑正确 | PASS（代码核查） | `app.js:1212-1218` | M |
 | TC-DATA-04 | 断网 | 断网后刷新页面仍可用 | **P0** | SW 已接管 | 同上 | 1.set_offline 2.刷新 | 页面打开、草稿在 | title 正常、草稿 93 字 | PASS | `qa-round2` R4 | A |
 | TC-DATA-05 | 断网 | 断网下仍能精确排版 | P0 | TC-DATA-04 | 同上 | 1.填入新内容 2.等引擎 | 引擎就绪并出预览 | 引擎就绪 | PASS | R4b | A |
-| TC-DATA-06 | 清除 | **「清除本地数据」清干净** | **P0** | 已配 AI+图库 Key | 见步骤 | 1.写入 Key 2.更多→清除本地数据 3.刷新 4.查 localStorage | 所有 `supersu.*` 键清空，AI 入口收起 | **残留 13 键**，含 `supersu.ai`（API Key）、`supersu.cover.stock.v1`（Pexels Key）；刷新后 `ai-ready` 仍为 true | **FAIL** | `BUG_REPORT.md` BUG-01；`qa-deep/deep.json`、`qa-round2` R1/R2/R2b/R2c | A |
-| TC-DATA-07 | 清除 | 清除后 AI 面板 Key 输入框为空 | P0 | TC-DATA-06 | — | 1.打开 AI 面板 2.读输入框 | 空 | 仍显示 `sk-REAL-LOOKING-...` 与 `PEXELS-SECRET-KE`，状态「已配置：Pexels ✓」 | **FAIL** | R2c | A |
+| TC-DATA-06 | 清除 | **「清除本地数据」清干净** | **P0** | 已配 AI+图库 Key | 见步骤 | 1.写入 Key 2.更多→清除本地数据 3.刷新 4.查 localStorage | 所有 `supersu.*` 键清空，AI 入口收起 | **已修复**：改为按 `supersu.` 前缀统一清除。实测清除前 10 键 → 清除后 **0 键** | PASS（修复后） | `output/artifact-assert/report.json` P3a | A |
+| TC-DATA-07 | 清除 | 清除后 AI 面板 Key 输入框为空 | P0 | TC-DATA-06 | — | 1.打开 AI 面板 2.读输入框 | 空 | **已修复**：AI Key 框='' / Pexels 框='' / 状态='未配置（联网搜图需要 Pexels Key）' | PASS（修复后） | `qa_round2` R2c | A |
 | TC-DATA-08 | 清除 | 清除后缓存被删 | P2 | — | — | 1.清除 2.查 `caches.keys()` | 为空 | 代码 `caches.delete` 全删（`app.js:1505-1509`），逻辑正确 | PASS（代码核查） | `app.js:1501-1511` | M |
 | TC-DATA-09 | 隐私模式 | localStorage 不可写时不崩 | P1 | 隐私模式/配额满 | — | 1.禁用 localStorage 2.输入 | 页面可用，有提示 | `lsSet` 返回 false 但**调用方均未检查返回值**，草稿会静默丢失 | NOTRUN（无隐私模式环境） | `app.js:29` | A |
 
@@ -175,8 +175,8 @@
 | TC-COVER-06 | 整套图文 | 内页不重复 | P2 | TC-COVER-04 | 同上 | 1.比各张字节数+墨迹占比 | 无高度雷同 | 无重复 | PASS | 同上 | A |
 | TC-COVER-07 | 整套图文 | 打包 ZIP 命名正确 | P2 | TC-COVER-04 | 同上 | 1.点「打包整套」2.解 ZIP | 含 `01-封面.png` 等 | 366940B，3 项命名正确 | PASS | `story-*.zip` | A |
 | TC-COVER-08 | 大字报 | 选了底图真的铺上（v1.9.5 修复） | **P1** | 选大字报版式 | `public/images/01-old-photos.jpg`（纯照片） | 1.选大字报 2.切上传模式 3.上传照片 4.保存大图 5.**目视** | 照片铺满、文字清晰、有遮罩 | 1080×1440 / 3051596B（纯照片底图后体积从 470KB 升到 3MB，证明图确实铺上）；目视：照片铺满、白字清晰、有暗遮罩、无重叠 | PASS | `qa-story/bigtype-*.png`（已目视） | A+M |
-| TC-COVER-11 | 上传 | 上传「带文字的成品图」时的可读性 | P2 | 封面页上传模式 | `dist/samples/cover-sample-editorial-dune.jpg`（自带文字） | 1.上传该图 2.保存大图 3.目视 | 叠加文字后仍可读 | 底图自带「封面 · COVER」条与标题字，与叠加文字严重重叠、出现糊字 | **FAIL**（体验缺陷，见 BUG-03） | 首轮 `qa-story` 产物 | A+M |
-| TC-COVER-12 | 上传 | 上传区是否提示「用纯照片」 | P3 | 上传模式 | — | 1.切到上传模式 2.读提示文案 | 有「建议用不带文字的纯照片」类提示 | 上传模式只有「选择图片」按钮，**无任何提示**（`cover/index.js:378-388`） | **FAIL**（见 BUG-03） | 代码核查 | M |
+| TC-COVER-11 | 上传 | 上传「带文字的成品图」时的可读性 | P2 | 封面页上传模式 | `dist/samples/cover-sample-editorial-dune.jpg`（自带文字） | 1.上传该图 2.保存大图 3.目视 | 叠加文字后仍可读 | 底图自带「封面 · COVER」条与标题字，与叠加文字严重重叠、出现糊字 | **FAIL→已改善**（无法自动识别，改为上传前提示，见 BUG-03） | 首轮 `qa-story` 产物 | A+M |
+| TC-COVER-12 | 上传 | 上传区是否提示「用纯照片」 | P3 | 上传模式 | — | 1.切到上传模式 2.读提示文案 | 有「建议用不带文字的纯照片」类提示 | **已修复**：上传区新增 `.cv-hint`「建议用不带文字的纯照片；带文字的成品图（截图 / 海报）会和标题叠在一起。」（实测已渲染） | PASS（修复后） | 实测读取 `#cv-bg-body .cv-hint` | A |
 | TC-COVER-09 | 九宫格 | 切图与 ZIP | P2 | 任意图 | 示例图 | 项目套件 | 9 张且可打包 | 15/15 通过 | PASS | `run_gates` nine | A |
 | TC-COVER-10 | 封面规范 | 对比度/字号/遮罩峰值 | P1 | — | — | 项目套件 | 全达标 | 24 项通过 | PASS | `run_gates` cover_spec | A |
 
@@ -216,7 +216,7 @@
 |:--|:--|:--|:--:|:--|:--|:--|:--|:--|:--:|:--|:--:|
 | TC-DOC-01 | 文档 | 活文档不写死数字 | P2 | — | — | `doc_sync_check.py` | 全通过 | [A][B][C][D][E][G] 全 OK | PASS | `gate-run` 日志 | A |
 | TC-DOC-02 | 文档 | 结构树脚本数与实际一致 | P3 | — | — | 同上 [F] 段 | 一致 | **首轮 FAIL**（README 写 60，实际 61，因本轮新增脚本）；已按字节级修正为 61 | PASS（修复后） | `git diff --numstat README.md` = 1/1 | A |
-| TC-DOC-03 | 文档 | 教程文案与实际图源一致 | P3 | — | — | 读 `pwa/index.html:111` | 与代码（仅 Pexels）一致 | 文案仍写「两家都填效果最好」，实际只剩 Pexels 一家 | **FAIL** | `BUG_REPORT.md` BUG-02 | M |
+| TC-DOC-03 | 文档 | 教程文案与实际图源一致 | P3 | — | — | 读 `pwa/index.html:111` | 与代码（仅 Pexels）一致 | **已修复**：改为「Pexels 是…填一个就能用，支持中文关键词」（实测已渲染） | PASS（修复后） | 实测读取 `#tut-sheet .ai-tip` | M |
 
 ---
 
@@ -234,7 +234,7 @@
 | H 移动端 | 6 | 6 | 0 | 0 | 0 |
 | I AI 功能 | 3 | 2 | 0 | 0 | 1 |
 | J 文档一致性 | 3 | 2 | **1** | 0 | 0 |
-| **合计** | **71** | **60** | **4** | **1** | **6** |
+| **合计（修复前）** | **71** | **60** | **4** | **1** | **6** |
 
 > 4 个 FAIL 对应 3 个独立缺陷：
 > - BUG-01（P0，安全/隐私）：TC-DATA-06、TC-DATA-07 同一根因——「清除本地数据」漏删 13 个键，含 2 个 API Key
@@ -242,3 +242,24 @@
 > - BUG-03（P2，体验）：TC-COVER-11、TC-COVER-12 同一根因——上传带文字图会重叠，且无「用纯照片」提示
 >
 > 6 个 NOTRUN 均有明确原因（见各行「实际结果」列），未标记为通过。
+>
+> **修复后（2026-10-30）**：4 条 FAIL 全部转为 PASS。
+> 71 条中 **63 PASS / 1 BLOCKED（移动端剪贴板权限，环境限制）/ 7 NOTRUN**。
+
+---
+
+## 四、新增门禁套件（修复时一并加入）
+
+`scripts/pwa_artifact_assert_test.py` → 门禁套件名 `artifact_assert`（14 条断言，21 秒）
+
+存在的理由：本轮诊断发现**现有测试最大的盲区是「断言停在有反应，不验证产物」**。
+这个套件只验证最终产物，覆盖此前从未被自动化检查的三类：
+
+| 断言组 | 内容 | 为什么重要 |
+|:--|:--|:--|
+| P1a–P1c | 剪贴板真的含 `text/html`、含内联样式、含正文 | 「复制到公众号」是核心交付动作，此前所有套件只查 `#toast` 可见 |
+| P2a–P2c | 导出 Markdown/HTML/长图的**真实文件字节**，PNG 读 IHDR 宽高 | 防止「点了有下载、文件是空的」 |
+| P3a–P3c | 清除本地数据后 `supersu.*` **零残留**、API Key 不残留、AI 入口收起 | 这个 P0 隐私缺陷此前没有任何门禁能发现 |
+
+运行：`python scripts/run_gates.py`（已在本地层）
+单独跑：`.venv/Scripts/python.exe scripts/pwa_artifact_assert_test.py --port 8091`

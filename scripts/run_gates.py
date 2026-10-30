@@ -84,6 +84,11 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("layout_compat",  [PY, "scripts/pwa_layout_compat_test.py"], "版式兼容矩阵 100", "in-process"),
     ("update_panel",   [PY, "scripts/pwa_update_panel_test.py"],
                        "更新面板（检查更新 / 一键更新 / 本次更新条数 / 反馈入口）11", "local"),
+    # 2026-10-30 接入：产物级断言（剪贴板真实内容 / 下载文件真实字节 / 清除后无残留）。
+    # 此前这类断言全部缺失 —— 现有套件只查「按钮可用 / toast 出现」，
+    # 导致「清除本地数据漏删 API Key」这个 P0 隐私缺陷长期躺在代码里没被任何门禁发现。
+    ("artifact_assert", [PY, "scripts/pwa_artifact_assert_test.py"],
+                       "产物级断言（剪贴板富文本 / 导出文件字节 / 清除无残留）14", "local"),
     ("doc_sync",       [PY, "scripts/doc_sync_check.py"],
                        "文档一致性（数字与实际对齐）", "in-process"),
     ("clean_output",   [PY, "scripts/clean_output.py", "--days", "7"],

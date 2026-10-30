@@ -385,6 +385,14 @@ function renderBg() {
     input.addEventListener('change', onFile);
     label.appendChild(input);
     body.appendChild(label);
+    /* 2026-10-30：此前上传区只有一个「选择图片」按钮，没有任何说明。
+       用户很自然会上传「已经排好版的成品封面 / 截图 / 海报」，
+       那些图本身带文字，叠上标题后会严重重叠、出现糊字（实测踩到）。
+       封面引擎的设计前提是「底图是一张照片」，这个前提必须写在界面上。 */
+    const tip = document.createElement('p');
+    tip.className = 'cv-hint';
+    tip.textContent = '建议用不带文字的纯照片；带文字的成品图（截图 / 海报）会和标题叠在一起。';
+    body.appendChild(tip);
   } else {
     const row = document.createElement('div');
     row.className = 'cv-search-row';
