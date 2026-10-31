@@ -11,7 +11,7 @@
 
 | 日期 | 任务 | 结果 | 详细记录 |
 |:--|:--|:--|:--|
-| 2026-10-31 | 小红书 Studio 重设计落地（Phase 3 主体迁移 + §12.7 四项增强）+ v1.11.0 发版 | 上线 v1.11.0 / b316；门禁 18/18（新增 longform 22 项）；线上 96/96 | `docs/design-xhs-studio-redesign.md` §9/§12、`docs/handoff-xhs-studio-redesign.md` |
+| 2026-10-31 | 小红书 Studio 重设计落地（Phase 3 主体迁移 + §12.7 四项增强）+ 发版 | 已上线（版本/构建号见 STATE.md）；门禁与线上结果见 gate-run 日志 | `docs/design-xhs-studio-redesign.md` §9/§12、`docs/handoff-xhs-studio-redesign.md` |
 | 2026-10-30 | 独立质量诊断（71 用例 / 3 缺陷）+ 全部修复 + 产物级断言门禁 + 收尾洁癖 | 门禁 17/17；`artifact_assert` 新套件入库；归档 6 份过期方案稿 + legacy 脚本 | `docs/testing/`（四件套） |
 | 2026-10-29 | 标题可读性护栏 + 死代码清理 + 文档一致性机检 | 上线；`core/` 收到 4 个模块；新增两道机检 | `docs/testing.md`、本文件 §3 |
 | 2026-10-29 | 文档合并：4 份重复交接/收尾文档归档成 1 份现行交接 + 本台账 | 根目录只剩 1 份交接文档 | `docs/archive/`（见 §4） |
