@@ -119,12 +119,13 @@ function readableCss(analysis, textPos) {
 
   /* 局部 scrim（Material Design 规范）：
      - 4 档渐变，中点落在靠暗端 3/10 处（官方 anti-banding 要求）
-     - 峰值：达标时用 0.22（官方深色区间下限，几乎看不出压暗）
-             不达标时按需算，但上限 0.40（官方 Do 区间上限，超过即 over-scrim）
+     - 峰值按 analyze.js 实算（0–0.30，design §11.11，2026-10-31）：
+       达标 → 完全不压，照片保持原样；unfit（需 α>0.30）→ 也不压，
+       压了只会灰雾，调用方提示换图。不再有 0.22 下限钳制。
      - 渐变只覆盖文字区域，不碰画面上部 */
-  const peak = analysis.needsTint
-    ? Math.min(0.40, Math.max(0.22, analysis.tintPeak))
-    : 0.22;
+  const peak = (analysis.unfit || !analysis.needsTint)
+    ? 0
+    : analysis.tintPeak;
   // 中点偏暗端 3/10：把最强处放在文字区靠下 30% 的位置
   const mid = Math.round(bandLo + (bandHi - bandLo) * 0.7);
   const scrim = `linear-gradient(180deg,`
@@ -476,7 +477,8 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   const imageHtml = useImg ? `<img class="cover-img" src="{{IMAGE}}" alt=""><div class="img-overlay"></div>` : '';
   /* 遮罩（2026-10-30 改）：此前是无条件深遮罩。现在按 analyze.js 的实测结果：
      · 文字带最亮区够读（worstContrast ≥ 4.5）→ 完全不遮，照片保持原样
-     · 不够 → 只盖文字带，峰值 ≤0.30（spec §6.3 Step 3）
+     · 不够 → 只盖文字带，峰值按实算 ≤0.30（spec §6.3 Step 3；design §11.11：
+       不再有 0.22 下限钳制；unfit 需 α>0.30 → 完全不遮，提示换图）
      没有 analysis 时（老调用路径）退回原来的写法，行为不变。 */
   let overlayCss;
   if (useImg && analysis) {
@@ -484,8 +486,8 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
     const zone = analysis.zone || [0.55, 1.0];
     const lo = Math.round(zone[0] * 100);
     const hi = Math.round(zone[1] * 100);
-    const pk = analysis.needsTint
-      ? Math.min(0.40, Math.max(0.22, analysis.tintPeak)) : 0.22;
+    const pk = (analysis.unfit || !analysis.needsTint)
+      ? 0 : analysis.tintPeak;
     overlayCss = `background: linear-gradient(180deg, rgba(12,11,10,0) ${lo}%,`
       + ` rgba(12,11,10,${(pk * 0.35).toFixed(3)}) ${Math.round(lo + (hi - lo) * 0.5)}%,`
       + ` rgba(12,11,10,${(pk * 0.78).toFixed(3)}) ${Math.round(lo + (hi - lo) * 0.7)}%,`

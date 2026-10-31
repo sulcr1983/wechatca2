@@ -48,6 +48,25 @@ export function scrimmedLum(L, alpha, scrimSrgb = 12) {
   return toLin(out);
 }
 
+/* ── 压暗策略常量（2026-10-31 对齐 design §11.11，覆盖旧钳制 [0.24, 0.62]）──── */
+/** 超过这个 α 就不是压暗，是把照片盖成灰板（原型同值；不合格临界点 L≈0.377）。 */
+export const MAX_ALPHA = 0.30;
+
+/** 白字要把亮度 L 压到 4.5:1 所需的 scrim α —— 在 sRGB 空间反解，不设上下限。
+ *  调用方拿它跟 MAX_ALPHA 比：≤0.30 才压；>0.30 判不合格（提示换图，不是加大 α）。
+ *  ⚠️ scrimSrgb 必须与实际 rgba() 的前三分量一致（本文件的 scrim 是 rgba(12,11,10) → 12；
+ *  design §11.8：混色发生在 sRGB 空间，直接 L×(1-a) 会严重低估所需强度）。
+ *  @param {number} L 文字带最亮处相对亮度（0–1）
+ *  @param {number} scrimSrgb scrim 底色 sRGB 值
+ *  @returns {number} 0–1 */
+export function alphaForL(L, scrimSrgb = 12) {
+  const targetL = 0.183;                      // 白字 4.5:1 的背景亮度上限
+  if (L <= targetL) return 0;
+  const sMax = invLin(L);
+  const a = (sMax - invLin(targetL)) / Math.max(1, sMax - scrimSrgb);
+  return Math.min(1, Math.max(0, a));
+}
+
 /* ── 分带度量 ─────────────────────────────────────────────────────── */
 const BANDS = 10;          // 横切条数
 const SAMPLE_W = 50;       // 采样宽度（足够判断方差，又不至于慢）
@@ -121,8 +140,9 @@ function bandMetrics(ctx, imgW, imgH) {
  * @returns {Promise<null | {
  *   ink: string,            // '#ffffff' | '#141110'
  *   contrast: number,       // 该区域实测对比度（最坏处）
- *   needsTint: boolean,     // 不达标 → 调用方补 scrim
- *   tintPeak: number,       // 建议 scrim 峰值（Material 规范 0.20–0.40）
+ *   needsTint: boolean,     // 原始对比度不达标 → 需要 scrim（unfit 时调用方不得压）
+ *   tintPeak: number,       // 建议 scrim 峰值（0–0.30；unfit 时为 0）
+ *   unfit: boolean,         // true = 压到 4.5:1 需 α>0.30 → 不压（压了是灰雾），提示换图
  *   zone: [number, number], // 实际分析的区域
  *   bands: Array,           // 原始分带数据，供调试
  * }>}
@@ -152,18 +172,21 @@ export async function analyzeImage(dataUrl, opts = {}) {
   const res = analyzeZone(bands, zone, minContrast);
   if (!res) return null;
 
-  /* 需要补多少 scrim：按「最亮处压到刚好 4.5:1」反推。
-     目标：白字要 ≥4.5 → 背景亮度 ≤ (1.05/4.5) - 0.05 = 0.183
-     ⚠️ 必须在 sRGB 空间解 alpha（直接 L×(1-a) 会低估所需强度）。 */
+  /* 需要补多少 scrim：按「最亮处压到刚好 4.5:1」在 sRGB 空间反解（alphaForL）。
+     2026-10-31 覆盖旧钳制 [0.24, 0.62]（design §11.11）：下限把需要的 0.04 硬拉到
+     0.24 = 无故多压 5 倍；上限 0.62 = 灰雾，正是用户抱怨的那件事。新口径：
+     · 0 < a ≤ 0.30 → 压，峰值就是实算值（需要 0.04 就只压 0.04）
+     · a > 0.30 → 完全不压（unfit=true，tintPeak=0），调用方提示换图 ——
+       压到 0.30 也只能救回 ≈2.2:1，照片却灰了。 */
   let tintPeak = 0;
+  let unfit = false;
   if (res.needsTint) {
-    const targetL = 0.183;
-    const sMax = invLin(res.maxL);
-    // s*(1-a) + 12*a = invLin(target)  →  a = (s - target) / (s - 12)
-    const targetS = invLin(targetL);
-    let a = (sMax - targetS) / Math.max(1, sMax - 12);
-    a = Math.min(0.62, Math.max(0.24, a));   // 上限 0.62（实测极亮图才需要这么强）
-    tintPeak = a;
+    const a = alphaForL(res.maxL);
+    if (a > MAX_ALPHA) {
+      unfit = true;
+    } else {
+      tintPeak = +a.toFixed(3);
+    }
   }
 
   /* 报告「补完 scrim 之后」的真实对比度（2026-10-30 修）：
@@ -182,6 +205,7 @@ export async function analyzeImage(dataUrl, opts = {}) {
     rawContrast: res.worst,          // scrim 之前的原始值（调试用）
     needsTint: res.needsTint,
     tintPeak,
+    unfit,
     zone,
     maxL: res.maxL,
     minL: res.minL,

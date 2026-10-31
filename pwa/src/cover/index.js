@@ -476,7 +476,7 @@ async function onFile(e) {
     schedulePreview(0);
     const a = state.analysis;
     setStatus(a
-      ? `底图已选（本地上传）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.needsTint ? '（已补淡遮罩）' : ''}`
+      ? `底图已选（本地上传）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.unfit ? '（遮罩救不回来，建议换图）' : (a.needsTint ? '（已补淡遮罩）' : '')}`
       : '底图已选（本地上传）');
   } catch (err) {
     toast(String(err.message || err), 'err');
@@ -602,7 +602,7 @@ async function pickCandidate(it) {
     schedulePreview(0);                 // 同上：必须显式刷新主预览
     const a = state.analysis;
     setStatus(a
-      ? `底图已选（Pexels）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.needsTint ? '（已补淡遮罩）' : ''}`
+      ? `底图已选（Pexels）· 文字对比度 ${a.worstContrast.toFixed(1)}:1${a.unfit ? '（遮罩救不回来，建议换图）' : (a.needsTint ? '（已补淡遮罩）' : '')}`
       : '底图已选（Pexels）');
   } catch (err) {
     setStatus(String(err.message || err), true);
@@ -689,12 +689,16 @@ function renderBgPreview() {
     const c = a.worstContrast;
     const level = c >= 4.5 ? 'ok' : (c >= 3.0 ? 'warn' : 'bad');
     tag.className = `cv-read cv-read-${level}`;
-    tag.textContent = c >= 4.5
-      ? `文字清晰 ${c.toFixed(1)}:1`
-      : (c >= 3.0 ? `文字偏弱 ${c.toFixed(1)}:1` : `文字会糊 ${c.toFixed(1)}:1`);
-    tag.title = a.needsTint
-      ? '这张图文字区反差偏大，已自动在文字带补一层淡遮罩（峰值不超过规范上限）'
-      : '这张图文字区本来就安静，没有加任何遮罩，照片保持原样';
+    tag.textContent = a.unfit
+      ? `文字压不住 ${c.toFixed(1)}:1`
+      : (c >= 4.5
+        ? `文字清晰 ${c.toFixed(1)}:1`
+        : (c >= 3.0 ? `文字偏弱 ${c.toFixed(1)}:1` : `文字会糊 ${c.toFixed(1)}:1`));
+    tag.title = a.unfit
+      ? '这张图文字区太亮或太花，遮罩救不回来（强压会把照片变成灰雾）——建议换一张图'
+      : a.needsTint
+        ? '这张图文字区反差偏大，已自动在文字带补一层淡遮罩（峰值不超过规范上限）'
+        : '这张图文字区本来就安静，没有加任何遮罩，照片保持原样';
     meta.appendChild(tag);
   }
   if (m.pageUrl) {

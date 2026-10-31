@@ -82,11 +82,12 @@ function shell({ pal, cls, css, body, hasImage, serif, analysis, textPos }) {
      · 只盖文字区域，不整图满铺（官方明令 Don't over-scrim）
      · 4 档渐变、中点偏暗端 3/10（官方 anti-banding 要求；
        两档渐变会出现肉眼可见的暗带边缘 Mach band）
-     · 峰值 0.22–0.40（官方深色 scrim Do 区间；>0.40 即 over-scrim）
+     · 峰值按 analyze.js 实算（0–0.30，design §11.11，2026-10-31）：
+       达标 → 完全不压，照片保持原样；unfit（需 α>0.30）→ 也不压 ——
+       压了只会灰雾，调用方提示换图。不再有 0.22 下限钳制（达标图也被压 0.22 是旧病）。
      无 analysis 时退回原来那条固定渐变（回归安全）。 */
-  const needTint = !!analysis?.needsTint;
   const peak = analysis
-    ? (needTint ? Math.min(0.40, Math.max(0.22, analysis.tintPeak)) : 0.22)
+    ? (analysis.unfit || !analysis.needsTint ? 0 : analysis.tintPeak)
     : 0.26;
   const bandLo = Math.round(zone[0] * 100);
   const bandHi = Math.round(zone[1] * 100);
