@@ -1,7 +1,7 @@
 {
   "version": "1.9.5",
-  "generatedAt": "2026-10-31T10:32:02+08:00",
-  "totalCommits": 267,
+  "generatedAt": "2026-10-31T12:02:33+08:00",
+  "totalCommits": 268,
   "releases": [
     {
       "version": "1.9.5",
@@ -17,7 +17,7 @@
       "counts": {
         "added": 1,
         "changed": 1,
-        "fixed": 1,
+        "fixed": 2,
         "other": 5
       },
       "groups": [
@@ -53,6 +53,14 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "B1 灰雾根因修复 + B2 375 顶栏重叠（Phase 3 第一批，照搬原型已验证实现）",
+              "scope": "cover",
+              "hash": "6bf3351",
+              "date": "2026-10-31T10:40:11+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "修复 3 个诊断缺陷 + 新增产物级断言门禁（17/17 全绿）",
               "scope": "qa",

@@ -79,6 +79,21 @@ export function guessQuery(text) {
   return { query: cleaned.slice(0, 12), translated: false, from: '' };
 }
 
+/** 「从标题自动提取关键词」的统一入口（design §9 / ux-spec C7）。
+ *
+ *  与 guessQuery 的区别：只取**第一行**（用户心里的标题），不吸正文 ——
+ *  长文路径整篇文章粘进来时，用全文猜词会命中正文里的杂词。
+ *
+ *  覆盖规则（ux-spec §8.9）：用户**手改过**关键词就不要再自动覆盖 ——
+ *  由调用方维护 kwTouched 标记：手改后不再调用本函数回填，换标题也不覆盖。
+ *
+ *  @returns {{query: string, translated: boolean, from: string}} query 为空串表示没猜出词
+ */
+export function autoKeyword(text) {
+  const firstLine = String(text || '').split(/\r?\n/).map((l) => l.trim()).find(Boolean) || '';
+  return guessQuery(firstLine);
+}
+
 function readCache() {
   try {
     return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}') || {};

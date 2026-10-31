@@ -491,6 +491,15 @@ def main() -> int:
                 check("封面引语不混入列表项",
                       "1." not in lead_txt and "早点睡" not in lead_txt,
                       lead_txt[:50])
+                # 2026-10-31：整套图文迁入「长文图文」路径（design §9 双路径）。
+                # 封面引语检查留在标题图路径（预览仍是单张封面）。
+                page.click("#cv-path-long")
+                page.wait_for_selector("#cv-pane-long:not([hidden])", timeout=5000)
+                page.fill("#cv-long-text",
+                          "周末去海边，我把手机调成了飞行模式\n\n两天的沉默之后，我重新听见了海浪。\n\n"
+                          "1. 早点睡，别熬到两点\n2. 出门走走，别一直刷手机\n3. 给自己煮碗面\n"
+                          "4. 把手机放远一点\n5. 读十页书\n6. 早点回家")
+                page.wait_for_timeout(1500)
                 page.click("#cv-gen-story")
                 page.wait_for_function(
                     "() => document.querySelectorAll('.cv-card').length > 1", timeout=150000)
@@ -503,6 +512,9 @@ def main() -> int:
                       f"{n_cards} 张: {' | '.join(labels)}")
                 check("整套生成后出现「打包整套」",
                       page.evaluate("() => !document.querySelector('#cv-zip-story').hidden"), "")
+                # 切回标题图路径（后续搜图/断网用例的控件都在封面路径）
+                page.click("#cv-path-cover")
+                page.wait_for_timeout(400)
             else:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
                 skip("底图可读性", f"缺测试图 {UPLOAD}")

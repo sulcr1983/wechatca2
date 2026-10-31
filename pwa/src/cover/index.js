@@ -6,8 +6,10 @@ import { ALL_STYLES, GUIZANG_STYLES, TEMPLATE_STYLES, LAYOUTS, COVER_SIZES, styl
 import { renderCoverBlob, buildCoverHtml } from './render.js';
 import { analyzeImage } from './analyze.js';
 import { buildStorySet } from './story.js';
+import { LONG_TPLS, PALETTES, tplById, paletteByKey, buildLong, cardInner, fitOverflowCards,
+  ensureCardsEnv, ROLES, parseBlocks, splitLongParas } from './cards.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
-import { searchBackground, fetchImageDataUrl, guessQuery, getStockKeys } from './search.js';
+import { searchBackground, fetchImageDataUrl, autoKeyword, getStockKeys } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
 
 const PREFS = 'supersu.cover.prefs.v1';
@@ -38,6 +40,11 @@ const state = {
   analysis: null,
   textPos: 'auto',        // auto | top | center | bottom（用户微调）
   frosted: false,         // 文字区磨砂，默认关
+  /* ── 双路径（2026-10-31 design §9）── */
+  path: 'cover',          // cover 标题图 | long 长文图文
+  longTpl: 'editorial',   // 长文模板（12 选 1，整套生效，design §6.0.1）
+  palKey: 'dune',         // 长文色板 key（模板锁配色时忽略）
+  kwTouched: false,       // 用户手改过搜图关键词 → 不再自动覆盖（ux-spec §8.9）
 };
 
 let toastTimer = null;
@@ -55,10 +62,13 @@ function toast(msg, kind = '') {
 }
 
 function setStatus(msg, isErr = false) {
-  const el = $('cv-status');
-  if (!el) return;
-  el.textContent = msg || '';
-  el.classList.toggle('err', !!isErr);
+  /* 双路径各有状态位：两个都写，哪个可见显示哪个（测试读 #cv-status） */
+  for (const id of ['cv-status', 'cv-status-long']) {
+    const el = $(id);
+    if (!el) continue;
+    el.textContent = msg || '';
+    el.classList.toggle('err', !!isErr);
+  }
 }
 
 /* ── 文案提取（与本地版 _extract_story 同口径） ── */
@@ -108,6 +118,11 @@ function openCover() {
   if (!$('cv-text').value.trim()) {
     const main = $('input').value.trim();
     if (main) { $('cv-text').value = main.slice(0, 500); updateCount(); }
+  }
+  /* 长文路径首次打开也带一次正文（不截 500：长文本就为一整篇而生） */
+  if (!$('cv-long-text').value.trim()) {
+    const main = $('input').value.trim();
+    if (main) { $('cv-long-text').value = main; updateLongCount(); }
   }
 }
 
@@ -400,7 +415,7 @@ function renderBg() {
     q.className = 'cv-field';
     q.id = 'cv-q';
     q.placeholder = '关键词，如 beach / 咖啡';
-    q.value = state.searchQuery || guessQuery($('cv-text').value).query;
+    q.value = state.searchQuery || autoKeyword($('cv-text').value).query;
     const btn = document.createElement('button');
     btn.className = 'cv-search-btn';
     btn.id = 'cv-search';
@@ -783,25 +798,18 @@ async function generate() {
   }
 }
 
-/* ── 整套图文（2026-10-30）─────────────────────────────────────────
-   用户反馈「记得之前有标题和正文一起的功能，现在只剩标题了」。
-   查代码：本项目从来没实现过（docs 里画过「内页类」的饼但没落地）。
-   查竞品（红墨 / 创客贴 / 火兔 / A9）：行业标准是「封面 + 内页一次出齐」。
-
-   实现方式：复用 buildStorySet（story.js），它把正文自动拆页，
-   内页轮换已有骨架（list/number/quote），整套共用同一字体与文字玩法。 */
+/* ── 整套图文（2026-10-31 按 design §9 重做，归入「长文图文」路径）──────
+   分页与渲染走 cards.js（buildLong + 7 角色渲染器），一套模板管整套；
+   旧的「封面版式 + 内页骨架轮换」模型已被竞品实证否定（research 文档 §5）。 */
 async function generateStory() {
   if (state.busy) return;
-  const text = $('cv-text').value.trim();
-  if (text.length < 2) { toast('先写点文案（第一行作标题，后面作正文）', 'err'); return; }
-  const { title, lead } = extractStory(text);
+  const full = $('cv-long-text').value.trim();
+  if (full.length < 2) { toast('先把文章粘到左边（第一行作封面标题）', 'err'); return; }
+  const { title, lead } = extractStory(full);
   if (!title) { toast('第一行要有一个标题', 'err'); return; }
 
-  /* 正文 = 去掉标题行之后的全部内容。
-     原来 extractStory 只取前两行作引语，剩下的正文直接丢了 ——
-     「标题和正文一起」这个需求的核心就是把后面这些内容也用上。 */
-  const lines = text.split(/\r?\n/);
-  const body = lines.slice(1).join('\n').trim();
+  /* 正文 = 去掉标题行之后的全部内容（与旧口径一致：第一行作标题） */
+  const body = full.split(/\r?\n/).slice(1).join('\n').trim();
 
   state.busy = true;
   const btn = $('cv-gen-story');
@@ -811,30 +819,30 @@ async function generateStory() {
   setStatus('正在生成整套图文…');
   try {
     const set = await buildStorySet({
-      style: state.style,
       title,
       lead,
       body,
       author: $('cv-author').value.trim(),
       image: state.image || '',
-      analysis: state.analysis,
-      font: state.font,
-      textMode: state.textMode,
+      longTpl: state.longTpl,
+      palKey: state.palKey,
     });
 
-    // 结果进同一个结果区，但标记 role 以便卡片显示「封面/内页 N」
+    // 结果进同一个结果区，标记 role 以便卡片显示「封面/内页 N」
     for (const r of set) {
       const url = URL.createObjectURL(r.blob);
       state.results.push({
         ...r, url, size: 'xhs',
-        style: r.styleId || state.style,
+        style: 'story-' + state.longTpl,
       });
     }
     renderGallery();
     // 生成过整套才显示「打包整套」
     const zipBtn = $('cv-zip-story');
     if (zipBtn) zipBtn.hidden = false;
-    setStatus(`整套 ${set.length} 张已生成（1 封面 + ${set.length - 1} 内页）`);
+    const truncated = set.truncated || 0;
+    setStatus(`整套 ${set.length} 张已生成（1 封面 + ${set.length - 1} 内页）`
+      + (truncated ? ` · 已截断 ${truncated} 字` : ''));
     toast(`整套 ${set.length} 张已生成`, 'ok');
   } catch (err) {
     setStatus(String(err.message || err), true);
@@ -882,9 +890,11 @@ function renderGallery() {
     const label = document.createElement('span');
     label.className = 'cv-card-label';
     /* 整套图文的结果要标清「封面 / 内页 N」（2026-10-30），
-       否则一屏 5 张卡片分不清哪张是封面。 */
+       否则一屏 5 张卡片分不清哪张是封面。
+       2026-10-31：整套改走长文模板（cards.js），标签带模板名；
+       r.style 是 'story-<tplId>'，不在 catalog 里，不能再喂给 styleById。 */
     label.textContent = r.role
-      ? `${r.label} · ${styleById(r.style).name}`
+      ? `${r.label} · ${tplById(state.longTpl).name}`
       : `${COVER_SIZES[r.size].hint} · ${styleById(r.style).name}`;
     label.title = label.textContent;
     // 按钮包一层容器（2026-10-25）：避免长标签把两个按钮挤到换行
@@ -1011,10 +1021,13 @@ let pvTimer = 0;
 let pvSeq = 0;
 let pvRO = null;
 
-/** 防抖调度一次预览。任何设置变化都应该走这里。 */
+/** 防抖调度一次预览。任何设置变化都应该走这里。
+ *  双路径（2026-10-31）：长文路径调度整套卡片预览，标题图路径调度单张预览。 */
 export function schedulePreview(delay = 300) {
   clearTimeout(pvTimer);
-  pvTimer = setTimeout(() => { updatePreview(); }, delay);
+  pvTimer = setTimeout(() => {
+    if (state.path === 'long') updateLongPreview(); else updatePreview();
+  }, delay);
 }
 
 async function updatePreview() {
@@ -1109,6 +1122,7 @@ function savePrefs() {
       layoutPick: state.layoutPick,
       textPos: state.textPos, frosted: state.frosted,
       author: $('cv-author')?.value || '',
+      path: state.path, longTpl: state.longTpl, palKey: state.palKey,
     }));
   } catch { /* 隐私模式不阻断 */ }
   // 偏好一变（风格/尺寸/字体/玩法/署名都在这里收口）就刷新预览，
@@ -1133,6 +1147,9 @@ function loadPrefs() {
       }
     }
     if (p.author && $('cv-author')) $('cv-author').value = p.author;
+    if (p.path === 'cover' || p.path === 'long') state.path = p.path;
+    if (LONG_TPLS.some((t) => t.id === p.longTpl)) state.longTpl = p.longTpl;
+    if (PALETTES.some((x) => x.key === p.palKey)) state.palKey = p.palKey;
   } catch { /* 忽略损坏的偏好 */ }
 }
 
@@ -1142,65 +1159,308 @@ function updateCount() {
   if (t && c) c.textContent = `${t.value.length} / 500`;
 }
 
+/* ── 双路径（2026-10-31 design §9）──────────────────────────────────
+   标题图（一句话 → 一张图）与长文图文（一整篇 → 封面 + 内页成套）分开。
+   「整套图文」从标题图页的并排按钮变成独立路径 —— §1 诊断的「标题图和
+   长文混在一起」就是指旧的中栏四个出口。 */
+
+function setPath(p) {
+  if (p !== 'cover' && p !== 'long') return;
+  state.path = p;
+  const stage = document.querySelector('.cv-stage');
+  if (stage) stage.dataset.path = p;
+  document.querySelectorAll('.cv-path').forEach((b) => {
+    b.setAttribute('aria-selected', String(b.dataset.path === p));
+  });
+  /* ⚠️ 两层都要切：CSS 的 [data-pane] 规则（display:none!important）管布局，
+     但 DOM 里的 hidden 属性是 UA 级 display:none —— 只改 CSS 不改属性，
+     长文面板永远出不来（实测踩过）。 */
+  document.querySelectorAll('[data-pane]').forEach((el) => {
+    el.hidden = el.dataset.pane !== p;
+  });
+  if (p === 'long') {
+    // 度量环境（CSS + 封面字体）就绪后再出整套预览，行数才按真字体算
+    ensureCardsEnv(new URL('../../', import.meta.url).href).then(() => schedulePreview(0));
+  } else {
+    schedulePreview(0);
+  }
+}
+
+function currentLongTpl() {
+  return tplById(state.longTpl);
+}
+function currentLongPal() {
+  const tpl = currentLongTpl();
+  return tpl.palette || paletteByKey(state.palKey);   // 模板锁配色时忽略用户色板
+}
+
+/** 右栏：12 套长文模板（整套生效，design §6.0.3） */
+function renderLongTpls() {
+  const box = $('cv-ltpls');
+  if (!box) return;
+  box.textContent = '';
+  for (const t of LONG_TPLS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cv-ltpl';
+    b.dataset.tpl = t.id;
+    b.title = t.desc;
+    b.setAttribute('aria-pressed', String(state.longTpl === t.id));
+    b.innerHTML = `<span class="cv-ltpl-name">${t.name}</span><span class="cv-ltpl-desc">${t.desc}</span>`;
+    b.addEventListener('click', () => {
+      state.longTpl = t.id;
+      savePrefs();
+      renderLongTpls();
+      renderLongPals();
+    });
+    box.appendChild(b);
+  }
+}
+
+/** 右栏：8 套色板。模板锁配色时置灰 + 提示（design §12.1 方案 C 的交互内核） */
+function renderLongPals() {
+  const box = $('cv-lpals');
+  if (!box) return;
+  const tpl = currentLongTpl();
+  const locked = !!tpl.palette;
+  box.textContent = '';
+  for (const p of PALETTES) {
+    const d = document.createElement('button');
+    d.type = 'button';
+    /* ⚠️ 不能复用 .cv-dot —— 门禁「25 种配色 = 22 色点 + 3 单色卡」按 .cv-dot
+       全量计数，长文色板混进去会变成 30 个（实测踩过）。独立类名，尺寸在 CSS 共享。 */
+    d.className = 'cv-lpal';
+    d.dataset.pal = p.key;
+    d.title = `${p.name} · ${p.ds}`;
+    d.setAttribute('aria-label', `长文色板 ${p.name}`);
+    d.setAttribute('aria-pressed', String(!locked && state.palKey === p.key));
+    d.disabled = locked;
+    d.style.background = `linear-gradient(135deg, ${p.paper} 0 52%, ${p.accent} 52% 100%)`;
+    d.addEventListener('click', () => {
+      if (d.disabled) return;
+      state.palKey = p.key;
+      savePrefs();
+      renderLongPals();
+    });
+    box.appendChild(d);
+  }
+  const hint = $('cv-lpal-hint');
+  const lock = $('cv-lpal-lock');
+  if (hint) hint.hidden = locked;
+  if (lock) {
+    lock.hidden = !locked;
+    if (locked) lock.textContent = `${tpl.name} · 自带配色，色板不参与`;
+  }
+}
+
+function updateLongCount() {
+  const t = $('cv-long-text');
+  const c = $('cv-long-count');
+  if (t && c) c.textContent = `${t.value.length} 字`;
+}
+
+/** 长文路径的整套实时预览：buildLong 分页 → 卡片 DOM → 横滑 deck。
+ *  正常态自检静默（ux-spec C2：产品 UI 不出现「产物自检」文案），
+ *  只有空态（友好提示）与异常（未落版/截断）才显示。 */
+async function updateLongPreview() {
+  if (state.path !== 'long') return;
+  if ($('cover-root') && $('cover-root').hidden) return;
+  const seq = ++longSeq;
+  await ensureCardsEnv(new URL('../../', import.meta.url).href);
+  if (seq !== longSeq) return;
+
+  const full = $('cv-long-text').value;
+  const { title, lead } = extractStory(full);
+  const body = full.split(/\r?\n/).slice(1).join('\n').trim();
+  const tpl = currentLongTpl();
+  const pal = currentLongPal();
+
+  let pages = [];
+  try {
+    pages = buildLong(body, { tpl, pal });
+  } catch { pages = []; }
+  if (seq !== longSeq) return;
+  const truncated = pages.truncated || 0;
+  const total = pages.length + 1;   // + 封面
+  const scale = 255 / 1080;
+  const author = ($('cv-author')?.value || '').trim();
+
+  const deck = $('cv-deck');
+  if (deck) {
+    const cards = [{ role: 'cover', blocks: [] }, ...pages];
+    deck.innerHTML = cards.map((p, i) => `
+      <figure class="cv-slot">
+        <div class="cv-slot-zoom" style="width:${Math.round(1080 * scale)}px;height:${Math.round(1440 * scale)}px">
+          <div class="cv-slot-inner" style="transform:scale(${scale})">${cardInner({
+            role: p.role, blocks: p.blocks || [], tpl, pal,
+            index: i, total,
+            title, sub: lead, author,
+            image: p.role === 'cover' ? (state.image || '') : '',
+          })}</div>
+        </div>
+        <figcaption class="cv-slot-cap">
+          <span class="cv-slot-role">${ROLES[p.role] ? ROLES[p.role].label : p.role}</span>
+          <span class="cv-slot-pn">P${String(i + 1).padStart(2, '0')}</span>
+        </figcaption>
+      </figure>`).join('');
+    /* 单页超高的兜底（polaroid 这类内容区矮的模板）：渲染完才能量，放这里 */
+    fitOverflowCards(document.getElementById('cv-cards-root'));
+  }
+
+  const genBtn = $('cv-gen-story');
+  if (genBtn && !genBtn.disabled) {
+    genBtn.innerHTML = `导出一整套 <small>${total} 张 PNG</small>`;
+  }
+
+  /* ── 产物自检（逐句落版，比总字数准：渲染会加「— 署名」等装饰文字）── */
+  const sc = $('cv-selfcheck');
+  if (sc) {
+    const blank = !body.trim();
+    let missing = 0;
+    let pieces = 0;
+    if (!blank && deck) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '');
+      const out = norm(deck.textContent);
+      const piecesArr = [];
+      splitLongParas(parseBlocks(body)).forEach((b) => {
+        if (!b.text || b.type === 'pagebreak') return;
+        if (b.text.length > 60) {
+          b.text.split(/(?<=[。！？!?；;])/).forEach((s) => {
+            if (norm(s).length > 8) piecesArr.push(s);
+          });
+        } else piecesArr.push(b.text);
+      });
+      pieces = piecesArr.length;
+      missing = piecesArr.filter((s) => !out.includes(norm(s))).length;
+    }
+    const roles = [...new Set(['cover', ...pages.map((p) => p.role)])]
+      .map((r) => (ROLES[r] ? ROLES[r].label : r)).join('·');
+    if (blank) {
+      sc.hidden = false;
+      sc.className = 'cv-selfcheck';
+      sc.innerHTML = '<b>还没有正文</b> · 把文章粘到左边，这里会自动分页成一套图文';
+    } else if (missing > 0 || truncated > 0) {
+      sc.hidden = false;
+      sc.className = 'cv-selfcheck bad';
+      sc.innerHTML = `<b>✗ 产物自检</b> · ${missing}/${pieces} 句未落版`
+        + (truncated ? ` · 已截断 ${truncated} 字` : '');
+    } else {
+      sc.hidden = true;   // 正常态静默（C2）
+      console.info(`[longform] ${total} 页 · ${roles} · ${pieces} 句全部落版`
+        + (truncated ? ` · 截断 ${truncated} 字` : ''));
+    }
+  }
+}
+let longSeq = 0;
+
 /* ── 挂载 ── */
 function mount() {
   const root = $('cover-root');
   if (!root) return;
   root.innerHTML = `
-    <main class="cv-stage">
+    <main class="cv-stage" data-path="cover">
+      <!-- 路径切换（design §3/§9）：两条路径输入形态完全不同，选错要重来。
+           tablist 语义 + aria-selected（ux-spec §5.4）。 -->
+      <nav class="cv-pathbar" role="tablist" aria-label="封面路径">
+        <button class="cv-path" type="button" role="tab" id="cv-path-cover" data-path="cover"
+                aria-selected="true" aria-controls="cv-pane-cover">标题图</button>
+        <button class="cv-path" type="button" role="tab" id="cv-path-long" data-path="long"
+                aria-selected="false" aria-controls="cv-pane-long">长文图文</button>
+      </nav>
       <!-- ── 三栏布局（原型 A，2026-10-27）────────────────────────────
            改版原因：原来是「4 个标签 + 结果区」，写文案、选风格、看效果
            分散在三个标签里，用户要先点「生成」才知道长什么样 ——
            试 12 个风格就要出 36 张废图、等 12 次。
            现在：左边写 → 中间实时看 → 右边挑，全程不点生成也能看到效果。 -->
       <aside class="cv-col cv-col-left">
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">文案</span><button class="cv-mini-btn" id="cv-use-main" type="button">用正文</button></div>
-          <textarea class="cv-text" id="cv-text" maxlength="500" placeholder="第一行作大标题，接下来两行作引语。&#10;&#10;也可以点右上「用正文」带入排版页的内容。"></textarea>
-          <span class="cv-count" id="cv-count">0 / 500</span>
-        </section>
+        <!-- ── 路径 ①：标题图（一句话 → 一张图，design §3）───────────── -->
+        <div class="cv-pane" id="cv-pane-cover" role="tabpanel" data-pane="cover">
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">一句话，变成一张图</span><button class="cv-mini-btn" id="cv-use-main" type="button">用正文</button><span class="cv-count" id="cv-count">0 / 500</span></div>
+            <textarea class="cv-text" id="cv-text" maxlength="500" placeholder="写个标题，比如「周末去了趟海边」&#10;第二行可作小字。也可以点右上「用正文」带入排版页的内容。"></textarea>
+          </section>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">配图方式</span></div>
+            <!-- 三按钮（design §3，不做成 chip）：搜图是特色功能必须置顶（R3 硬约束）。
+                 保留 .cv-mode / data-mode 契约（renderBg 与门禁套件都认它）。 -->
+            <div class="cv-modes cv-modes-big" id="cv-modes">
+              <button class="cv-mode cv-mode-big" type="button" data-mode="search">
+                <b>搜一张好图</b><span>联网找真图 · 特色</span>
+              </button>
+              <button class="cv-mode cv-mode-big" type="button" data-mode="upload">
+                <b>传一张</b><span>用自己的图</span>
+              </button>
+              <button class="cv-mode cv-mode-big" type="button" data-mode="color">
+                <b>不要图</b><span>纯文字版式</span>
+              </button>
+            </div>
+            <div class="cv-bg-body" id="cv-bg-body"></div>
+            <div id="cv-bg-preview"></div>
+            <!-- 文字位置与磨砂（2026-10-30）：默认全自动，这里是「我不喜欢自动结果」的出口。
+                 刻意不给「遮罩浓度 0–100%」滑块 —— 用户没有亮度直方图可看，只能瞎试。 -->
+            <div class="cv-textpos" id="cv-textpos" hidden>
+              <div class="cv-sec-head"><span class="cv-sec-title">文字位置</span><span class="cv-hint" id="cv-textpos-hint">自动</span></div>
+              <div class="cv-chip-row" id="cv-textpos-row">
+                <button class="cv-chip" type="button" data-pos="auto">自动</button>
+                <button class="cv-chip" type="button" data-pos="top">偏上</button>
+                <button class="cv-chip" type="button" data-pos="center">居中</button>
+                <button class="cv-chip" type="button" data-pos="bottom">偏下</button>
+              </div>
+              <label class="cv-switch-row">
+                <input type="checkbox" id="cv-frosted">
+                <span>文字区磨砂（人物图会糊脸，默认关）</span>
+              </label>
+            </div>
+          </section>
+          <section class="cv-sec">
+            <button class="cv-gen" id="cv-gen" type="button">保存大图</button>
+            <div class="cv-status" id="cv-status"></div>
+          </section>
+          <!-- 高级设置抽屉（design §9「高级设置抽屉」）：默认值就能出图，
+               这些是「想微调」才需要的 L2 项（ux-spec §2.2）。桌面默认展开。 -->
+          <div class="cv-adv" id="cv-adv">
+            <button class="cv-adv-head" id="cv-adv-head" type="button"
+                    aria-expanded="true" aria-controls="cv-adv-body">⚙ 调整 · 字体 / 玩法 / 尺寸</button>
+            <div class="cv-adv-body" id="cv-adv-body">
+              <section class="cv-sec">
+                <div class="cv-sec-head"><span class="cv-sec-title">字体</span><span class="cv-hint" id="cv-font-hint"></span></div>
+                <div class="cv-chip-row" id="cv-fonts"></div>
+              </section>
+              <section class="cv-sec">
+                <div class="cv-sec-head"><span class="cv-sec-title">文字玩法</span><span class="cv-hint" id="cv-textmode-hint"></span></div>
+                <div class="cv-chip-row cv-mode-row" id="cv-textmodes"></div>
+              </section>
+              <section class="cv-sec">
+                <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span><span class="cv-hint" id="cv-size-hint"></span></div>
+                <div class="cv-size-row" id="cv-sizes"></div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 路径 ②：长文图文（一整篇 → 封面 + 内页成套，design §6）──── -->
+        <div class="cv-pane" id="cv-pane-long" role="tabpanel" data-pane="long" hidden>
+          <section class="cv-sec">
+            <div class="cv-sec-head"><span class="cv-sec-title">整篇文章</span><button class="cv-mini-btn" id="cv-use-long" type="button">用正文</button></div>
+            <textarea class="cv-text cv-long-text" id="cv-long-text"
+                      placeholder="把文章粘到这里，右边会实时分页成一套图文。&#10;第一行会作封面标题；「---」单独成行当前按普通段落处理。"></textarea>
+            <span class="cv-count" id="cv-long-count">0 字</span>
+          </section>
+          <section class="cv-sec">
+            <button class="cv-gen" id="cv-gen-story" type="button"
+                    title="封面 + 内页一次出齐，正文自动分页（竞品共识：一套模板管整套）">导出一整套 <small>2 张 PNG</small></button>
+            <!-- 整套打包（2026-10-30）：只有生成过整套才显示 -->
+            <button class="cv-gen cv-gen--soft cv-zip-story-btn" id="cv-zip-story" type="button" hidden
+                    title="把整套（封面+内页）打包成 ZIP">打包整套 ZIP</button>
+            <div class="cv-status" id="cv-status-long"></div>
+          </section>
+        </div>
+
+        <!-- 署名：两条路径共用（封面署名 / 长文开篇签名与结尾 CTA），不放抽屉 ——
+             藏在抽屉里切到长文路径就填不了（实测踩过）。 -->
         <section class="cv-sec">
           <div class="cv-sec-head"><span class="cv-sec-title">署名（可选）</span></div>
-          <input class="cv-field" id="cv-author" maxlength="20" placeholder="例如：阿苏" autocomplete="off">
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">字体</span><span class="cv-hint" id="cv-font-hint"></span></div>
-          <div class="cv-chip-row" id="cv-fonts"></div>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">文字玩法</span><span class="cv-hint" id="cv-textmode-hint"></span></div>
-          <div class="cv-chip-row cv-mode-row" id="cv-textmodes"></div>
-        </section>
-        <!-- 2026-10-29 电脑版重排：尺寸与底图属于「素材/输出设置」，和文案同属左栏；
-             右栏只留「挑版式」一件事，卡片才放得大。 -->
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">尺寸</span><span class="cv-hint" id="cv-size-hint"></span></div>
-          <div class="cv-size-row" id="cv-sizes"></div>
-        </section>
-        <section class="cv-sec">
-          <div class="cv-sec-head"><span class="cv-sec-title">底图</span></div>
-          <div class="cv-modes" id="cv-modes">
-            <button class="cv-mode" type="button" data-mode="color">纯色</button>
-            <button class="cv-mode" type="button" data-mode="upload">上传</button>
-            <button class="cv-mode" type="button" data-mode="search">联网搜图</button>
-          </div>
-          <div class="cv-bg-body" id="cv-bg-body"></div>
-          <div id="cv-bg-preview"></div>
-          <!-- 文字位置与磨砂（2026-10-30）：默认全自动，这里是「我不喜欢自动结果」的出口。
-               刻意不给「遮罩浓度 0–100%」滑块 —— 用户没有亮度直方图可看，只能瞎试。 -->
-          <div class="cv-textpos" id="cv-textpos" hidden>
-            <div class="cv-sec-head"><span class="cv-sec-title">文字位置</span><span class="cv-hint" id="cv-textpos-hint">自动</span></div>
-            <div class="cv-chip-row" id="cv-textpos-row">
-              <button class="cv-chip" type="button" data-pos="auto">自动</button>
-              <button class="cv-chip" type="button" data-pos="top">偏上</button>
-              <button class="cv-chip" type="button" data-pos="center">居中</button>
-              <button class="cv-chip" type="button" data-pos="bottom">偏下</button>
-            </div>
-            <label class="cv-switch-row">
-              <input type="checkbox" id="cv-frosted">
-              <span>文字区磨砂（人物图会糊脸，默认关）</span>
-            </label>
-          </div>
+          <input class="cv-field" id="cv-author" maxlength="20" placeholder="例如：阿苏 · 两条路径共用" autocomplete="off">
         </section>
       </aside>
 
@@ -1214,30 +1474,30 @@ function mount() {
                   title="把任意图片切成 3×3 九张">九宫格</button>
           <input type="file" id="cv-nine-file" accept="image/*" hidden>
         </div>
-        <div class="cv-preview-box">
+        <!-- 路径 ①：单张实时预览 -->
+        <div class="cv-preview-box" data-pane="cover">
           <div class="cv-preview-scaler" id="cv-preview"></div>
         </div>
-        <div class="cv-pv-actions">
-          <!-- 语义修正（2026-10-27）：实时预览已经是成品，用户要的是「把它存下来」。
-               按钮文字按「动词+对象」写，并按次要按钮处理（预览才是主角）。 -->
-          <button class="cv-gen cv-gen--soft" id="cv-gen" type="button">保存大图</button>
-          <!-- 整套图文（2026-10-30）：竞品（红墨/创客贴/火兔）都是「封面+内页一次出齐」，
-               原来只有单张封面。正文会自动拆页，不要求手工分页。 -->
-          <button class="cv-gen cv-gen--soft cv-gen-story" id="cv-gen-story" type="button"
-                  title="一次出「封面 + 内页」，正文自动拆页">整套图文</button>
-          <div class="cv-status" id="cv-status"></div>
+        <!-- 路径 ②：整套卡片横滑预览（cards.js 渲染，实测高度装箱分页）。
+             #cv-cards-root 同时是 cards.js 度量宿主的挂载点（同源 CSS/字体）。 -->
+        <div class="cv-long-stage" id="cv-long-stage" data-pane="long" hidden>
+          <div class="cv-deck-scroll" id="cv-cards-root">
+            <div class="cv-deck-row" id="cv-deck"></div>
+          </div>
+          <div class="cv-selfcheck" id="cv-selfcheck" hidden></div>
         </div>
-        <div class="cv-out-head">
+        <div class="cv-out-head" data-pane="cover">
           <span class="cv-out-title">标题图结果</span>
           <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
-          <!-- 整套打包（2026-10-30）：只有生成过整套才显示 -->
-          <button class="cv-mini-btn" id="cv-zip-story" type="button" hidden
-                  title="把整套（封面+内页）打包成 ZIP">打包整套</button>
+        </div>
+        <div class="cv-out-head" data-pane="long" hidden>
+          <span class="cv-out-title">整套图文结果</span>
+          <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
         </div>
         <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
           <b>文案 + 风格 = 标题图</b>
-          <span>左边写文案、右边选版式，预览就是成品；点「保存大图」存成 PNG。<br>归藏两套一次出 3 个尺寸，其余版式出 3:4。</span>
+          <span>左边写文案、右边选版式，预览就是成品；点「保存大图」存成 PNG。长文请切到「长文图文」路径。<br>归藏两套一次出 3 个尺寸，其余版式出 3:4。</span>
         </div>
         <!-- 示例成品墙（2026-10-29）：原来它埋在空态里，只有「一张都没生成」时才出现，
              而空态一生成就消失 → 电脑版预览下方那一大片空白永远是空的。
@@ -1263,9 +1523,18 @@ function mount() {
       </section>
 
       <aside class="cv-col cv-col-right">
-        <section class="cv-sec">
+        <!-- 路径 ①：风格卡（版式是 L1 审美选择，ux-spec §2.2 #21，不进抽屉） -->
+        <section class="cv-sec" data-pane="cover">
           <div class="cv-sec-head"><span class="cv-sec-title">风格</span><span class="cv-hint" id="cv-style-hint"></span></div>
           <div id="cv-styles"></div>
+        </section>
+        <!-- 路径 ②：长文模板（12 选 1 整套生效）+ 色板（8 选 1） -->
+        <section class="cv-sec" data-pane="long" hidden>
+          <div class="cv-sec-head"><span class="cv-sec-title">长文模板</span><span class="cv-hint">整套生效</span></div>
+          <div class="cv-ltpls" id="cv-ltpls"></div>
+          <div class="cv-sec-head cv-lpal-head"><span class="cv-sec-title">色板</span><span class="cv-hint" id="cv-lpal-hint"></span></div>
+          <div class="cv-dots cv-lpals" id="cv-lpals"></div>
+          <p class="cv-hint cv-lpal-lock" id="cv-lpal-lock" hidden></p>
         </section>
       </aside>
     </main>
@@ -1307,14 +1576,57 @@ function mount() {
   renderFonts();
   renderTextModes();
   renderBg();
+  renderLongTpls();
+  renderLongPals();
   initPreview();
   updateCount();
+  updateLongCount();
   if ($('cv-author')) $('cv-author').addEventListener('input', savePrefs);
   $('cv-text').addEventListener('input', () => { updateCount(); schedulePreview(); });
+  /* 关键词自动提取（design §9 / ux-spec C7）：标题自动填入，可改；
+     用户手改过（kwTouched）就不再覆盖。 */
   $('cv-text').addEventListener('input', () => {
-    if (state.mode === 'search' && $('cv-q') && !state.searchQuery) {
-      $('cv-q').value = guessQuery($('cv-text').value).query;
+    if (state.mode === 'search' && $('cv-q') && !state.kwTouched) {
+      const g = autoKeyword($('cv-text').value);
+      if (g.query) $('cv-q').value = g.query;
     }
+  });
+  /* 双路径切换（design §9） */
+  document.querySelectorAll('.cv-path').forEach((b) => {
+    b.addEventListener('click', () => setPath(b.dataset.path));
+  });
+  /* 高级设置抽屉（桌面默认展开；≤640 默认收起，展开变底部 sheet） */
+  const adv = $('cv-adv');
+  if (adv) {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const applyAdv = () => {
+      const open = !mq.matches;
+      adv.classList.toggle('open', open);
+      if ($('cv-adv-head')) $('cv-adv-head').setAttribute('aria-expanded', String(open));
+    };
+    applyAdv();
+    if (mq.addEventListener) mq.addEventListener('change', applyAdv);
+  }
+  const advHead = $('cv-adv-head');
+  if (advHead) advHead.addEventListener('click', () => {
+    const open = adv.classList.toggle('open');
+    advHead.setAttribute('aria-expanded', String(open));
+  });
+  /* 长文路径输入：实时分页预览 */
+  $('cv-long-text').addEventListener('input', () => {
+    updateLongCount();
+    schedulePreview();
+  });
+  $('cv-use-long').addEventListener('click', () => {
+    const v = $('input').value.trim();
+    if (!v) { toast('排版页还没有内容', 'err'); return; }
+    $('cv-long-text').value = v;
+    updateLongCount();
+    schedulePreview(0);
+  });
+  /* 搜图关键词：用户手改后不再自动覆盖 */
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'cv-q') state.kwTouched = true;
   });
   $('cv-use-main').addEventListener('click', () => {
     const v = $('input').value.trim();
@@ -1396,6 +1708,10 @@ function mount() {
     if (!$('cv-lightbox').hidden) { closeLightbox(); return; }
     if (!$('cover-root').hidden) closeCover();
   });
+
+  /* 应用持久化的路径（loadPrefs 可能带来 'long'）；
+     会同步 stage data-path、tab 高亮，并调度对应路径的预览。 */
+  setPath(state.path);
 }
 
 mount();

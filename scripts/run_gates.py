@@ -71,6 +71,11 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("export",         [PY, "scripts/pwa_export_test.py"],        "导出四件套 12", "local"),
     ("nine",           [PY, "scripts/pwa_nine_test.py"],          "九宫格切图 15", "local"),
     ("cover",          [PY, "scripts/pwa_cover_test.py"],         "封面 30（含实时预览 3 项）", "local"),
+    # 2026-10-31 接入（design §9 门禁行）：长图文产物级断言 ——
+    # 分页完整性（逐句落版）/ 内容字号 ≥28px / 填充率按 §6 分档 / 无溢出 / 导出真出图。
+    # 原「末页 ≥75%」一刀切口径已作废（§6 实测：大字版式占高少是「大字」的代价）。
+    ("longform",       [PY, "scripts/pwa_longform_test.py"],
+                       "长图文产物级（分页/字号/填充分档/无溢出/导出）", "local"),
     ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
     # 2026-10-29 接入：封面风格规范校验（对比度/字号/字重字距/遮罩峰值）。
     # 此前这把尺子存在但没进门禁 → 10 套模板遮罩峰值 0.70（超规范 2.3 倍）躺了很久。
