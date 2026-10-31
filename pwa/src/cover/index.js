@@ -7,7 +7,7 @@ import { renderCoverBlob, buildCoverHtml } from './render.js';
 import { analyzeImage } from './analyze.js';
 import { buildStorySet } from './story.js';
 import { LONG_TPLS, PALETTES, tplById, paletteByKey, buildLong, cardInner, fitOverflowCards,
-  ensureCardsEnv, ROLES, parseBlocks, splitLongParas } from './cards.js';
+  ensureCardsEnv, ROLES, parseBlocks, splitLongParas, tplSupportsBg, BG_TPL_IDS } from './cards.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { searchBackground, fetchImageDataUrl, autoKeyword, getStockKeys } from './search.js';
 import { splitGrid, releaseTiles, zipTiles } from '../nine.js';
@@ -45,6 +45,10 @@ const state = {
   longTpl: 'editorial',   // 长文模板（12 选 1，整套生效，design §6.0.1）
   palKey: 'dune',         // 长文色板 key（模板锁配色时忽略）
   kwTouched: false,       // 用户手改过搜图关键词 → 不再自动覆盖（ux-spec §8.9）
+  /* ── §12.7 四项增强 ── */
+  longPn: true,           // 显示页码（默认开 = 现状心智，design §12.5）
+  longSign: '',           // 签名（空 = 关；非空则每张内页页脚追加 @签名，§12.4）
+  longBg: '',             // 内页背景图 dataURL（空 = 纯色；§12.2）
 };
 
 let toastTimer = null;
@@ -826,6 +830,9 @@ async function generateStory() {
       image: state.image || '',
       longTpl: state.longTpl,
       palKey: state.palKey,
+      pn: state.longPn,
+      sign: state.longSign,
+      bg: state.longBg,
     });
 
     // 结果进同一个结果区，标记 role 以便卡片显示「封面/内页 N」
@@ -1212,6 +1219,7 @@ function renderLongTpls() {
       savePrefs();
       renderLongTpls();
       renderLongPals();
+      renderLongBgUI();   // 换模板要同步背景图可用性（§12.2 6 套可用 / 6 套禁用）
     });
     box.appendChild(b);
   }
@@ -1259,6 +1267,34 @@ function updateLongCount() {
   if (t && c) c.textContent = `${t.value.length} 字`;
 }
 
+/** 内页背景图 UI 状态（§12.2）：可用/禁用模板 + 是否已选图 + 复用封面快捷项 */
+function renderLongBgUI() {
+  const tpl = currentLongTpl();
+  const ok = tplSupportsBg(tpl.id);
+  const pick = $('cv-longbg-pick');
+  const hint = $('cv-longbg-hint');
+  const lock = $('cv-longbg-lock');
+  const clear = $('cv-longbg-clear');
+  const cover = $('cv-longbg-cover');
+  if (pick) {
+    pick.classList.toggle('cv-disabled', !ok);
+    const inp = $('cv-longbg-file');
+    if (inp) inp.disabled = !ok;
+  }
+  if (hint) {
+    hint.textContent = ok
+      ? (state.longBg ? '已开启 · 85% 纸色蒙层' : '默认关')
+      : '这套模板自带背景';
+  }
+  if (lock) {
+    lock.hidden = ok;
+    if (!ok) lock.textContent = `${tpl.name} 自带完整背景体系（照片框/光晕/遮幅等），铺图会毁掉模板语义`;
+  }
+  if (clear) clear.hidden = !ok || !state.longBg;
+  /* 「复用封面那张」只在有封面底图 + 模板支持时出现 */
+  if (cover) cover.hidden = !ok || !state.image || !!state.longBg;
+}
+
 /** 长文路径的整套实时预览：buildLong 分页 → 卡片 DOM → 横滑 deck。
  *  正常态自检静默（ux-spec C2：产品 UI 不出现「产物自检」文案），
  *  只有空态（友好提示）与异常（未落版/截断）才显示。 */
@@ -1296,6 +1332,9 @@ async function updateLongPreview() {
             index: i, total,
             title, sub: lead, author,
             image: p.role === 'cover' ? (state.image || '') : '',
+            pn: state.longPn,
+            sign: state.longSign,
+            bg: state.longBg,
           })}</div>
         </div>
         <figcaption class="cv-slot-cap">
@@ -1343,11 +1382,13 @@ async function updateLongPreview() {
       sc.hidden = false;
       sc.className = 'cv-selfcheck bad';
       sc.innerHTML = `<b>✗ 产物自检</b> · ${missing}/${pieces} 句未落版`
-        + (truncated ? ` · 已截断 ${truncated} 字` : '');
+        + (truncated ? ` · 已截断 ${truncated} 字` : '')
+        + (pages.manualBreaks ? ` · 手动分页符 ${pages.manualBreaks} 处` : '');
     } else {
       sc.hidden = true;   // 正常态静默（C2）
       console.info(`[longform] ${total} 页 · ${roles} · ${pieces} 句全部落版`
-        + (truncated ? ` · 截断 ${truncated} 字` : ''));
+        + (truncated ? ` · 截断 ${truncated} 字` : '')
+        + (pages.manualBreaks ? ` · 手动分页符 ${pages.manualBreaks} 处` : ''));
     }
   }
 }
@@ -1535,6 +1576,29 @@ function mount() {
           <div class="cv-sec-head cv-lpal-head"><span class="cv-sec-title">色板</span><span class="cv-hint" id="cv-lpal-hint"></span></div>
           <div class="cv-dots cv-lpals" id="cv-lpals"></div>
           <p class="cv-hint cv-lpal-lock" id="cv-lpal-lock" hidden></p>
+
+          <!-- §12.7 四项增强（design §12.2–§12.5）：页码 / 签名 / 内页背景图 -->
+          <div class="cv-sec-head cv-lopt-head"><span class="cv-sec-title">版式选项</span></div>
+          <label class="cv-switch-row">
+            <input type="checkbox" id="cv-long-pn" checked>
+            <span>显示页码（各模板页脚，默认开）</span>
+          </label>
+          <div class="cv-sec-head cv-lopt-sub"><span class="cv-sec-title">签名</span><span class="cv-hint">填了才显示</span></div>
+          <input class="cv-field" id="cv-long-sign" maxlength="16"
+                 placeholder="例如：阿苏 · 显示在内页页脚" autocomplete="off">
+          <div class="cv-sec-head cv-lopt-sub">
+            <span class="cv-sec-title">内页背景图</span>
+            <span class="cv-hint" id="cv-longbg-hint"></span>
+          </div>
+          <div class="cv-longbg" id="cv-longbg">
+            <label class="cv-upload cv-upload-sm" id="cv-longbg-pick">
+              选一张图<input type="file" id="cv-longbg-file" accept="image/*">
+            </label>
+            <button class="cv-mini-btn" type="button" id="cv-longbg-cover" hidden
+                    title="复用封面已配的底图">复用封面那张</button>
+            <button class="cv-mini-btn" type="button" id="cv-longbg-clear" hidden>清除</button>
+          </div>
+          <p class="cv-hint cv-longbg-lock" id="cv-longbg-lock" hidden></p>
         </section>
       </aside>
     </main>
@@ -1578,6 +1642,10 @@ function mount() {
   renderBg();
   renderLongTpls();
   renderLongPals();
+  renderLongBgUI();
+  /* §12.7 控件初值：页码默认开、签名回填 */
+  if ($('cv-long-pn')) $('cv-long-pn').checked = state.longPn;
+  if ($('cv-long-sign')) $('cv-long-sign').value = state.longSign;
   initPreview();
   updateCount();
   updateLongCount();
@@ -1627,6 +1695,53 @@ function mount() {
   /* 搜图关键词：用户手改后不再自动覆盖 */
   document.addEventListener('input', (e) => {
     if (e.target && e.target.id === 'cv-q') state.kwTouched = true;
+  });
+
+  /* ── §12.7 四项增强接线 ── */
+  /* 页码开关（§12.5）：默认开；关掉只影响页脚页码，装饰数字/页眉不动 */
+  const pnCb = $('cv-long-pn');
+  if (pnCb) pnCb.addEventListener('change', () => {
+    state.longPn = pnCb.checked;
+    savePrefs();
+    schedulePreview(0);
+  });
+  /* 签名（§12.4）：输入即渲染，沿用模板页脚色 */
+  const signInput = $('cv-long-sign');
+  if (signInput) {
+    let signTimer = 0;
+    signInput.addEventListener('input', () => {
+      clearTimeout(signTimer);
+      signTimer = setTimeout(() => {
+        state.longSign = signInput.value.trim().slice(0, 16);
+        schedulePreview(0);
+      }, 250);
+    });
+  }
+  /* 内页背景图（§12.2）：上传 / 复用封面底图 / 清除 */
+  const bgFile = $('cv-longbg-file');
+  if (bgFile) bgFile.addEventListener('change', async () => {
+    const f = bgFile.files && bgFile.files[0];
+    bgFile.value = '';
+    if (!f) return;
+    if (f.size > 12 * 1024 * 1024) { toast('图片太大（上限 12MB）', 'err'); return; }
+    try {
+      state.longBg = await fileToDataUrl(f);
+      renderLongBgUI();
+      schedulePreview(0);
+    } catch (err) { toast(String(err.message || err), 'err'); }
+  });
+  const bgCover = $('cv-longbg-cover');
+  if (bgCover) bgCover.addEventListener('click', () => {
+    if (!state.image) { toast('封面还没有底图', 'err'); return; }
+    state.longBg = state.image;   // 复用封面那张：少一次上传，两图同源更整
+    renderLongBgUI();
+    schedulePreview(0);
+  });
+  const bgClear = $('cv-longbg-clear');
+  if (bgClear) bgClear.addEventListener('click', () => {
+    state.longBg = '';
+    renderLongBgUI();
+    schedulePreview(0);
   });
   $('cv-use-main').addEventListener('click', () => {
     const v = $('input').value.trim();

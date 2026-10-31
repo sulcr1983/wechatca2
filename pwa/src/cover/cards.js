@@ -127,6 +127,14 @@ export const PALETTES = [
 
 export const paletteByKey = (key) => PALETTES.find((p) => p.key === key) || PALETTES[0];
 
+/* ── 页脚辅助（design §12.4 签名 / §12.5 页码开关）────────────────────
+   两者都只在**页脚**动，不新造颜色不新增布局：
+   · 页码：o.pn === false 时省略（默认 true = 现状，老用户不会觉得页码「丢了」）
+   · 签名：o.sign 非空时追加 `@签名`，沿用模板页脚既有的字号与颜色
+   ⚠️ 只管 foot() 里的页码文本；closing 的超大装饰数字、页眉都不受影响。 */
+const pn = (txt, o) => (o && o.pn === false ? '' : txt);
+const sg = (o) => (o && o.sign ? `<span class="lt-foot-sign">@${esc(o.sign)}</span>` : '');
+
 /* ── 12 套长文模板（整套图文共用；design §6.0.3）───────────────────── */
 
 export const LONG_TPLS = [
@@ -136,7 +144,7 @@ export const LONG_TPLS = [
     palette: null,
     head: () => `<span class="lt-mast">EDITORIAL</span>
       <span class="lt-mast-r">COLLECTION // VOL. 2026</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'swiss', name: '瑞士网格', cls: 'lt-swiss',
@@ -144,7 +152,7 @@ export const LONG_TPLS = [
     palette: null,
     head: () => `<span class="lt-mast">SWISS STUDIO</span>
       <span class="lt-mast-r">REF. CH-8004</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">${String(i).padStart(2, '0')}</span>
+    foot: (i, n, o) => `<span class="lt-foot-l">${pn(String(i).padStart(2, '0'), o)}${sg(o)}</span>
       <span class="lt-corner"></span>`,
   },
   {
@@ -154,7 +162,7 @@ export const LONG_TPLS = [
       accent: '#0f7b6c', at: '#0f7b6c', line: 'rgba(55,53,47,.09)', hl: 'rgba(15,123,108,.15)',
       grain: 'rgba(0,0,0,.03)' },
     head: () => `<span class="lt-mast">📖 &nbsp;/&nbsp; Workspace &nbsp;/&nbsp; Notes</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'book', name: '书籍内页', cls: 'lt-book',
@@ -164,7 +172,7 @@ export const LONG_TPLS = [
       grain: 'rgba(0,0,0,.05)' },
     head: () => `<span class="lt-book-sect">§</span>
       <span class="lt-book-mast">C L A S S I C   L I T E R A T U R E</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">P. ${String(i).padStart(2, '0')}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`P. ${String(i).padStart(2, '0')}`, o)}</span>`,
   },
   {
     id: 'memo', name: '苹果备忘录', cls: 'lt-memo',
@@ -174,7 +182,7 @@ export const LONG_TPLS = [
       grain: 'rgba(0,0,0,.02)' },
     head: () => `<span class="lt-memo-back">‹ 备忘录</span>
       <span class="lt-memo-date"></span><span class="lt-memo-done">完成</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'polaroid', name: '拍立得', cls: 'lt-polaroid',
@@ -183,7 +191,7 @@ export const LONG_TPLS = [
       accent: '#d9534f', at: '#b23f3b', line: 'rgba(0,0,0,.10)', hl: 'rgba(217,83,79,.18)',
       grain: 'rgba(0,0,0,.06)' },
     head: () => '',
-    foot: (i, n) => `<span class="lt-foot-l"></span><span class="lt-foot-r">${String(i).padStart(2, '0')}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">${sg(o)}</span><span class="lt-foot-r">${pn(String(i).padStart(2, '0'), o)}</span>`,
   },
   {
     id: 'aura', name: '弥散极光', cls: 'lt-aura',
@@ -192,7 +200,7 @@ export const LONG_TPLS = [
       accent: '#2d3436', at: '#2d3436', line: 'rgba(45,52,54,.10)', hl: 'rgba(45,52,54,.10)',
       grain: 'rgba(0,0,0,.03)' },
     head: () => '',
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'night', name: '暗夜深思', cls: 'lt-night',
@@ -202,7 +210,7 @@ export const LONG_TPLS = [
       grain: 'rgba(255,255,255,.04)' },
     head: () => `<span class="lt-night-pn"></span>
       <span class="lt-mast-r">// THOUGHT MODE ON</span>`,
-    foot: (i, n) => `<span class="lt-foot-l"></span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'doc', name: '大厂文档', cls: 'lt-doc',
@@ -213,7 +221,7 @@ export const LONG_TPLS = [
     head: () => `<span class="lt-doc-dots"><i></i><i></i><i></i></span>
       <span class="lt-doc-title">DOCUMENT VIEWER</span>
       <span class="lt-mast-r">CONFIDENTIAL</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'film', name: '电影胶片', cls: 'lt-film',
@@ -224,7 +232,7 @@ export const LONG_TPLS = [
     head: () => `<div class="lt-film-bars top"><span class="lt-film-frame">▶ 01A</span>
       <span class="lt-film-kodak">KODAK  5222  DOUBLE-X</span></div>
       <div class="lt-film-title">— A   C I N E M A T I C   N O T E —</div>`,
-    foot: (i, n) => `<div class="lt-film-scene">SCENE ${String(i).padStart(2, '0')} / ${String(n).padStart(2, '0')}</div>
+    foot: (i, n, o) => `<div class="lt-film-scene">${pn(`SCENE ${String(i).padStart(2, '0')} / ${String(n).padStart(2, '0')}`, o)}${sg(o)}</div>
       <div class="lt-film-bars bottom"><span class="lt-film-dir">DIR. ___________</span>
       <span class="lt-film-print">PRINT: FINAL</span></div>`,
   },
@@ -235,18 +243,24 @@ export const LONG_TPLS = [
       accent: '#fbbf24', at: '#fbbf24', line: 'rgba(251,191,36,.25)', hl: 'rgba(251,191,36,.16)',
       grain: 'rgba(255,255,255,.03)' },
     head: () => `<span class="lt-starry-mark">✦ STARRY NIGHT</span>`,
-    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">SuperSu${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
   {
     id: 'blank', name: '极简留白', cls: 'lt-blank',
     desc: '只有页码 —— 把注意力全留给文字',
     palette: null,
     head: () => '',
-    foot: (i, n) => `<span class="lt-foot-l"></span><span class="lt-foot-r">${i} / ${n}</span>`,
+    foot: (i, n, o) => `<span class="lt-foot-l">${sg(o)}</span><span class="lt-foot-r">${pn(`${i} / ${n}`, o)}</span>`,
   },
 ];
 
 export const tplById = (id) => LONG_TPLS.find((t) => t.id === id) || LONG_TPLS[0];
+
+/** 内页背景图可用模板（design §12.2）：6 套。
+ *  另外 6 套（polaroid/aura/night/doc/film/starry）自带完整背景体系
+ *  （照片框、光晕、深色渐变、网格底、遮幅、星空），铺图会毁掉模板语义 → 禁用。 */
+export const BG_TPL_IDS = ['editorial', 'swiss', 'notion', 'book', 'memo', 'blank'];
+export const tplSupportsBg = (id) => BG_TPL_IDS.includes(id);
 
 /* ── 实测常量（原型逐字搬运，出处见 design §6「落地状态」）──────────── */
 
@@ -308,6 +322,14 @@ const CARD_CSS_RAW = `
   font:500 16px/1 var(--mono);letter-spacing:.14em;color:var(--muted)}
 @@S@@.card .lt-mast{font-weight:700;letter-spacing:.14em;color:var(--ink)}
 @@S@@.card .lt-mast-r{font-style:italic;font-weight:400;letter-spacing:.10em}
+/* 页脚签名（design §12.4）：沿用页脚自身的字号与颜色，只加一点左间距分隔 */
+@@S@@.card .lt-foot-sign{margin-left:10px;opacity:.72}
+/* 内页背景图 + 纸色蒙层（design §12.2）。z 序：图(0) → 蒙层(1) → 装饰/文字 */
+@@S@@.card .lt-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:0;pointer-events:none}
+@@S@@.card .lt-bg-mask{position:absolute;inset:0;z-index:1;pointer-events:none}
+/* 有背景图时纸纹让位（两层半透明叠加会显脏） */
+@@S@@.card:has(.lt-bg) .grain{display:none}
 
 /* ── 1 杂志编辑：上下细线 + 衬线正文 ───────────────────────────── */
 @@S@@.card.lt-editorial .lh{top:62px;padding-bottom:14px;border-bottom:1px solid var(--line)}
@@ -659,8 +681,11 @@ export function ensureCardsEnv(baseUrl = '') {
  *  2026-10-31（原型）：从「按字数估算」改为「实测 DOM 高度」—— 12 套模板的
  *  正文可用宽度与字号不同，同样字数在不同模板下高度能差 15% 以上。 */
 function measureDense(blocks, tpl, pal) {
+  /* ⚠️ 守卫顺序：先判 document 存在，再 getElementById —— 反了会在 Node（单测/SSR）里
+     直接 ReferenceError（不是返回 null）。无 DOM 时返回 null → packDense 走字数包络。 */
+  if (typeof document === 'undefined' || !document.body) return null;
   const root = document.getElementById('cv-cards-root');
-  if (!root || typeof document === 'undefined' || !document.body) return null;
+  if (!root) return null;
   const host = document.createElement('div');
   host.className = `card ${tpl.cls}`;
   host.style.cssText = 'position:fixed;left:-99999px;top:0;width:1080px;height:1440px;' + styleVars(pal);
@@ -684,8 +709,9 @@ function measureDense(blocks, tpl, pal) {
   return heights;
 }
 
-/** 当前模板下 dense 页的可用高度（像素）。 */
+/** 当前模板下 dense 页的可用高度（像素）。无 DOM（单测/SSR）返回 null → 走字数包络。 */
 function denseMaxHeight(tpl, pal) {
+  if (typeof document === 'undefined' || !document.body) return null;
   const root = document.getElementById('cv-cards-root');
   if (!root) return null;
   const host = document.createElement('div');
@@ -791,62 +817,103 @@ export function buildLong(text, { tpl = LONG_TPLS[0], pal = PALETTES[0] } = {}) 
   const blocks = splitLongParas(parseBlocks(text));
   const pages = [];
   let i = 0;
+  let manualBreaks = 0;      // 实际生效的手动分页符数（design §12.3 自检条要写出来）
 
-  /* 开篇：取开头连续段落，≤ 90 字。
-     首段本身超长（> OPENING_MAX_CHARS）时**不做开篇页**，交给 dense ——
-     否则 170 字首段在开篇角色里 101.7% 溢出，最后一段被裁（原型实测）。 */
-  let cur = [], ch = 0;
-  while (i < blocks.length && blocks[i].type === 'p' && ch < 70) {
-    cur.push(blocks[i]); ch += blocks[i].text.length; i++;
-  }
-  if (cur.length && ch <= OPENING_MAX_CHARS) pages.push({ role: 'opening', blocks: cur });
-  else if (cur.length) { i -= cur.length; }   /* 超长：整段退回，交给 dense 装箱 */
-
-  while (i < blocks.length) {
-    const b = blocks[i];
-    if (b.type === 'pagebreak') { i++; continue; }
-
-    if (b.type === 'li') {
-      const group = [];
-      while (i < blocks.length && blocks[i].type === 'li') { group.push(blocks[i]); i++; }
-      /* 前导段落并入清单页（作为 intro），避免出现半空的正文页 */
-      let lead = [];
-      const prev = pages[pages.length - 1];
-      if (prev && prev.role === 'dense' && charSum(prev.blocks) < 70) { lead = pages.pop().blocks; }
-      /* 清单页最多 6 条：再多会撑破 1124px，拆成两页 */
-      for (let k = 0; k < group.length; k += 6) {
-        pages.push({ role: 'points', blocks: (k === 0 ? lead : []).concat(group.slice(k, k + 6)) });
-      }
+  /* ── 强制分页符（design §12.3）：独占一行的 `---` = 强制分页 ──────────
+     仅长文管线如此（公众号排版走 format_engine，语义不变，两条管线独立）。
+     边界规则：
+       ① 连续两个 `---` 只分一次（splitIntoManualSegments 里合并空段）
+       ② 开头/结尾的 `---` 忽略（空段直接丢弃）
+       ③ 手动分页优先于自动分页：先按 `---` 切大段，段内再走既有自动分页
+       ④ opening/closing 仍只授予自然首页/末页；手动分页后的短页按 dense 排
+     ⚠️ 原实现是 `if (b.type === 'pagebreak') { i++; continue; }` —— 等于把分页符
+        当不存在，用户写 `---` 想断页却断不了。 */
+  const segs = [];
+  let curSeg = [];
+  for (const b of blocks) {
+    if (b.type === 'pagebreak') {
+      if (curSeg.length) { segs.push(curSeg); curSeg = []; }   // ① 空段不产生分页
       continue;
     }
-
-    if (b.type === 'quote') {
-      const q = [b]; i++;
-      let qch = b.text ? b.text.length : 0;
-      /* 紧跟的短段落作为上下文（提高填充，避免孤句空页）；
-         按 QUOTE_MAX_CHARS 封顶，超出的段落留给后面的 dense 页。 */
-      while (i < blocks.length && blocks[i].type === 'p' && blocks[i].text.length <= 80 &&
-             qch + blocks[i].text.length <= QUOTE_MAX_CHARS) {
-        q.push(blocks[i]); qch += blocks[i].text.length; i++;
-      }
-      pages.push({ role: 'quote', blocks: q });
-      continue;
-    }
-
-    /* 正文页：按实测 DOM 高度装箱（packDense）；无 DOM 降级为字数包络 */
-    const dp = [];
-    while (i < blocks.length && blocks[i].type !== 'li' && blocks[i].type !== 'quote' && blocks[i].type !== 'pagebreak') {
-      dp.push(blocks[i]); i++;
-    }
-    if (dp.length) {
-      packDense(dp, tpl, pal).forEach((blks) => pages.push({ role: 'dense', blocks: blks }));
-    }
+    curSeg.push(b);
   }
+  if (curSeg.length) segs.push(curSeg);                        // ② 结尾 `---` 自然丢弃
+  manualBreaks = Math.max(0, segs.length - 1);
 
-  /* 结尾：优先把最后一段单独做成结尾页 —— 结尾页塞两段会把 CTA 挤到页脚上 */
+  /* 单段（无分页符）时走原来的整体流程；多段时逐段独立分页再拼接 */
+  const buildSegment = (seg, isFirst, isLast) => {
+    const out = [];
+    let j = 0;
+    /* 开篇：取开头连续段落，≤ 90 字；首段超长（> OPENING_MAX_CHARS）时不做开篇页。
+       ④ 只有**自然首页**才配 opening —— 手动分页后的段不算开篇。 */
+    if (isFirst) {
+      let cur = [], ch = 0;
+      while (j < seg.length && seg[j].type === 'p' && ch < 70) {
+        cur.push(seg[j]); ch += seg[j].text.length; j++;
+      }
+      if (cur.length && ch <= OPENING_MAX_CHARS) out.push({ role: 'opening', blocks: cur });
+      else if (cur.length) { j -= cur.length; }
+    }
+
+    while (j < seg.length) {
+      const b = seg[j];
+
+      if (b.type === 'li') {
+        const group = [];
+        while (j < seg.length && seg[j].type === 'li') { group.push(seg[j]); j++; }
+        /* 前导段落并入清单页（作为 intro），避免出现半空的正文页 */
+        let lead = [];
+        const prev = out[out.length - 1];
+        if (prev && prev.role === 'dense' && charSum(prev.blocks) < 70) { lead = out.pop().blocks; }
+        /* 清单页最多 6 条：再多会撑破 1124px，拆成两页 */
+        for (let k = 0; k < group.length; k += 6) {
+          out.push({ role: 'points', blocks: (k === 0 ? lead : []).concat(group.slice(k, k + 6)) });
+        }
+        continue;
+      }
+
+      if (b.type === 'quote') {
+        const q = [b]; j++;
+        let qch = b.text ? b.text.length : 0;
+        /* 紧跟的短段落作为上下文（提高填充，避免孤句空页）；
+           按 QUOTE_MAX_CHARS 封顶，超出的段落留给后面的 dense 页。 */
+        while (j < seg.length && seg[j].type === 'p' && seg[j].text.length <= 80 &&
+               qch + seg[j].text.length <= QUOTE_MAX_CHARS) {
+          q.push(seg[j]); qch += seg[j].text.length; j++;
+        }
+        out.push({ role: 'quote', blocks: q });
+        continue;
+      }
+
+      /* 正文页：按实测 DOM 高度装箱（packDense）；无 DOM 降级为字数包络 */
+      const dp = [];
+      while (j < seg.length && seg[j].type !== 'li' && seg[j].type !== 'quote') {
+        dp.push(seg[j]); j++;
+      }
+      if (dp.length) {
+        packDense(dp, tpl, pal).forEach((blks) => out.push({ role: 'dense', blocks: blks }));
+      }
+    }
+    void isLast;
+    return out;
+  };
+
+  segs.forEach((seg, si) => {
+    buildSegment(seg, si === 0, si === segs.length - 1).forEach((p) => {
+      /* 段索引只作内部标记（非枚举，不影响序列化），供 closing 判定用 */
+      Object.defineProperty(p, '_seg', { value: si, enumerable: false });
+      pages.push(p);
+    });
+  });
+
+  /* 结尾：优先把最后一段单独做成结尾页 —— 结尾页塞两段会把 CTA 挤到页脚上。
+     ④ 只给**自然末页**（design §12.3 规则④）：手动分页符切出来的段末不升格 closing，
+     否则「A --- B --- C」会变成 A(opening) / B(closing)，C 被并进 closing 的前一段
+     （实测踩到：3 段只出 3 页，第三段消失）。 */
   if (pages.length >= 2) {
     const last = pages[pages.length - 1];
-    if (last.role === 'dense') {
+    const inLastSeg = last._seg === segs.length - 1;
+    if (inLastSeg && last.role === 'dense') {
       const tail = last.blocks[last.blocks.length - 1];
       /* B3 guard：摘走末段会让上一页掉到 §6 下限以下（310 字样例实测 66.5%）。
          design §6：末页欠填先尝试合并，不允许靠加装饰填空 —— 摘段前先验算。 */
@@ -886,6 +953,8 @@ export function buildLong(text, { tpl = LONG_TPLS[0], pal = PALETTES[0] } = {}) 
     }
   }
   Object.defineProperty(pages, 'truncated', { value: truncated, enumerable: false });
+  /* 自检条要写「手动分页符 X 处」（design §12.3 规则③） */
+  Object.defineProperty(pages, 'manualBreaks', { value: manualBreaks, enumerable: false });
   return pages;
 }
 
@@ -899,16 +968,32 @@ function styleVars(pal) {
     ';--cw:1080px;--ch:1440px;--k:1;--fs:52px;--pgap:43px;';
 }
 
-/** 单页 .card 内部 HTML（含模板页眉页脚）。7 角色渲染器，搬自原型 longBody/longCard。 */
+/** 单页 .card 内部 HTML（含模板页眉页脚）。7 角色渲染器，搬自原型 longBody/longCard。
+ *
+ *  design §12.4/§12.5/§12.2 三项增强都在这里收口：
+ *    · pn=false      省略页脚页码（closing 的超大装饰数字与页眉不受影响）
+ *    · sign 非空     页脚追加 `@签名`，沿用模板页脚字号与颜色
+ *    · bg 非空       内页铺背景图 + 纸色 85% 蒙层（z 序：图 → 蒙层 → 装饰 → 文字）
+ *                    封面永远不铺（封面底图是 image 参数，另一个维度） */
 export function cardInner({ role, blocks = [], tpl, pal, index = 0, total = 1,
-  title = '', sub = '', author = '', image = '' }) {
+  title = '', sub = '', author = '', image = '', pn: showPn = true, sign = '', bg = '' }) {
   const st = pal;
   const vars = styleVars(st);
   const swiss = (!tpl.palette && st.fam === 'swiss') ? ' swiss' : '';
   const ttlBlock = blocks.find((b) => /^h[1-4]$/.test(b.type));
   const ttl = ttlBlock ? ttlBlock.text : '';
   const head = tpl.head ? tpl.head() : '';
-  const foot = tpl.foot ? tpl.foot(index, total) : '';
+  const foot = tpl.foot ? tpl.foot(index, total, { pn: showPn, sign }) : '';
+
+  /* 内页背景图（design §12.2）：只给内页，且只在支持背景的模板上。
+     85% 纸色蒙层 —— 内页是 52px 大面积正文，没法像封面那样只压文字带；
+     不抄竞品「原样铺满不参与压暗」，那等于把可读性交给运气。
+     z 序：bg(0) → mask(1) → grain(3) → 模板装饰(1/2) → 文字(4)。
+     ⚠️ 蒙层用 paper 色而非黑色：黑蒙层会把暖色模板洗成灰雾（§5 铁律 1 的坑）。 */
+  const bgLayer = (role !== 'cover' && bg && tplSupportsBg(tpl.id))
+    ? `<img class="lt-bg" src="${bg}" alt="" aria-hidden="true">
+    <div class="lt-bg-mask" style="background:${st.paper};opacity:.85"></div>`
+    : '';
 
   let bodyInner = '';
   if (role === 'cover') {
@@ -992,6 +1077,7 @@ export function cardInner({ role, blocks = [], tpl, pal, index = 0, total = 1,
   }
 
   return `<div class="card ${tpl.cls}${swiss}" style="${vars}">
+    ${bgLayer}
     <div class="grain"></div>
     ${head ? `<div class="lh">${head}</div>` : ''}
     ${bodyInner}

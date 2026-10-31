@@ -117,6 +117,7 @@ export async function buildStorySet(opts) {
   const {
     title = '', lead = '', body = '', author = '', image = '',
     longTpl = 'editorial', palKey = 'dune',
+    pn = true, sign = '', bg = '',
     render = renderPageDoc,
   } = opts;
 
@@ -125,6 +126,7 @@ export async function buildStorySet(opts) {
 
   const inner = buildLong(body, { tpl, pal });
   const truncated = inner.truncated || 0;
+  const manualBreaks = inner.manualBreaks || 0;
   const pages = [{ role: 'cover' }, ...inner];
   const results = [];
 
@@ -141,6 +143,9 @@ export async function buildStorySet(opts) {
       sub: p.role === 'cover' ? lead : '',
       author,
       image: p.role === 'cover' ? image : '',   // 内页不铺底图（design §6.0 原则 3）
+      pn,
+      sign,
+      bg,                                        // 内页背景图（§12.2，封面不受影响）
       baseUrl: BASE,
     });
     const r = await render(doc);
@@ -153,6 +158,7 @@ export async function buildStorySet(opts) {
   }
   Object.defineProperty(results, 'truncated', { value: truncated, enumerable: false });
   Object.defineProperty(results, 'totalPages', { value: pages.length, enumerable: false });
+  Object.defineProperty(results, 'manualBreaks', { value: manualBreaks, enumerable: false });
   return results;
 }
 

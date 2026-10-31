@@ -215,6 +215,18 @@
 .cv-lpal[disabled] { opacity: .35; cursor: not-allowed; }
 .cv-lpal-lock { margin-top: 8px; color: var(--text-soft); }
 
+/* ── §12.7 版式选项：页码 / 签名 / 内页背景图 ─────────────────────── */
+.cv-lopt-head { margin-top: 16px; }
+.cv-lopt-sub { margin-top: 12px; }
+.cv-longbg { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.cv-upload-sm {
+  width: auto; height: 32px; padding: 0 12px; flex: none;
+  font-size: 11.5px; border-style: solid;
+}
+.cv-upload-sm.cv-disabled { opacity: .42; cursor: not-allowed; border-style: dashed; }
+.cv-upload-sm.cv-disabled:hover { border-color: var(--border-hi); color: var(--text-soft); }
+.cv-longbg-lock { margin-top: 8px; color: var(--text-soft); }
+
 /* 尺寸 */
 .cv-size-row { display: flex; gap: 6px; }
 .cv-size {

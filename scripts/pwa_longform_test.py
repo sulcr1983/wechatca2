@@ -290,6 +290,107 @@ def main() -> int:
             page.click('.cv-ltpl[data-tpl="editorial"]')
             page.wait_for_timeout(500)
 
+            # ══ §12.7 四项增强验收（design §12.2–§12.5）══════════════════
+            print("  步骤5 版式选项", flush=True)
+
+            # ① 页码开关（§12.5）：默认开 → 关掉后 12 套逐套页码消失、页脚其余元素不动
+            pn_on = page.evaluate(
+                "() => [...document.querySelectorAll('#cv-cards-root .card .lf')]"
+                ".every(f => /\\d\\s*\\/\\s*\\d|^\\d{2}$|P\\. \\d{2}/.test(f.textContent))")
+            results.append(check("页码默认开（现状回归）", pn_on))
+            page.uncheck("#cv-long-pn")
+            page.wait_for_timeout(800)
+            pn_off = page.evaluate(
+                "() => [...document.querySelectorAll('#cv-cards-root .card .lf')]"
+                ".map(f => f.textContent.replace(/\\s+/g,''))")
+            # 关掉后页脚里不该再有「2 / 5」这类页码
+            still_has_pn = any(re.search(r"\d+\s*/\s*\d+|\bP\.\d{2}\b", t) for t in pn_off)
+            results.append(check("关页码后页脚无页码文本", not still_has_pn,
+                                 " | ".join(pn_off)[:60]))
+            page.check("#cv-long-pn")
+            page.wait_for_timeout(600)
+
+            # ② 签名（§12.4）：填入 → 每张内页页脚都有 @签名；封面不显示
+            page.fill("#cv-long-sign", "阿苏")
+            page.wait_for_timeout(900)
+            sign_stats = page.evaluate("""() => {
+              const cards = [...document.querySelectorAll('#cv-cards-root .card')];
+              const hasCover = !!cards[0]?.querySelector('.r-cover .lt-foot-sign');
+              const inner = cards.slice(1);
+              return { hasCover,
+                n: inner.length,
+                nSign: inner.filter(c => c.querySelector('.lf .lt-foot-sign')).length,
+                sample: inner[0]?.querySelector('.lf .lt-foot-sign')?.textContent || '' };
+            }""")
+            results.append(check(
+                f"签名出现在全部 {sign_stats['n']} 张内页页脚（封面不显示）",
+                sign_stats["nSign"] == sign_stats["n"] and not sign_stats["hasCover"]
+                and "@阿苏" in sign_stats["sample"],
+                str(sign_stats)[:80]))
+            page.fill("#cv-long-sign", "")
+            page.wait_for_timeout(700)
+
+            # ③ 强制分页符（§12.3）：--- 独立成段即分页
+            # ⚠️ 长文输入的第一行会被 extractStory 当**封面标题**，正文 = 其余行。
+            #    所以分页符用例必须先给一行标题，否则第一段会被吃掉（实测踩到）。
+            base_pages = page.locator("#cv-deck .cv-slot").count()
+            page.fill("#cv-long-text",
+                      "三个下午\n\n第一段内容。\n\n---\n\n第二段内容。\n\n---\n\n第三段内容。")
+            page.wait_for_timeout(1200)
+            brk_pages = page.locator("#cv-deck .cv-slot").count()
+            roles_brk = page.evaluate(
+                "() => [...document.querySelectorAll('#cv-deck .cv-slot-role')].map(e => e.textContent)")
+            texts_brk = page.evaluate(
+                "() => [...document.querySelectorAll('#cv-deck .body')]"
+                ".map(b => b.textContent.replace(/\\s+/g,'').slice(0,20))")
+            print(f"  （诊断）分页符用例实际页: {list(zip(roles_brk, texts_brk))}", flush=True)
+            # 期望：封面 + 3 段成页（≥3 页），且正文里 3 段都在（不被合并/丢失）
+            joined = "".join(texts_brk)
+            results.append(check(
+                f"分页符生效（{brk_pages} 页，角色 {'/'.join(roles_brk)}）",
+                brk_pages >= 3 and all(s in joined for s in ("第一段", "第二段", "第三段")),
+                f"原 {base_pages} 页"))
+            # 规则①：连续两个只分一次（不产生空页）
+            page.fill("#cv-long-text", "标题\n\nA。\n\n---\n\n---\n\nB 段内容。")
+            page.wait_for_timeout(1000)
+            two_brk = page.locator("#cv-deck .cv-slot").count()
+            results.append(check("连续两个分页符只分一次（不产生空页）", two_brk == 3, f"{two_brk} 页"))
+
+            # ④ 内页背景图（§12.2）：6 套可用 / 6 套禁用
+            page.fill("#cv-long-text", ARTICLE)
+            page.wait_for_timeout(1200)
+            bg_avail = page.evaluate(
+                "() => !document.getElementById('cv-longbg-file').disabled")
+            results.append(check("editorial 支持内页背景图", bg_avail))
+            page.click('.cv-ltpl[data-tpl="night"]')
+            page.wait_for_timeout(700)
+            bg_locked = page.evaluate(
+                "() => document.getElementById('cv-longbg-file').disabled")
+            lock_txt = page.inner_text("#cv-longbg-lock") if page.is_visible("#cv-longbg-lock") else ""
+            results.append(check("night 禁用内页背景图 + 提示自带背景",
+                                 bg_locked and "自带" in lock_txt, lock_txt[:40]))
+            page.click('.cv-ltpl[data-tpl="editorial"]')
+            page.wait_for_timeout(600)
+
+            # 上传一张背景图，验证内页真的铺上 + 蒙层存在
+            page.set_input_files("#cv-longbg-file", str(ROOT / "docs" / "brand" / "logo-source.png"))
+            page.wait_for_timeout(1500)
+            bg_stats = page.evaluate("""() => {
+              const cards = [...document.querySelectorAll('#cv-cards-root .card')];
+              const inner = cards.slice(1);
+              return { n: inner.length,
+                nBg: inner.filter(c => c.querySelector('.lt-bg')).length,
+                nMask: inner.filter(c => c.querySelector('.lt-bg-mask')).length,
+                coverHasBg: !!cards[0]?.querySelector('.lt-bg') };
+            }""")
+            results.append(check(
+                f"内页铺上背景图 + 纸色蒙层（{bg_stats['nBg']}/{bg_stats['n']} 张，封面不受影响）",
+                bg_stats["nBg"] == bg_stats["n"] and bg_stats["nMask"] == bg_stats["n"]
+                and not bg_stats["coverHasBg"],
+                str(bg_stats)[:80]))
+            page.click("#cv-longbg-clear")
+            page.wait_for_timeout(700)
+
             page.screenshot(path=str(OUT / "pwa-longform-test.png"), full_page=True)
 
             real_errors = [e for e in errors if "Failed to fetch" not in e]
