@@ -111,6 +111,7 @@ python scripts/doc_sync_check.py    # 文档同步（本仓库有机检，改 .m
 - `#btn-cover` 的行为对齐 `cover/index.js:101-121`：未按下＝「小红书标题图生成」，按下＝「公众号排版」（当前默认按下）。点它会切到一块占位区，说明「原型不覆盖公众号排版页」
 - **「标题图 / 长文图文」这两条路径下移了一层**，变成 `<div class="pathbar" id="pathbar">` 二级行（`style.css` 里没有它，是本方案新增）
   - 为什么：真系统的 `#btn-cover` 已经是「公众号排版 ↔ 小红书标题图」的总开关；这两条是封面页**内部**的下一级选择，不该占全局导航位
+  - ⚠️ **本决策已被推翻（2026-10-31 项目所有者拍板）**：两条路径升格为两个平级顶级模块，顶栏三 tab 导航，pathbar 废除 —— 见 [`design-module-split-ia.md`](design-module-split-ia.md) §1 R3/R5/R6 与 §3.1
 - `.wrap` 高度改为 `calc(100vh - var(--top-h) - var(--path-h))`（`--top-h:56px` 照抄 `style.css:31`）
 
 **375px 实测结果**（`node scripts/cdp_measure.mjs file:///E:/test/wechatca2/docs/prototypes/xhs-studio-redesign.html 375 812 scripts/snippets/nav-375.js`）：

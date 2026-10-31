@@ -470,13 +470,14 @@ textarea.ta:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px var(--
 
 /* ── 375 响应式：三 tab 短文案 + 单栏 ──────────────────────────── */
 @media (max-width: 640px) {
-  .brand-tail, .brand-sub { display: none; }
-  .nav-btn { font-size: 0; padding: 0 10px; height: 28px; }
-  .nav-btn::after { font-size: 12px; }
-  #btn-editor::after { content: "排版"; }
-  #btn-cover::after { content: "标题图"; }
-  #btn-longform::after { content: "长图文"; }
-  .nav-btn::before { width: 5px; height: 5px; margin-right: 4px; }
+  /* 375 策略（用户拍板：tab 全称不可省略）——不缩词，缩周围：
+     藏 brand 文字/副标/引擎徽标，导出并入「更多」（落地时迁移），三 tab 保持全称 */
+  .brand, .brand-tail, .brand-sub, .engine-badge, #btn-export-demo { display: none; }
+  .top { padding: 0 10px; gap: 6px; }
+  .top-left { gap: 6px; }
+  .top-right { gap: 4px; }
+  .nav-btn { font-size: 11px; padding: 0 9px; height: 30px; }
+  .nav-btn::before { width: 5px; height: 5px; margin-right: 3px; }
   .stage3 { display: flex; flex-direction: column; height: auto; }
   .col { overflow: visible; }
   .col-m { display: contents; }
@@ -501,14 +502,14 @@ textarea.ta:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px var(--
     <span class="brand">SuperSu<span class="brand-tail">公众号编辑器</span></span>
     <!-- 三导航 tab（design-module-split-ia.md §3.1）：常驻 + 当前页高亮。
          #btn-cover 重定义：固定文案「标题图」，不再是两态文字按钮 -->
-    <button class="nav-btn" id="btn-editor" aria-pressed="true">排版</button>
-    <button class="nav-btn" id="btn-cover" aria-pressed="false">标题图</button>
-    <button class="nav-btn" id="btn-longform" aria-pressed="false">长图文</button>
+    <button class="nav-btn" id="btn-editor" aria-pressed="true">公众号排版</button>
+    <button class="nav-btn" id="btn-cover" aria-pressed="false">小红书标题图</button>
+    <button class="nav-btn" id="btn-longform" aria-pressed="false">小红书长图文</button>
     <span class="brand-sub">本地排版 · 数据不出浏览器</span>
   </div>
   <div class="top-right">
     <span class="engine-badge"><i></i><span>引擎已就绪</span></span>
-    <button class="icon-btn" title="导出与分发">导出 ▾</button>
+    <button class="icon-btn" id="btn-export-demo" title="导出与分发">导出 ▾</button>
     <button class="icon-btn" title="AI 工具">AI</button>
     <button class="icon-btn" title="更多">⋯</button>
   </div>
@@ -627,24 +628,7 @@ textarea.ta:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px var(--
     <div class="stage3">
       <div class="col col-l">
         <div class="sec">
-          <div class="sec-h"><span class="sec-t">① 封面配图</span><span class="hint">给整套的封面用</span></div>
-          <div class="modes3" id="f-modes">
-            <button class="mode-b" data-mode="search" aria-pressed="true"><b>搜一张好图</b><span>封面底图 · 特色</span></button>
-            <button class="mode-b" data-mode="upload"><b>传一张</b><span>用自己的图</span></button>
-            <button class="mode-b" data-mode="color"><b>不要图</b><span>纯色封面</span></button>
-          </div>
-          <div class="search-row" id="f-searchrow">
-            <input class="field" id="f-q" value="ocean waves" placeholder="关键词（从标题自动猜，可改）">
-            <button class="search-go">搜索</button>
-          </div>
-          <div class="stock"><span class="pill ok">Pexels ✓</span>
-            <span class="pill no">Pixabay 未配置</span>
-            <button class="setkey">填 Key</button></div>
-          <div class="skgrid"><div class="sk"></div><div class="sk"></div><div class="sk"></div>
-            <div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
-        </div>
-        <div class="sec">
-          <div class="sec-h"><span class="sec-t">② 整篇文章</span><button class="mini">用正文</button></div>
+          <div class="sec-h"><span class="sec-t">① 整篇文章</span><button class="mini">用正文</button></div>
           <textarea class="ta" id="f-text" rows="12" style="height:260px"
             placeholder="把文章粘到这里，右侧实时分页成一套图文。&#10;第一行作封面标题；单独一行 --- 可强制分页">周末去海边，我把手机调成了飞行模式
 
@@ -663,6 +647,23 @@ textarea.ta:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px var(--
 
 如果你也想试试，就从下一个周末开始。把手机调成飞行模式，找一片听得见风的地方，坐十分钟，什么也不做。你会发现自己一直没有漏掉什么，真正漏掉的，是那些没有被你看见的下午。</textarea>
           <span class="count" id="f-count">0 字</span>
+        </div>
+        <div class="sec">
+          <div class="sec-h"><span class="sec-t">② 封面配图</span><span class="hint">给整套的封面用</span></div>
+          <div class="modes3" id="f-modes">
+            <button class="mode-b" data-mode="search" aria-pressed="true"><b>搜一张好图</b><span>封面底图 · 特色</span></button>
+            <button class="mode-b" data-mode="upload"><b>传一张</b><span>用自己的图</span></button>
+            <button class="mode-b" data-mode="color"><b>不要图</b><span>纯色封面</span></button>
+          </div>
+          <div class="search-row" id="f-searchrow">
+            <input class="field" id="f-q" value="ocean waves" placeholder="关键词（从标题自动猜，可改）">
+            <button class="search-go">搜索</button>
+          </div>
+          <div class="stock"><span class="pill ok">Pexels ✓</span>
+            <span class="pill no">Pixabay 未配置</span>
+            <button class="setkey">填 Key</button></div>
+          <div class="skgrid"><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+            <div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
         </div>
         <div class="sec">
           <button class="gen" id="f-gen">导出一整套 <small id="f-gen-n">2 张 PNG</small></button>
