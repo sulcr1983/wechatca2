@@ -414,7 +414,7 @@ function renderGallery() {
 
 /* ── 九宫格切图（B2 #7；只归标题图模块 —— 切的是「一张图」）── */
 let nineTimer = null;
-const nineState = { gap: 6, order: 'row', src: '', tiles: [] };
+const nineState = { gap: 6, order: 'row', src: '', tiles: [], seq: 0 };
 
 function setNineStatus(msg, isErr = false) {
   const el = $('cv-nine-status');
@@ -437,14 +437,19 @@ function renderNineGrid() {
 
 async function regenerateNine() {
   if (!nineState.src) return;
+  const seq = ++nineState.seq;
+  setNineStatus('正在切图…');
   try {
-    const old = nineState.tiles;
-    nineState.tiles = await splitGrid(nineState.src, {
-      gap: nineState.gap, order: nineState.order,
-    });
-    if (old) releaseTiles(old);
+    const r = await splitGrid(nineState.src, { gap: nineState.gap, order: nineState.order });
+    if (seq !== nineState.seq) { releaseTiles(r.tiles); return; }
+    releaseTiles(nineState.tiles);
+    nineState.tiles = r.tiles;
     renderNineGrid();
+    setNineStatus(`${r.tiles.length} 张 · 每张 ${r.cell}×${r.cell}px（按 ${r.side}×${r.side} 居中裁剪）`);
   } catch (err) {
+    releaseTiles(nineState.tiles);
+    nineState.tiles = [];
+    renderNineGrid();
     setNineStatus(String(err.message || err), true);
   }
 }
@@ -459,8 +464,15 @@ function openNine(src) {
 }
 
 function closeNine() {
-  const modal = $('cv-nine');
-  if (modal) modal.hidden = true;
+  const box = $('cv-nine');
+  if (box) box.hidden = true;
+  nineState.seq += 1;              // 让在途的切图结果作废
+  releaseTiles(nineState.tiles);
+  nineState.tiles = [];
+  nineState.src = null;
+  const grid = $('cv-nine-grid');
+  if (grid) grid.textContent = '';
+  setNineStatus('');
 }
 
 async function downloadNineZip() {

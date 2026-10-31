@@ -1,7 +1,7 @@
 {
   "version": "1.11.0",
-  "generatedAt": "2026-10-31T16:45:58+08:00",
-  "totalCommits": 278,
+  "generatedAt": "2026-10-31T16:59:07+08:00",
+  "totalCommits": 279,
   "releases": [
     {
       "version": "1.11.0",
@@ -17,7 +17,7 @@
       "counts": {
         "added": 3,
         "changed": 5,
-        "fixed": 2,
+        "fixed": 3,
         "other": 2
       },
       "groups": [
@@ -101,6 +101,14 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "整套 ZIP 只打出封面 1 张 —— 内页角色名变更后过滤条件失效",
+              "scope": "longform",
+              "hash": "af3536b",
+              "date": "2026-10-31T16:46:47+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "补 1.10.0 / 1.11.0 版本切点与手写亮点（发版漏了这步）",
               "scope": "changelog",
