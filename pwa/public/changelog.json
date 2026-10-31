@@ -1,7 +1,7 @@
 {
   "version": "1.14.0",
-  "generatedAt": "2026-10-31T22:02:07+08:00",
-  "totalCommits": 293,
+  "generatedAt": "2026-11-01T01:15:36+08:00",
+  "totalCommits": 295,
   "releases": [
     {
       "version": "1.14.0",
@@ -15,7 +15,7 @@
       ],
       "counts": {
         "added": 1,
-        "other": 2
+        "other": 4
       },
       "groups": [
         {
@@ -36,6 +36,22 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "导出菜单断言对齐门控（5 项 DOM / 4 项可见 / 推送项未配置必须隐藏）",
+              "scope": "online",
+              "hash": "291e881",
+              "date": "2026-10-31T22:30:55+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "v1.16.1 线上已同步（b344，含 1.14.0 推送高级功能）",
+              "scope": "state",
+              "hash": "776b770",
+              "date": "2026-10-31T22:26:09+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "导出菜单断言改为可见项计数（推送项为门控解锁的高级功能）",
               "scope": "export",
