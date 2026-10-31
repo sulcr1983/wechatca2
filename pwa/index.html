@@ -149,13 +149,15 @@
     <div class="pane-head">
       <span class="pane-title">内容</span>
       <div class="pane-actions">
+        <button class="ghost-btn" id="btn-insert-image" title="插入本地图片（或直接 Ctrl+V 粘贴截图）">插图</button>
+        <input type="file" id="file-image" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
         <button class="ghost-btn" id="btn-demo">看示例</button>
         <button class="ghost-btn" id="btn-clear">清空</button>
         <span class="pane-meta" id="char-count">0 字</span>
       </div>
     </div>
     <textarea id="input" class="input" spellcheck="false"
-      placeholder="把文章粘进来。
+      placeholder="把文章粘进来。截图也可以直接 Ctrl+V 粘贴，或点上方「插图」上传。
 
 第一行会自动当作标题，前后空行的短行会变成小标题，
 「-」开头变列表，「>」开头变引用，Git 命令会自动变代码块。

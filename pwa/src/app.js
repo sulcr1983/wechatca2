@@ -8,6 +8,7 @@
 import { createEngine } from './bridge.js';
 import { renderLight } from './light.js';
 import { scanExternalImages, localizeImages, failureSummary } from './images.js';
+import { insertImageFiles } from './editor-images.js';
 
 /* ── 存储键 ─────────────────────────────────────────────────── */
 const LS = {
@@ -881,7 +882,26 @@ async function copyRich() {
   toast('浏览器不让自动复制，请用右键菜单：全选预览 → 复制', 'err');
 }
 
-/** 复制后的如实反馈：公众号只认图床 URL，data URI 与外链都不算「已完成」 */
+/** 图片插入入口（粘贴 / 插图按钮共用）：压缩 → 插入 → 重排 → 如实反馈。 */
+async function insertEditorImages(files) {
+  const { ok, fail, bytes } = await insertImageFiles(files, $('input'));
+  if (ok) {
+    scheduleRender();
+    saveDraft($('input').value);
+    toast(
+      fail
+        ? `已插入 ${ok} 张（约 ${fmtKb(bytes)}），${fail} 张失败（见控制台）`
+        : `已插入 ${ok} 张图（压缩后约 ${fmtKb(bytes)}）。预览/长图导出可用；复制到公众号会丢图，推送草稿箱才会自动转微信图床`,
+      fail ? 'err' : 'ok',
+    );
+  } else if (fail) {
+    toast(`图片插入失败（共 ${fail} 张），详情见控制台`, 'err');
+  }
+}
+
+function fmtKb(n) { return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.round(n / 1024)}KB`; }
+
+/* 复制后的如实反馈：公众号只认图床 URL，data URI 与外链都不算「已完成」 */
 function toastAfterCopy() {
   const left = scanExternalImages(lastHtml).length;
   const embedded = /data:image\//i.test(lastHtml);
@@ -1257,8 +1277,24 @@ function bindUI() {
   });
   window.addEventListener('pagehide', () => saveDraft(input.value));
 
-  // 粘贴后立刻排版，不等打字防抖
-  input.addEventListener('paste', () => { setTimeout(scheduleRender, 30); });
+  // 粘贴：纯文本照旧立刻排版；带图片（截图/复制的图）则拦截并压缩插入（2026-10-31）
+  input.addEventListener('paste', (e) => {
+    const items = [...(e.clipboardData?.items || [])];
+    const imgFiles = items.filter((it) => it.kind === 'file' && it.type.startsWith('image/'))
+      .map((it) => it.getAsFile()).filter(Boolean);
+    if (!imgFiles.length) { setTimeout(scheduleRender, 30); return; }
+    e.preventDefault();
+    insertEditorImages(imgFiles);
+  });
+
+  // 「插图」按钮：本地图片文件上传（多选），与粘贴走同一条压缩管线
+  const fileInput = $('file-image');
+  $('btn-insert-image').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const files = [...fileInput.files];
+    fileInput.value = '';   // 允许下次选同一张图
+    if (files.length) insertEditorImages(files);
+  });
 
   $('btn-copy').addEventListener('click', copyRich);
   const emptyDemo = $('btn-empty-demo');
