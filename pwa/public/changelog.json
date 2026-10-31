@@ -1,7 +1,7 @@
 {
   "version": "1.14.0",
-  "generatedAt": "2026-11-01T01:31:40+08:00",
-  "totalCommits": 298,
+  "generatedAt": "2026-11-01T01:32:13+08:00",
+  "totalCommits": 299,
   "releases": [
     {
       "version": "1.14.0",
@@ -15,6 +15,7 @@
       ],
       "counts": {
         "added": 2,
+        "fixed": 1,
         "other": 6
       },
       "groups": [
@@ -35,6 +36,20 @@
               "scope": "push",
               "hash": "2116b5f",
               "date": "2026-10-31T21:33:35+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "upgrade-insecure-requests 只在强制模式下追加",
+              "scope": "csp",
+              "hash": "8341e32",
+              "date": "2026-11-01T01:31:50+08:00",
               "breaking": false,
               "dev": false
             }
