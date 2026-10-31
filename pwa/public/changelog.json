@@ -1,7 +1,7 @@
 {
   "version": "1.14.0",
-  "generatedAt": "2026-11-01T01:15:36+08:00",
-  "totalCommits": 295,
+  "generatedAt": "2026-11-01T01:25:58+08:00",
+  "totalCommits": 297,
   "releases": [
     {
       "version": "1.14.0",
@@ -14,14 +14,22 @@
         "本机小工具 scripts/push_proxy.py：电脑上运行一条命令即可，不保存任何密码和文章，关掉窗口就停"
       ],
       "counts": {
-        "added": 1,
-        "other": 4
+        "added": 2,
+        "other": 5
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "审计 P0 安全响应头 + P1 本机数据备份/恢复",
+              "scope": "security+backup",
+              "hash": "b878d7b",
+              "date": "2026-11-01T01:18:49+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "一键推送公众号草稿箱（高级功能，默认隐藏）",
               "scope": "push",
@@ -36,6 +44,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "同步构建产物（STATE / changelog）",
+              "scope": "build",
+              "hash": "656a7ab",
+              "date": "2026-11-01T01:25:41+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "导出菜单断言对齐门控（5 项 DOM / 4 项可见 / 推送项未配置必须隐藏）",
               "scope": "online",
