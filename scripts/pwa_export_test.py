@@ -97,8 +97,11 @@ def main() -> int:
             check("导出入口存在", page.is_visible("#btn-export"))
             page.click("#btn-export")
             page.wait_for_timeout(250)
-            items = page.locator("#menu-export button[data-exp]").count()
-            check("导出菜单有 4 项", items == 4, f"{items} 项")
+            # 可见项恒为 4（长图/HTML/MD/ZIP）；第 5 项「推送草稿箱」是高级功能，
+            # 只有配置公众号推送后才解锁（2026-10-31 门控），未配置必须保持隐藏
+            items = page.locator("#menu-export button[data-exp]:visible").count()
+            check("导出菜单可见项 4（推送项未解锁）", items == 4, f"{items} 项")
+            check("推送项存在但默认隐藏", page.locator("#btn-push").count() == 1 and page.is_hidden("#btn-push"))
             page.keyboard.press("Escape")
             page.wait_for_timeout(150)
             check("Esc 关闭导出菜单", page.is_hidden("#menu-export"))
