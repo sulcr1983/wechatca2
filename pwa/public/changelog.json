@@ -1,7 +1,7 @@
 {
   "version": "1.14.0",
-  "generatedAt": "2026-11-01T01:25:58+08:00",
-  "totalCommits": 297,
+  "generatedAt": "2026-11-01T01:31:40+08:00",
+  "totalCommits": 298,
   "releases": [
     {
       "version": "1.14.0",
@@ -15,7 +15,7 @@
       ],
       "counts": {
         "added": 2,
-        "other": 5
+        "other": 6
       },
       "groups": [
         {
@@ -44,6 +44,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "重建 dist（含安全响应头）",
+              "scope": "build",
+              "hash": "5337a12",
+              "date": "2026-11-01T01:26:01+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "同步构建产物（STATE / changelog）",
               "scope": "build",

@@ -694,13 +694,18 @@ const CSP_POLICY = [
   "base-uri 'self'",
   "form-action 'none'",
   "frame-ancestors 'none'",
-  // 显式声明升级不安全请求，避免混合内容
-  "upgrade-insecure-requests",
+  // ⚠️ upgrade-insecure-requests 只在强制模式下合法；Report-Only 下浏览器会
+  //    每条请求都报一条 "directive is ignored" 错误（2026-11-01 线上实测踩到），
+  //    所以只在 CSP_ENFORCE=true 时才追加（见下方拼装）
 ].join('; ');
 
 // 灰度开关：true = 强制拦截（Enforce），false = 只上报（Report-Only）
 // 2026-11-01 首轮发版用 Report-Only，观察 1~2 天无 report 后再切 true
 const CSP_ENFORCE = false;
+
+const CSP_FULL = CSP_ENFORCE
+  ? CSP_POLICY + "; upgrade-insecure-requests"
+  : CSP_POLICY;
 
 const CSP_HEADER = CSP_ENFORCE
   ? 'Content-Security-Policy'
@@ -712,7 +717,7 @@ const HEADERS_TXT = `# 由 pwa/scripts/build.mjs 生成（2026-10-18 增量更�
 
 # ── 安全响应头（全局，所有路径）────────────────────────────────
 /*
-  ${CSP_HEADER}: ${CSP_POLICY}
+  ${CSP_HEADER}: ${CSP_FULL}
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
