@@ -1,7 +1,7 @@
 {
   "version": "1.12.0",
-  "generatedAt": "2026-10-31T17:08:35+08:00",
-  "totalCommits": 281,
+  "generatedAt": "2026-10-31T17:09:10+08:00",
+  "totalCommits": 282,
   "releases": [
     {
       "version": "1.12.0",
@@ -18,7 +18,7 @@
         "added": 1,
         "changed": 3,
         "fixed": 4,
-        "other": 1
+        "other": 2
       },
       "groups": [
         {
@@ -107,6 +107,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "1.12.0 切点 + 手写亮点（1.11.0 until 收口）",
+              "scope": "changelog",
+              "hash": "1f47c7e",
+              "date": "2026-10-31T17:08:52+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "同步线上构建号 b320（更新记录修正已上线）",
               "scope": "state",
