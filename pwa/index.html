@@ -51,16 +51,17 @@
       <button data-exp="html">HTML 文件<span class="sub">留档 · 交稿</span></button>
       <button data-exp="md">Markdown<span class="sub">源文件</span></button>
       <button data-exp="images">图片 ZIP<span class="sub">正文全部图片</span></button>
+      <button data-exp="push" id="btn-push" class="mp-only" hidden>推送草稿箱<span class="sub">一键进公众号后台（高级）</span></button>
     </div>
     <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
     <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
       <button data-act="export-menu">导出与分发</button>
       <button data-act="ai-tools">AI 工具</button>
-      <button data-act="ai-tools">AI 工具</button>
       <button data-act="draft">恢复草稿</button>
       <button data-act="clear-draft">清空草稿</button>
       <button data-act="clear-all">清除本地数据</button>
+      <button data-act="mp-setup">高级：公众号推送</button>
       <button data-act="update">更新记录</button>
       <button data-act="about">关于 / 源码</button>
     </div>
@@ -149,7 +150,7 @@
     <div class="pane-head">
       <span class="pane-title">内容</span>
       <div class="pane-actions">
-        <button class="ghost-btn" id="btn-insert-image" title="插入本地图片（或直接 Ctrl+V 粘贴截图）">插图</button>
+        <button class="ghost-btn mp-only" id="btn-insert-image" title="插入本地图片（或直接 Ctrl+V 粘贴截图）" hidden>插图</button>
         <input type="file" id="file-image" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
         <button class="ghost-btn" id="btn-demo">看示例</button>
         <button class="ghost-btn" id="btn-clear">清空</button>
@@ -294,6 +295,35 @@
 
 <!-- ── toast ──────────────────────────────────────────────────── -->
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- ── 公众号推送设置（高级功能，⋯ 菜单进入） ─────────────────── -->
+<div class="dialog-mask" id="mp-mask" hidden></div>
+<div class="dialog" id="mp-dialog" hidden role="dialog" aria-modal="true">
+  <div class="dialog-head">
+    <div class="dialog-title"><b>公众号推送（高级功能）</b></div>
+    <button class="icon-btn" id="btn-mp-close" aria-label="关闭">×</button>
+  </div>
+  <div class="dialog-body">
+    <p class="mp-note">把排好的文章（含贴图）一键推进公众号「草稿箱」。需要在你自己电脑上运行本机代理
+      <code>python scripts/push_proxy.py</code>，并把它的出口 IP 填进公众号后台的 IP 白名单。
+      凭证只存本机浏览器，代理不保存任何数据。</p>
+    <label class="ai-field">代理地址（本机脚本默认即是）
+      <input id="mp-proxy" type="text" placeholder="http://127.0.0.1:8787" spellcheck="false">
+    </label>
+    <label class="ai-field">AppID（公众号后台 → 设置与开发 → 基本配置）
+      <input id="mp-appid" type="text" placeholder="wx 开头的 AppID" spellcheck="false">
+    </label>
+    <label class="ai-field">AppSecret（只存本机，代理不落盘）
+      <input id="mp-secret" type="password" placeholder="基本配置里的 AppSecret" spellcheck="false">
+    </label>
+    <div class="mp-actions">
+      <button class="ghost-btn" id="btn-mp-save">保存</button>
+      <button class="ghost-btn" id="btn-mp-test">测试连接</button>
+      <button class="ghost-btn" id="btn-mp-forget" title="清除本机保存的凭证并隐藏推送功能">清除配置</button>
+    </div>
+    <div class="mp-status" id="mp-status" hidden></div>
+  </div>
+</div>
 
 <!-- 轻量即时预览：12KB 的 marked（不等 5MB 的 Python 引擎） -->
 <script src="./vendor/marked.min.js" defer></script>

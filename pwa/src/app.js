@@ -9,6 +9,7 @@ import { createEngine } from './bridge.js';
 import { renderLight } from './light.js';
 import { scanExternalImages, localizeImages, failureSummary } from './images.js';
 import { insertImageFiles } from './editor-images.js';
+import { loadCfg, saveCfg, isConfigured, testConnection, pushDraft, wechatErrMsg } from './push.js';
 
 /* ── 存储键 ─────────────────────────────────────────────────── */
 const LS = {
@@ -901,6 +902,101 @@ async function insertEditorImages(files) {
 
 function fmtKb(n) { return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.round(n / 1024)}KB`; }
 
+/* ── 公众号推送（高级功能，默认隐藏） ─────────────────────────
+ * 门控规则（用户拍板 2026-10-31）：只有配置了 AppID/AppSecret，导出菜单才出现
+ * 「推送草稿箱」、编辑器才出现「插图」；未配置时贴图只提示一次配置入口。 */
+
+function refreshMpUi() {
+  const on = isConfigured();
+  document.querySelectorAll('.mp-only').forEach((el) => { el.hidden = !on; });
+}
+
+let mpHintShown = false;
+function hintMpOnce() {
+  if (mpHintShown) return;
+  mpHintShown = true;
+  toast('检测到截图。贴图功能需先配置公众号推送：右上「⋯」→ 高级：公众号推送', 'err');
+}
+
+function openMpDialog() {
+  const cfg = loadCfg();
+  $('mp-proxy').value = cfg.proxyUrl;
+  $('mp-appid').value = cfg.appid;
+  $('mp-secret').value = cfg.secret;
+  $('mp-status').hidden = true;
+  $('mp-dialog').hidden = false;
+  $('mp-mask').hidden = false;
+}
+function closeMpDialog() {
+  $('mp-dialog').hidden = true;
+  $('mp-mask').hidden = true;
+}
+
+function bindMpDialog() {
+  $('btn-mp-close').addEventListener('click', closeMpDialog);
+  $('mp-mask').addEventListener('click', closeMpDialog);
+
+  $('btn-mp-save').addEventListener('click', () => {
+    const appid = $('mp-appid').value.trim();
+    const secret = $('mp-secret').value.trim();
+    if (!appid || !secret) { toast('AppID 和 AppSecret 都要填，保存后贴图与推送才会出现', 'err'); return; }
+    saveCfg({ proxyUrl: $('mp-proxy').value.trim() || 'http://127.0.0.1:8787', appid, secret });
+    refreshMpUi();
+    toast('已保存。插图与「推送草稿箱」已解锁，建议先点「测试连接」', 'ok');
+  });
+
+  $('btn-mp-forget').addEventListener('click', () => {
+    saveCfg({ proxyUrl: $('mp-proxy').value.trim(), appid: '', secret: '' });
+    refreshMpUi();
+    toast('已清除公众号配置，推送与贴图功能已隐藏', 'ok');
+  });
+
+  $('btn-mp-test').addEventListener('click', async () => {
+    // 未保存也允许直接测：先用输入框里的值
+    const appid = $('mp-appid').value.trim();
+    const secret = $('mp-secret').value.trim();
+    if (appid && secret) saveCfg({ proxyUrl: $('mp-proxy').value.trim() || 'http://127.0.0.1:8787', appid, secret });
+    refreshMpUi();
+
+    const box = $('mp-status');
+    box.hidden = false;
+    box.textContent = '正在连接本机代理…';
+    try {
+      const r = await testConnection();
+      if (r.ok) {
+        box.innerHTML = `✅ 连接成功。出口 IP：<b>${r.ip}</b>（已确认在白名单内），Token 有效期 ${Math.round((r.expiresIn || 7200) / 60)} 分钟`;
+        box.className = 'mp-status ok';
+      } else if (r.errcode === 40164) {
+        box.innerHTML = `⚠️ 代理正常，但出口 IP <b>${r.ip}</b> 不在白名单。<br>请到公众号后台「设置与开发 → 基本配置 → IP白名单」添加 <b>${r.ip}</b> 后再点测试`;
+        box.className = 'mp-status warn';
+      } else if (r.errcode === -1) {
+        box.textContent = `❌ 连不上本机代理：${r.errmsg}。请先运行 python scripts/push_proxy.py`;
+        box.className = 'mp-status warn';
+      } else {
+        box.textContent = `❌ ${wechatErrMsg(r)}`;
+        box.className = 'mp-status warn';
+      }
+    } catch (e) {
+      box.textContent = `❌ ${e.message}`;
+      box.className = 'mp-status warn';
+    }
+  });
+}
+
+/** 推送主流程：从导出菜单触发，进度全程 toast 汇报。 */
+async function runPush() {
+  if (!lastHtml) { toast('先排版再推送', 'err'); return; }
+  const title = $('wx-title')?.textContent || '未命名文章';
+  toast('开始推送：上传正文图 → 封面 → 建草稿…');
+  try {
+    const t0 = Date.now();
+    const r = await pushDraft({ title, contentHtml: lastHtml, digest: '' });
+    toast(`已推送到公众号草稿箱（${r.images} 张图，${Math.round((Date.now() - t0) / 1000)}s）。去公众号后台「草稿箱」查看并群发`, 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
 /* 复制后的如实反馈：公众号只认图床 URL，data URI 与外链都不算「已完成」 */
 function toastAfterCopy() {
   const left = scanExternalImages(lastHtml).length;
@@ -1277,17 +1373,20 @@ function bindUI() {
   });
   window.addEventListener('pagehide', () => saveDraft(input.value));
 
-  // 粘贴：纯文本照旧立刻排版；带图片（截图/复制的图）则拦截并压缩插入（2026-10-31）
+  // 粘贴：纯文本照旧立刻排版；带图片（截图/复制的图）则拦截并压缩插入（2026-10-31）。
+  // 贴图是推送闭环的入口 → 未配置公众号推送时功能不出现（产品决策：避免「贴了图复制必丢」的坑），
+  // 只给一次性提示引导到配置入口
   input.addEventListener('paste', (e) => {
     const items = [...(e.clipboardData?.items || [])];
     const imgFiles = items.filter((it) => it.kind === 'file' && it.type.startsWith('image/'))
       .map((it) => it.getAsFile()).filter(Boolean);
     if (!imgFiles.length) { setTimeout(scheduleRender, 30); return; }
     e.preventDefault();
+    if (!isConfigured()) { hintMpOnce(); return; }
     insertEditorImages(imgFiles);
   });
 
-  // 「插图」按钮：本地图片文件上传（多选），与粘贴走同一条压缩管线
+  // 「插图」按钮：本地图片文件上传（多选），与粘贴走同一条压缩管线（已由配置门控显示）
   const fileInput = $('file-image');
   $('btn-insert-image').addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
@@ -1498,13 +1597,12 @@ function bindUI() {
     }
     if (act === 'ai-tools') $('btn-ai')?.click();   // 窄屏 AI 按钮收进更多菜单
 
-    if (act === 'ai-tools') $('btn-ai')?.click();   // 窄屏 AI 按钮收进更多菜单
-
     if (act === 'export-menu') {                      // 窄屏「导出 ▾」藏进更多菜单后的可达路径
 
       $('btn-export')?.click();
     }
     if (act === 'clear-all') clearAll();
+    if (act === 'mp-setup') openMpDialog();
     if (act === 'update') $('btn-update')?.click();   // 移动端浮动入口隐藏，从「更多」进
     if (act === 'about') openAbout();
   });
@@ -1571,6 +1669,9 @@ function bindUI() {
           ? `已导出 ${r.count} 张图片；${fails.length} 张跳过：${failureSummary(fails)}`
           : `已导出 ${r.count} 张图片（${kb(r.bytes)}）`,
         fails.length ? 'err' : 'ok');
+      } else if (kind === 'push') {
+        // 一键推送公众号草稿箱（高级功能）：正文图自动转微信图床 + 封面 + 建草稿
+        await runPush();
       }
     } catch (err) {
       toast('导出失败：' + ((err && err.message) || err), 'err');
@@ -1590,8 +1691,12 @@ function bindUI() {
   // 快捷键
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doRender(); }
-    if (e.key === 'Escape') { closeDrawer(); closeAbout(); if (!$('menu-export').hidden) { $('menu-export').hidden = true; $('btn-export').setAttribute('aria-expanded', 'false'); } }
+    if (e.key === 'Escape') { closeDrawer(); closeAbout(); closeMpDialog(); if (!$('menu-export').hidden) { $('menu-export').hidden = true; $('btn-export').setAttribute('aria-expanded', 'false'); } }
   });
+
+  // 公众号推送（高级功能）：绑定对话框 + 按配置解锁 UI（贴图按钮 / 导出菜单推送项）
+  bindMpDialog();
+  refreshMpUi();
 }
 
 function applyMode() {
