@@ -139,7 +139,10 @@ def main() -> int:
 
         page.wait_for_selector("#btn-update:not([hidden])", timeout=30000)
         check("右下角更新入口可见", page.is_visible("#btn-update"), "hidden", "visible")
-        check("顶栏入口写着「小红书标题图生成」", page.inner_text("#btn-cover").strip() == "小红书标题图生成", "", page.inner_text("#btn-cover"))
+        # 2026-10-31 三模块拆分（design-module-split-ia.md §3.1）：顶栏三 tab 全称
+        check("顶栏三 tab 全称齐备", all(page.is_visible(f"#{i}") for i in ("btn-editor", "btn-cover", "btn-longform")))
+        check("小红书标题图 tab 文案", page.inner_text("#btn-cover").strip() == "小红书标题图", "", page.inner_text("#btn-cover"))
+        check("小红书长图文 tab 文案", page.inner_text("#btn-longform").strip() == "小红书长图文", "", page.inner_text("#btn-longform"))
 
         # ── 1. 更多菜单 + 草稿/清数据/关于 ─────────────────────
         page.click("#btn-more")
@@ -379,9 +382,10 @@ def main() -> int:
 
         # ── 6. 封面页 ──────────────────────────────────────────
         page.click("#btn-cover"); page.wait_for_timeout(500)
-        check("封面页打开 / 排版页隐藏", page.is_visible("#cover-root") and page.is_hidden("#stage"),
+        check("标题图页打开 / 排版页隐藏", page.is_visible("#title-root") and page.is_hidden("#stage"),
               "排版", "封面", snap(page, "cover"))
-        check("进入封面后按钮变「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版", "", page.inner_text("#btn-cover"))
+        check("标题图 tab 高亮 / 排版 tab 让位", page.get_attribute("#btn-cover", "aria-pressed") == "true"
+              and page.get_attribute("#btn-editor", "aria-pressed") == "false")
         # 2026-10-30：卡片模型改为「一版式一卡 + 卡内色点」。
         # 原来断言 13 张卡（13 个色板各占一张），现在 9 张版式卡。
         # 25 个风格里，3 个是单色卡（杂志/大字版/瑞士封面，只有 1 套色板 → 不显示色点），
@@ -508,9 +512,9 @@ def main() -> int:
         except Exception as e:
             check("九宫格切图（线上）", False, "", str(e)[:120])
 
-        page.click("#btn-cover"); page.wait_for_timeout(500)
-        check("返回排版页", page.is_visible("#stage") and page.is_hidden("#cover-root"), "封面", "排版")
-        check("返回后按钮变「小红书标题图生成」", page.inner_text("#btn-cover").strip() == "小红书标题图生成", "", page.inner_text("#btn-cover"))
+        page.click("#btn-editor"); page.wait_for_timeout(500)
+        check("返回排版页", page.is_visible("#stage") and page.is_hidden("#title-root"), "封面", "排版")
+        check("返回后排版 tab 高亮", page.get_attribute("#btn-editor", "aria-pressed") == "true", "", "true")
 
         # ── 7. 发布小票（#upd-demo 的三个按钮）──────────────────
         def open_demo(n: int):
@@ -555,9 +559,9 @@ def main() -> int:
         check("移动端切回内容", page.get_attribute("#stage", "data-tab") == "edit",
               "preview", page.get_attribute("#stage", "data-tab"))
         page.click("#btn-cover"); page.wait_for_timeout(500)
-        check("移动端封面页可用", page.is_visible("#cover-root") and page.is_visible("#cv-gen"),
+        check("移动端标题图页可用", page.is_visible("#title-root") and page.is_visible("#cv-gen"),
               "", "true", snap(page, "mobile-cover"))
-        page.click("#btn-cover"); page.wait_for_timeout(300)
+        page.click("#btn-editor"); page.wait_for_timeout(300)
         page.click('#tabs button[data-tab="preview"]'); page.wait_for_timeout(300)
         page.click("#btn-themes"); page.wait_for_timeout(400)
         if page.is_visible("#drawer-mask"):
