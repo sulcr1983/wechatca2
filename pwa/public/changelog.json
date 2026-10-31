@@ -1,7 +1,7 @@
 {
   "version": "1.11.0",
-  "generatedAt": "2026-10-31T13:36:33+08:00",
-  "totalCommits": 272,
+  "generatedAt": "2026-10-31T13:37:46+08:00",
+  "totalCommits": 273,
   "releases": [
     {
       "version": "1.11.0",
@@ -17,7 +17,7 @@
       "counts": {
         "added": 2,
         "changed": 2,
-        "fixed": 1,
+        "fixed": 2,
         "other": 1
       },
       "groups": [
@@ -69,6 +69,14 @@
           "type": "fixed",
           "label": "修复",
           "items": [
+            {
+              "text": "补 1.10.0 / 1.11.0 版本切点与手写亮点（发版漏了这步）",
+              "scope": "changelog",
+              "hash": "daab700",
+              "date": "2026-10-31T13:37:35+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "B1 灰雾根因修复 + B2 375 顶栏重叠（Phase 3 第一批，照搬原型已验证实现）",
               "scope": "cover",
