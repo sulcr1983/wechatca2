@@ -65,11 +65,12 @@ self.onmessage = async (e) => {
     } else if (type === 'render') {
       if (!renderFn) throw new Error('引擎尚未就绪');
       const t0 = performance.now();
-      const out = JSON.parse(renderFn(payload.text, THEME_PATH));
+      const out = JSON.parse(renderFn(payload.text, THEME_PATH, payload.mode || 'auto'));
       post('rendered', {
         id: payload.id,
         html: out.html,
         markdown: out.markdown,
+        mode: out.mode,   // auto 实际判定模式，前端用于「已按 xx 处理」反馈（2026-10-31）
         ms: Math.round(performance.now() - t0),
       });
     }
@@ -130,11 +131,15 @@ import preprocessor
 import format_engine
 
 
-def _render(raw_text, theme_path):
-    """纯文本 → Markdown → 微信内联 HTML。与本地 app.py 的调用链一致。"""
-    md = preprocessor.preprocess(raw_text, 'auto')
+def _render(raw_text, theme_path, mode='auto'):
+    """纯文本 → Markdown → 微信内联 HTML。与本地 app.py 的调用链一致。
+
+    mode 可选 auto/conservative/longform/tutorial（2026-10-31 UI 接线）；
+    返回 effective = auto 实际判定的模式，前端用于「已按 xx 处理」反馈。"""
+    eff = preprocessor._resolve_mode(raw_text, mode)
+    md = preprocessor.preprocess(raw_text, mode)
     html = format_engine.convert_markdown_to_wechat_html(md, theme_path)
-    return json.dumps({'html': html, 'markdown': md}, ensure_ascii=False)
+    return json.dumps({'html': html, 'markdown': md, 'mode': eff}, ensure_ascii=False)
 
 
 _render

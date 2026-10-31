@@ -201,6 +201,19 @@ a { color: var(--accent); }
 }
 .input::placeholder { color: var(--text-muted); opacity: .9; }
 
+/* 预处理模式选择器（2026-10-31）：跟 parse-bar 同行，紧凑不抢视觉 */
+.pp-select {
+  flex: none;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pp-select:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 1px; }
 .parse-bar {
   flex: none; min-height: 38px; padding: 8px 16px;
   border-top: 1px solid var(--border);

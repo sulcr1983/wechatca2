@@ -162,6 +162,15 @@
 
 也可以直接写 Markdown。"></textarea>
     <div class="parse-bar" id="parse-bar">
+      <!-- 预处理模式（2026-10-31 接线，AGENTS §3 遗留收口）：引擎四模式暴露给用户，
+           默认 auto 自动判断；判定结果反馈在右侧 parse-body 里（U-11 说人话命名） -->
+      <select class="pp-select" id="pp-mode"
+              title="文章结构识别方式：智能识别 = 自动判断；粘贴教程类文章可选「教程步骤」">
+        <option value="auto">智能识别</option>
+        <option value="conservative">短文·已有结构</option>
+        <option value="longform">长文散文</option>
+        <option value="tutorial">教程步骤</option>
+      </select>
       <div class="parse-body" id="parse-body">
         <span class="parse-hint">粘贴后自动识别结构</span>
       </div>

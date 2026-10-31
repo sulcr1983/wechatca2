@@ -500,6 +500,11 @@ export function mountLongformPage(rootEl) {
   renderLongPals();
   renderLongBgUI();
   state.picker.mount();
+  /* 模式按钮（搜图/上传/不要图）点击绑定 —— 三模块拆分时模板搬过来了但漏绑，
+     长图文搜图点了没反应（2026-10-31 用户反馈）；与 title-page.js 同款接线 */
+  document.querySelectorAll('#cv-lf-modes .cv-mode').forEach((b) => {
+    b.addEventListener('click', () => state.picker.setMode(b.dataset.mode));
+  });
   /* 控件初值（含拆分前漏持久化的三开关，S6 修复） */
   if ($('cv-long-pn')) $('cv-long-pn').checked = state.longPn;
   if ($('cv-long-sign')) $('cv-long-sign').value = state.longSign;

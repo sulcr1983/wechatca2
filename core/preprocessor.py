@@ -206,7 +206,8 @@ _TUTORIAL_LABEL_RE = re.compile(
     r'第一步|第二步|第三步|第四步|第五步|方法|原理|小结|总结|前言|引言|背景|结语)$'
 )
 # 教程模式：中文序数/次序词开头的行 → 列表项
-_CN_ORDINAL_RE = re.compile(r'^(第[一二三四五六七八九十\d]+[、.．]|首先|其次|然后|最后|其一|其二)[：:]?\s*')
+# 含「第X步：内容」（教程步骤体），去掉前缀转为列表项；「第X、」也一并处理
+_CN_ORDINAL_RE = re.compile(r'^(第[一二三四五六七八九十\d]+[、.．步]|首先|其次|然后|最后|其一|其二)[：:]?\s*')
 # 长文分层：段落为「短标签：内容」时把标签提升为小标题（白名单避免误判）
 _AUTO_HEADING_LABEL_RE = re.compile(
     r'^(核心观点|核心|结论|问题|原因|方法|步骤|要点|建议|误区|趋势|对比|'
@@ -257,7 +258,11 @@ def _resolve_mode(text: str, mode: str) -> str:
 
 
 def _insert_auto_headings(md_lines: list) -> list:
-    """长散文（尚无任何标题）按「标签：内容」补至多 5 个 ### 小标题，间隔 >= 2 段。"""
+    """长散文（尚无任何标题）按「标签：内容」补至多 5 个 ### 小标题，相邻小标题间隔 >= 1 段。
+
+    间隔取 1 段（而非 2）：让首段简介之后的第一个「标签：内容」也能升级为小标题，
+    否则长文分层对典型「一段开场 + 核心观点」结构几乎不生效（实测 only 常见误区 命中）。
+    """
     if any(l.startswith('#') for l in md_lines):
         return md_lines
     body = [l for l in md_lines if l.strip() and not l.startswith(('>', '-', '*'))]
@@ -269,7 +274,7 @@ def _insert_auto_headings(md_lines: list) -> list:
             out.append(l)
             continue
         m = _AUTO_HEADING_LABEL_RE.match(l.strip())
-        if m and since >= 2:
+        if m and since >= 1:
             out.append(f'### {m.group(1)}')
             out.append(m.group(2).strip())
             count += 1
@@ -277,6 +282,36 @@ def _insert_auto_headings(md_lines: list) -> list:
             continue
         since += 1
         out.append(l)
+    return out
+
+
+def _separate_lists(md_lines: list) -> list:
+    """给列表块前后补空行，确保 python-markdown 把它当成真正的列表渲染。
+
+    列表项（'- '/'* ' 起手）若紧贴前后段落（无空行），python-markdown 会把它当作
+    段落内的普通文字而非 <ul>/版式块——导致「教程步骤」「序号清单」等本该成列表的
+    内容在预览里丢失列表样式。仅在「列表 ↔ 非列表」边界补单行空行，相邻列表项之间
+    不补，避免把一个列表拆成多个单项目列表。
+    """
+    out = []
+    n = len(md_lines)
+
+    def _is_list(s: str) -> bool:
+        return bool(re.match(r'^\s*[-*]\s', s.strip()))
+
+    for i, line in enumerate(md_lines):
+        if _is_list(line):
+            prev = md_lines[i - 1] if i > 0 else ''
+            nxt = md_lines[i + 1] if i + 1 < n else ''
+            prev_list = bool(prev.strip()) and _is_list(prev)
+            next_list = bool(nxt.strip()) and _is_list(nxt)
+            if prev.strip() and not prev_list and (not out or out[-1].strip()):
+                out.append('')
+            out.append(line)
+            if nxt.strip() and not next_list:
+                out.append('')
+        else:
+            out.append(line)
     return out
 
 
@@ -644,6 +679,9 @@ def preprocess(text: str, mode: str = 'auto') -> str:
                     # 「短行标题检测」的既有判定保持一致（test_preprocess_contact_line_not_heading）
                     result[j] = f'# {s}'
                 break
+
+    # 列表块前后补空行（仅边界），保证列表被渲染成真正的列表而非段落文字
+    result = _separate_lists(result)
 
     return '\n'.join(result)
 

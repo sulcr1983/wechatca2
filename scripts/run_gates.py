@@ -76,6 +76,10 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     # 原「末页 ≥75%」一刀切口径已作废（§6 实测：大字版式占高少是「大字」的代价）。
     ("longform",       [PY, "scripts/pwa_longform_test.py"],
                        "长图文产物级（分页/字号/填充分档/无溢出/导出）", "local"),
+    # 2026-10-31 接入：预处理四模式（auto/conservative/longform/tutorial）——
+    # 选择器/默认值/产物级断言（教程 h2+列表块、长文 h3、auto 判定反馈 chip、持久化）。
+    ("ppmode",         [PY, "scripts/pwa_ppmode_test.py"],
+                       "预处理四模式 11（产物级）", "local"),
     ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
     # 2026-10-29 接入：封面风格规范校验（对比度/字号/字重字距/遮罩峰值）。
     # 此前这把尺子存在但没进门禁 → 10 套模板遮罩峰值 0.70（超规范 2.3 倍）躺了很久。

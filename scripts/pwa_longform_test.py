@@ -191,6 +191,18 @@ def main() -> int:
             print("  步骤3 已打开长图文页（独立顶级模块）", flush=True)
             results.append(check("切到长文路径", page.is_visible("#cv-long-text")))
 
+            # ── 配图模式按钮（2026-10-31 修复：拆分重构漏绑点击 → 搜图点了没反应）──
+            # 产物级：点「搜图」必须真的把搜索面板画出来（输入框 + 搜索按钮都在）
+            page.click('#cv-lf-modes [data-mode="search"]')
+            page.wait_for_selector("#cv-lf-q", timeout=8000)
+            results.append(check("点「搜图」出搜索面板（关键词框+搜索按钮）",
+                                 page.is_visible("#cv-lf-q") and page.is_visible("#cv-lf-search")))
+            page.click('#cv-lf-modes [data-mode="color"]')
+            page.wait_for_timeout(200)
+            results.append(check("点「不要图」回到纯色提示",
+                                 "模板纸色" in page.inner_text("#cv-lf-bg-body")))
+            page.click('#cv-lf-modes [data-mode="search"]')   # 恢复搜索面板，后续用例可继续
+
             # 空态：友好提示，不打红叉（night report V9）
             page.wait_for_timeout(900)
             sc = page.inner_text("#cv-selfcheck") if page.is_visible("#cv-selfcheck") else ""

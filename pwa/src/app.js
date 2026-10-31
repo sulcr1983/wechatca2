@@ -18,6 +18,7 @@ const LS = {
   mode: 'supersu.pwa.mode',
   blocks: 'supersu.pwa.blocks',   // 段落样式本机覆盖（不改仓库主题文件）
   layout: 'supersu.pwa.layout',   // 版式本机覆盖
+  pp: 'supersu.pwa.ppmode',       // 预处理模式 auto/conservative/longform/tutorial（2026-10-31 接线）
 };
 
 const DEFAULT_THEME = 'su-biz-azure';
@@ -166,6 +167,17 @@ function setEngineState(state, text) {
   $('engine-text').textContent = text;
 }
 
+/* ── 预处理模式（2026-10-31 接线）────────────────────────────────
+ * 引擎四模式暴露到解析条：默认 auto 自动判断，允许手动指定。
+ * auto 的实际判定结果由 worker 返回（out.mode），在解析条给一行反馈 ——
+ * 用户能知道「智能识别」这次到底按什么规则处理了（U-11：说人话）。 */
+const PP_LABELS = { conservative: '短文·已有结构', longform: '长文分层', tutorial: '教程步骤' };
+let lastPpEffective = null;
+function ppMode() {
+  const v = $('pp-mode') && $('pp-mode').value;
+  return ['auto', 'conservative', 'longform', 'tutorial'].includes(v) ? v : 'auto';
+}
+
 /* ── 渲染 ───────────────────────────────────────────────────── */
 function scheduleRender() {
   clearTimeout(renderTimer);
@@ -211,7 +223,7 @@ async function doRender() {
   try {
     const json = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
     await engine.setTheme(activeId, json);
-    const out = await engine.render(text);
+    const out = await engine.render(text, ppMode());
     if (mySeq !== renderSeq) return;          // 有更新的请求，丢弃本次结果
     lastHtml = out.html;
     lastRawHtml = out.html;
@@ -220,6 +232,7 @@ async function doRender() {
     lastMarkdown = out.markdown;
     showPreview(out.html);
     updateImageTip();
+    lastPpEffective = out.mode || null;   // auto 判定结果，解析条做反馈
     updateParseBar(out.markdown);
     updateWxTitle(text);
     $('btn-copy').disabled = false;
@@ -436,9 +449,14 @@ function updateParseBar(markdown) {
     ['代码', Math.floor(fence / 2)], ['表格', table > 2 ? 1 : 0],
   ].filter(([, n]) => n > 0);
 
-  bar.innerHTML = items.length
+  /* 智能识别的判定反馈：只有 auto 主动选了非保守路径才提示，短文走保守整理
+     是常态，不提示（噪音控制） */
+  const autoChip = (ppMode() === 'auto' && (lastPpEffective === 'longform' || lastPpEffective === 'tutorial'))
+    ? `<span class="chip-stat" id="pp-effective">已按「${PP_LABELS[lastPpEffective]}」识别</span>`
+    : '';
+  bar.innerHTML = autoChip + (items.length
     ? items.map(([k, n]) => `<span class="chip-stat">${k} <b>×${n}</b></span>`).join('')
-    : '<span class="parse-hint">没识别出结构，可按 Markdown 手写</span>';
+    : '<span class="parse-hint">没识别出结构，可按 Markdown 手写</span>');
 }
 
 function updateCharCount() {
@@ -1113,7 +1131,7 @@ async function initAi() {
       }
     }
 
-    const local = await engine.render(text);
+    const local = await engine.render(text, ppMode());
     if (!local || !local.markdown) throw new Error('本地排版也失败了，请刷新重试');
     aiUndoText = text;
     syncUndo();
@@ -1209,6 +1227,18 @@ async function initUpdate() {
 /* ── 事件绑定 ───────────────────────────────────────────────── */
 function bindUI() {
   const input = $('input');
+
+  /* 预处理模式：读档 → change 存档 + 重渲染（默认 auto 不写库，键保持空） */
+  const ppSel = $('pp-mode');
+  if (ppSel) {
+    const saved = lsGet(LS.pp, 'auto');
+    ppSel.value = ['auto', 'conservative', 'longform', 'tutorial'].includes(saved) ? saved : 'auto';
+    ppSel.addEventListener('change', () => {
+      lsSet(LS.pp, ppSel.value);
+      lastPpEffective = null;   // 旧判定作废，等本次渲染结果
+      scheduleRender();
+    });
+  }
 
   let draftTimer = null;
   input.addEventListener('input', () => {
