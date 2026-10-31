@@ -1,8 +1,54 @@
 {
-  "version": "1.12.0",
-  "generatedAt": "2026-10-31T17:09:10+08:00",
-  "totalCommits": 282,
+  "version": "1.13.0",
+  "generatedAt": "2026-10-31T20:47:54+08:00",
+  "totalCommits": 286,
   "releases": [
+    {
+      "version": "1.13.0",
+      "date": "2026-10-31",
+      "title": "排版页可选预处理模式：短文 / 长文 / 教程各走各的规则",
+      "highlights": [
+        "解析条新增预处理模式下拉：智能识别（默认）/ 短文·已有结构 / 长文散文 / 教程步骤 —— 「第一步：xx」能真的转成列表、「准备工作」变小标题，不用再手工整理格式",
+        "选「智能识别」遇到长文或教程时，解析条会告诉你「已按长文分层识别」，auto 到底干了什么不再是黑盒",
+        "修：长图文「搜图 / 上传 / 不要图」三个按钮点了没反应（模块拆分时漏绑了点击事件）",
+        "修：教程步骤转成列表后渲染时丢样式 —— 列表前后没空行被当成普通段落，现在引擎自动补",
+        "修：长文分层对「一段开场 + 核心观点」这种典型结构不生效（首个小标题被间隔规则跳过）"
+      ],
+      "counts": {
+        "added": 1,
+        "other": 1
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "预处理四模式暴露到排版页 + 修长图文搜图无响应",
+              "scope": "ppmode",
+              "hash": "c32e51c",
+              "date": "2026-10-31T19:50:49+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "1.13.0 切点 + 手写亮点（1.12.0 until 收口至 17:35）",
+              "scope": "changelog",
+              "hash": "fcbc0e7",
+              "date": "2026-10-31T19:50:49+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.12.0",
       "date": "2026-10-31",
@@ -18,7 +64,7 @@
         "added": 1,
         "changed": 3,
         "fixed": 4,
-        "other": 2
+        "other": 4
       },
       "groups": [
         {
@@ -107,6 +153,22 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "同步 v1.12.0 线上构建号 + CLOSURE 台账",
+              "scope": "state",
+              "hash": "f7f2a12",
+              "date": "2026-10-31T17:31:26+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "三模块拆分后的选择器改指向（顶栏三 tab/双根/高亮断言）",
+              "scope": "online-e2e",
+              "hash": "9762308",
+              "date": "2026-10-31T17:29:09+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "1.12.0 切点 + 手写亮点（1.11.0 until 收口）",
               "scope": "changelog",
