@@ -98,13 +98,11 @@ def main() -> int:
             wait_engine_ready(page, timeout=180_000, fill=False)
             page.wait_for_timeout(1200)
 
-            page.click("#btn-cover")
-            page.wait_for_timeout(1500)
-
             # ── S1：整套图文 ──────────────────────────────────────
-            # 2026-10-31：整套图文迁入「长文图文」路径（design §9 双路径）
-            page.click("#cv-path-long")
-            page.wait_for_selector("#cv-pane-long:not([hidden])", timeout=10000)
+            # 2026-10-31 三模块拆分：长图长文是独立顶级模块（design-module-split-ia.md）
+            page.click("#btn-longform")
+            page.wait_for_selector("#longform-root:not([hidden])", timeout=10000)
+            page.wait_for_timeout(1200)
             page.fill("#cv-long-text", STORY_TEXT)
             page.wait_for_timeout(1500)
             page.click("#cv-gen-story")
@@ -186,8 +184,9 @@ def main() -> int:
                 res["zip"] = {"error": str(e)[:200]}
 
             # ── S3：大字报底图（v1.9.5 修复项）─────────────────────
-            # 2026-10-31：切回「标题图」路径 —— S3 的版式卡 / 上传控件都在封面路径
-            page.click("#cv-path-cover")
+            # 2026-10-31：打开「小红书标题图」页（独立模块）—— S3 的版式卡 / 上传控件都在这里
+            page.click("#btn-cover")
+            page.wait_for_selector("#title-root:not([hidden])", timeout=10000)
             page.wait_for_timeout(800)
             # ⚠️ 不要按 Escape：那会关闭封面页，后面的 .cv-mode / #cv-gen 全都找不到
             #    （上一轮就是这么误报成「大字报出图失败」的）

@@ -491,9 +491,9 @@ async function updatePreview() {
 
   const seq = ++pvSeq;
   const text = $('cv-text').value;
-  const lines = text.split(/\r?\n/);
-  const title = (lines[0] || '').trim();
-  const lead = lines.slice(1).join('\n').trim();
+  /* ⚠️ 必须走 extractStory（引语只取第一个列表项之前的两行）——
+     手搓 lines.slice(1) 会把列表项混进封面引语（拆分时实测回归，门禁拦下） */
+  const { title, lead } = extractStory(text);
   const bg = state.picker.getState();
   try {
     const { html, size, meta } = await buildCoverHtml({

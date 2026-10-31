@@ -183,15 +183,12 @@ def main() -> int:
 
             page.goto(f"http://127.0.0.1:{PORT}/", wait_until="domcontentloaded", timeout=60000)
             print("  步骤1 页面已加载", flush=True)
-            page.wait_for_selector("#btn-cover", timeout=20000)
-            page.click("#btn-cover")
-            page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
+            page.wait_for_selector("#btn-longform", timeout=20000)
+            page.click("#btn-longform")
+            page.wait_for_selector("#longform-root:not([hidden])", timeout=10000)
             print("  步骤2 封面页已打开", flush=True)
 
-            # ── 双路径切换 ──
-            page.click("#cv-path-long")
-            page.wait_for_selector("#cv-pane-long:not([hidden])", timeout=5000)
-            print("  步骤3 已切长文路径", flush=True)
+            print("  步骤3 已打开长图文页（独立顶级模块）", flush=True)
             results.append(check("切到长文路径", page.is_visible("#cv-long-text")))
 
             # 空态：友好提示，不打红叉（night report V9）
@@ -202,7 +199,7 @@ def main() -> int:
 
             # ── 粘贴整篇 → 实时分页 ──
             print("  步骤4 填写文章", flush=True)
-            page.fill("#cv-author", "阿苏")
+            page.fill("#cv-long-sign", "阿苏")
             page.fill("#cv-long-text", ARTICLE)
             # 等 deck 渲染 + 自检转静默（正常态 hidden = 分页完整且未截断）
             page.wait_for_function(

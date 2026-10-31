@@ -82,8 +82,8 @@ def main() -> int:
 
             # ── 入口切换 ──
             page.click("#btn-cover")
-            page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
-            check("封面页打开", page.is_visible("#cover-root"))
+            page.wait_for_selector("#title-root:not([hidden])", timeout=10000)
+            check("标题图页打开", page.is_visible("#title-root"))
 
             # 2026-10-27 三栏改版：左栏不再有标签，所有控件同屏可见，
             # 这里保留 tab() 作为**空操作**，调用点不用动（改动面最小）。
@@ -99,8 +99,10 @@ def main() -> int:
                     page.click(f'.cv-style-pick[data-style="{sid}"]')
 
             check("排版页隐藏", page.is_hidden("#stage"))
-            # 2026-10-25：按钮文案改为「公众号排版」（原「排版」，用户要求说清返回哪一页）
-            check("按钮变为「公众号排版」", page.inner_text("#btn-cover").strip() == "公众号排版")
+            # 2026-10-31 三模块拆分（design-module-split-ia.md §3.1）：
+            # #btn-cover 重定义为固定「小红书标题图」tab，高亮互斥，不再变文字
+            check("标题图 tab 高亮", page.get_attribute("#btn-cover", "aria-pressed") == "true")
+            check("排版 tab 未高亮", page.get_attribute("#btn-editor", "aria-pressed") == "false")
 
             # ── 示例成品墙（U-9，2026-10-24；2026-10-29 扩到 6 张并常驻）──
             # 从「空态里 3 张」改成「常驻 6 张」：空态一生成就消失，
@@ -491,30 +493,8 @@ def main() -> int:
                 check("封面引语不混入列表项",
                       "1." not in lead_txt and "早点睡" not in lead_txt,
                       lead_txt[:50])
-                # 2026-10-31：整套图文迁入「长文图文」路径（design §9 双路径）。
-                # 封面引语检查留在标题图路径（预览仍是单张封面）。
-                page.click("#cv-path-long")
-                page.wait_for_selector("#cv-pane-long:not([hidden])", timeout=5000)
-                page.fill("#cv-long-text",
-                          "周末去海边，我把手机调成了飞行模式\n\n两天的沉默之后，我重新听见了海浪。\n\n"
-                          "1. 早点睡，别熬到两点\n2. 出门走走，别一直刷手机\n3. 给自己煮碗面\n"
-                          "4. 把手机放远一点\n5. 读十页书\n6. 早点回家")
-                page.wait_for_timeout(1500)
-                page.click("#cv-gen-story")
-                page.wait_for_function(
-                    "() => document.querySelectorAll('.cv-card').length > 1", timeout=150000)
-                page.wait_for_timeout(2500)
-                n_cards = page.evaluate("() => document.querySelectorAll('.cv-card').length")
-                labels = page.evaluate(
-                    "() => [...document.querySelectorAll('.cv-card-label')].map(e => e.textContent)")
-                check("整套图文出「封面 + 内页」", n_cards >= 2 and
-                      any("封面" in l for l in labels) and any("内页" in l for l in labels),
-                      f"{n_cards} 张: {' | '.join(labels)}")
-                check("整套生成后出现「打包整套」",
-                      page.evaluate("() => !document.querySelector('#cv-zip-story').hidden"), "")
-                # 切回标题图路径（后续搜图/断网用例的控件都在封面路径）
-                page.click("#cv-path-cover")
-                page.wait_for_timeout(400)
+                # 2026-10-31 三模块拆分：整套图文流程整体移入 scripts/pwa_longform_test.py
+                # （长图长文已是独立顶级模块），这里只保留封面引语检查。
             else:
                 skip("上传底图", f"缺测试图 {UPLOAD}")
                 skip("底图可读性", f"缺测试图 {UPLOAD}")
@@ -610,7 +590,7 @@ def main() -> int:
             # ── 窄屏 ──
             page.set_viewport_size({"width": 390, "height": 844})
             page.wait_for_timeout(400)
-            check("窄屏封面页可用", page.is_visible("#cover-root") and page.is_visible("#cv-gen"))
+            check("窄屏封面页可用", page.is_visible("#title-root") and page.is_visible("#cv-gen"))
             page.screenshot(path=str(OUT / "pwa-cover-test-mobile.png"), full_page=True)
             page.set_viewport_size({"width": 1440, "height": 960})
 
@@ -621,9 +601,9 @@ def main() -> int:
             try:
                 page.reload(wait_until="domcontentloaded", timeout=30000)
                 page.wait_for_selector("#btn-cover", timeout=20000)
-                if page.is_hidden("#cover-root"):
+                if page.is_hidden("#title-root"):
                     page.click("#btn-cover")
-                    page.wait_for_selector("#cover-root:not([hidden])", timeout=10000)
+                    page.wait_for_selector("#title-root:not([hidden])", timeout=10000)
                 page.fill("#cv-text", TEXT)
                 page.click("#cv-gen")
                 page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)

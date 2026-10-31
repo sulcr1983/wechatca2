@@ -1,7 +1,7 @@
 {
   "version": "1.11.0",
-  "generatedAt": "2026-10-31T16:27:00+08:00",
-  "totalCommits": 277,
+  "generatedAt": "2026-10-31T16:45:58+08:00",
+  "totalCommits": 278,
   "releases": [
     {
       "version": "1.11.0",
@@ -15,7 +15,7 @@
         "配图从「藏在底图设置里的选项」提到首屏：搜图 / 上传 / 不要图三个大按钮，搜图还会从标题自动猜关键词（手改过就不再覆盖）"
       ],
       "counts": {
-        "added": 2,
+        "added": 3,
         "changed": 5,
         "fixed": 2,
         "other": 2
@@ -25,6 +25,14 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "三模块拆分落地 —— 公众号排版 / 小红书标题图 / 小红书长图文（design-module-split-ia.md）",
+              "scope": "ia",
+              "hash": "8fe2e5a",
+              "date": "2026-10-31T16:28:08+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "§12.7 四项增强 —— 页码开关 / 签名 / 强制分页符 / 内页背景图",
               "scope": "cover",

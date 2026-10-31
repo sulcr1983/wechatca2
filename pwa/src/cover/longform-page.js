@@ -224,7 +224,10 @@ async function generateStory() {
 
 /** 整套打包下载（复用九宫格的 ZIP 实现，不重写）。 */
 async function downloadStoryZip() {
-  const set = state.results.filter((r) => r.role === 'cover' || r.role === 'inner');
+  /* ⚠️ 不过滤 role：cards.js 重写后内页角色是 opening/dense/points/quote/closing，
+     旧 story.js 时代的 'inner' 已不存在——原过滤条件会把内页全滤掉，
+     ZIP 里只剩封面 1 张（qa_story 实测暴露）。state.results 本就只装整套结果。 */
+  const set = state.results;
   if (!set.length) { toast('先点「导出一整套」生成', 'err'); return; }
   try {
     const tiles = set.map((r, i) => ({
