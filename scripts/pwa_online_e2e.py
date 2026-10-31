@@ -211,7 +211,11 @@ def main() -> int:
         page.click("#btn-export"); page.wait_for_timeout(250)
         exp_items = page.locator("#menu-export button[data-exp]").count()
         has_zip = page.locator("#menu-export button[data-exp='images']").count() == 1
-        check("导出菜单 4 项（含图片 ZIP）", exp_items == 4 and has_zip, "", f"{exp_items} 项")
+        # 第 5 项「推送草稿箱」是高级功能：存在但未配置时必须隐藏（2026-10-31 门控）
+        push_hidden = (page.locator("#btn-push").count() == 1
+                       and page.is_hidden("#btn-push"))
+        check("导出菜单 4 项可见（推送项未解锁且隐藏）",
+              exp_items == 5 and has_zip and push_hidden, "", f"{exp_items} 项")
         page.keyboard.press("Escape"); page.wait_for_timeout(150)
 
         b = page.inner_text("#btn-mode"); cls_b = page.eval_on_selector("#preview-wrap", "e => e.className")
