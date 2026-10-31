@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;font:12px monospace}</style></head><body>
+<iframe id="f" src="xhs-studio-redesign.html" style="width:375px;height:812px;border:0"></iframe>
+<pre id="out">measuring…</pre>
+<script>
+function run(){
+  const d = document.getElementById('f').contentDocument;
+  const w = document.getElementById('f').contentWindow;
+  const lines = [];
+  const push = (s) => lines.push(s);
+  push('--- viewport 375 ---');
+  push('scrollWidth=' + d.documentElement.scrollWidth + '  (375 = 无横向溢出)');
+  push('body.scrollWidth=' + d.body.scrollWidth);
+  const pick = ['.top','.top-left','.top-right','.brand','.brand-tail','.brand-sub','#btn-cover','#engine-badge','#btn-export','#btn-ai','#btn-more','.pathbar','#paths','#topHint'];
+  for (const sel of pick){
+    const el = d.querySelector(sel);
+    if (!el){ push(sel + ' → MISSING'); continue; }
+    const r = el.getBoundingClientRect();
+    const cs = w.getComputedStyle(el);
+    push(sel.padEnd(16) + ' left=' + r.left.toFixed(0).padStart(5) + ' right=' + r.right.toFixed(0).padStart(5) +
+         ' w=' + r.width.toFixed(0).padStart(4) + ' h=' + r.height.toFixed(0).padStart(3) +
+         ' display=' + cs.display + ' vis=' + cs.visibility + ' fs=' + cs.fontSize);
+  }
+  push('#btn-cover textContent=[' + d.querySelector('#btn-cover').textContent + ']');
+  document.getElementById('out').textContent = lines.join('\n');
+}
+window.addEventListener('load', () => setTimeout(run, 1200));
+</script>
+</body></html>

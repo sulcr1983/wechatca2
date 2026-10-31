@@ -1,0 +1,3648 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书 Studio 重设计 · 可交互原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   应用外壳 —— 沿用已定色，不改
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f4f2ed; --panel:#fbfaf7; --line:#e4dfd4; --line2:#efeae0;
+  --ink:#1c1a16; --soft:#57524a; --mute:#6d6656; --faint:#a9a294;
+  --accent:#b4552f; --accentSoft:#f6ece6;
+  --r:10px; --sh:0 1px 2px rgba(30,25,15,.06),0 4px 16px rgba(30,25,15,.06);
+  --shLg:0 8px 32px rgba(30,25,15,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);
+  font:13.5px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+
+/* ══════════════════════════════════════════════════════════════════
+   顶栏 —— 1:1 复刻原系统（pwa/index.html:29-61 + style.css:87-175 + cover/cover.css:12-22）
+   用户要求：原型不能自己另造一套导航。所以这里连变量名都照抄，只加 sys- 前缀隔离，
+   避免把 :root 的 --accent(#b4552f) 改掉而污染原型本体的配色。
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --sys-bg-surface:#FAF9F5; --sys-bg-raised:#FFFFFF; --sys-bg-hover:#F0EDE8;
+  --sys-border:#EAE6DD;
+  --sys-text:#191713; --sys-text-soft:#6E6759; --sys-text-muted:#9B9484;
+  --sys-accent:#AF3E2B; --sys-accent-soft:rgba(175,62,43,.08); --sys-success:#5F8F73;
+  --sys-radius-sm:6px; --sys-radius:8px; --sys-radius-lg:12px;
+  --sys-shadow-lg:0 4px 16px rgba(87,76,54,.10);
+  --top-h:56px;              /* = style.css:31 的 --top-h */
+  --path-h:48px;             /* 本方案新增的二级行，见 .pathbar */
+}
+
+/* 原系统 style.css:54 的全局按钮重置；这里只作用域到顶栏，不动原型本体 */
+.top button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+
+.top{
+  height:var(--top-h); padding:0 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--sys-bg-raised); border-bottom:1px solid var(--sys-border);
+  position:relative; z-index:20; flex:none;
+}
+.top-left  { display:flex; align-items:center; gap:8px; min-width:0; }
+.top-right { display:flex; align-items:center; gap:8px; position:relative; }
+
+.brand-mark{ width:24px; height:24px; border-radius:6px; flex:none; display:block;
+  box-shadow:0 0 0 1px rgba(20,18,14,.10); }
+.brand     { font-size:15px; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
+.brand-tail{ font-weight:400; font-size:12.5px; color:var(--sys-text-soft); margin-left:4px; }
+.brand-sub { font-size:12px; color:var(--sys-text-muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* 原系统的封面入口就长这样 —— 紧贴系统名右侧，不在右上角（2026-10-25 定的位） */
+.cover-btn{
+  height:32px; padding:0 12px; border-radius:var(--sys-radius);
+  color:var(--sys-accent); font-size:12.5px; font-weight:600; white-space:nowrap;
+  border:1px solid rgba(175,62,43,.28); background:var(--sys-accent-soft);
+  display:inline-flex; align-items:center; gap:5px;
+  transition:background .15s, color .15s, border-color .15s;
+}
+.cover-btn::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--sys-accent); flex:none; }
+.cover-btn:hover{ background:rgba(175,62,43,.14); border-color:var(--sys-accent); }
+.cover-btn[aria-pressed="true"]{ background:var(--sys-accent); border-color:var(--sys-accent); color:#fff; }
+.cover-btn[aria-pressed="true"]::before{ background:#fff; }
+
+.engine-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  height:26px; padding:0 10px; border-radius:99px;
+  font-size:12px; color:var(--sys-text-soft);
+  background:var(--sys-bg-surface); border:1px solid var(--sys-border);
+  white-space:nowrap;
+}
+.engine-badge i{ width:6px; height:6px; border-radius:50%; background:var(--sys-text-muted); }
+.engine-badge[data-state="loading"] i{ background:#C9A227; animation:pulse 1.4s infinite; }
+.engine-badge[data-state="ready"]   i{ background:var(--sys-success); }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.menu-btn{
+  height:30px; padding:0 10px; border-radius:var(--sys-radius);
+  border:1px solid var(--sys-border); background:var(--sys-bg-raised);
+  color:var(--sys-text-soft); font-size:13px; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:4px;
+  transition:background .15s, color .15s;
+}
+.menu-btn:hover, .menu-btn[aria-expanded="true"]{ background:var(--sys-bg-hover); color:var(--sys-text); }
+
+.icon-btn{
+  width:30px; height:30px; border-radius:var(--sys-radius);
+  color:var(--sys-text-soft); font-size:16px; line-height:1;
+  display:grid; place-items:center;
+  transition:background .15s, color .15s;
+}
+.icon-btn:hover{ background:var(--sys-bg-hover); color:var(--sys-text); }
+
+.menu{
+  position:absolute; top:38px; right:0; min-width:158px; padding:5px;
+  background:var(--sys-bg-raised); border:1px solid var(--sys-border);
+  border-radius:var(--sys-radius-lg); box-shadow:var(--sys-shadow-lg); z-index:30;
+}
+.menu button{ display:block; width:100%; text-align:left; padding:8px 10px;
+  border-radius:var(--sys-radius-sm); font-size:13px; color:var(--sys-text-soft); }
+.menu button:hover{ background:var(--sys-bg-hover); color:var(--sys-text); }
+#menu-export{ min-width:214px; }
+#menu-export button[data-exp]{ display:flex; align-items:center; gap:10px; }
+#menu-export .sub{ margin-left:auto; font-size:11.5px; color:var(--sys-text-muted); }
+
+/* ── 二级行：本方案的「标题图 / 长文图文」路径切换 ─────────────────
+   刻意放在全局顶栏之下、封面页内部的头部。
+   原因：原系统 #btn-cover 已经是「公众号排版 ↔ 小红书标题图」的总开关，
+   这两条路径是封面页内部的下一级选择，不该挤占全局导航位。 */
+.pathbar{ height:var(--path-h); display:flex; align-items:center; gap:14px; padding:0 16px;
+  background:var(--panel); border-bottom:1px solid var(--line); }
+.pathbar .hint{ margin-left:auto; font:11px/1 "IBM Plex Mono",monospace; color:var(--faint); }
+.paths{display:flex;gap:2px;background:#f0ede6;padding:3px;border-radius:9px}
+.paths button{border:0;background:transparent;padding:7px 15px;border-radius:7px;cursor:pointer;
+  font:13px/1 inherit;color:var(--soft);transition:.15s;white-space:nowrap}
+.paths button[aria-pressed="true"]{background:#fff;color:var(--ink);font-weight:600;box-shadow:var(--sh)}
+
+/* 原排版页占位：点顶栏「公众号排版」退出封面时显示，说明入口关系 */
+.slot-ph{ padding:60px 24px; text-align:center; color:var(--mute); }
+.slot-ph b{ display:block; font-size:15px; color:var(--ink); margin:0 0 8px; }
+
+/* 主区 */
+.wrap{height:calc(100vh - var(--top-h) - var(--path-h));display:grid;grid-template-columns:minmax(370px,430px) 1fr;overflow:hidden}
+.left{overflow-y:auto;padding:24px 22px 40px;background:var(--panel);border-right:1px solid var(--line)}
+.right{overflow-y:auto;padding:22px 24px 44px}
+
+.sec{margin:0 0 20px}
+.sec-lb{display:flex;align-items:center;gap:8px;font:10.5px/1 "IBM Plex Mono",monospace;color:var(--mute);
+  letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px}
+.sec-lb .tail{margin-left:auto;letter-spacing:0;text-transform:none;color:var(--faint);cursor:pointer}
+.sec-lb .tail:hover{color:var(--accent)}
+
+/* 输入 */
+.biginput{width:100%;border:1px solid var(--line);border-radius:var(--r);background:#fff;
+  padding:14px 15px;font:17px/1.45 inherit;color:var(--ink);outline:0;resize:none;height:78px;transition:.15s}
+.biginput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accentSoft)}
+.biginput::placeholder{color:var(--faint)}
+.biginput.long{height:300px;font:13.5px/1.75 inherit;padding:12px 13px}
+.subinput{width:100%;margin-top:7px;border:1px dashed var(--line);border-radius:8px;background:transparent;
+  padding:9px 12px;font:12.5px/1.4 inherit;color:var(--soft);outline:0;transition:.15s}
+.subinput:focus{border-style:solid;border-color:var(--accent);background:#fff}
+.subinput::placeholder{color:var(--faint)}
+
+/* 配图三选 */
+.imgopts{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.iop{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:12px 11px;
+  border:1px solid var(--line);border-radius:var(--r);background:#fff;cursor:pointer;
+  text-align:left;transition:.15s;position:relative}
+.iop:hover{border-color:#cfc7b8;transform:translateY(-1px)}
+.iop[aria-pressed="true"]{border-color:var(--accent);background:var(--accentSoft);
+  box-shadow:0 0 0 2px rgba(180,85,47,.10)}
+.iop .ic{font-size:17px;line-height:1;color:var(--accent)}
+.iop .nm{font:13px/1.3 inherit;font-weight:600}
+.iop .ds{font:10.5px/1.35 inherit;color:var(--mute)}
+.iop.hero::after{content:"特色";position:absolute;right:8px;top:8px;
+  font:9px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;
+  padding:3px 5px;border-radius:3px;background:var(--accent);color:#fff}
+
+/* 搜图：关键词 + 推荐词 + 降级 */
+.kwbox{display:none;margin-top:10px}
+/* 选中「纯文字封面」时，配图来源整块收起（不用图就不该再让人搜图） */
+#secImg.muted-by-layout .imgopts,
+#secImg.muted-by-layout .kwbox{display:none}
+#secImg.muted-by-layout>.sec-lb{opacity:.45}
+#secImg.muted-by-layout::after{content:"这个版式不用配图 —— 已在下方「② 纯文字封面」组里";
+  display:block;margin:2px 0 0;font:11px/1.6 inherit;color:var(--mute)}
+.kwbox.on{display:block}
+/* ── 两步式搜图（2026-10-31）────────────────────────────────────────
+   用户反馈「搜图的入口和提示不明确，用户可能不懂」。改成显式两步：
+   ① 先选来源（三张卡）→ ② 再搜（只有选了「搜一张好图」才展开）。
+   第 ② 步自带标题「从 Pexels 免费图库搜图」，把「图从哪来」写在明面上。 */
+.step2{margin-top:12px;padding:13px 13px 12px;border:1px solid var(--line);
+  border-radius:var(--r);background:#fff}
+.step2-head{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.step-n{flex:none;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;
+  font:600 11px/20px inherit;text-align:center}
+.step-t{font:12.5px/1.3 inherit;font-weight:600;color:var(--ink)}
+.step-t b{font-weight:700;color:var(--accent)}
+.step2-note{margin:0 0 10px;font:11px/1.6 inherit;color:var(--mute)}
+.sec-lb .tail{cursor:pointer}
+.kwrow{display:flex;gap:6px}
+.kwinput{flex:1;border:1px solid var(--line);border-radius:8px;background:#fff;
+  padding:9px 11px;font:12.5px/1.4 inherit;outline:0;color:var(--ink)}
+.kwinput:focus{border-color:var(--accent)}
+.kwinput::placeholder{color:var(--faint)}
+.kwgo{padding:0 14px;border:0;border-radius:8px;background:var(--ink);color:#fff;
+  font:12px/1 inherit;cursor:pointer;white-space:nowrap;transition:.15s}
+.kwgo:hover{background:#000}
+.kwchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
+.kwchips .lb{font:9.5px/1 "IBM Plex Mono",monospace;color:var(--faint);letter-spacing:.06em;
+  text-transform:uppercase;margin-right:1px}
+.kwchip{padding:4px 9px;border:1px solid var(--line);border-radius:20px;background:#fff;
+  font:11px/1.3 inherit;color:var(--soft);cursor:pointer;transition:.14s}
+.kwchip:hover{border-color:var(--accent);color:var(--accent)}
+.kwchip[aria-pressed="true"]{background:var(--accentSoft);border-color:var(--accent);color:var(--accent)}
+
+/* 未配 Key 的降级：一行说明 + 两个按钮，不置灰、不报错 */
+.kwdegrade{display:none;margin-top:10px;padding:11px 12px;border:1px solid var(--line);
+  border-radius:9px;background:#fff}
+.kwdegrade.on{display:block}
+.kwdegrade p{margin:0 0 9px;font:11.5px/1.65 inherit;color:var(--soft)}
+.kwdegrade p b{font-weight:600;color:var(--ink)}
+.kwdegrade .row{display:flex;gap:6px}
+.minibtn{padding:6px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;
+  font:11.5px/1 inherit;color:var(--soft);cursor:pointer;transition:.14s}
+.minibtn:hover{border-color:var(--accent);color:var(--accent)}
+.minibtn.solid{border-color:var(--ink);background:var(--ink);color:#fff}
+.minibtn.solid:hover{background:#000;color:#fff}
+
+/* 搜图结果（照片候选） */
+.kwres{display:none;margin-top:9px}
+.kwres.on{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pick{position:relative;border:1px solid var(--line);border-radius:7px;overflow:hidden;
+  padding:0;background:#fff;cursor:pointer;aspect-ratio:1/1;transition:.14s}
+.pick img{width:100%;height:100%;object-fit:cover;display:block}
+.pick span{position:absolute;left:0;right:0;bottom:0;padding:3px 4px;
+  font:9px/1.2 "IBM Plex Mono",monospace;color:#fff;background:rgba(20,17,12,.62);
+  text-align:left;letter-spacing:.02em}
+.pick[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px rgba(180,85,47,.28)}
+.pick:hover{transform:translateY(-1px)}
+
+/* 主按钮 */
+.primary{width:100%;padding:13px;border:0;border-radius:var(--r);background:var(--ink);color:#fff;
+  font:14px/1 inherit;font-weight:600;cursor:pointer;transition:.15s}
+.primary:hover{background:#000;box-shadow:var(--shLg)}
+.primary small{font:10.5px/1 "IBM Plex Mono",monospace;opacity:.55;margin-left:6px;font-weight:400}
+
+/* 调整折叠 */
+.adv{margin-top:10px;border:1px solid var(--line2);border-radius:var(--r);background:#fff}
+.adv-head{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;
+  font:12.5px/1 inherit;color:var(--soft);user-select:none}
+.adv-head .arw{margin-left:auto;transition:.2s;color:var(--faint)}
+.adv.open .adv-head .arw{transform:rotate(180deg)}
+.adv-body{display:none;padding:0 13px 13px;border-top:1px solid var(--line2)}
+.adv.open .adv-body{display:block}
+.adv-row{margin:12px 0 0}
+.adv-row>span{display:block;font:10px/1 "IBM Plex Mono",monospace;color:var(--mute);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;
+  font:11.5px/1.3 inherit;color:var(--soft);cursor:pointer;transition:.14s}
+.chip:hover{border-color:#cfc7b8}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.note{font:10.5px/1.7 "IBM Plex Mono",monospace;color:var(--faint);
+  border-left:2px solid var(--line);padding-left:9px;margin:14px 0 0}
+.note b{color:var(--soft);font-weight:500}
+
+/* ══════════════════════════════════════════════════════════════════
+   右栏
+   ══════════════════════════════════════════════════════════════════ */
+.pvhead{display:flex;align-items:center;gap:12px;padding:0 0 13px;border-bottom:1px solid var(--line2);
+  margin:0 0 15px;flex-wrap:wrap}
+.pvhead .t{font:13px/1 inherit;font-weight:600}
+.pvhead .meta{font:10.5px/1 "IBM Plex Mono",monospace;color:var(--mute)}
+
+/* 色板 */
+.pal{display:flex;gap:6px;margin-left:auto}
+.pal button{width:19px;height:19px;border-radius:50%;border:2px solid #fff;padding:0;cursor:pointer;
+  /* 圆环必须自己够对比：柠檬黄 #C5E803 在纸面上只有 1.35:1，
+     光靠色块本身认不出边界。环 #8b857a 对纸面 3.51:1（≥3:1 非文本要求）。 */
+  box-shadow:0 0 0 1px #8b857a;transition:.15s}
+.pal button:hover{transform:scale(1.12)}
+.pal button[aria-pressed="true"]{box-shadow:0 0 0 1px #8b857a, 0 0 0 3px var(--ink)}
+.spec .fixbtn{margin-top:2px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;
+  background:#fff;font:11px/1 inherit;color:var(--accent);cursor:pointer;transition:.14s}
+.spec .fixbtn:hover{border-color:var(--accent);background:var(--accentSoft)}
+
+/* 构图切换条 */
+.composer{display:grid;grid-template-columns:1fr;gap:10px;margin:0}
+/* 右侧版式选择面板（2026-10-31：从预览上方挪到这里，替换原「设计注释」）
+   列宽 372px，6 列会让每个缩略图只有 50px 宽，所以改成 2 列并放大文字。 */
+.pickpanel{border:1px solid var(--line2);border-radius:var(--r);background:#fff;
+  padding:14px 14px 16px;align-self:start}
+.pickpanel-lb{margin:0 0 12px;font:9.5px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--faint)}
+/* 分组标题右侧的浅色说明（「带底图」/「纯色排版」） */
+.pickpanel-lb .sub-lb{text-transform:none;letter-spacing:0;color:var(--mute);font-weight:400}
+/* 尺寸按钮：右栏宽度 372px，三个并排够用；下面一行小字写实际像素 */
+.pickpanel #ch-size{display:flex;gap:6px;flex-wrap:wrap}
+.pickpanel #ch-size .chip{flex:1;min-width:0;text-align:center;padding:8px 6px;font-size:11.5px}
+.size-hint{margin:8px 0 0;font:10.5px/1.5 "IBM Plex Mono",monospace;color:var(--mute)}
+.pickpanel .compgrid{grid-template-columns:repeat(2,1fr);gap:8px}
+.pickpanel .comp{padding:10px 8px;gap:8px;align-items:flex-start}
+.pickpanel .comp .l{white-space:normal;font-size:12px;line-height:1.35}
+.pickpanel .mini{width:100%;height:38px;margin-bottom:2px}
+
+/* 右栏加宽的色板行（2026-10-31）：左侧那排是 19px 小圆点，右栏空间够，
+   做成带名字的色块，点起来更准、也看得懂是哪个色板。 */
+/* ⚠️ 必须写成 .pal.pal-wide（双类）：.pal 基础样式在后面定义，
+   单类的 .pal-wide 会被它按「同特异性、后者胜」覆盖掉 ——
+   实测按钮被压成 2px 高的细条。（与 .mini.lt-th-* 同一个坑） */
+.pal.pal-wide{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-left:0}
+.pal.pal-wide button{width:100%;height:30px;border-radius:6px;padding:0;position:relative;
+  border:1px solid var(--line);cursor:pointer;transition:.14s}
+.pal.pal-wide button::after{content:attr(data-name);position:absolute;left:7px;bottom:3px;
+  font:9.5px/1 inherit;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.pal.pal-wide button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px rgba(28,26,22,.12)}
+.pal.pal-wide button:hover{transform:none;border-color:#cfc7b8}
+
+/* 长文模板缩略图：每套一个特征色块，让用户在点之前就看出深浅与风格
+   （之前所有缩略图都空白 —— .mini 的 .im/.tx 只有六构图那套 m1–m6 才定义）
+   ⚠️ 必须写成 .mini.lt-th-*（双类）：.mini 的基础样式在后面定义，
+      单类的 .lt-th-* 会被它按「同特异性、后者胜」覆盖掉。 */
+.mini.lt-th-editorial  {background:#f0e6d2} .mini.lt-th-editorial .tx  {background:#7d766a}
+.mini.lt-th-swiss      {background:#f2f2f2;border-left:3px solid #ff4500} .mini.lt-th-swiss .tx{background:#3a3a3a}
+.mini.lt-th-notion     {background:#ffffff} .mini.lt-th-notion .tx {background:#37352f}
+.mini.lt-th-book       {background:#fdfbf7;box-shadow:inset 8px 0 0 -4px rgba(0,0,0,.15)} .mini.lt-th-book .tx{background:#8c3a3a}
+.mini.lt-th-memo       {background:#f2f2f7} .mini.lt-th-memo .tx {background:#ff9500}
+.mini.lt-th-polaroid   {background:#d6d6d6} .mini.lt-th-polaroid .tx{background:#2b2b2b}
+.mini.lt-th-aura       {background:linear-gradient(135deg,#ffc3a0,#ffafbd 50%,#2193b0)} .mini.lt-th-aura .tx{background:#2d3436}
+.mini.lt-th-night      {background:#0d0d0d;border-left:2px solid #00f5ff} .mini.lt-th-night .tx{background:#e5e5e5}
+.mini.lt-th-doc        {background:#f8f9fb;box-shadow:inset 0 6px 0 0 rgba(17,24,39,.06)} .mini.lt-th-doc .tx{background:#0066ff}
+.mini.lt-th-film       {background:#1a1a18;box-shadow:inset 0 5px 0 #000, inset 0 -5px 0 #000} .mini.lt-th-film .tx{background:#c8b89a}
+.mini.lt-th-starry     {background:linear-gradient(180deg,#1a1a3e,#0c1445)} .mini.lt-th-starry .tx{background:#fbbf24}
+.mini.lt-th-blank      {background:#ffffff} .mini.lt-th-blank .tx{background:#c9c1b1}
+
+/* 缩略图里的文字块：统一位置，只靠底色区分风格
+   ⚠️ 2026-10-31 修：这几条原本写成 `.pickpanel .mini .img/.tx`，
+   把**封面版式**那 12 个缩略图的图形也一起灭掉了（`.im` 被 display:none，
+   `.tx` 被重定位）——截图里右栏 12 个格子全空白。
+   只作用于长文模板缩略图（带 lt-th-* 类），封面版式缩略图沿用 m1–m6 / mm1–mm6 的原始图形。 */
+.pickpanel .mini[class*="lt-th-"] .tx{left:16%;right:16%;top:42%;height:6%;border-radius:1px}
+.pickpanel .mini[class*="lt-th-"] .im{display:none}
+.pickpanel .mini[class*="lt-th-"] .deco{display:none}
+/* 两组：图文封面 / 纯文字封面（2026-10-31） */
+.compgroup{margin:0}
+.compgroup-lb{font:9.5px/1 "IBM Plex Mono",monospace;color:var(--faint);
+  letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px 2px}
+.compgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+.comp{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px 7px;
+  border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;transition:.14s}
+.comp:hover{border-color:#cfc7b8}
+.comp[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px rgba(28,26,22,.07);background:#fff}
+.comp .l{font:11px/1.2 inherit;color:var(--soft);white-space:nowrap}
+.comp[aria-pressed="true"] .l{font-weight:600;color:var(--ink)}
+.mini{display:block;width:22px;height:28px;position:relative;border:1px solid #d5cfc1;border-radius:2px;
+  overflow:hidden;background:#fbfaf7;flex:none}
+.mini i{position:absolute;display:block;border-radius:1px}
+.mini .im{background:#c9c1b1}
+.mini .tx{background:#7d766a}
+.m1 .im{left:0;right:0;top:0;height:38%}
+.m1 .tx{left:14%;right:14%;bottom:18%;height:30%}
+.m2 .im{inset:0}
+.m2 .tx{left:12%;right:12%;bottom:10%;height:24%}
+.m3 .im{right:0;top:0;bottom:0;width:42%}
+.m3 .tx{left:10%;top:32%;width:40%;height:26%}
+.m4 .im{left:0;right:0;top:0;height:48%}
+.m4 .tx{left:12%;right:12%;top:60%;height:24%}
+.m5 .im{inset:0}
+.m5 .tx{left:14%;right:14%;bottom:12%;height:30%;background:#fbfaf7;box-shadow:0 0 0 1px #d5cfc1}
+.m6 .im{inset:0}
+.m6 .tx{left:12%;right:12%;top:62%;height:15%}
+
+/* 纯文字组缩略图（无图块，只有文字块示意 —— 与图文组一眼区分） */
+.mm1 .im{left:14%;right:14%;top:16%;height:6%}       /* T1 刊头：期号细条 */
+.mm1 .tx{left:14%;right:14%;bottom:22%;height:34%}
+.mm2 .im{left:14%;right:40%;top:20%;height:5%}       /* T2 瑞士：左上短条 */
+.mm2 .tx{left:14%;right:14%;top:44%;height:26%}
+.mm3 .im{left:14%;top:26%;width:26%;height:8%}       /* T3 大字报：色块 */
+.mm3 .tx{left:14%;right:14%;top:42%;height:30%}
+.mm4 .im{left:44%;top:20%;width:12%;height:12%;border-radius:50%}  /* T4 金句：引号点 */
+.mm4 .tx{left:18%;right:18%;top:44%;height:24%}
+.mm5 .im{left:14%;top:14%;width:30%;height:28%}      /* T5 编号大字 */
+.mm5 .tx{left:14%;right:14%;bottom:20%;height:22%}
+.mm6 .im{left:14%;right:14%;top:26%;height:5%}       /* T6 清单：标题条 */
+.mm6 .tx{left:14%;right:14%;top:38%;height:40%;background:repeating-linear-gradient(
+  180deg,#7d766a 0 2px,transparent 2px 8px)}
+
+/* 标题图舞台 */
+.cvstage{display:grid;grid-template-columns:minmax(300px,1fr) minmax(310px,372px);gap:26px;align-items:start}
+.cvcol{display:flex;flex-direction:column;gap:10px;align-items:center}
+.stage-frame{position:relative;overflow:hidden;background:#fff;border-radius:4px;
+  box-shadow:0 6px 28px rgba(30,25,15,.14),0 1px 3px rgba(30,25,15,.10);cursor:zoom-in}
+.stage-frame .zoom{position:absolute;left:0;top:0;transform-origin:0 0}
+.frame-lb{font:9.5px/1 "IBM Plex Mono",monospace;color:var(--mute);letter-spacing:.06em;
+  display:flex;align-items:center;gap:7px;align-self:stretch;justify-content:space-between}
+.frame-lb .tag{padding:3px 6px;border-radius:3px;background:var(--accent);color:#fff;
+  text-transform:uppercase;letter-spacing:.06em}
+
+/* 规格面板：把「为什么这么排」变成可读数值 */
+.spec{border:1px solid var(--line2);border-radius:var(--r);background:#fff;padding:16px 18px 18px}
+.spec .tagline{margin:0 0 7px;font:9.5px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--faint)}
+.spec h4{margin:0 0 3px;font:12.5px/1.4 inherit;font-weight:600}
+.spec .sub{font:10.5px/1.6 "IBM Plex Mono",monospace;color:var(--mute);margin:0 0 13px;letter-spacing:.02em}
+.spec dl{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;margin:0;font-size:12px}
+.spec dt{color:var(--mute);white-space:nowrap}
+.spec dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink);line-height:1.5}
+.spec dd.warn{color:#a34a22}
+.rules{margin:15px 0 0;padding:13px 0 0;border-top:1px solid var(--line2);list-style:none}
+.rules li{display:flex;gap:9px;font:11.5px/1.6 inherit;color:var(--soft);margin:7px 0}
+.rules li b{font:10px/1.7 "IBM Plex Mono",monospace;color:var(--accent);flex:none}
+.spec .seal{margin:14px 0 0;padding:9px 11px;border-radius:7px;background:#f2efe7;
+  font:10.5px/1.6 "IBM Plex Mono",monospace;color:var(--soft)}
+
+/* 长文舞台 */
+/* 2026-10-31：改两列 —— 左 deck（可换行）+ 右模板选择器，与标题图路径对齐 */
+.longstage{display:grid;grid-template-columns:minmax(300px,1fr) minmax(310px,372px);
+  gap:26px;align-items:start}
+.longcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.deck{display:grid;grid-template-columns:repeat(auto-fill,255px);gap:22px 20px;align-content:start;
+  justify-content:start}
+.slot{display:flex;flex-direction:column;gap:7px}
+.slot .frame{position:relative;overflow:hidden;border-radius:3px;background:#fff;cursor:zoom-in;
+  box-shadow:0 2px 16px rgba(30,25,15,.11),0 1px 3px rgba(30,25,15,.07)}
+.slot .frame .zoom{position:absolute;left:0;top:0;transform-origin:0 0}
+.cap{display:flex;align-items:center;gap:6px;font:9.5px/1 "IBM Plex Mono",monospace;
+  color:var(--mute);letter-spacing:.03em}
+.cap .role{padding:3px 6px;border-radius:3px;background:#eae4d7;color:#5d564b;font-weight:500;
+  text-transform:uppercase;letter-spacing:.06em}
+.cap .role.opening{background:#e6e0d1}
+.cap .role.points{background:#dfe8e0;color:#3d5c47}
+.cap .role.quote{background:#ece1e6;color:#6d4453}
+.cap .role.dense{background:#eae4d7;color:#5d564b}
+.cap .role.closing{background:#f0e3d8;color:#7a4d2e}
+.cap .fs{margin-left:auto;color:#a9a196;font-variant-numeric:tabular-nums}
+.selfcheck{margin:18px 0 0;padding:10px 12px;border-radius:8px;background:#e8f4ed;
+  border:1px solid #b7ddc7;color:#1e6b4a;font:10.5px/1.7 "IBM Plex Mono",monospace}
+.selfcheck.bad{background:#fbe9e4;border-color:#eec0b4;color:#a3271a}
+.selfcheck b{font-weight:500}
+
+.hidden{display:none !important}
+
+/* 灯箱 */
+.lb{position:fixed;inset:0;background:rgba(22,19,14,.88);display:none;
+  align-items:center;justify-content:center;z-index:50;padding:24px}
+.lb.on{display:flex}
+.lb .inner{position:relative}
+.lb .close{position:absolute;right:-4px;top:-32px;background:transparent;border:0;
+  color:#fff;font:10px/1 "IBM Plex Mono",monospace;cursor:pointer;letter-spacing:.1em}
+.lb .frame{position:relative;overflow:hidden;border-radius:3px;background:#fff;cursor:default;
+  box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.lb .frame .zoom{position:absolute;left:0;top:0;transform-origin:0 0}
+
+/* ══════════════════════════════════════════════════════════════════
+   卡片本体 —— 复用 xhs-text-card-v2.html 已验证的版式系统
+   大标题一律 weight 500（衬线）/ 300（瑞士无衬线）：the larger, the lighter
+   ══════════════════════════════════════════════════════════════════ */
+.card{
+  /* 2026-10-31：尺寸可变（3:4 / 1:1 / 21:9）。--cw/--ch 由 JS 按 state.size 写入；
+     内部几何一律用百分比，字号用 --k 缩放，这样换尺寸时内容区高度真实变化，
+     而分页是实测高度装箱，会自动重排页数。 */
+  width:var(--cw,1080px);height:var(--ch,1440px);position:relative;overflow:hidden;
+  background:var(--paper);color:var(--ink);
+  --serif:"Noto Serif SC","Songti SC",Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.card .grain{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.30;
+  background-image:radial-gradient(var(--grain) 1px,transparent 1px);background-size:3px 3px}
+/* 页面级几何一律百分比（2026-10-31 尺寸接线）：left/right 相对宽、top/bottom 相对高。
+   基准值来自 1080×1440：88px=8.148% / 66px=4.58% / 56px=3.89% / 76px=5.28% / 74px=5.14% */
+.card .head{position:absolute;left:8.148%;right:8.148%;top:5.278%;height:2.78%;z-index:4;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  font:500 calc(19px * var(--k,1))/1 var(--mono);letter-spacing:.20em;text-transform:uppercase;color:var(--muted)}
+.card .head .hl{display:flex;align-items:center;gap:14px;min-width:0}
+.card .head .hl::before{content:"";width:30px;height:2px;background:var(--accent);flex:none}
+.card .head .hl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .foot{position:absolute;left:8.148%;right:8.148%;bottom:5.139%;height:2.778%;z-index:6;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--line);
+  font:400 calc(19px * var(--k,1))/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.card .foot .pn{color:var(--accentText);font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ══════════════════════════════════════════════════════════════════
+   长文模板 12 套（2026-10-31）
+   ──────────────────────────────────────────────────────────────────
+   每套只改三处：内容区几何（.body 的 inset）、页面装饰（head/foot 的 DOM）、
+   局部排印（标题/引用/条目的处理）。基础排印仍复用上面的 .card .body p。
+   ⚠️ 不要给模板加 `!important` —— 主题色板与用户选择的字体会被一起打掉。
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 页眉页脚通用 */
+.card .lh{position:absolute;left:88px;right:88px;top:66px;height:34px;z-index:5;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  font:600 16px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted)}
+.card .lf{position:absolute;left:88px;right:88px;bottom:56px;height:30px;z-index:5;
+  display:flex;align-items:center;justify-content:space-between;
+  font:500 16px/1 var(--mono);letter-spacing:.14em;color:var(--muted)}
+.card .lt-mast{font-weight:700;letter-spacing:.14em;color:var(--ink)}
+.card .lt-mast-r{font-style:italic;font-weight:400;letter-spacing:.10em}
+
+/* ── 1 杂志编辑：上下细线 + 衬线正文 ───────────────────────────── */
+.card.lt-editorial .lh{top:62px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.card.lt-editorial .body{top:150px;bottom:120px}
+.card.lt-editorial .lf{border-top:1px solid var(--line);padding-top:14px}
+.card.lt-editorial .body .h2{font-family:var(--serif);letter-spacing:.02em}
+
+/* ── 2 瑞士网格：左侧色条 + 40px 竖网格 ────────────────────────── */
+.card.lt-swiss{background-image:repeating-linear-gradient(90deg,
+  var(--line) 0 1px, transparent 1px 40px)}
+.card.lt-swiss::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;
+  background:var(--accent);z-index:2}
+.card.lt-swiss .lh{left:100px;right:60px;top:40px;justify-content:flex-end}
+.card.lt-swiss .body{left:100px;right:60px;top:110px;bottom:110px}
+.card.lt-swiss .lf{left:100px;right:60px}
+.card.lt-swiss .corner{width:20px;height:20px;border:2px solid var(--accent)}
+.card.lt-swiss .body p{font-family:var(--sans);line-height:1.62}
+.card.lt-swiss .body .h2{font-family:var(--sans);font-weight:700;letter-spacing:-.01em}
+
+/* ── 3 效率笔记：白纸 + 面包屑 + 顶部细线 ──────────────────────── */
+.card.lt-notion .lh{top:56px;padding-bottom:12px;border-bottom:1px solid var(--line);
+  text-transform:none;letter-spacing:.02em;font:500 17px/1 var(--sans)}
+.card.lt-notion .body{top:140px;bottom:110px}
+.card.lt-notion .body p{font-family:var(--sans);line-height:1.76}
+.card.lt-notion .body .h2{font-family:var(--sans);font-weight:600}
+
+/* ── 4 书籍内页：左侧装订阴影 + 右缘高光 + 纸张纹理 ────────────── */
+.card.lt-book{background:
+  linear-gradient(90deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.05) 4%, rgba(0,0,0,0) 12%),
+  linear-gradient(270deg, rgba(255,255,255,.5) 0 3px, transparent 3px),
+  var(--paper)}
+.card.lt-book .lh{top:68px;justify-content:center;column-gap:18px}
+.card.lt-book .lt-book-sect{color:var(--accent);font-size:22px;line-height:1}
+.card.lt-book .lt-book-mast{font:italic 500 15px/1 var(--serif);letter-spacing:.34em;color:var(--muted)}
+.card.lt-book .body{left:110px;right:96px;top:150px;bottom:130px}
+.card.lt-book .lf{left:110px;right:96px}
+
+/* ── 5 苹果备忘录：iOS 顶栏 + 横线纸 + 白卡 ────────────────────── */
+.card.lt-memo{padding:0}
+.card.lt-memo::before{content:"";position:absolute;left:15px;right:15px;top:55px;bottom:55px;
+  background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.05);z-index:1}
+.card.lt-memo .lh{left:40px;right:40px;top:16px;height:26px;z-index:5;
+  text-transform:none;letter-spacing:.01em;font:500 17px/1 var(--sans);color:var(--accent)}
+.card.lt-memo .lt-memo-date{color:var(--muted);font-weight:400;font-size:13px}
+.card.lt-memo .lt-memo-done{color:var(--accent);font-weight:600}
+.card.lt-memo .body{left:52px;right:52px;top:100px;bottom:110px;z-index:4;
+  background-image:repeating-linear-gradient(180deg,
+    transparent 0 calc(var(--fs) * 1.74 - 1px), var(--line) calc(var(--fs) * 1.74 - 1px) calc(var(--fs) * 1.74))}
+.card.lt-memo .body p{font-family:var(--sans);line-height:1.74}
+.card.lt-memo .body .h2{font-family:var(--sans);font-weight:600}
+
+/* ── 6 拍立得：上部照片框 + 胶带 ──────────────────────────────── */
+.card.lt-polaroid{background:#d6d6d6}
+.card.lt-polaroid::before{content:"";position:absolute;left:50px;top:60px;right:50px;bottom:60px;
+  background:#fafafa;box-shadow:0 14px 34px rgba(0,0,0,.16);z-index:1}
+/* ⚠️ 2026-10-31 修：照片框原来写死 height:420px，导致正文区只剩 730px
+   （其他模板都在 1048–1230px）——开篇页 74px 大字一放就溢出。
+   改成按比例 26%（1440 × 26% ≈ 374px），正文区回到 ~790px；
+   同时把下方留白从 150 收到 130，再挤出 20px。
+   拍立得的视觉特征（上照片、下大片留白）仍然保留。 */
+.card.lt-polaroid::after{content:"";position:absolute;left:80px;right:80px;top:90px;
+  height:calc(26% - 30px);
+  background:linear-gradient(140deg,#3a3a3a,#2c2c2c 60%,#4a4a4a);z-index:2}
+.card.lt-polaroid .lh{top:34px;z-index:6;left:0;right:0;justify-content:center}
+.card.lt-polaroid .lh::before{content:"";width:150px;height:36px;
+  background:rgba(255,255,255,.55);box-shadow:0 3px 8px rgba(0,0,0,.12);
+  transform:rotate(-2deg)}
+.card.lt-polaroid .body{left:90px;right:90px;top:calc(26% + 60px);bottom:130px;z-index:4}
+.card.lt-polaroid .lf{left:90px;right:90px}
+
+/* ── 7 弥散极光：三层光晕 + 毛玻璃卡 ──────────────────────────── */
+.card.lt-aura{background:
+  radial-gradient(80% 60% at 0% 0%, rgba(255,195,160,.34), transparent 70%),
+  radial-gradient(70% 55% at 100% 18%, rgba(255,175,189,.28), transparent 70%),
+  radial-gradient(90% 70% at 50% 100%, rgba(33,147,176,.18), transparent 70%),
+  #fff}
+.card.lt-aura::before{content:"";position:absolute;left:25px;right:25px;top:30px;bottom:60px;
+  background:rgba(255,255,255,.52);border:1.5px solid rgba(255,255,255,.75);
+  border-radius:28px;box-shadow:0 10px 40px rgba(0,0,0,.04);z-index:1;
+  backdrop-filter:blur(2px)}
+.card.lt-aura .lh{left:60px;right:60px;top:60px;z-index:5}
+.card.lt-aura .body{left:60px;right:60px;top:130px;bottom:110px;z-index:4}
+.card.lt-aura .lf{left:60px;right:60px;bottom:80px}
+
+/* ── 8 暗夜深思：径向渐变 + 左侧发光竖线 ──────────────────────── */
+.card.lt-night{background:radial-gradient(90% 70% at 50% 50%, #1a1a1a, #050505)}
+.card.lt-night::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg, transparent, var(--accent) 20% 80%, transparent);
+  opacity:.35;z-index:2}
+.card.lt-night::after{content:"";position:absolute;left:20px;right:20px;top:30px;bottom:60px;
+  border:1px solid rgba(255,255,255,.05);border-radius:16px;
+  background:rgba(255,255,255,.02);z-index:1}
+.card.lt-night .lh{left:52px;right:52px;top:50px;z-index:5}
+.card.lt-night .night-pn,.card.lt-night .lt-night-pn{color:rgba(255,255,255,.35)}
+.card.lt-night .body{left:52px;right:52px;top:120px;bottom:150px;z-index:4}
+.card.lt-night .lf{left:52px;right:52px;bottom:80px;padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.2)}
+.card.lt-night .body .h2{color:var(--accent)}
+
+/* ── 9 大厂文档：网格 + macOS 窗口 ────────────────────────────── */
+.card.lt-doc{background:
+  repeating-linear-gradient(90deg, rgba(0,102,255,.022) 0 1px, transparent 1px 20px),
+  repeating-linear-gradient(180deg, rgba(0,102,255,.022) 0 1px, transparent 1px 20px),
+  var(--paper)}
+.card.lt-doc::before{content:"";position:absolute;left:15px;right:15px;top:40px;bottom:60px;
+  background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);z-index:1}
+.card.lt-doc .lh{left:15px;right:15px;top:40px;height:30px;z-index:5;
+  border-radius:12px 12px 0 0;background:rgba(17,24,39,.05);padding:0 14px;
+  justify-content:flex-start;gap:14px}
+.card.lt-doc .lt-doc-dots{display:flex;gap:7px}
+.card.lt-doc .lt-doc-dots i{width:10px;height:10px;border-radius:50%;display:block}
+.card.lt-doc .lt-doc-dots i:nth-child(1){background:#ff5f56}
+.card.lt-doc .lt-doc-dots i:nth-child(2){background:#ffbd2e}
+.card.lt-doc .lt-doc-dots i:nth-child(3){background:#27c93f}
+.card.lt-doc .lt-doc-title{font:700 11px/1 var(--sans);letter-spacing:.06em;color:var(--muted)}
+.card.lt-doc .lt-mast-r{margin-left:auto;font:700 10px/1 var(--sans);letter-spacing:.08em}
+.card.lt-doc .body{left:50px;right:50px;top:130px;bottom:120px;z-index:4}
+.card.lt-doc .lf{left:50px;right:50px}
+
+/* ── 10 电影胶片：宽银幕遮幅 + 齿孔 ──────────────────────────── */
+.card.lt-film{background:radial-gradient(90% 75% at 50% 45%, #252320, #1a1a18 60%, #111110)}
+.card.lt-film::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+  box-shadow:inset 0 0 140px 30px rgba(0,0,0,.45)}
+.card.lt-film .lt-film-bars{position:absolute;left:0;right:0;height:7%;z-index:7;
+  background:#000;display:flex;align-items:center;padding:0 16px;
+  font:600 10px/1 "Courier New",monospace;letter-spacing:.06em;
+  color:rgba(200,184,154,.35)}
+.card.lt-film .lt-film-bars.top{top:0;border-bottom:.5px solid rgba(200,184,154,.2);
+  justify-content:space-between}
+.card.lt-film .lt-film-bars.bottom{bottom:0;border-top:.5px solid rgba(200,184,154,.2);
+  justify-content:space-between}
+.card.lt-film .lt-film-bars::before{content:"";position:absolute;left:0;right:0;top:50%;
+  height:45%;transform:translateY(-50%);
+  background-image:repeating-linear-gradient(90deg,
+    rgba(200,184,154,.12) 0 8px, transparent 8px 32px);
+  -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 32px);
+  pointer-events:none;opacity:.9}
+.card.lt-film .lh{left:0;right:0;top:7%;height:56px;z-index:8;justify-content:center}
+.card.lt-film .lt-film-title{font:italic 500 15px/1 var(--serif);letter-spacing:.22em;
+  color:rgba(200,184,154,.5)}
+.card.lt-film .body{left:70px;right:70px;top:calc(7% + 100px);bottom:calc(7% + 90px);z-index:5}
+.card.lt-film .lf{bottom:7%;height:7%;left:0;right:0;z-index:8;justify-content:center}
+.card.lt-film .lt-film-scene{font:500 12px/1 "Courier New",monospace;letter-spacing:.14em;
+  color:rgba(200,184,154,.4)}
+
+/* ── 11 星光质感：深蓝渐变 + 星点 + 月亮微光 ──────────────────── */
+.card.lt-starry{background:
+  radial-gradient(70% 50% at 85% 8%, rgba(251,191,36,.16), transparent 65%),
+  radial-gradient(120% 90% at 50% 20%, #1a1a3e, #0c1445 55%, #0f0f2d)}
+.card.lt-starry::before{content:"";position:absolute;inset:0;z-index:1;opacity:.9;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,.9), transparent),
+    radial-gradient(1px 1px at 28% 42%, rgba(255,255,255,.7), transparent),
+    radial-gradient(2px 2px at 44% 12%, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 78% 15%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 88% 48%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 18% 68%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 72% 78%, rgba(255,255,255,.7), transparent);
+  background-size:100% 100%}
+.card.lt-starry .lh{left:60px;right:60px;top:56px;z-index:5;
+  border-bottom:1px solid rgba(251,191,36,.35);padding-bottom:16px}
+.card.lt-starry .lt-starry-mark{color:var(--accent);font-weight:600;letter-spacing:.16em}
+.card.lt-starry .body{left:60px;right:60px;top:140px;bottom:120px;z-index:4}
+.card.lt-starry .lf{left:60px;right:60px;color:rgba(251,191,36,.6)}
+
+/* ── 12 极简留白：只有页码 ──────────────────────────────────── */
+.card.lt-blank .body{top:120px;bottom:120px}
+.card.lt-blank .lh{display:none}
+.card .body{position:absolute;left:88px;right:88px;top:166px;bottom:150px;z-index:4;
+  display:flex;flex-direction:column}
+
+/* 排印基元
+   ⚠️ 2026-10-31 重大修复：这两条原写成 `.card .body p` / `.card .body .h2`（特异性 0,2,1），
+   会**压过**下面所有角色规则（`.r-opening .lead` 等是 0,2,0）→
+   开篇 74px / 金句 78px / 结尾 66px / 清单 56px 的整套字号阶梯**从未生效过**，
+   实测全部被打回 var(--fs)=52px。这正是长文「看起来很单调」的根因之一。
+   修法：用 :where() 把基础规则的特异性归零，它本来就只是「没被角色覆盖时的默认值」。 */
+:where(.card .body p){margin:0 0 var(--pgap);font-family:var(--serif);font-weight:400;
+  font-size:var(--fs);line-height:1.74;text-align:justify}
+:where(.card .body .h2){font-family:var(--serif);font-weight:500;letter-spacing:.03em;
+  font-size:calc(var(--fs) * 1.40);line-height:1.32;margin:0 0 calc(var(--fs) * .48)}
+:where(.card .body .h3){font-family:var(--serif);font-weight:500;letter-spacing:.02em;
+  font-size:calc(var(--fs) * 1.10);line-height:1.38;
+  margin:calc(var(--fs) * .58) 0 calc(var(--fs) * .26)}
+.card .body strong{font-weight:600}
+.card .body em{font-family:"Playfair Display",var(--serif);font-style:italic}
+.card .body .mark{background:var(--hl);padding:0 3px;border-radius:2px}
+
+/* ① 开篇 opening */
+.card .body.r-opening{justify-content:center}
+/* ⓪ 封面页（2026-10-31，与内页共用同一套模板装饰）
+   封面 = 模板的 P1：页眉页脚由 .lh/.lf 统一提供，这里只排标题区。
+   底图（可选）铺满整页并压一层渐变，保证标题在照片上也读得清；
+   不铺底图时就是纯色封面，与内页同族。 */
+.card .body.r-cover{justify-content:flex-end;padding-bottom:0}
+.card .body.r-cover .lt-cover-img{position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 46%;z-index:0}
+.card .body.r-cover.has-img::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(10,9,8,0) 38%,rgba(10,9,8,.30) 62%,
+    rgba(10,9,8,.66) 84%,rgba(10,9,8,.80) 100%)}
+.card .body.r-cover .lt-cover-inner{position:relative;z-index:2;padding-bottom:8px}
+.card .body.r-cover .lt-cover-kick{margin:0 0 18px;font:500 21px/1 var(--mono);
+  letter-spacing:.22em;text-transform:uppercase;color:var(--accentText)}
+.card .body.r-cover .lt-cover-ttl{margin:0;font-family:var(--serif);font-weight:500;
+  font-size:calc(var(--fs) * 2.05);line-height:1.18;letter-spacing:.02em;text-wrap:balance}
+.card .body.r-cover .lt-cover-sub{margin:26px 0 0;font-family:"Playfair Display",var(--serif);
+  font-style:italic;font-size:calc(var(--fs) * .60);line-height:1.62;color:var(--muted);max-width:820px}
+/* 有底图时字色翻白，且只给压在照片上的字加投影（纸面正文不加） */
+.card .body.r-cover.has-img .lt-cover-ttl{color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.45), 0 6px 22px rgba(0,0,0,.35)}
+.card .body.r-cover.has-img .lt-cover-sub{color:rgba(255,255,255,.88)}
+.card .body.r-cover.has-img .lt-cover-kick{color:rgba(255,255,255,.82)}
+
+.r-opening .rule{width:62px;height:2px;background:var(--accent);margin:0 0 38px;flex:none}
+.r-opening .lead{font-family:var(--serif);font-weight:500;font-size:74px;line-height:1.36;
+  letter-spacing:.03em;margin:0;max-width:900px}
+.r-opening .sub{font-family:"Playfair Display",var(--serif);font-style:italic;font-weight:400;
+  font-size:31px;line-height:1.52;color:var(--muted);margin:32px 0 0;max-width:820px}
+.r-opening .sign{margin-top:64px;font:400 20px/1 var(--mono);letter-spacing:.20em;
+  text-transform:uppercase;color:var(--muted)}
+
+/* ② 清单 points */
+/* 注意：.body 本身是 absolute，绝对定位元素已是子元素的包含块，
+   这里不能再写 position:relative —— 那会把它拉回普通流，宽度变成整卡 1080，
+   右边界溢出 88px（实测清单/金句页文字被卡片边缘切掉）。 */
+.card .body.r-points{justify-content:center}
+.r-points .big-num{position:absolute;right:-30px;top:-16px;z-index:0;pointer-events:none;
+  font:600 300px/1 var(--serif);color:var(--accent);opacity:.10;letter-spacing:-.03em}
+.r-points .ttl{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  letter-spacing:.03em;font-size:56px;line-height:1.32;margin:0 0 36px}
+.r-points .rows{position:relative;z-index:1;display:flex;flex-direction:column}
+.r-points .row{display:flex;gap:26px;align-items:baseline;padding:25px 0;
+  border-top:1px solid var(--line)}
+.r-points .row:last-child{border-bottom:1px solid var(--line)}
+.r-points .row .n{flex:none;font:500 24px/1 var(--mono);letter-spacing:.10em;
+  color:var(--accentText);padding-top:5px;font-variant-numeric:tabular-nums}
+.r-points .row .t{flex:1;font-family:var(--serif);font-size:var(--fs);line-height:1.62;
+  font-weight:400;text-align:justify}
+.r-points .row .t b{font-weight:600}
+.r-points .pintro,.r-steps .pintro{
+  position:relative;z-index:1;font-family:var(--serif);font-weight:400;
+  font-size:calc(var(--fs) * .88);line-height:1.7;color:var(--muted);
+  margin:0 0 30px;text-align:justify}
+
+/* ③ 金句 quote */
+.card .body.r-quote{justify-content:center;text-align:center}
+.r-quote .qbg{position:absolute;left:50%;top:50%;transform:translate(-50%,-56%);z-index:0;
+  font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:400;
+  font-size:560px;line-height:.9;color:var(--accent);opacity:.13;pointer-events:none}
+.r-quote .qmark{position:relative;z-index:1;font-family:"Playfair Display",Georgia,serif;
+  font-style:italic;font-size:130px;line-height:.55;color:var(--accent);opacity:.34;
+  margin:0 0 22px;align-self:center}
+.r-quote .qt{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  font-size:78px;line-height:1.46;letter-spacing:.03em;margin:0;max-width:840px;align-self:center}
+.r-quote .qrule{position:relative;z-index:1;width:54px;height:2px;background:var(--accent);
+  margin:42px auto 0;opacity:.70}
+.r-quote .qctx{position:relative;z-index:1;margin:40px auto 0;max-width:760px;
+  font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.72;
+  color:var(--muted);text-align:justify}
+.r-quote .qsign{position:relative;z-index:1;margin:30px auto 0;
+  font:400 20px/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+
+/* ④ 步骤 steps */
+.r-steps .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;font-size:56px;
+  line-height:1.32;margin:0 0 42px}
+.r-steps .flow{display:flex;flex-direction:column}
+.r-steps .step{display:flex;gap:28px;position:relative;padding-bottom:36px}
+.r-steps .step:last-child{padding-bottom:0}
+.r-steps .step:not(:last-child)::before{content:"";position:absolute;left:28px;top:56px;
+  bottom:0;width:1px;background:var(--line)}
+.r-steps .step .sn{flex:none;width:56px;height:56px;border-radius:50%;display:grid;
+  place-items:center;border:1px solid var(--accent);color:var(--accentText);
+  font:500 21px/1 var(--mono);font-variant-numeric:tabular-nums;background:var(--paper);
+  position:relative;z-index:1}
+.r-steps .step .sc{flex:1;padding-top:5px}
+.r-steps .step .st{font-family:var(--serif);font-weight:600;font-size:calc(var(--fs) * 1.0);
+  line-height:1.5;margin:0 0 8px}
+.r-steps .step .sd{font-family:var(--serif);font-weight:400;font-size:calc(var(--fs) * .82);
+  line-height:1.68;color:var(--muted);margin:0;text-align:justify}
+
+/* ⑤ 正文 dense —— 中文不做首字下沉，用 40px 小色条做段首锚点 */
+.r-dense .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;
+  font-size:calc(var(--fs) * 1.36);line-height:1.34;margin:0 0 calc(var(--fs) * .50)}
+.r-dense .drop{position:relative}
+.r-dense .drop::before{content:"";display:block;width:40px;height:2px;background:var(--accent);
+  margin:0 0 22px;opacity:.75}
+
+/* ⑥ 结尾 closing */
+.card .body.r-closing{justify-content:center}
+.r-closing .cbg{position:absolute;right:-30px;bottom:-60px;z-index:0;pointer-events:none;
+  font:600 340px/1 var(--serif);color:var(--accent);opacity:.09;letter-spacing:-.04em}
+.r-closing .rule{position:relative;z-index:1;width:62px;height:2px;background:var(--accent);
+  margin:0 0 34px;flex:none}
+.r-closing .ct{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  font-size:66px;line-height:1.42;letter-spacing:.03em;margin:0;max-width:860px}
+.r-closing .cd{position:relative;z-index:1;font-family:var(--serif);font-weight:400;
+  font-size:31px;line-height:1.68;color:var(--muted);margin:30px 0 0;max-width:780px;text-align:justify}
+.r-closing .cta{position:relative;z-index:1;display:inline-flex;align-items:center;gap:14px;
+  margin-top:56px;font:500 21px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accentText);border-top:1px solid var(--line);padding-top:24px;align-self:flex-start}
+.r-closing .cta::before{content:"";width:28px;height:2px;background:var(--accent)}
+
+/* 瑞士模式：无衬线 / 无圆角 / 无纹理 / 一个强调色 */
+.card.swiss .body p,.card.swiss .row .t,.card.swiss .ct,.card.swiss .sd{font-family:var(--sans)}
+.card.swiss .r-quote .qt,.card.swiss .r-opening .lead,.card.swiss .r-closing .ct,
+.card.swiss .r-points .ttl,.card.swiss .r-steps .ttl,.card.swiss .r-dense .ttl,.card.swiss .r-opening .sub{
+  font-family:var(--sans);font-weight:300;letter-spacing:.01em}
+.card.swiss .grain{display:none}
+.card.swiss .r-steps .step .sn{border-radius:0}
+.card.swiss .body .mark{background:var(--accent);color:var(--paper);padding:0 5px}
+
+/* ══════════════════════════════════════════════════════════════════
+   标题图 · 12 种版式（① 图文封面 C1–C6 ｜ ② 纯文字封面 T1–T6）
+   ──────────────────────────────────────────────────────────────────
+   铁律（踩坑总结）：
+     ① 不整图压暗 —— 浅色照片会被压成灰雾，等于白放一张图
+     ② scrim 只盖文字那一条，不盖图（Material 局部 scrim 的本意）
+     ③ 投影只是辅助，纸面上的正文一律不加
+   ══════════════════════════════════════════════════════════════════ */
+.cv .cv-img{position:absolute;display:block;object-fit:cover;object-position:center 48%;z-index:0}
+.cv .cv-scrim{position:absolute;z-index:1;pointer-events:none}
+.cv .cv-body{position:absolute;z-index:4;display:flex;flex-direction:column}
+.cv .cv-ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;line-height:1.22;
+  margin:0;font-size:var(--ttl);text-wrap:balance}
+
+/* ══════════════════════════════════════════════════════════════════
+   纯文字版式 T1–T6（2026-10-31 从真系统纳入）
+   ──────────────────────────────────────────────────────────────────
+   结构对齐 templates.js 的 magazine/swiss/bigtype 与 layouts.js 的 quote/number/list。
+   与 C1–C6 的关键区别：这一组**不用底图**，所以不做亮度判定、不加 scrim，
+   靠留白 + 字号对比 + 少量色块撑住画面。
+   ══════════════════════════════════════════════════════════════════ */
+.cv.tl{display:flex;flex-direction:column}
+/* ⚠️ 2026-10-31 修：bottom 原为 96px，但页脚固定在卡底 74px、高 40px（即 74–114px），
+   与 tl-body 的底边（96px）重叠 18px —— 实测 t1/t2 的小字、t5 的 No.10 都压到了页脚上。
+   改为 128px（页脚顶 114px + 14px 呼吸），与图文封面 .cv-body 的 bottom:150px 同源。 */
+.cv.tl .tl-body{position:absolute;left:88px;right:88px;top:96px;bottom:128px;
+  display:flex;flex-direction:column;justify-content:flex-end;z-index:4}
+.cv.tl .cv-ttl{color:var(--ink)}
+.cv.tl .cv-sub{color:var(--muted)}
+.cv.tl .tl-issue{display:flex;align-items:center;gap:12px;
+  font:400 21px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;color:var(--muted);
+  text-transform:uppercase}
+.cv.tl .tl-issue .dot{width:5px;height:5px;border-radius:50%;background:var(--muted);flex:none}
+.cv.tl .tl-rule{width:48px;height:3px;background:var(--accent);opacity:.8;margin:22px 0}
+.cv.tl .tl-kick{font:500 21px/1 "IBM Plex Mono",monospace;letter-spacing:.22em;
+  color:var(--accentText);margin:0 0 22px;text-transform:uppercase}
+.cv.tl .tl-mid{margin-top:auto}
+
+/* T1 杂志刊头：贴底，期号在最上 */
+.cv.t1 .tl-body{justify-content:space-between}
+.cv.t1 .tl-mid{margin-top:0}
+
+/* T2 瑞士极简：白纸细体，标题字重轻、字距紧 */
+.cv.t2 .cv-ttl{font-family:var(--sans);font-weight:300;line-height:1.14;letter-spacing:-.01em}
+.cv.t2 .cv-sub{font-family:var(--sans);font-weight:300}
+
+/* T3 大字报：垂直居中 + 强调色块压题 */
+.cv.t3 .tl-body{justify-content:center}
+.cv.t3 .tl-mid{margin-top:0}
+.cv.t3 .tl-block{width:104px;height:14px;background:var(--accent);margin:0 0 40px}
+.cv.t3 .cv-ttl{font-weight:700;line-height:1.1}
+.cv.t3 .tl-footrule{width:100%;height:1px;background:var(--accent);opacity:.35;margin-top:40px}
+
+/* T4 金句：居中 + 大引号 */
+.cv.t4 .tl-body{justify-content:center;align-items:center;text-align:center}
+.cv.t4 .tl-mid{margin-top:0}
+.cv.t4 .tl-qmark{font:400 190px/0.6 Georgia,serif;color:var(--accent);opacity:.55;height:96px}
+.cv.t4 .cv-ttl{line-height:1.34;letter-spacing:.02em}
+.cv.t4 .tl-rule{margin:44px auto 0;width:76px}
+.cv.t4 .cv-sub{margin:34px auto 0;max-width:700px;text-align:center}
+.cv.t4 .tl-sign{margin-top:52px;font:400 22px/1 "IBM Plex Mono",monospace;
+  letter-spacing:.3em;color:var(--muted)}
+
+/* T5 编号大字：数字当主视觉 */
+.cv.t5 .tl-body{justify-content:center}
+.cv.t5 .tl-mid{margin-top:0;padding-top:8px}
+.cv.t5 .tl-bignumrow{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.cv.t5 .tl-bignum{font:800 280px/0.80 'Noto Sans SC',system-ui,sans-serif;letter-spacing:-.06em;
+  color:var(--accent);opacity:.92;font-variant-numeric:tabular-nums}
+.cv.t5 .tl-side{writing-mode:vertical-rl;font:400 20px/1 "IBM Plex Mono",monospace;
+  letter-spacing:.34em;color:var(--muted);margin-top:8px}
+/* ⚠️ 2026-10-31 修：tl-issue 原写 bottom:0（相对 .tl-body，而 .tl-body 的 bottom 是 96px），
+   实际落在卡底 96px 处；而 .card .foot 固定在卡底 74px —— 两者只差 22px 且都高约 20px，
+   实测「No.10」与「SUPERSU」叠在一起。改为让 tl-issue 留在正文块末尾，
+   不绝对定位到 body 底边。 */
+.cv.t5 .tl-issue{position:static;margin-top:auto}
+
+/* T6 清单：标题 + 编号条目 */
+.cv.t6 .tl-body{justify-content:center}
+.cv.t6 .tl-mid{margin-top:0}
+.cv.t6 .cv-ttl{margin-bottom:0}
+.cv.t6 .tl-items{list-style:none;margin:44px 0 0;padding:0}
+.cv.t6 .tl-items li{display:flex;align-items:baseline;gap:26px;padding:22px 0;
+  border-top:1px solid var(--line)}
+.cv.t6 .tl-items li:last-child{border-bottom:1px solid var(--line)}
+.cv.t6 .tl-items .n{flex:none;font:600 26px/1 "IBM Plex Mono",monospace;
+  color:var(--accentText);letter-spacing:.06em;padding-top:2px}
+.cv.t6 .tl-items .t{font-size:34px;line-height:1.55;color:var(--ink)}
+.cv .cv-sub{font-family:var(--serif);font-weight:400;font-size:36px;line-height:1.62;
+  color:var(--muted);margin:34px 0 0;letter-spacing:.01em;
+  /* 中文断行：pretty 专治末行孤字（实测「…只听见」+「浪」）。
+     不要用「降字号」解决 —— 字号越小每行字数越多、末行越短，反而更糟。 */
+  text-wrap:pretty}
+.cv .cv-kick{font:500 20px/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;
+  color:var(--accentText);margin:0 0 26px;display:flex;align-items:center;gap:15px}
+.cv .cv-kick::before{content:"";width:34px;height:2px;background:var(--accent);flex:none}
+.cv.has-img .grain{opacity:.20}
+
+/* 无图 / 纯文字变体 */
+.cv.noimg .cv-img,.cv.noimg .cv-scrim,.cv.noimg .cv-fade{display:none}
+.cv.noimg .cv-body{left:88px;right:88px;top:0;bottom:150px;justify-content:center}
+.cv.noimg .cv-card{background:var(--paper);box-shadow:none;border:1px solid var(--line)}
+.cv.noimg .cv-ttl,.cv.noimg .cv-card .cv-ttl{color:var(--ink)}
+.cv.noimg .cv-sub{color:var(--muted)}
+
+/* C1 刊头照片带：图占顶部 36%（520/1440），文字在下方纸面 —— 不重叠，不压暗 */
+.c1 .cv-img{left:0;top:0;width:100%;height:36.11%;border-bottom:3px solid var(--accent)}
+.c1 .cv-body{left:8.148%;right:8.148%;top:41.67%;bottom:10.42%;justify-content:center}
+.cv.noimg .cv-body,.c3.noimg .cv-body,.c4.noimg .cv-body,.c6.noimg .cv-body{
+  left:8.148%;right:8.148%;top:0;bottom:10.42%;justify-content:center}
+
+/* C2 全出血：scrim 只压底部 45%，上方 55% 照片原样 */
+.c2 .cv-img{inset:0;width:100%;height:100%}
+/* 范围与颜色都由 JS 按「实测文字带 + 色板」生成（见 verdictOf / scrimCss） */
+.c2 .cv-scrim{left:0;right:0}
+.c2 .cv-body{left:8.148%;right:8.148%;bottom:13.19%}
+.c2 .cv-ttl{color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.45), 0 4px 14px rgba(0,0,0,.32), 0 14px 44px rgba(0,0,0,.22)}
+.c2 .cv-sub{color:rgba(255,255,255,.90);text-shadow:0 1px 3px rgba(0,0,0,.42)}
+
+/* C3 左文右图：56% 纸面 / 44% 照片，天然不重叠 */
+.c3 .cv-img{right:0;top:0;width:43.98%;height:100%}
+.c3 .cv-body{left:8.148%;width:43.52%;top:0;bottom:10.42%;justify-content:center}
+
+/* C4 上下分栏：上图 50%，交界 4.17% 渐变，文字在下半纸面 */
+.c4 .cv-img{left:0;top:0;width:100%;height:50%}
+.c4 .cv-fade{position:absolute;left:0;top:45.83%;width:100%;height:4.17%;z-index:2;
+  background:linear-gradient(180deg,rgba(255,255,255,0),var(--paper))}
+.c4 .cv-body{left:8.148%;right:8.148%;top:55.56%;bottom:9.72%;justify-content:center}
+
+/* C5 卡片浮层：圆角卡片本身即保护，全图零压暗 */
+.c5 .cv-img{inset:0;width:100%;height:100%}
+.c5 .cv-card{position:absolute;left:8.148%;right:8.148%;bottom:13.61%;z-index:5;
+  background:var(--paper);border-radius:16px;
+  padding:calc(62px * var(--k,1)) calc(56px * var(--k,1)) calc(66px * var(--k,1));
+  box-shadow:0 24px 60px rgba(93,74,58,.20), 0 2px 10px rgba(93,74,58,.10)}
+.c5.dark .cv-card{background:var(--paper2);border:1px solid var(--line);
+  box-shadow:0 24px 60px rgba(0,0,0,.55), 0 2px 10px rgba(0,0,0,.35)}
+.c5 .cv-card .cv-ttl{color:var(--ink)}
+.c5 .cv-card .cv-sub{color:var(--muted);margin-top:26px}
+
+/* C6 落进安静区：scrim 只在文字那条窄带，峰值比 C2 更轻 */
+.c6 .cv-img{inset:0;width:100%;height:100%}
+.c6 .cv-scrim{left:0;right:0}
+.c6 .cv-body{left:8.148%;right:8.148%;top:62.92%;bottom:auto}
+/* 压在照片上的 kicker 用白色，accent 在暗照片上读不出来 */
+.c6 .cv-kick{color:rgba(255,255,255,.82);text-shadow:0 1px 2px rgba(0,0,0,.32)}
+.c6 .cv-kick::before{background:rgba(255,255,255,.82)}
+.c6 .cv-ttl{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.34)}
+.c6 .cv-sub{color:rgba(255,255,255,.86);text-shadow:0 1px 3px rgba(0,0,0,.34);margin-top:28px}
+
+/* 压在图上的页脚 */
+.cv .foot.onimg{color:rgba(255,255,255,.78);border-color:rgba(255,255,255,.26)}
+.cv .foot.onimg .pn{color:#fff}
+
+/* 无衬线（字体 chip 的思源黑体档） */
+.cv.sans .cv-ttl{font-family:var(--sans);font-weight:300;letter-spacing:.01em;line-height:1.26}
+.cv.sans .cv-sub{font-family:var(--sans);font-weight:300}
+
+/* ── 字体 4 档（2026-10-31，对齐真系统 textmode.js 的 TEXT_FONTS）──
+   serif 思源宋体 / sans 思源黑体 / smiley 得意黑 / auto 跟随色板。
+   ⚠️ 得意黑是第三方字体，原型环境不一定装；这里给足 fallback，
+      真系统走 fonts/cover-fonts.css 的本地子集。 */
+.cv.f-smiley .cv-ttl{font-family:"Smiley Sans","PingFang SC","Microsoft YaHei",var(--sans);
+  font-weight:700;letter-spacing:.02em;line-height:1.16}
+.cv.f-smiley .cv-sub{font-family:"Smiley Sans","PingFang SC",var(--sans);font-weight:400}
+.cv.f-auto .cv-ttl{font-family:var(--ttl-font,var(--serif))}
+.cv.f-auto .cv-sub{font-family:var(--sub-font,var(--serif))}
+
+/* ── 标题排法（2026-10-31，取自真系统 textmode.js 的 modeCss）──
+   用户指定只保留两种：poster 大字压阵 / vertical 竖排。
+   只作用于 .cv-ttl，不影响小字与页脚。 */
+.cv.tm-poster .cv-ttl{letter-spacing:-.01em;line-height:.98;font-weight:900}
+/* 竖排：writing-mode 会让盒子变成纵向，必须给 max-height 约束，
+   否则长标题会一路顶出画布（真系统实测踩过）。
+   ⚠️ 2026-10-31 修：竖排文字是**向下增长**的，而 c6 的 body 锚在 top:906px
+   （只剩 253px），实测标题底到 1227、卡底 1116，出框 111px。
+   所以竖排必须把 body 重新放回卡内整块可用区，并垂直居中 —— 不能沿用原构图的
+   底部锚定，否则竖排根本没有向上长的空间。 */
+.cv.tm-vertical .cv-body{top:96px;bottom:96px;left:56px;right:auto;width:auto;
+  max-width:none;justify-content:center;align-items:flex-start}
+.cv.tm-vertical .cv-ttl{writing-mode:vertical-rl;text-orientation:upright;
+  line-height:1.15;letter-spacing:.06em;
+  max-height:100%;   /* 父级已限制在卡内可用高 */
+  margin:0 auto}
+
+@media (max-width:1180px){
+  .cvstage{grid-template-columns:1fr}
+  /* 2026-10-31：长文舞台同样要折成单列 —— 否则 372px 的右栏 + deck 会撑破窄屏
+     （实测 375 下被撑到 653px，横向滚动）。 */
+  .longstage{grid-template-columns:1fr}
+  /* ⚠️ 2026-10-31：网格已从 .composer 移到内层 .compgrid（为了分两组），
+     这里必须同步改成 .compgrid —— 否则窄屏仍旧排 6 列，
+     每列被压到 37px，12 个版式撑到 720px，把 layout viewport 撑到 736。 */
+  .compgrid{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr;height:auto}
+  .left{border-right:0;border-bottom:1px solid var(--line)}
+  .right{overflow:visible}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   UX 层（Phase 2 · ux-designer）
+   ──────────────────────────────────────────────────────────────────
+   本段只做四件事，不改任何既有选择器的既有值：
+     ① 焦点可见（键盘用户看得见自己在哪）
+     ② 搜图的 5 种状态（未配 Key / 搜索中 / 有结果 / 无结果 / 失败）
+     ③ 触控目标 ≥44px（只在 ≤900px 生效，桌面视觉不变）
+     ④ 375px 单栏布局 + 长文横滑 + 底部常驻保存
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ① 焦点可见 —— 只对键盘生效，鼠标点击不出环 */
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.iop:focus-visible,.comp:focus-visible,.pick:focus-visible{outline-offset:3px}
+.biginput:focus-visible,.subinput:focus-visible,.kwinput:focus-visible{outline-offset:0}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ②-a 关键词来源提示 */
+.kwauto{display:none;margin:6px 0 0;font:11px/1.5 inherit;color:var(--soft)}
+.kwauto.on{display:block}
+
+/* ②-b 搜索中：骨架屏，不用转圈
+   理由：转圈只说明"在等"，骨架能说明"这里马上会出现 6 张图"，用户知道等什么。 */
+.kwsk{display:none;margin-top:9px;grid-template-columns:repeat(3,1fr);gap:6px}
+.kwsk.on{display:grid}
+.kwsk i{display:block;aspect-ratio:1/1;border-radius:7px;
+  background:linear-gradient(100deg,#efeae0 28%,#f8f5ee 50%,#efeae0 72%);
+  background-size:220% 100%;animation:kwsh 1.15s ease-in-out infinite}
+@keyframes kwsh{0%{background-position:130% 0}100%{background-position:-30% 0}}
+@media (prefers-reduced-motion:reduce){.kwsk i{animation:none;background:#efeae0}}
+
+/* ②-c 状态文案块：无结果 / 超时 / 失败 共用 */
+.kwmsg{display:none;margin-top:9px;padding:11px 12px;border:1px solid var(--line);
+  border-radius:9px;background:#fff}
+.kwmsg.on{display:block}
+.kwmsg p{margin:0}
+.kwmsg .m-t{font:12.5px/1.5 inherit;color:var(--ink)}
+.kwmsg .m-t b{font-weight:600}
+.kwmsg .m-t.err b{color:#a3271a}
+.kwmsg .m-s{margin-top:4px;font:11.5px/1.6 inherit;color:var(--soft)}
+.kwmsg .m-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+
+/* ②-d 换一批 */
+.kwmore{display:none;align-items:center;justify-content:center;gap:7px;width:100%;
+  margin-top:6px;padding:10px;border:1px dashed var(--line);border-radius:8px;background:#fff;
+  font:12px/1 inherit;color:var(--soft);cursor:pointer;transition:.14s}
+.kwmore.on{display:flex}
+.kwmore:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ②-e 结果 3 列：6 张候选一屏看完（4 列会剩一排空格） */
+.kwres.on{grid-template-columns:repeat(3,1fr)}
+
+/* ③ 触控目标 ≥44px（WCAG 2.5.5 AAA / Apple HIG）。
+   只加最小高度，不改字号与配色 —— 桌面不受影响。 */
+@media (max-width:900px){
+  .paths button{min-height:44px;padding:11px 16px}
+  .chip{min-height:44px;display:inline-flex;align-items:center;padding:0 12px}
+  .kwchip{min-height:44px;display:inline-flex;align-items:center;padding:0 13px}
+  .minibtn{min-height:44px;display:inline-flex;align-items:center;padding:0 13px}
+  .kwmore{min-height:44px}
+  .kwinput{min-height:44px}
+  .kwgo{min-height:44px;padding:0 18px}
+  .subinput{min-height:44px}
+  .adv-head{min-height:44px}
+}
+
+/* ④ 长文翻页条（桌面不显示，手机才需要） */
+.decknav{display:none}
+/* 手机上才把色板搬进「调整」；桌面沿用预览头部那一排圆点 */
+/* V5（ux-spec §7）：8 个色点常驻预览头部会占 8 个 Tab 站、抢「六构图」的注意力。
+   桌面改为：预览头部只显示「当前色板名」，色点收进「调整」——与手机一致，
+   一套交互不因屏幕宽度分裂。#pal2 是长文路径的同一行，同样处理。 */
+#palRow{display:block}
+/* 预览头部不再渲染色点容器（JS 改为显示色板名），这里兜住残留场景 */
+.pvhead .pal{display:none}
+.pvhead .palname{font:11.5px/1 "IBM Plex Mono",monospace;color:var(--mute);
+  margin-left:auto;white-space:nowrap}
+/* 保存按钮的外壳：桌面透明（不影响原布局），手机上变成底部常驻栏 */
+.mbar{display:contents}
+
+/* ══════════════════════════════════════════════════════════════════
+   ④ 375px 单栏
+   ──────────────────────────────────────────────────────────────────
+   顺序（这是设计的核心，不是"堆叠兜底"）：
+     输入 → 配图方式（搜图置顶）→ 搜图面板 → 预览 → 构图 → 调整(sheet)
+   「保存」做成底部常驻，任何滚动位置都差一次点击。
+   实现要点：`.left{display:contents}` 把左栏拆成 flex 的直接子项，
+   这样「调整」能排到预览之后（视觉顺序 ≠ DOM 顺序，但 DOM 顺序仍是
+   输入 → 配图 → 预览，对读屏是合理的）。
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:640px){
+  body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+  body.lb-open{overflow:hidden}
+  /* 顶栏窄屏规则照抄 style.css:530-547（品牌副标与后缀隐藏、封面按钮转短文案） */
+  .brand-sub{display:none}
+  .brand-tail{display:none}
+  .cover-btn{font-size:12px;padding:0 9px;height:28px}
+  .cover-btn[data-short]:not([aria-pressed="true"]){font-size:0}
+  .cover-btn[data-short]:not([aria-pressed="true"])::after{content:attr(data-short);font-size:12px}
+  .icon-btn{width:32px;height:32px}
+  .pathbar{padding:0 12px;gap:10px}
+  .pathbar .hint{display:none}
+  .paths{margin-left:auto}
+
+  .wrap{display:flex;flex-direction:column;height:auto;overflow:visible;
+    padding:14px 16px 8px;gap:0}
+  .left{display:contents}
+  .right{overflow:visible;padding:0}
+  .sec{order:1;margin:0 0 14px;width:100%}
+  #secImg{order:2}
+  #rightCover,#rightLong{order:3}
+  .adv{order:4;margin:16px 0 0}
+  .note{display:none}
+
+  /* 输入：16px 是 iOS 的硬门槛，小于 16px 聚焦时会自动放大页面 */
+  .biginput{height:66px;font-size:16px;padding:12px 13px}
+  .biginput.long{height:240px;font-size:15px;line-height:1.7}
+  .subinput,.kwinput{font-size:16px}
+  .sec-lb{font-size:11px}
+
+  /* 首屏优先给「成品」：手机上没有第二条路径要区分，这行标题是冗余信息 */
+  .pvhead{display:none}
+  .cvstage{grid-template-columns:1fr;gap:12px}
+  #pal{display:none}          /* 8 个 19px 色点手机上按不准 → 收进「调整」 */
+  #rightCover{display:flex;flex-direction:column}
+  #rightCover .cvstage{order:1}
+  #rightCover .composer{order:2;margin:12px 0 0}
+  .comp{min-height:64px}
+  .spec{display:none}         /* 设计注释面板不是产品 UI，手机上更不该占位 */
+  #scaleNote{display:none}
+  .frame-lb{font-size:9px}
+  body.annot .spec{display:block}
+  body.annot .note{display:block}
+
+  /* 推荐词：只在「关键词为空」或「搜不到」时出现，其余时候是噪音 */
+  #kwchips{display:none}
+  #kwchips.on{display:flex}
+
+  /* 保存：底部常驻栏（.mbar 承载底色，按钮保持原来的深色） */
+  .mbar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:30;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:var(--panel);border-top:1px solid var(--line);
+    box-shadow:0 -6px 20px rgba(30,25,15,.07)}
+  #save{width:100%;margin:0;padding:15px;font-size:15px}
+
+  /* 调整：底部 sheet（不是内联展开 —— 内联展开会把预览推走） */
+  .adv.open{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;
+    border-radius:16px 16px 0 0;max-height:80vh;overflow-y:auto;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -14px 44px rgba(20,17,12,.26)}
+  .adv.open::before{content:"";position:fixed;inset:0;background:rgba(20,17,12,.42);z-index:-1}
+  .adv.open .adv-head{position:sticky;top:0;z-index:1;background:#fff;
+    border-bottom:1px solid var(--line2);border-radius:16px 16px 0 0}
+  .adv.open .adv-head .arw{transform:rotate(180deg)}
+  #palM{display:flex;flex-wrap:wrap;gap:10px;margin-left:0}
+  #palM button{width:44px;height:44px}
+  #palRow{display:block}
+
+  /* 长文：横滑一页一张（竖排 5 张要滑 1700px，横滑一屏一张） */
+  #deck{display:flex;flex-direction:row;flex-wrap:nowrap;gap:12px;
+    overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+    padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+  #deck .slot{flex:0 0 auto;scroll-snap-align:center}
+  #rightLong{display:block}
+  .decknav{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0 0}
+  .decknav button{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;
+    background:#fff;font:17px/1 inherit;color:var(--soft);cursor:pointer}
+  .decknav button:disabled{opacity:.35;cursor:default}
+  .decknav .pos{font:11px/1 "IBM Plex Mono",monospace;color:var(--soft);letter-spacing:.04em}
+  .selfcheck{margin-top:12px;font-size:10px}
+
+  /* 灯箱：关闭按钮挪到右上固定位，44px 热区 */
+  .lb{padding:66px 12px 24px}
+  .lb .close{position:fixed;right:12px;top:10px;padding:0 14px;height:44px;
+    display:inline-flex;align-items:center;background:rgba(255,255,255,.15);
+    border-radius:10px;font-size:12px;letter-spacing:.06em}
+}
+
+/* style.css:554-557 —— 极窄屏只留引擎状态点，省出横向空间给封面入口。
+   追加第 3 行：375px 实测（见 nav-m375 实测数据）——按下态的封面按钮右边缘 R=218、
+   右侧簇左边缘 L=185，压住 34px。这条在原系统 .pwa 里同样成立（同一份实测脚本跑
+   dist/index.html 得到同样的 34px），所以需要省出位置；藏品牌文字是最省的解法。
+   ⚠️ Phase 3 必须把「.brand{display:none}」同步进 pwa/src/style.css，
+   否则真机（iPhone SE / Android 360）顶栏依旧重叠。 */
+@media (max-width:560px){
+  #engine-text{display:none}
+  .engine-badge{padding:0 8px}
+  .brand{display:none}
+}
+</style>
+</head>
+<body>
+<!-- ── 顶栏（与原系统逐字一致：pwa/index.html:29-61） ────────────── -->
+<header class="top">
+  <div class="top-left">
+    <img class="brand-mark" src="../../public/brand/logo-64.png" alt="">
+    <span class="brand">SuperSu<span class="brand-tail">公众号编辑器</span></span>
+    <button class="cover-btn" id="btn-cover" aria-pressed="true"
+            data-short="标题图"
+            title="生成小红书标题图（3 种尺寸）">公众号排版</button>
+    <span class="brand-sub">本地排版 · 数据不出浏览器</span>
+  </div>
+  <div class="top-right">
+    <span class="engine-badge" id="engine-badge" data-state="ready">
+      <i></i><span id="engine-text">引擎就绪</span>
+    </span>
+    <button class="menu-btn" id="btn-export" aria-expanded="false" title="导出与分发">导出 ▾</button>
+    <div class="menu" id="menu-export" hidden>
+      <button data-exp="long">长图 PNG<span class="sub">朋友圈 / 小红书</span></button>
+      <button data-exp="html">HTML 文件<span class="sub">留档 · 交稿</span></button>
+      <button data-exp="md">Markdown<span class="sub">源文件</span></button>
+      <button data-exp="images">图片 ZIP<span class="sub">正文全部图片</span></button>
+    </div>
+    <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
+    <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
+    <div class="menu" id="menu" hidden>
+      <button data-act="draft">恢复草稿</button>
+      <button data-act="clear-draft">清空草稿</button>
+      <button data-act="clear-all">清除本地数据</button>
+      <button data-act="update">更新记录</button>
+      <button data-act="about">关于 / 源码</button>
+    </div>
+  </div>
+</header>
+
+<!-- 二级行：本方案的路径切换（封面页内部选择，不是全局导航） -->
+<div class="pathbar" id="pathbar">
+  <div class="paths" id="paths">
+    <button data-path="cover" aria-pressed="true">标题图</button>
+    <button data-path="long">长文图文</button>
+  </div>
+  <span class="hint" id="topHint">一句话 → 一张图</span>
+</div>
+
+<div class="slot-ph hidden" id="slotPh">
+  <b>这里是原系统的「公众号排版」页</b>
+  本原型不覆盖这部分。顶栏那颗按钮就是入口：未按下＝排版页，按下＝小红书标题图页。<br>
+  再点一次「小红书标题图生成」回到「标题图 / 长文图文」原型。
+</div>
+<div class="wrap" id="wrap">
+  <!-- ── 左栏：只有 3 件事 ─────────────────────────────────────── -->
+  <aside class="left">
+    <div class="sec">
+      <label class="sec-lb" id="inputLabelLb"><span id="inputLabel">一句话，变成一张图</span></label>
+      <textarea class="biginput" id="txt" spellcheck="false" aria-labelledby="inputLabel"></textarea>
+      <input class="subinput" id="sub" placeholder="＋ 一行小字（可不填）" aria-label="一行小字，可选">
+    </div>
+
+    <div class="sec" id="secImg">
+      <label class="sec-lb">① 先选配图来源
+        <span class="tail" id="keyTail" title="原型演示：切换 Key 状态">Key 未配置</span>
+      </label>
+      <div class="imgopts" id="imgopts">
+        <button class="iop hero" data-img="search" aria-pressed="true">
+          <span class="ic">🔍</span><span class="nm">搜一张好图</span>
+          <span class="ds">Pexels 免费图库</span>
+        </button>
+        <button class="iop" data-img="upload">
+          <span class="ic">⬆</span><span class="nm">传一张</span>
+          <span class="ds">用你自己的照片</span>
+        </button>
+        <button class="iop" data-img="none">
+          <span class="ic">✍</span><span class="nm">不要图</span>
+          <span class="ds">纯色 / 纯文字</span>
+        </button>
+      </div>
+
+      <!-- ② 第二步：只有选中「搜一张好图」才出现。
+           把「图从哪来」写在标题里，用户不用猜。 -->
+      <div class="step2 kwbox on" id="kwbox">
+        <div class="step2-head">
+          <span class="step-n">②</span>
+          <span class="step-t">从 <b>Pexels 免费图库</b>搜图</span>
+        </div>
+        <p class="step2-note">图来自 Pexels（免费可商用），不用自己拍。填一次 Key 后永久可用。</p>
+        <div class="kwrow">
+          <input class="kwinput" id="kw" placeholder="搜图关键词（会从标题自动提取）" aria-label="搜图关键词">
+          <button class="kwgo" id="kwgo">搜索图片</button>
+        </div>
+        <p class="kwauto" id="kwauto"></p>
+        <div class="kwchips" id="kwchips">
+          <span class="lb">试试</span>
+          <button class="kwchip" data-kw="海边">海边</button>
+          <button class="kwchip" data-kw="日落">日落</button>
+          <button class="kwchip" data-kw="森林">森林</button>
+          <button class="kwchip" data-kw="咖啡">咖啡</button>
+        </div>
+        <!-- 未配 Key：先给说明 + 一个明确的主按钮，不置灰、不报错 -->
+        <div class="kwdegrade" id="kwdegrade">
+          <p>还差一步：填一个免费 Key 就能搜。Pexels 注册约 2 分钟，填一次永久可用。</p>
+          <div class="row">
+            <button class="minibtn solid" id="goKey">填 Pexels Key</button>
+            <button class="minibtn" id="useSolid">先用纯色</button>
+          </div>
+        </div>
+        <!-- UX：搜索中 = 先给一句状态，再给骨架屏；无结果/超时 = 文案块 + 退路 -->
+        <div class="kwmsg" id="kwmsg" role="status" aria-live="polite"></div>
+        <div class="kwsk" id="kwsk" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="kwres" id="kwres" role="radiogroup" aria-label="搜图结果，选一张"></div>
+        <button class="kwmore" id="kwmore" type="button">换一批 <span aria-hidden="true">⟳</span></button>
+      </div>
+    </div>
+
+    <!-- UX：手机上这一条变底部常驻栏（桌面 .mbar 为 display:contents，视觉不变） -->
+    <div class="mbar" id="mbar">
+      <button class="primary" id="save">保存图片<small>1080×1440</small></button>
+    </div>
+
+    <div class="adv" id="adv">
+      <div class="adv-head" id="advhead" role="button" tabindex="0"
+           aria-expanded="false" aria-controls="advbody">
+        <!-- 2026-10-31 UX 修：版式与尺寸都搬到右栏了，抽屉里只剩字体/排法/色板，
+             标题必须跟着改，否则用户会以为点开还有版式可选。 -->
+        <span>字体 / 标题排法 / 色板</span><span class="arw" aria-hidden="true">▾</span>
+      </div>
+      <div class="adv-body" id="advbody">
+        <!-- 2026-10-31：删除这里的「版式」行（自动推荐/经典刊头/全出血/纯文字）。
+             它和预览区上方的 12 种版式切换条完全重复，且没接渲染（点了只变色）。
+             版式的唯一入口就是上面那个分组切换条，避免两处说两套话。 -->
+        <div class="adv-row"><span>字体</span><div class="chips" id="ch-font">
+          <button class="chip" data-font="serif" aria-pressed="true">思源宋体</button>
+          <button class="chip" data-font="sans">思源黑体</button>
+          <button class="chip" data-font="smiley">得意黑</button>
+          <button class="chip" data-font="auto">跟随色板</button>
+        </div></div>
+        <!-- 标题排法（2026-10-31 从真系统 textmode.js 纳入，只保留用户指定两种） -->
+        <div class="adv-row"><span>标题排法</span><div class="chips" id="ch-tmode">
+          <button class="chip" data-tmode="stack" aria-pressed="true">默认</button>
+          <button class="chip" data-tmode="poster">大字压阵</button>
+          <button class="chip" data-tmode="vertical">竖排</button>
+        </div></div>
+        <!-- UX：手机上色点从预览头部挪到这里（那里 8 个 19px 圆点按不准） -->
+        <div class="adv-row" id="palRow"><span>色板</span>
+          <div class="pal" id="palM" role="radiogroup" aria-label="色板"></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" id="note">首屏只有：一句话 + 配图方式 + 预览。其余收进「调整」。</p>
+  </aside>
+
+  <!-- ── 右栏：标题图 ──────────────────────────────────────────── -->
+  <main class="right" id="rightCover">
+    <div class="pvhead">
+      <span class="t" id="pvTitle">标题图 · 12 种版式</span>
+      <span class="meta" id="pvMeta">1080 × 1440</span>
+      <!-- V5：桌面不再常驻 8 个色点（占 8 个 Tab 站、抢构图注意力），改为显示当前色板名；
+           色点本身收进左侧「调整」#palRow，桌面与手机同一套交互 -->
+      <span class="palname" id="palName">沙丘暖纸</span>
+    </div>
+
+    <!-- 2026-10-31：版式选择从「预览上方」移到右侧栏（原「设计注释」的位置）。
+         理由（用户原话）：「设计注释 · 非产品 UI 这一块在真实产品这儿，
+         应该放上面的那个 12 种版式才合适，等于一个页面三版，不用放上面，右边就挺合适」。
+         → 预览与版式选择左右并置，换版式时眼睛不用在上下之间来回找。
+         → 「设计注释」是给评审看的，真实产品不需要，已移除。 -->
+    <div class="cvstage">
+      <div class="cvcol">
+        <div class="stage-frame" id="coverFrame" role="button" tabindex="0"
+             aria-label="放大预览大图（回车打开）"><div class="zoom" id="coverZoom"></div></div>
+        <div class="frame-lb">
+          <span><span class="tag" id="compTag">刊头</span> <span id="compNote">图字不重叠</span></span>
+          <span id="scaleNote">scale .37</span>
+        </div>
+      </div>
+
+      <aside class="pickpanel">
+        <p class="pickpanel-lb">选版式</p>
+        <div class="composer" id="composer"></div>
+        <!-- 2026-10-31：尺寸从左侧「调整」抽屉挪到这里。
+             理由（用户原话）：「调整版式 尺寸这个还是蛮重要的，有没有更好的位置可以放？」
+             原来它埋在「调整版式/字体/尺寸」折叠抽屉的第 4 行 ——
+             既然重要，就该和版式并排、一眼可见，而不是要展开一层才找得到。
+             版式 + 尺寸是「出图前必须确认」的两个决定，放同一栏最顺。 -->
+        <p class="pickpanel-lb" style="margin-top:16px">尺寸</p>
+        <div class="chips" id="ch-size">
+          <button class="chip" data-size="xhs" aria-pressed="true">3:4</button>
+          <button class="chip" data-size="square">1:1</button>
+          <button class="chip" data-size="wide">21:9</button>
+        </div>
+        <p class="size-hint" id="sizeHint">1080 × 1440 · 小红书主图</p>
+
+        <!-- 2026-10-31 UX 重构（产品经理视角走查后的结论）：
+             原先「版式 / 尺寸」在右栏、「字体 / 排法 / 色板」在左侧折叠抽屉，
+             同一个「调整外观」的动作被拆在屏幕两边，用户要来回找。
+             现在全部收进右栏，按「先选结构 → 再微调观感」的顺序排：
+               版式（决定长什么样）→ 尺寸（决定多大）→ 字体 / 排法 / 色板（微调）
+             左侧抽屉保留但**默认收起**，只在需要时展开（手机上它就是底部 sheet）。 -->
+        <p class="pickpanel-lb" style="margin-top:16px">字体</p>
+        <div class="chips" id="ch-font2">
+          <button class="chip" data-font="serif" aria-pressed="true">思源宋体</button>
+          <button class="chip" data-font="sans">思源黑体</button>
+          <button class="chip" data-font="smiley">得意黑</button>
+          <button class="chip" data-font="auto">跟随色板</button>
+        </div>
+        <p class="pickpanel-lb" style="margin-top:16px">标题排法</p>
+        <div class="chips" id="ch-tmode2">
+          <button class="chip" data-tmode="stack" aria-pressed="true">默认</button>
+          <button class="chip" data-tmode="poster">大字压阵</button>
+          <button class="chip" data-tmode="vertical">竖排</button>
+        </div>
+        <p class="pickpanel-lb" style="margin-top:16px">色板</p>
+        <div class="pal pal-wide" id="palWide" role="radiogroup" aria-label="色板"></div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ── 右栏：长文 ────────────────────────────────────────────── -->
+  <main class="right hidden" id="rightLong">
+    <div class="pvhead">
+      <span class="t">长文图文 · 逐页版式</span>
+      <span class="meta" id="longMeta">—</span>
+      <!-- V5：同标题图路径，桌面只显示色板名，色点收进「调整」 -->
+      <span class="palname" id="palName2">沙丘暖纸</span>
+    </div>
+    <!-- 2026-10-31：长文也把「换模板」放右侧，与标题图路径同一套交互。 -->
+    <div class="longstage">
+      <div class="longcol">
+        <div class="deck" id="deck"></div>
+        <div class="decknav" id="decknav">
+          <button type="button" id="deckPrev" aria-label="上一页">‹</button>
+          <span class="pos" id="deckPos" aria-live="polite">P01 / 01</span>
+          <button type="button" id="deckNext" aria-label="下一页">›</button>
+        </div>
+        <div class="selfcheck" id="selfcheck"></div>
+      </div>
+      <aside class="pickpanel">
+        <!-- 2026-10-31 按竞品调研重做：**一个**模板选择器，整套图片共用。
+             依据 docs/research-2026-10-31-xhs-longform-generators.md：
+             XHS-TextCard 的「模板与设置」里，模板只有一个选择（内页 Tab），
+             封面 Tab 只有「启用封面 / 封面图片 / 封面字号 / 社交图标」——
+             **封面不是选版式的地方**，它就是这套模板的第 1 页。
+             之前拆成「封面版式 + 内页风格」两个选择器是错的：
+             封面选全出血、内页选杂志编辑 → 第一页和后面完全不同，用户当场否掉。 -->
+        <p class="pickpanel-lb">选一套模板 <span class="sub-lb">封面与内页共用</span></p>
+        <div class="composer" id="composerInner"></div>
+        <!-- 2026-10-31 UX 补：长文页也要能换尺寸。
+             ⚠️ 不能复用 #ch-size（id 只能有一个），所以这里是第二组，
+                点它时会调用同一个 setSize() —— 高亮与画布两处同步。 -->
+        <p class="pickpanel-lb" style="margin-top:16px">尺寸 <span class="sub-lb">改尺寸会重新分页</span></p>
+        <div class="chips" id="ch-size2">
+          <button class="chip" data-size="xhs" aria-pressed="true">3:4</button>
+          <button class="chip" data-size="square">1:1</button>
+          <button class="chip" data-size="wide">21:9</button>
+        </div>
+        <p class="size-hint" id="sizeHint2">1080 × 1440 · 小红书主图</p>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="大图预览"><div class="inner">
+  <button class="close" id="lbclose">关闭 ESC</button>
+  <div class="frame" id="lbframe"></div>
+</div></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   常量
+   ══════════════════════════════════════════════════════════════════ */
+const CARD_W = 1080, CARD_H = 1440;
+
+/* ── 画布尺寸（2026-10-31 接线，对齐真系统 pwa/src/cover/catalog.js 的 COVER_SIZES）
+   真系统是这三个，原型之前放的是 4:5 / 1242×1660 —— 那是占位值，跟产品不一致，已纠正。
+   ⚠️ 几何全部改成百分比，字号按 --k = min(w/1080, h/1440) 缩放：
+      · 3:4  1080×1440 → k=1     （基准）
+      · 1:1  1080×1080 → k=0.75  （矮了，字要小一档）
+      · 21:9 2100×900  → k=0.625 （又宽又矮，按高度算）
+   这样「内容区高度」会随尺寸真实变化，而分页用的是实测高度装箱 → 会自动重排页数。 */
+const SIZES = [
+  { id:'xhs',    label:'3:4 小红书', w:1080, h:1440, hint:'1080×1440' },
+  { id:'square', label:'1:1 方图',   w:1080, h:1080, hint:'1080×1080' },
+  { id:'wide',   label:'21:9 横版',  w:2100, h:900,  hint:'2100×900' },
+];
+const sizeById = (id) => SIZES.find((s) => s.id === id) || SIZES[0];
+
+/** 当前画布的宽度/高度/字号缩放系数 */
+function canvasSize(){
+  const s = sizeById(state.size);
+  const k = Math.min(s.w / 1080, s.h / 1440);
+  return { w: s.w, h: s.h, k, hint: s.hint, label: s.label };
+}
+
+let DECK_W = 255;          /* 长文缩略图宽度；?w=520 可放大审阅 */
+
+/* 8 套色板：直接映射现有封面模板，保证「封面 + 内页」同族 */
+const STYLES = [
+  { key:'dune', name:'沙丘暖纸', ds:'暖纸 + 沙褐', fam:'editorial',
+    paper:'#f0e6d2', paper2:'#ded0b7', ink:'#1f1a14', muted:'#6f6557',
+    accent:'#8f7650', line:'rgba(31,26,20,.22)', hl:'rgba(143,118,80,.20)',
+    grain:'rgba(0,0,0,.045)', sw:'#8f7650', at:'#6b5334', scrim:'#241c14' },
+  { key:'forest', name:'森林墨绿', ds:'米白 + 墨绿', fam:'editorial',
+    paper:'#f5f1e8', paper2:'#e7e1d3', ink:'#16211b', muted:'#5c6a60',
+    accent:'#2e6b4f', line:'rgba(22,33,27,.20)', hl:'rgba(46,107,79,.16)',
+    grain:'rgba(0,0,0,.042)', sw:'#2e6b4f', at:'#2e6b4f', scrim:'#12201a' },
+  { key:'indigo', name:'靛蓝瓷白', ds:'瓷白 + 靛蓝', fam:'editorial',
+    paper:'#f2f4f5', paper2:'#e2e8ec', ink:'#161c26', muted:'#5b6675',
+    accent:'#315d93', line:'rgba(22,28,38,.18)', hl:'rgba(49,93,147,.14)',
+    grain:'rgba(0,0,0,.040)', sw:'#315d93', at:'#315d93', scrim:'#121821' },
+  { key:'kraft', name:'牛皮纸', ds:'牛皮 + 焦褐', fam:'editorial',
+    paper:'#eedfc7', paper2:'#dccaa9', ink:'#241c12', muted:'#6b5b42',
+    accent:'#9b5a2e', line:'rgba(36,28,18,.24)', hl:'rgba(155,90,46,.20)',
+    grain:'rgba(0,0,0,.050)', sw:'#9b5a2e', at:'#7c4520', scrim:'#2a1e12' },
+  { key:'midnight', name:'午夜墨金', ds:'墨黑 + 暗金', fam:'editorial',
+    paper:'#0e0d0c', paper2:'#1a1816', ink:'#f0e9db', muted:'#9a917f',
+    accent:'#d4a04a', line:'rgba(240,233,219,.18)', hl:'rgba(212,160,74,.22)',
+    grain:'rgba(255,255,255,.045)', sw:'#d4a04a', at:'#d4a04a', scrim:'#070605' },
+  { key:'ikb', name:'克莱因蓝', ds:'瑞士 · 无衬线', fam:'swiss',
+    paper:'#fafaf8', paper2:'#f0f0ec', ink:'#111111', muted:'#6b6b66',
+    accent:'#002FA7', line:'rgba(17,17,17,.18)', hl:'rgba(0,47,167,.10)',
+    grain:'rgba(0,0,0,.035)', sw:'#002FA7', at:'#002FA7', scrim:'#111111' },
+  { key:'lemon', name:'柠檬黄', ds:'瑞士 · 高能', fam:'swiss',
+    paper:'#fafaf8', paper2:'#f1f1ea', ink:'#111111', muted:'#6b6b66',
+    accent:'#C5E803', line:'rgba(17,17,17,.18)', hl:'rgba(197,232,3,.34)',
+    grain:'rgba(0,0,0,.035)', sw:'#C5E803', at:'#4F5A00', scrim:'#111111' },
+  { key:'orange', name:'安全橙', ds:'瑞士 · 冲击', fam:'swiss',
+    paper:'#fafaf8', paper2:'#f2f0eb', ink:'#111111', muted:'#6b6b66',
+    accent:'#FF6B35', line:'rgba(17,17,17,.18)', hl:'rgba(255,107,53,.16)',
+    grain:'rgba(0,0,0,.035)', sw:'#FF6B35', at:'#A6390A', scrim:'#111111' },
+];
+
+/* 六种构图：每种一句话说清「文字靠什么被保护」 */
+const COMPS = [
+  { id:'c1', name:'刊头', full:'C1 刊头照片带',
+    short:'图字不重叠',
+    sub:'照片占顶部 36%，正文在下方纸面：两者在空间上分开',
+    img:'顶部 36% · 520px 满宽', scrim:'无 —— 根本不需要',
+    ink:'墨色（照片带内无字）', protect:'空间分离',
+    ratio:'标题∶照片面积 = 1∶2.5 · accent 3px 细线做交界' },
+  { id:'c2', name:'全出血', full:'C2 全出血压字',
+    short:'只压底部 45%',
+    sub:'图铺满，文字压底部；scrim 只盖文字那一条，上方 55% 照片原样',
+    img:'满幅 · 1080×1440', scrim:'α 按实测算（0–0.30）· 只盖文字带',
+    ink:'白/黑按实测选', protect:'局部 scrim',
+    ratio:'标题 108px · 距底 190px，让字离边有呼吸' },
+  { id:'c3', name:'左文右图', full:'C3 左文右图',
+    short:'天然不重叠',
+    sub:'左 56% 纸面放字，右 44% 照片竖切；互不相干',
+    img:'右侧 44% · 475px 竖切', scrim:'无',
+    ink:'墨色（左侧纸面）', protect:'空间分离',
+    ratio:'标题缩到 0.78× —— 窄栏不能撑满字号' },
+  { id:'c4', name:'上下分栏', full:'C4 上下分栏',
+    short:'60px 渐变接缝',
+    sub:'上图 50%，下方 60px 渐变化入纸面；照片不被压暗，接缝不硬',
+    img:'上方 50% · 720px', scrim:'60px 渐变过渡（非压暗）',
+    ink:'墨色（下半纸面）', protect:'渐变接缝',
+    ratio:'上下各半，标题 0.92× 居中偏上' },
+  { id:'c5', name:'卡片浮层', full:'C5 卡片浮层',
+    short:'卡片即保护层',
+    sub:'图铺满 + 白色圆角卡片承载文字；卡片本身就是对比底板，全图零压暗',
+    img:'满幅 · 1080×1440', scrim:'无 —— 卡片即保护',
+    ink:'墨色（卡片内）', protect:'容器分隔',
+    ratio:'卡片 radius 16 · 阴影暖色 rgba(93,74,58,.20)' },
+  { id:'c6', name:'安静区', full:'C6 落进安静区',
+    short:'只盖文字窄带',
+    sub:'图铺满，文字落在下半部的安静带；scrim 只盖 34% 窄带，峰值比 C2 更轻',
+    img:'满幅 · 1080×1440', scrim:'α 按实测算 · 只盖文字窄带',
+    ink:'白/黑按实测选', protect:'轻局部 scrim',
+    ratio:'文字起点 63%，上方留 40% 纯图' },
+];
+
+/* ── 纯文字封面：6 种版式（2026-10-31 从真系统纳入）──────────────────
+   来源：templates.js 的 magazine/swiss/bigtype（归藏三套）
+       + layouts.js 的 quote/number/list（4 个 builder 里的 3 个）
+   归并口径（用户拍板）：
+     · 原 8 种版式全部保留，一个不丢
+     · image-led 归入图文封面（就是 C2 全出血）
+     · 标题排法只保留「大字压阵 / 竖排」两种，其余（offset/rainbow/outline/stagger）不要
+   与 C1–C6 的区别：这 6 种**不依赖底图**，靠排版撑住画面 —— 搜不到图也能出封面。 */
+const TEXT_LAYOUTS = [
+  { id:'t1', name:'杂志刊头', full:'T1 杂志刊头',
+    sub:'Vol. 期号 + 大标题 + 色条 + 引言，贴底排版。归藏 Editorial 的排法',
+    use:'长文、随笔、有栏目感的内容' },
+  { id:'t2', name:'瑞士极简', full:'T2 瑞士极简',
+    sub:'白纸 + 细体大字 + 克莱因蓝强调，左对齐。归藏 Swiss 的排法',
+    use:'观点、清单、理性表达' },
+  { id:'t3', name:'大字报', full:'T3 大字报',
+    sub:'垂直居中 + 强调色块压题，字号最大。归藏 Bigtype 的排法',
+    use:'金句、强观点、标题短' },
+  { id:'t4', name:'金句', full:'T4 金句',
+    sub:'居中大引号 + 标题 + 短色条 + 署名，四周留白多',
+    use:'一句打动人的话' },
+  { id:'t5', name:'编号大字', full:'T5 编号大字',
+    sub:'超大数字当主视觉（从标题提取数字，没有就取月号）+ 标题',
+    use:'盘点、系列第 N 期、年度总结' },
+  { id:'t6', name:'清单', full:'T6 清单',
+    sub:'标题 + 编号条目行，每行细线分隔',
+    use:'干货清单、要点总结' },
+];
+/* 全部版式（图文 + 纯文字），供 composer 分组渲染 */
+const ALL_LAYOUTS = COMPS.concat(TEXT_LAYOUTS.map((t) => ({ ...t, isText: true })));
+const isTextLayout = (id) => String(id || '').startsWith('t');
+
+/* ── 照片：每张带 10 带实测亮度（mean / max 带内标准差）───────────────
+   不是估的：用 headless Chrome 把图缩到 108×144 画到 canvas，
+   逐像素算 sRGB 相对亮度，再按 10 等分带取 mean 与 sd。
+   有了这两个数，压暗就不再是「拍脑袋写 0.38」——
+   见 verdictOf()：先看这条带白字/黑字够不够，不够才算需要多少 α。
+   sd 大 = 带内明暗交错（高反差照片），任何单色字都会在某处失效，直接判不合格。
+   ─────────────────────────────────────────────────────────────────── */
+const PHOTOS = [
+  { name:'海边雾晨', en:'SEASIDE · DAWN', src:'../../public/images/09-snow-bike.jpg',
+    bands:[0.131,0.145,0.161,0.178,0.199,0.223,0.073,0.045,0.039,0.035],
+    sds:  [0.010,0.010,0.012,0.027,0.026,0.096,0.053,0.013,0.003,0.002] },
+  { name:'山野秋千', en:'FIELD NOTES', src:'../../public/images/05-swing.jpg',
+    bands:[0.389,0.793,0.871,0.607,0.191,0.229,0.229,0.197,0.136,0.075],
+    sds:  [0.293,0.147,0.154,0.325,0.126,0.115,0.082,0.074,0.094,0.043] },
+  { name:'夜街路灯', en:'NIGHT STREET', src:'../../public/images/02-night-street.jpg',
+    bands:[0.014,0.015,0.055,0.019,0.016,0.015,0.013,0.021,0.014,0.013],
+    sds:  [0.001,0.002,0.152,0.022,0.016,0.014,0.002,0.013,0.002,0.001] },
+  { name:'浅色纸浪', en:'PAPER WAVE', src:'assets/sample-quiet.jpg',
+    bands:[0.690,0.688,0.694,0.702,0.716,0.733,0.509,0.249,0.106,0.087],
+    sds:  [0.004,0.003,0.004,0.005,0.005,0.035,0.141,0.088,0.042,0.001] },
+  /* 故意留一张「哪条带都救不回来」的：明暗交错的高反差照片堆。
+     用它证明「压暗不是万能的」，也证明原型会自己判不合格。 */
+  { name:'旧照片堆', en:'OLD PRINTS', src:'../../public/images/01-old-photos.jpg',
+    bands:[0.268,0.288,0.530,0.391,0.144,0.243,0.263,0.260,0.140,0.119],
+    sds:  [0.253,0.261,0.258,0.263,0.193,0.231,0.252,0.216,0.178,0.181] },
+];
+
+/* WCAG 阈值：大字标题 3:1 就够，但小字 36px（375 屏 12.5px）要 4.5:1，
+   取严的 4.5 —— 一张图里两种字号都要读得出来。 */
+const INK_LUM = 0.0116;      // #1c1a16 的相对亮度
+const NEED_CR = 4.5;
+const MAX_ALPHA = 0.30;      // 超过这个 α 就不是压暗，是把照片盖成灰雾
+const BUSY_SD = 0.15;        // 带内标准差超过它 → 明暗交错，任何单色字都失效
+/* scrim 底色的 sRGB 值 —— 必须与 scrimCss() 里 rgba() 的前三分量一致。
+   卡片用 rgba(10,9,8,α)，所以是 10（analyze.js 用 12，因为它那套是 rgba(12,11,10)）。 */
+const SCRIM_SRGB = 10;
+
+/* ⚠️ 以下四个函数是 docs/prototypes/xhs-layout-fit.js 的内联副本。
+   数学与 pwa/src/cover/analyze.js 逐点一致（parity 验证 0.00e+0）。
+   Phase 3 请 import analyze.js，不要从这里搬。 */
+
+/** sRGB 0–255 → 线性（analyze.js toLin 同款语义） */
+const srgbToLin = (v) => {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+};
+/** 相对亮度 → sRGB 0–255（analyze.js invLin 同款） */
+const linToSrgb = (L) => 255 * (L <= 0.0031308 ? 12.92 * L : 1.055 * Math.pow(L, 1 / 2.4) - 0.055);
+
+/** 取文字所占几条带的最亮/最暗/最大离散（部分重叠也算，宁可取严） */
+function zoneStats(p, y0, y1){
+  const Ls = [], Ss = [];
+  p.bands.forEach((L, i) => {
+    const top = i * 10, bot = top + 10;
+    if (bot > y0 && top < y1){ Ls.push(L); Ss.push(p.sds[i]); }
+  });
+  if (!Ls.length) return { max:0, min:0, sd:0 };
+  return { max: Math.max(...Ls), min: Math.min(...Ls), sd: Math.max(...Ss) };
+}
+
+/** 白字要把亮度 L 压到 4.5:1 所需的 α —— 必须在 sRGB 空间反解 */
+function alphaForL(L){
+  if (L <= 0.1833) return 0;
+  const sMax = linToSrgb(L);
+  const a = (sMax - linToSrgb(0.1833)) / Math.max(1, sMax - SCRIM_SRGB);
+  return Math.min(1, Math.max(0, a));
+}
+
+/**
+ * 判定：这条文字带该用什么字色、要不要压暗、压多少。
+ * 顺序很重要 —— 先试「什么都不做」（多数照片根本不需要压暗），
+ * 再试黑字，最后才允许压暗，且 α 有硬上限。
+ */
+function verdictOf(p, zone){
+  const z = zoneStats(p, zone[0], zone[1]);
+  const crWhite = 1.05 / (z.max + 0.05);              // 白字最差处
+  const crInk   = (z.min + 0.05) / (INK_LUM + 0.05);  // 黑字最差处
+  const busy = z.sd > BUSY_SD;                        // 带内明暗交错 → 单色字必失效
+  const need = alphaForL(z.max);                      // sRGB 空间反解，不是线性
+
+  /* ① 什么都不做 —— 这是默认路径，不是特例 */
+  if (!busy && crWhite >= NEED_CR)
+    return { ink:'#ffffff', alpha:0, cr:crWhite, zone:z, busy:false, verdict:'ok-white',
+      why:'免压暗：白字实测直接达标' };
+  /* ② 换黑字 —— 也不压 */
+  if (!busy && crInk >= NEED_CR)
+    return { ink:'#1c1a16', alpha:0, cr:crInk, zone:z, busy:false, verdict:'ok-ink',
+      why:`免压暗：这条带偏亮，改用黑字 ${crInk.toFixed(1)}:1` };
+  /* ③ 补一点点 scrim */
+  if (!busy && need <= MAX_ALPHA)
+    return { ink:'#ffffff', alpha:+need.toFixed(3), cr:NEED_CR, zone:z, busy:false, verdict:'scrim',
+      why:`白字最差处 ${crWhite.toFixed(1)}:1 → 局部 scrim α ${need.toFixed(2)}` };
+
+  /* ④ 判不合格：alpha 归零，绝不「压到 0.30 凑合」 */
+  return { ink:'#ffffff', alpha:0, cr:crWhite, zone:z, busy, verdict:'unfit',
+    warn:`${busy ? '带内明暗交错（sd ' + z.sd.toFixed(2) + '）' : '这条带太亮'}：` +
+      `白字最差处 ${crWhite.toFixed(1)}:1，压到 4.5:1 需 α ${need.toFixed(2)} > ${MAX_ALPHA}，` +
+      `压完即灰雾 —— 建议改用 C1 刊头 / C5 卡片` };
+}
+
+const SAMPLE_LONG = `周末去海边，我把手机调成了飞行模式。
+
+两天的沉默之后，我重新听见了海浪。
+
+- 出发前把手机调成飞行模式，塞进背包最底下
+- 到了先别拍照，坐十分钟再说
+- 走一段没有目的的路，走着走着就有想法了
+- 每天只做一件小事，剩下的时间发呆
+
+> 我大概已经很久没有做过「明知道做不成还认真做」的事了。
+
+到的时候是下午四点，太阳斜着，把整片海照成一块旧铜。我坐在防波堤上，看一个小孩追浪，追了大概二十分钟，一次也没追上，但他一直在笑。那天我没拍照片——手机在包里，包在屋里，我在外面。晚上吃饭的时候，老板娘问我要不要 Wi-Fi 密码，我说不用。
+
+回来的时候我想明白一件事：不是手机太吵，是我太久没给自己留过安静的地方。`;
+
+const ROLES = {
+  cover:  { label:'封面', fs:'版式' },
+  opening:{ label:'开篇', fs:'74px' },
+  points: { label:'清单', fs:'56px + 52px' },
+  quote:  { label:'金句', fs:'78px' },
+  steps:  { label:'步骤', fs:'52px' },
+  dense:  { label:'正文', fs:'52px' },
+  closing:{ label:'结尾', fs:'66px' },
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   长文模板（12 套）—— 2026-10-31
+   ──────────────────────────────────────────────────────────────────
+   设计来源：geekfoxcharlie/XHS-TextCard（MIT）的 12 套模板。
+   ⚠️ 只借鉴**视觉手法与信息层级**，代码是按我们自己的 HTML/CSS 架构重写的
+      （它用 Canvas 绘制，我们走 DOM + CSS，两套渲染路径不能混）。
+
+   每套模板负责三件事，正好对应它的三钩子：
+     · 内容区几何  → CSS 里的 .card.lt-x .body { top/bottom/left/right }
+     · 页面装饰    → head() / foot() 返回的 DOM
+     · 配色        → palette（null = 跟随用户选的色板）
+
+   palette 为什么可选：像「暗夜深思」「电影胶片」这类强风格模板，
+   白纸色板放上去就毁了，所以允许模板锁死配色；其余模板跟随色板。
+   ══════════════════════════════════════════════════════════════════ */
+const LONG_TPLS = [
+  {
+    id:'editorial', name:'杂志编辑', cls:'lt-editorial',
+    desc:'EDITORIAL 刊头 · 上下细线 · 衬线正文',
+    palette: null,
+    head: () => `<span class="lt-mast">EDITORIAL</span>
+      <span class="lt-mast-r">COLLECTION // VOL. 2026</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'swiss', name:'瑞士网格', cls:'lt-swiss',
+    desc:'左侧色条 · 40px 网格 · REF 编号',
+    palette: null,
+    head: () => `<span class="lt-mast">SWISS STUDIO</span>
+      <span class="lt-mast-r">REF. CH-8004</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">${String(i).padStart(2,'0')}</span>
+      <span class="lt-corner"></span>`,
+  },
+  {
+    id:'notion', name:'效率笔记', cls:'lt-notion',
+    desc:'面包屑导航 · 顶部细线 · 克制的灰',
+    palette: { paper:'#ffffff', paper2:'#f7f6f3', ink:'#37352f', muted:'#9b9a97',
+      accent:'#0f7b6c', at:'#0f7b6c', line:'rgba(55,53,47,.09)', hl:'rgba(15,123,108,.15)',
+      grain:'rgba(0,0,0,.03)' },
+    head: () => `<span class="lt-mast">📖 &nbsp;/&nbsp; Workspace &nbsp;/&nbsp; Notes</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'book', name:'书籍内页', cls:'lt-book',
+    desc:'左侧装订阴影 · 右缘高光 · 纸张纹理',
+    palette: { paper:'#fdfbf7', paper2:'#f5f1e8', ink:'#2b2b2b', muted:'#8a7f70',
+      accent:'#8c3a3a', at:'#8c3a3a', line:'rgba(93,64,55,.14)', hl:'rgba(140,58,58,.10)',
+      grain:'rgba(0,0,0,.05)' },
+    head: () => `<span class="lt-book-sect">§</span>
+      <span class="lt-book-mast">C L A S S I C   L I T E R A T U R E</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">P. ${String(i).padStart(2,'0')}</span>`,
+  },
+  {
+    id:'memo', name:'苹果备忘录', cls:'lt-memo',
+    desc:'iOS 顶栏 · 横线纸 · 圆角白卡',
+    palette: { paper:'#f2f2f7', paper2:'#ffffff', ink:'#1c1c1e', muted:'#8e8e93',
+      accent:'#ff9500', at:'#c46f00', line:'rgba(60,60,67,.12)', hl:'rgba(255,149,0,.16)',
+      grain:'rgba(0,0,0,.02)' },
+    head: () => `<span class="lt-memo-back">‹ 备忘录</span>
+      <span class="lt-memo-date"></span><span class="lt-memo-done">完成</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'polaroid', name:'拍立得', cls:'lt-polaroid',
+    desc:'上部照片框 · 胶带 · 复古颗粒',
+    palette: { paper:'#fafafa', paper2:'#ffffff', ink:'#2b2b2b', muted:'#8a8a8a',
+      accent:'#d9534f', at:'#b23f3b', line:'rgba(0,0,0,.10)', hl:'rgba(217,83,79,.18)',
+      grain:'rgba(0,0,0,.06)' },
+    head: () => '',
+    foot: (i, n) => `<span class="lt-foot-l"></span><span class="lt-foot-r">${String(i).padStart(2,'0')}</span>`,
+  },
+  {
+    id:'aura', name:'弥散极光', cls:'lt-aura',
+    desc:'三层光晕 · 毛玻璃圆角卡',
+    palette: { paper:'#ffffff', paper2:'#fafafa', ink:'#2d3436', muted:'#7a8285',
+      accent:'#2d3436', at:'#2d3436', line:'rgba(45,52,54,.10)', hl:'rgba(45,52,54,.10)',
+      grain:'rgba(0,0,0,.03)' },
+    head: () => '',
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'night', name:'暗夜深思', cls:'lt-night',
+    desc:'深色径向渐变 · 左侧发光竖线 · 终端感',
+    palette: { paper:'#0d0d0d', paper2:'#161616', ink:'#e5e5e5', muted:'#8a8a8a',
+      accent:'#00f5ff', at:'#00e0e8', line:'rgba(255,255,255,.10)', hl:'rgba(0,245,255,.14)',
+      grain:'rgba(255,255,255,.04)' },
+    head: () => `<span class="lt-night-pn"></span>
+      <span class="lt-mast-r">// THOUGHT MODE ON</span>`,
+    foot: (i, n) => `<span class="lt-foot-l"></span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'doc', name:'大厂文档', cls:'lt-doc',
+    desc:'网格底 · macOS 窗口 · CONFIDENTIAL',
+    palette: { paper:'#f8f9fb', paper2:'#ffffff', ink:'#111827', muted:'#6b7280',
+      accent:'#0066ff', at:'#0052cc', line:'rgba(17,24,39,.09)', hl:'rgba(0,102,255,.10)',
+      grain:'rgba(0,0,0,.02)' },
+    head: () => `<span class="lt-doc-dots"><i></i><i></i><i></i></span>
+      <span class="lt-doc-title">DOCUMENT VIEWER</span>
+      <span class="lt-mast-r">CONFIDENTIAL</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'film', name:'电影胶片', cls:'lt-film',
+    desc:'宽银幕遮幅 · 胶片齿孔 · 帧编号',
+    palette: { paper:'#1a1a18', paper2:'#252320', ink:'#d8d4ce', muted:'#9a938a',
+      accent:'#c8b89a', at:'#d8c9ae', line:'rgba(200,184,154,.20)', hl:'rgba(200,184,154,.15)',
+      grain:'rgba(255,255,255,.03)' },
+    head: () => `<div class="lt-film-bars top"><span class="lt-film-frame">▶ 01A</span>
+      <span class="lt-film-kodak">KODAK  5222  DOUBLE-X</span></div>
+      <div class="lt-film-title">— A   C I N E M A T I C   N O T E —</div>`,
+    foot: (i, n) => `<div class="lt-film-scene">SCENE ${String(i).padStart(2,'0')} / ${String(n).padStart(2,'0')}</div>
+      <div class="lt-film-bars bottom"><span class="lt-film-dir">DIR. ___________</span>
+      <span class="lt-film-print">PRINT: FINAL</span></div>`,
+  },
+  {
+    id:'starry', name:'星光质感', cls:'lt-starry',
+    desc:'深蓝夜空 · 星点光晕 · 月亮微光',
+    palette: { paper:'#0c1445', paper2:'#141a3e', ink:'#e8eaf2', muted:'#8f97b8',
+      accent:'#fbbf24', at:'#fbbf24', line:'rgba(251,191,36,.25)', hl:'rgba(251,191,36,.16)',
+      grain:'rgba(255,255,255,.03)' },
+    head: () => `<span class="lt-starry-mark">✦ STARRY NIGHT</span>`,
+    foot: (i, n) => `<span class="lt-foot-l">SuperSu</span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+  {
+    id:'blank', name:'极简留白', cls:'lt-blank',
+    desc:'只有页码 —— 把注意力全留给文字',
+    palette: null,
+    head: () => '',
+    foot: (i, n) => `<span class="lt-foot-l"></span><span class="lt-foot-r">${i} / ${n}</span>`,
+  },
+];
+const longTpl = (id) => LONG_TPLS.find((t) => t.id === id) || LONG_TPLS[0];
+
+/* ⚠️ 2026-10-31 第二次返工：原来的 INNER_STYLES 白名单已删除。
+   它把 12 套模板砍到 5 套当「内页风格」，但竞品调研证明模板本来就该整套生效、
+   每套都能连排多页（拍立得也能连 5 页，不是只能做封面）。
+   现在 12 套全部可用，见 docs/research-2026-10-31-xhs-longform-generators.md。 */
+
+/* ══════════════════════════════════════════════════════════════════
+   状态
+   ══════════════════════════════════════════════════════════════════ */
+const state = {
+  path:'cover',
+  comp:'c1',
+  photo:0,
+  img:'search',      // search | upload | none
+  keyReady:false,
+  st:0,
+  font:'serif',
+  tmode:'stack',      // stack 默认 | poster 大字压阵 | vertical 竖排
+  coverTitle:'周末去了趟海边',
+  coverSub:'两天里我没看手机，只听见浪',
+  longText: SAMPLE_LONG,
+  longTpl:'editorial',   // 长文模板 id —— **一套图文共用一个**（见 LONG_TPLS）
+  size:'xhs',            // 画布尺寸 id（见 SIZES：xhs 3:4 / square 1:1 / wide 21:9）
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const inline = (s) => esc(s)
+  .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+  .replace(/==(.+?)==/g,'<span class="mark">$1</span>')
+  .replace(/\*([^*]+?)\*/g,'<em>$1</em>');
+
+function styleVars(st, extra){
+  /* 2026-10-31：把画布尺寸也写进 CSS 变量 —— 卡片宽高、字号缩放系数 --k
+     都由这里下发，换尺寸时只改 state.size，其余全部跟着变。 */
+  const { w, h, k } = canvasSize();
+  return `--paper:${st.paper};--paper2:${st.paper2};--ink:${st.ink};--muted:${st.muted};` +
+    `--accent:${st.accent};--accentText:${st.at || st.accent};--line:${st.line};--hl:${st.hl};--grain:${st.grain};` +
+    `--cw:${w}px;--ch:${h}px;--k:${k.toFixed(4)};` +
+    `--fs:${Math.round(52 * k)}px;--pgap:${Math.round(43 * k)}px;` + (extra || '');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   标题图：六种构图渲染
+   ══════════════════════════════════════════════════════════════════ */
+const COMP_MUL = { c1:1, c2:1, c3:.78, c4:.92, c5:.86, c6:.92 };
+
+/** 标题字号阶梯：≤6 字 128 / 7–10 字 108 / 11–16 字 92 / 更长 80 */
+function coverTitleSize(title, comp){
+  const n = [...String(title).replace(/\s+/g,'')].length || 4;
+  const base = n <= 6 ? 128 : n <= 10 ? 108 : n <= 16 ? 92 : 80;
+  return Math.max(28, Math.round(base * (COMP_MUL[comp] || 1)));
+}
+
+function footHtml(cls){
+  return `<div class="foot ${cls || ''}"><span>SuperSu</span><span class="pn">01</span></div>`;
+}
+
+/* 局部 scrim：只用「文字色」本身的深色做底，不用纯黑
+   —— 纯黑会把暖色照片洗成灰雾（踩过的坑）；用同族深色，照片仍是暖的。
+   4 档渐变化 + 首尾透明，防止在 8bit 屏上出色带。 */
+function rgba(hex, a){
+  let h = String(hex).replace('#','');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+/* ⚠️ 这里的底色必须与 SCRIM_SRGB 对应：基色 sRGB ≈ 10 才符合反解假设。
+   色板给的 st.scrim 是暖深色（#241c14 等），亮度与 sRGB 10 接近，
+   差异 <0.5%，可接受；若以后换成真正的纯黑或浅色，必须同步 SCRIM_SRGB。 */
+function scrimCss(peak, base){
+  return `linear-gradient(180deg,` +
+    `${rgba(base,0)} 0%,${rgba(base,+(peak*.14).toFixed(3))} 20%,` +
+    `${rgba(base,+(peak*.37).toFixed(3))} 42%,${rgba(base,+(peak*.68).toFixed(3))} 66%,` +
+    `${rgba(base,+(peak*.89).toFixed(3))} 86%,${rgba(base,peak)} 100%)`;
+}
+
+/* 压在图上的两种构图的**锚定方式**（不是固定百分比带）：
+     c2 底部锚定 → 由「文字块高度 + 距离底」反推它实际占哪几条带
+     c6 落在下半部安静区 → 同理
+   ⚠️ 常量带是错的：7 字标题只占 79–87%，24 字标题会爬到 63%。 */
+const ZONE_ANCHOR = {
+  c2: { bottomOff: 190 },
+  c6: { topOff: 906 },
+};
+
+/** 由实际文字块（标题几行 + 小字几行）反推它占的百分比带
+ *  ⚠️ 2026-10-31 尺寸接线：原来写死 1440 / 190 / 906，换 1:1 或 21:9 后全部错位。
+ *  现在按实际画布高换算：锚点值以 1440 为基准，等比缩放到当前高度。 */
+function zoneOf(comp, title, sub, ttlSize){
+  const anchor = ZONE_ANCHOR[comp];
+  if (!anchor) return null;
+  const { h: CH, k } = canvasSize();
+  const scaleY = CH / 1440;                       // 相对基准 3:4 的纵向比例
+  const cw = (comp === 'c3' ? 470 : 904) * (comp === 'c3' ? 1 : k);  // 文字可用宽（按字号缩放）
+  const perTitle = Math.max(1, Math.floor(cw / ttlSize));
+  const titleLines = Math.max(1, Math.ceil([...String(title)].length / perTitle));
+  const subSize = 36 * k;
+  const perSub = Math.max(1, Math.floor(cw / subSize));
+  const subLines = sub ? Math.max(1, Math.ceil([...String(sub)].length / perSub)) : 0;
+
+  const h = titleLines * ttlSize * 1.22 +
+    (subLines ? 34 * k + subLines * subSize * 1.62 : 0);
+
+  const bottom = anchor.bottomOff != null
+    ? CH - anchor.bottomOff * scaleY
+    : anchor.topOff * scaleY + h;
+  const y0 = Math.max(0, (bottom - h) / CH * 100);
+  const y1 = Math.min(100, bottom / CH * 100);
+  return [Math.round(y0 * 10) / 10, Math.round(y1 * 10) / 10];
+}
+
+/** 字体 4 档 + 标题排法 3 档 → class 片段（图文封面与纯文字封面共用） */
+function fontTmodeCls(){
+  return (state.font === 'sans' ? ' sans' : '') +
+    (state.font === 'smiley' ? ' f-smiley' : '') +
+    (state.font === 'auto' ? ' f-auto' : '') +
+    (state.tmode === 'poster' ? ' tm-poster' : '') +
+    (state.tmode === 'vertical' ? ' tm-vertical' : '');
+}
+
+/** 纯文字版式的标题字号：不依赖底图，可以比图文封面更大胆 */
+function textTitleSize(title, id){
+  const n = [...String(title).replace(/\s+/g,'')].length || 4;
+  const base = n <= 6 ? 132 : n <= 10 ? 112 : n <= 16 ? 92 : 78;
+  const mul = { t2: .9, t4: 1.02, t5: .84, t6: .66 }[id] || 1;
+  return Math.max(30, Math.round(base * mul));
+}
+
+/** 清单条目切分：按换行 / 分号 / 顿号切，最多 5 条（真系统 splitItems 的简化版） */
+function splitItems(text){
+  return String(text || '')
+    .split(/[\n;；]+/)
+    .flatMap((s) => s.split(/[、，]/))
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+/** 编号大字用：从标题里捞数字，没有就退回月号 */
+function pickNumber(title){
+  const m = String(title || '').match(/\d{1,3}/);
+  return m ? m[0] : String(new Date().getMonth() + 1).padStart(2, '0');
+}
+
+/** 纯文字封面的 6 种版式。结构对齐 templates.js 的 magazine/swiss/bigtype
+ *  与 layouts.js 的 quote/number/list，但去掉底图相关分支（这一组本来就不用图）。 */
+function textLayoutInner(){
+  const id = state.comp;
+  const st = STYLES[state.st];
+  const title = state.coverTitle.trim() || '写个标题';
+  const sub = state.coverSub.trim();
+  const ttl = textTitleSize(title, id);
+  const vars = styleVars(st, `--ttl:${ttl}px`);
+  const cls = `card cv tl ${id}${fontTmodeCls()}${st.paper === '#0e0d0c' ? ' dark' : ''}`;
+  const date = new Date().toISOString().slice(0, 7).replace('-', '.');
+  const kick = { t1: '封面 · Cover', t2: 'Swiss · 封面', t3: '', t4: '', t5: '', t6: '清单 · List' }[id] || '';
+
+  const ttlHtml = `<h1 class="cv-ttl">${esc(title)}</h1>`;
+  const subHtml = sub ? `<p class="cv-sub">${esc(sub)}</p>` : '';
+  const rule = '<div class="tl-rule"></div>';
+
+  const inner = {
+    /* T1 杂志刊头：期号 + 色条 + 贴底（归藏 Editorial） */
+    t1: `<div class="tl-issue">Vol. 01 <span class="dot"></span> ${date}</div>
+      <div class="tl-mid">
+        <p class="tl-kick">${kick}</p>
+        ${ttlHtml}${rule}${subHtml}
+      </div>`,
+    /* T2 瑞士极简：白纸、细体大字、左对齐（归藏 Swiss） */
+    t2: `<div class="tl-issue">Swiss <span class="dot"></span> ${date}</div>
+      <div class="tl-mid">${ttlHtml}${subHtml}</div>`,
+    /* T3 大字报：垂直居中 + 强调色块压题（归藏 Bigtype） */
+    t3: `<div class="tl-issue">${date}</div>
+      <div class="tl-mid">
+        <div class="tl-block"></div>
+        ${ttlHtml}${subHtml}
+      </div>
+      <div class="tl-footrule"></div>`,
+    /* T4 金句：居中大引号 + 短色条 + 署名 */
+    t4: `<div class="tl-qmark">&ldquo;</div>
+      <div class="tl-mid">${ttlHtml}${rule}${subHtml}</div>
+      <div class="tl-sign">— 摘自正文</div>`,
+    /* T5 编号大字：超大数字当主视觉 */
+    t5: `<div class="tl-bignumrow"><div class="tl-bignum">${esc(pickNumber(title))}</div>
+        <div class="tl-side">${date}</div></div>
+      <div class="tl-mid">${ttlHtml}${subHtml}</div>
+      <div class="tl-issue">No.${esc(pickNumber(title))}</div>`,
+    /* T6 清单：标题 + 编号条目行 */
+    t6: `<p class="tl-kick">${kick}</p>${ttlHtml}
+      <ul class="tl-items">${
+        splitItems(sub || title).map((t, i) =>
+          `<li><span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t">${esc(t)}</span></li>`
+        ).join('')
+      }</ul>`,
+  }[id] || '';
+
+  return `<div class="${cls}" style="${vars}">
+    <div class="grain"></div>
+    <div class="tl-body">${inner}</div>
+    ${footHtml('')}
+  </div>`;
+}
+
+function coverInner(){
+  /* 纯文字版式单独一条渲染路径（不用底图，也不做亮度判定） */
+  if (isTextLayout(state.comp)) return textLayoutInner();
+  const comp = state.comp;
+  const photo = PHOTOS[state.photo];
+  const st = STYLES[state.st];
+  const noImg = state.img === 'none';
+  const title = state.coverTitle.trim() || '写个标题';
+  const sub = state.coverSub.trim();
+  const ttl = coverTitleSize(title, comp);
+  const kick = photo.en;
+
+  const cardCls = `card cv ${comp}${noImg ? ' noimg' : ' has-img'}` +
+    fontTmodeCls() +
+    (st.paper === '#0e0d0c' ? ' dark' : '');
+  const vars = styleVars(st, `--ttl:${ttl}px`);
+
+  /* 只有 C2 / C6 把字压在照片上，才需要判定；其余构图图字不重叠 */
+  const zone = (!noImg && ZONE_ANCHOR[comp]) ? zoneOf(comp, title, sub, ttl) : null;
+  const v = zone ? verdictOf(photo, zone) : null;
+
+  const img = noImg ? '' : `<img class="cv-img" src="${photo.src}" alt="">`;
+  /* 只有判定说要压，才生成 scrim —— 多数照片的结论是「不用压」。
+     ⚠️ top/height 必须由上面同一个 zone 算出（design §11.7 约束 2：几何与判定同源），
+     否则面板写「只盖 38%」而实际画 45%。 */
+  const scrim = (v && v.alpha > 0)
+    ? `<div class="cv-scrim" style="top:${zone[0]}%;height:${zone[1] - zone[0]}%;` +
+      `background:${scrimCss(v.alpha, st.scrim)}"></div>` : '';
+  const fade = (!noImg && comp === 'c4') ? '<div class="cv-fade"></div>' : '';
+
+  /* 字色由实测决定：白色 / 墨色，投影只在白色时加（墨色加投影会让笔画发虚） */
+  const inkStyle = v
+    ? `color:${v.ink};` + (v.ink === '#ffffff' ? '' : 'text-shadow:none;')
+    : '';
+  const subStyle = v
+    ? `color:${v.ink === '#ffffff' ? 'rgba(255,255,255,.88)' : 'var(--muted)'};` +
+      (v.ink === '#ffffff' ? '' : 'text-shadow:none;')
+    : '';
+  const kickStyle = v && v.ink !== '#ffffff'
+    ? 'color:var(--accentText);text-shadow:none' : '';
+
+  const ttlHtml = `<p class="cv-ttl" style="${inkStyle}">${esc(title)}</p>`;
+  const subHtml = sub ? `<p class="cv-sub" style="${subStyle}">${esc(sub)}</p>` : '';
+
+  /* C5 用卡片承载文字，其余用绝对定位的 body */
+  const body = comp === 'c5' && !noImg
+    ? `<div class="cv-card">${ttlHtml}${subHtml}</div>`
+    : `<div class="cv-body">
+         ${(comp === 'c6' && !noImg)
+            ? `<div class="cv-kick" style="${kickStyle}">${esc(kick)}</div>` : ''}
+         ${ttlHtml}${subHtml}
+       </div>`;
+
+  const onimg = !noImg && (comp === 'c2' || comp === 'c5' || comp === 'c6');
+
+  return `<div class="${cardCls}" style="${vars}">
+    ${img}${scrim}${fade}
+    <div class="grain"></div>
+    ${body}
+    ${footHtml(onimg && (!v || v.ink === '#ffffff') ? 'onimg' : '')}
+  </div>`;
+}
+
+function renderCover(){
+  /* 12 种版式统一查找（图文 C1–C6 + 纯文字 T1–T6） */
+  const c = ALL_LAYOUTS.find((x) => x.id === state.comp) || ALL_LAYOUTS[0];
+  const title = state.coverTitle.trim() || '写个标题';
+  const ttl = isTextLayout(state.comp) ? textTitleSize(title, state.comp) : coverTitleSize(title, state.comp);
+  const st = STYLES[state.st];
+
+  /* 舞台缩放：栏宽决定显示尺寸（画布尺寸由 state.size 决定） */
+  const cs2 = canvasSize();
+  const frame = $('coverFrame');
+  const wrapW = frame.parentElement.clientWidth || 400;
+  const w = Math.max(240, Math.min(560, wrapW));
+  const scale = w / cs2.w;
+  frame.style.width = w + 'px';
+  frame.style.height = Math.round(cs2.h * scale) + 'px';
+  $('coverZoom').style.transform = `scale(${scale})`;
+  $('coverZoom').innerHTML = coverInner();
+  document.querySelector('.frame-lb').style.width = w + 'px';
+  $('scaleNote').textContent = `${cs2.hint} · scale ${scale.toFixed(2)}`;
+  $('compTag').textContent = c.name;
+  $('compNote').textContent = c.isText ? '不用配图' : c.short;
+
+  /* 2026-10-31：右侧「设计注释」面板已移除（改成版式选择器，用户要求）。
+     判定结论不再写进面板，改为只在「救不回来」时用底部 note 提示一句 ——
+     产品里不该跟用户解释自己的设计，但「这张图这个版式救不回来」是用户需要知道的。 */
+  if (c.isText){
+    $('pvMeta').textContent = `${canvasSize().hint} · ${st.name}`;
+    return;
+  }
+
+  const photo = PHOTOS[state.photo];
+  const zone = (state.img !== 'none' && ZONE_ANCHOR[state.comp])
+    ? zoneOf(state.comp, title, state.coverSub, ttl) : null;
+  const v = zone ? verdictOf(photo, zone) : null;
+
+  if (v && v.warn){
+    $('note').innerHTML = `⚠ <b>这张图用「${c.name}」救不回来</b>：${v.warn}。` +
+      `<button class="fixbtn" type="button" data-act="to-c1">改用刊头 →</button>`;
+  }
+  $('pvMeta').textContent = `${canvasSize().hint} · ${st.name}`;
+}
+
+/** 字体 / 标题排法的可读名（提示文案与说明复用同一份映射） */
+function fontLabel(){
+  return { serif:'思源宋体 500', sans:'思源黑体 300', smiley:'得意黑 700', auto:'跟随色板' }[state.font] || '思源宋体 500';
+}
+function tmodeLabel(){
+  return { stack:'默认', poster:'大字压阵', vertical:'竖排' }[state.tmode] || '默认';
+}
+
+/* 「这张图这个版式救不回来」时，底部提示里有一个「改用刊头」按钮。
+   事件代理挂在 document 上（面板已移除，不能再绑 specDl）。 */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act="to-c1"]'); if (!b) return;
+  state.comp = 'c1';
+  document.querySelectorAll('.comp').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.c === 'c1')));
+  renderCover();
+  $('note').innerHTML = '已改用 <b>刊头</b>：照片与文字在空间上分开，不需要压暗，照片也保住了。';
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   长文：解析 / 分页 / 角色（简化版，复用 v2 的渲染器）
+   ══════════════════════════════════════════════════════════════════ */
+function parseBlocks(md){
+  const lines = String(md).replace(/\r\n/g,'\n').split('\n');
+  const blocks = [];
+  let para = [];
+  const flush = () => { if (para.length){ const t = para.join('\n').trim(); if (t) blocks.push({type:'p',text:t}); para = []; } };
+  for (const raw of lines){
+    const line = raw.trim();
+    if (!line){ flush(); continue; }
+    if (/^(-{3,}|\*{3,})$/.test(line)){ flush(); blocks.push({type:'pagebreak'}); continue; }
+    let m = line.match(/^(#{1,4})\s+(.+)$/);
+    if (m){ flush(); blocks.push({type:'h'+m[1].length,text:m[2]}); continue; }
+    if (/^>\s?/.test(line)){ flush(); blocks.push({type:'quote',text:line.replace(/^>\s?/,'')}); continue; }
+    m = line.match(/^(?:第([一二三四五六七八九十]+)步|[①-⑳]|(\d{1,2})[.、)])\s*(.+)$/);
+    if (m){
+      flush();
+      const txt = m[3];
+      const sp = txt.split(/[：:]/);
+      blocks.push({ type:'step', text:txt,
+        title:(sp.length>1?sp[0]:txt).trim(),
+        desc: sp.length>1 ? sp.slice(1).join('：').trim() : '' });
+      continue;
+    }
+    m = line.match(/^[-*•·]\s+(.+)$/);
+    if (m){ flush(); blocks.push({type:'li',text:m[1]}); continue; }
+    para.push(line);
+  }
+  flush();
+  return blocks;
+}
+
+const charSum = (arr) => arr.reduce((n,b) => n + (b.text ? b.text.length : 0), 0);
+
+/**
+ * 超长段落按句拆开（>230 字一段，在 52px 正文里必然溢出 1124px 的可用高）。
+ * 只在句末标点处切，不动句内。
+ */
+function splitLongParas(blocks){
+  const out = [];
+  for (const b of blocks){
+    /* 204 是算术上限（12 行 × 17 字），190 留 14 字余量给字体回落与标点挤压。
+       ⚠️ 原来写 230 → 14 行 = 1267px，溢出 143px。 */
+    if (b.type !== 'p' || b.text.length <= 190){ out.push(b); continue; }
+    let cur = '';
+    for (const s of b.text.split(/(?<=[。！？!?；;])/)){
+      if (cur && (cur + s).length > 230){ out.push({ type:'p', text:cur }); cur = s; }
+      else cur += s;
+    }
+    if (cur.trim()) out.push({ type:'p', text:cur });
+  }
+  return out;
+}
+
+/** 简化分页：首段成开篇 → 列表成清单页 → 引用成金句页 → 其余按字数成正文页 → 末页短则结尾 */
+/* dense 页「摘段后」至少剩下多少字，才允许把末段摘出去做 closing 页。
+   ⚠️ 140 是实测推导，不是拍的：1080 真宽下 dense 单段 128 字 = 66.5% 填充、
+   140 字 = 74.6%，68%（design §6 下限）的临界正落在 8→9 行之间。
+   实测方法见 docs/handoff-xhs-studio-redesign.md §6 的验证纪律。 */
+const DENSE_MIN_FILL_CHARS = 140;
+
+/* ── 三个角色的实测容量上限（2026-10-31，1080 真宽逐个量过，不是拍的）──
+   溢出 = 内容被裁（§6 的 68%/60%/45% 下限管的是欠填，这里管的是**超出后被裁**）。 */
+/* 开篇：110 字 91.5% / 140 字 99.6%（贴边）/ 170 字 101.7% 溢出 / 200 字 109.7% 溢出。
+   故首段超过 120 字就不做开篇页，交给 dense 装（dense 单段 170 字仍有 82.6%）。 */
+const OPENING_MAX_CHARS = 120;
+/* 金句：金句30+上下文80 = 94.4% / 金句40+80 = 98.4% / 金句50+60 = 98.4%；
+   金句30+上下文120 = 106.3% 溢出。故「金句 + 上下文」总字数上限取 120。 */
+const QUOTE_MAX_CHARS = 120;
+/* 结尾：1 段 150 字 98.3% / 170 字 102.3% 溢出；2 段 126 字 96.2% / 156 字 104.2% 溢出；
+   3 段 120 字 96.2% / 140 字 100.2% 溢出。
+   拟合：字数上限 = 150 − 10×(段数−1)，下限 100（再少就低于 §6 的 60%）。 */
+const closingCap = (n) => Math.max(100, 150 - 10 * (n - 1));
+
+/* ── 一套图文的页数上限（2026-10-31，对齐真系统 pwa/src/cover/story.js）──
+   行业标准（story.js 注释里调研过红墨 / 创客贴 / 火兔 / A9）：
+   「输入主题 → 封面 + 3~5 张内页，一次出齐，整套风格统一」。
+   小红书单篇上限 18 张，6 张足够，再多用户也懒得翻。
+   ⚠️ 超出上限时**不静默丢内容**：先把能合并的 dense 页合并（合并按实测高度验算），
+      合并不下才截断，并在自检条里明确写「已截断 N 段」。 */
+const STORY_MAX_PAGES = 6;              // 封面 + 最多 5 张内页
+const STORY_MAX_INNER = STORY_MAX_PAGES - 1;
+
+/* ⚠️ 已知边界：dense「单段 120–139 字」恒为 8 行 = 66.5% 填充，略低于 §6 的 68%。
+   **这不是缺陷，是几何必然**：8 行 = 8×52×1.74 + 43 ≈ 767px，767/1124 = 68.2%（理论），
+   实测 66.5%（段落 margin 与行盒取整）；要够 68% 必须 9 行（≥140 字），
+   而第二段一加就是 16 行 → 134.7% 溢出。
+   与 §6 对开篇/金句的裁定同源：「大字版式占高少是大字的代价，不是排版失误」。
+   所以 12 段×120 字这类输入会稳定产出 66.5% 的页，**接受**，不要靠加装饰填空。 */
+const DENSE_SINGLE_SEG_FLOOR = 66.5;
+
+/** 实测某串正文块在**当前模板**下的高度（像素），返回每块含下边距的高度
+ *  2026-10-31：从「按字数估算」改为「实测 DOM 高度」。
+ *  原因：12 套模板的正文可用宽度与字号不同（904 / 860 / 908px、52 / 50px），
+ *  同样字数在不同模板下高度能差 15% 以上，字数包络一套打不了十二套。
+ *  ⚠️ 只用于 dense 页 —— opening/points/quote/closing 有专门结构，仍走原有规则。 */
+function measureDense(blocks){
+  if (typeof document === 'undefined' || !document.body) return null;
+  /* ⚠️ 用 innerTpl（内页风格），不是封面版式 —— 内页排版与封面无关 */
+  const tpl = longTpl(state.longTpl);
+  const st = tpl.palette || STYLES[state.st];
+  const host = document.createElement('div');
+  host.className = `card ${tpl.cls}`;
+  host.style.cssText = 'position:fixed;left:-99999px;top:0;width:1080px;height:1440px;' + styleVars(st);
+  const body = document.createElement('div');
+  body.className = 'body';
+  /* 保留 left/right（宽度仍由模板决定），只放开 top/bottom 让高度随内容撑开 */
+  body.style.cssText = 'top:auto;bottom:auto;height:auto;';
+  host.appendChild(body);
+  const paras = blocks.map((b) => {
+    const p = document.createElement('p');
+    p.innerHTML = inline(b.text || '');
+    body.appendChild(p);
+    return p;
+  });
+  document.body.appendChild(host);
+  const heights = paras.map((p) => {
+    const cs = getComputedStyle(p);
+    return p.getBoundingClientRect().height + (parseFloat(cs.marginBottom) || 0);
+  });
+  document.body.removeChild(host);
+  return heights;
+}
+
+/** 当前模板下 dense 页的可用高度（像素） */
+function denseMaxHeight(){
+  if (typeof document === 'undefined' || !document.body) return null;
+  const tpl = longTpl(state.longTpl);
+  const st = tpl.palette || STYLES[state.st];
+  const host = document.createElement('div');
+  host.className = `card ${tpl.cls}`;
+  host.style.cssText = 'position:fixed;left:-99999px;top:0;width:1080px;height:1440px;' + styleVars(st);
+  const body = document.createElement('div');
+  body.className = 'body';
+  host.appendChild(body);
+  document.body.appendChild(host);
+  const h = body.getBoundingClientRect().height;
+  document.body.removeChild(host);
+  return h;
+}
+
+/** 把单块反复切分，直到每一块都装得进 maxH。
+ *  2026-10-31：原来只切一刀，400 字的单段切完还剩 281 字照样溢出（实测 191–307%）。
+ *  现在循环切，每条都验证过装得下才收工。 */
+function splitUntilFit(block, maxH){
+  const out = [];
+  let queue = [block];
+  let guard = 0;
+  while (queue.length && guard++ < 60){
+    const b = queue.shift();
+    const h = (measureDense([b]) || [0])[0];
+    if (h <= maxH){ out.push(b); continue; }
+    const parts = splitBlockToFit(b, maxH);
+    if (!parts){ out.push(b); continue; }   /* 切不动（太短），原样保留 */
+    queue.unshift(...parts);
+  }
+  return out;
+}
+function splitBlockToFit(block, maxH){
+  const text = String(block.text || '');
+  if (text.length < 2) return null;
+  /* 二分：找「能装进 maxH 的最长前缀」 */
+  let lo = 1, hi = text.length - 1, best = 0;
+  while (lo <= hi){
+    const mid = (lo + hi) >> 1;
+    const h = measureDense([{ ...block, text: text.slice(0, mid) }]);
+    if (h && h[0] <= maxH){ best = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  if (best < 2) return null;   /* 连两个字都装不下，交给上层兜底 */
+  /* 在断点附近找句读，避免从词中间切开 */
+  const WIN = 24;
+  const tail = text.slice(Math.max(0, best - WIN), best);
+  const at = Math.max(
+    tail.lastIndexOf('。'), tail.lastIndexOf('！'), tail.lastIndexOf('？'),
+    tail.lastIndexOf('；'), tail.lastIndexOf('，'), tail.lastIndexOf('、'),
+  );
+  const cut = at > 0 ? Math.max(0, best - WIN) + at + 1 : best;
+  return [
+    { ...block, text: text.slice(0, cut) },
+    { ...block, text: text.slice(cut) },
+  ];
+}
+
+/** 把一串连续正文块按实测高度装进多页。无 DOM 时回退到字数包络。 */
+function packDense(blocks){
+  /* ⚠️ 留 4% 安全余量：实测高度是在「字体可能还没加载完」的时刻量的，
+     回退字体的行高与最终字体有 1–6% 差异；film 模板实测出现过 106% 溢出。
+     宁可行少一点，也不能让内容被裁（裁切 = 用户原文丢失，属阻断级）。 */
+  const maxH = Math.floor((denseMaxHeight() || 1124) * 0.96);
+
+  /* 先处理「单块就超页容量」的段落：反复切分后再进正常装箱流程 */
+  const flat = [];
+  blocks.forEach((b) => {
+    const h = (measureDense([b]) || [0])[0];
+    if (h > maxH) flat.push(...splitUntilFit(b, maxH));
+    else flat.push(b);
+  });
+
+  const heights = measureDense(flat);
+
+  if (!heights){
+    /* 降级：无 DOM 环境（单测/SSR）沿用旧的实测字数包络
+       `Σ ceil(字数/17) + 段数 ≤ 13`，见 design §6。 */
+    const pages = []; let cur = [], rows = 0, segs = 0;
+    blocks.forEach((b) => {
+      const t = (b.text || '').length;
+      const r = Math.max(1, Math.ceil(t / 17));
+      if (cur.length && rows + r + segs + 1 > 13){ pages.push(cur); cur = []; rows = 0; segs = 0; }
+      cur.push(b); rows += r; segs++;
+    });
+    if (cur.length) pages.push(cur);
+    return pages;
+  }
+
+  const pages = []; let cur = [], h = 0;
+  /* ⚠️ 必须遍历 flat（切分后的数组），不能是 blocks ——
+     heights 是按 flat 量的，用 blocks 会索引错位，切分等于白做。 */
+  flat.forEach((b, i) => {
+    const bh = heights[i];
+    if (cur.length && h + bh > maxH){
+      pages.push(cur); cur = []; h = 0;
+    }
+    cur.push(b); h += bh;
+  });
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   长图文 = 封面 + 内页（2026-10-31 按行业标准重构）
+   ──────────────────────────────────────────────────────────────────
+   ⚠️ 这里曾经走错过：把标题图的 12 套视觉模板直接套到长文上。
+   长图文有它自己的形态 —— 真系统 `pwa/src/cover/story.js` 的注释写得很清楚
+   （它调研过红墨 / 创客贴 / 火兔 / A9）：
+
+     「行业标准是『输入主题 → 封面 + 3~6 张内页，一次出齐，整套风格统一』，
+       单独出一张封面反而是少数派。」
+
+   它的四条设计原则，本轮照抄：
+     1. 复用现有版式骨架，不新写一套排版
+     2. 内容从正文**自动拆页**，不要求用户手工分页
+     3. 一套图共用同一色板（封面可铺底图，**内页不铺底图** —— 竞品都是纯色排版）
+     4. 一次只出 3:4（多尺寸会让页数翻倍、用户懵）
+
+   所以长文的两个维度是：
+     · 封面版式 → 复用标题图那 12 种（C1–C6 / T1–T6），带底图
+     · 内页角色 → 开篇 / 清单 / 金句 / 步骤 / 正文 / 结尾，纯色排版
+   「12 套模板」只在**封面**这一页用一次，不是每页一套。
+   ══════════════════════════════════════════════════════════════════ */
+
+/** 把正文拆成内页（封面单独产出，不在这个数组里）。 */
+function buildLong(text){
+  const blocks = splitLongParas(parseBlocks(text));
+  const pages = [];
+  let i = 0;
+
+  /* 开篇：取开头连续段落，≤ 90 字。
+     ⚠️ 首段本身就超长（> OPENING_MAX_CHARS）时**不做开篇页**，让它进 dense —— 
+     否则 170 字的首段在开篇角色里 101.7% 溢出，最后一段被裁掉（实测）。 */
+  let cur = [], ch = 0;
+  while (i < blocks.length && blocks[i].type === 'p' && ch < 70){ cur.push(blocks[i]); ch += blocks[i].text.length; i++; }
+  if (cur.length && ch <= OPENING_MAX_CHARS) pages.push({ role:'opening', blocks:cur });
+  else if (cur.length){ i -= cur.length; }   /* 超长：整段退回，交给下面的 dense 装箱 */
+
+  while (i < blocks.length){
+    const b = blocks[i];
+    if (b.type === 'pagebreak'){ i++; continue; }
+
+    if (b.type === 'li'){
+      const group = [];
+      while (i < blocks.length && blocks[i].type === 'li'){ group.push(blocks[i]); i++; }
+      /* 前导段落并入清单页（作为 intro），避免出现半空的正文页 */
+      let lead = [];
+      const prev = pages[pages.length-1];
+      if (prev && prev.role === 'dense' && charSum(prev.blocks) < 70){ lead = pages.pop().blocks; }
+      /* 清单页最多 6 条：再多会撑破 1124px，拆成两页 */
+      for (let k = 0; k < group.length; k += 6){
+        pages.push({ role:'points', blocks: (k === 0 ? lead : []).concat(group.slice(k, k + 6)) });
+      }
+      continue;
+    }
+
+    if (b.type === 'quote'){
+      const q = [b]; i++;
+      let qch = b.text ? b.text.length : 0;
+      /* 紧跟的短段落作为上下文（提高填充，避免孤句空页）。
+         ⚠️ 实测金句 30 字 + 上下文 120 字 = 106.3% 溢出（内容被裁），
+         故按 QUOTE_MAX_CHARS 封顶，超出的段落留给后面的 dense 页。 */
+      while (i < blocks.length && blocks[i].type === 'p' && blocks[i].text.length <= 80 &&
+             qch + blocks[i].text.length <= QUOTE_MAX_CHARS){
+        q.push(blocks[i]); qch += blocks[i].text.length; i++;
+      }
+      pages.push({ role:'quote', blocks:q });
+      continue;
+    }
+
+    /* 正文页：按「实测高度」装箱（2026-10-31 改）
+       ⚠️ 原实现按字数估算 `Σceil(字数/17)+段数≤13`。那个包络只对
+       「904px 宽 + 52px 字号」这一套成立；12 套模板的正文宽度/字号各不相同
+       （swiss 860px、memo 976px、film 940px…），同样字数高度能差 15% 以上，
+       一套包络打不了十二套 —— 所以改成实测 DOM 高度（packDense）。
+       字数包络保留为无 DOM 环境（单测/SSR）的降级路径。 */
+    const dp = [];
+    while (i < blocks.length && blocks[i].type !== 'li' && blocks[i].type !== 'quote' && blocks[i].type !== 'pagebreak'){
+      dp.push(blocks[i]); i++;
+    }
+    if (dp.length){
+      packDense(dp).forEach((blks) => pages.push({ role:'dense', blocks: blks }));
+    }
+  }
+
+  /* 结尾：优先把最后一段单独做成结尾页 —— 结尾页塞两段会把 CTA 挤到页脚上 */
+  if (pages.length >= 2){
+    const last = pages[pages.length-1];
+    if (last.role === 'dense'){
+      const tail = last.blocks[last.blocks.length-1];
+      /* B3 guard（2026-10-31 实测后加）：摘走末段会让上一页掉到 §6 下限以下。
+         310 字样例里 dense 装 121+36 字（157 < 170 上限，本可一页装下），
+         摘除后只剩 121 字 = 66.5% 填充，低于 §6 的 dense ≥68%。
+         design §6 明文：「末页欠填时，先尝试与上一页合并，合并不下才考虑换版式，
+         不允许靠加装饰填空」——所以摘段前先验算，剩余不够就整页留着。 */
+      const rest = charSum(last.blocks.slice(0, -1));
+      /* 结尾页也有容量上限：实测 1 段 170 字 = 102.3% 溢出、2 段 156 字 = 104.2% 溢出、
+         3 段 140 字 = 100.2% 溢出（CTA 被挤出画布）。超出就整页留作 dense，不硬转。 */
+      const tailLen = (tail.text || '').length;
+      if (last.blocks.length >= 2 && tailLen <= 120 && rest >= DENSE_MIN_FILL_CHARS &&
+          tailLen <= closingCap(1)){
+        last.blocks = last.blocks.slice(0, -1);
+        pages.push({ role:'closing', blocks:[tail] });
+      } else if (last.blocks.length === 1 && charSum(last.blocks) <= closingCap(1)){
+        last.role = 'closing';
+      }
+    }
+  }
+
+  /* ── 页数上限（2026-10-31，对齐 story.js 的 MAX_PAGES）──────────────
+     超限时**先合并、后截断**，并在返回值上带 `truncated` 供自检条提示。
+     合并规则：把相邻两个 dense 页合成一页，按实测高度验算装得下才合 ——
+     不靠「少写点字」糊弄（design §6：不允许靠加装饰填空，也不允许静默丢内容）。 */
+  let truncated = 0;
+  while (pages.length > STORY_MAX_INNER){
+    let merged = false;
+    for (let k = 0; k < pages.length - 1; k++){
+      const a = pages[k], b = pages[k+1];
+      if (a.role !== 'dense' || b.role !== 'dense') continue;
+      const together = a.blocks.concat(b.blocks);
+      const hs = measureDense(together);
+      const cap = Math.floor((denseMaxHeight() || 1124) * 0.96);
+      const total = hs ? hs.reduce((x, y) => x + y, 0) : Infinity;
+      if (total <= cap){
+        pages.splice(k, 2, { role:'dense', blocks: together });
+        merged = true;
+        break;
+      }
+    }
+    if (!merged){                       /* 合并到极限了，只能截断 */
+      const dropped = pages.pop();
+      truncated += charSum(dropped.blocks);
+    }
+  }
+  Object.defineProperty(pages, 'truncated', { value: truncated, enumerable: false });
+  return pages;
+}
+
+function longBody(role, blk){
+  const ttlBlock = blk.find((b) => /^h[1-4]$/.test(b.type));
+  const ttl = ttlBlock ? ttlBlock.text : '';
+
+  /* 封面页（2026-10-31 新增，按竞品做法）
+     封面 = 这套模板的第 1 页 + 标题/副标。它和内页共用同一套 .lh / .lf / 配色，
+     所以不会出现「第一页和后面完全不同」。
+     底图由 state.img 决定（搜图/上传/不要图），只铺在封面上 —— 内页保持纯色
+     （竞品 story.js 原则 3：内页不铺底图，铺图反而乱）。 */
+  if (role === 'cover'){
+    const st = STYLES[state.st];
+    const title = state.coverTitle.trim() || '写个标题';
+    const sub = state.coverSub.trim();
+    const haveImg = state.img !== 'none';
+    const img = haveImg ? `<img class="lt-cover-img" src="${PHOTOS[state.photo].src}" alt="">` : '';
+    return `<div class="body r-cover${haveImg ? ' has-img' : ''}">
+      ${img}
+      <div class="lt-cover-inner">
+        <p class="lt-cover-kick">${esc(st.name)}</p>
+        <h1 class="lt-cover-ttl">${esc(title)}</h1>
+        ${sub ? `<p class="lt-cover-sub">${esc(sub)}</p>` : ''}
+      </div>
+    </div>`;
+  }
+
+  if (role === 'opening'){
+    const all = blk.filter((b) => b.text);
+    const lead = all[0] ? all[0].text : '';
+    const rest = all.slice(1).map((b) => b.text).join(' ');
+    return `<div class="body r-opening">
+      <div class="rule"></div>
+      <p class="lead">${inline(lead)}</p>
+      ${rest ? `<p class="sub">${inline(rest)}</p>` : ''}
+      <div class="sign">— 阿苏</div>
+    </div>`;
+  }
+
+  if (role === 'quote'){
+    const q = blk.find((b) => b.type === 'quote');
+    const rest = blk.filter((b) => b !== q && b.text);
+    const qt = q ? q.text : (blk[0] ? blk[0].text : '');
+    const ctxTxt = rest.map((b) => b.text).join(' ');
+    return `<div class="body r-quote">
+      <div class="qbg">&ldquo;</div>
+      <div class="qmark">&ldquo;</div>
+      <p class="qt">${inline(qt)}</p>
+      <div class="qrule"></div>
+      ${ctxTxt ? `<p class="qctx">${inline(ctxTxt)}</p>` : ''}
+      <div class="qsign">— 摘自正文</div>
+    </div>`;
+  }
+
+  if (role === 'points'){
+    const items = blk.filter((b) => b.type === 'li');
+    const others = blk.filter((b) => b !== ttlBlock && (b.type === 'p' || b.type === 'quote'));
+    const rows = items.map((b, i) => `<div class="row"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="t">${inline(b.text)}</span></div>`).join('');
+    const intro = others.map((b) => `<p class="pintro">${inline(b.text)}</p>`).join('');
+    return `<div class="body r-points">
+      <div class="big-num">${String(items.length || 1).padStart(2,'0')}</div>
+      ${ttl ? `<p class="ttl">${inline(ttl)}</p>` : ''}
+      ${intro}
+      <div class="rows">${rows}</div>
+    </div>`;
+  }
+
+  if (role === 'steps'){
+    const steps = blk.filter((b) => b.type === 'step');
+    const flow = steps.map((b, i) => `<div class="step"><div class="sn">${String(i+1).padStart(2,'0')}</div>
+      <div class="sc"><p class="st">${inline(b.title)}</p>${b.desc ? `<p class="sd">${inline(b.desc)}</p>` : ''}</div></div>`).join('');
+    return `<div class="body r-steps">${ttl ? `<p class="ttl">${inline(ttl)}</p>` : ''}<div class="flow">${flow}</div></div>`;
+  }
+
+  if (role === 'closing'){
+    const all = blk.filter((b) => b.text);
+    const ct = all.length ? all[all.length-1].text : '';
+    const cd = all.length > 1 ? all.slice(0,-1).map((b) => b.text).join(' ') : '';
+    return `<div class="body r-closing">
+      <div class="cbg">${String(blk.length).padStart(2,'0')}</div>
+      <div class="rule"></div>
+      <p class="ct">${inline(ct)}</p>
+      ${cd ? `<p class="cd">${inline(cd)}</p>` : ''}
+      <div class="cta">关注 阿苏</div>
+    </div>`;
+  }
+
+  /* dense */
+  const rest = blk.filter((b) => b !== ttlBlock);
+  const withBlocks = rest.map((b, i) => {
+    if (b.type === 'p'){
+      return `<p${i === 0 ? ' class="drop"' : ''}>${inline(b.text)}</p>`;
+    }
+    if (/^h[12]$/.test(b.type)) return `<p class="h2">${inline(b.text)}</p>`;
+    if (/^h[34]$/.test(b.type)) return `<p class="h3">${inline(b.text)}</p>`;
+    if (b.type === 'quote') return `<p><em>${inline(b.text)}</em></p>`;
+    if (b.type === 'li') return `<p>· ${inline(b.text)}</p>`;
+    if (b.type === 'step') return `<p><strong>${inline(b.title)}</strong>${b.desc ? '：' + inline(b.desc) : ''}</p>`;
+    return '';
+  }).join('');
+  return `<div class="body r-dense">${ttl ? `<p class="ttl">${inline(ttl)}</p>` : ''}${withBlocks}</div>`;
+}
+
+/** 渲染一张卡。
+ *  2026-10-31（第二次返工，按竞品调研）：
+ *   **封面与内页共用同一套模板**（state.longTpl），封面只是这套模板的第 1 页。
+ *   依据见 docs/research-2026-10-31-xhs-longform-generators.md：
+ *   XHS-TextCard 的「封面」Tab 里没有版式选择，只有「启用封面 / 封面图片 / 封面字号」——
+ *   封面 = 模板 P1 + 一张背景图。
+ *
+ *   ⚠️ 曾经写成 `if (role === 'cover') return coverInner();`（复用标题图渲染路径），
+ *      结果封面是标题图的样子、内页是模板的样子，第一页和后面完全断裂。
+ *      用户当场否掉：「假如是长图长文的第一页和其他页完全不同，也很奇怪啊。」 */
+function longCard(role, blk, idx, total){
+
+  const tpl = longTpl(state.longTpl);
+  /* 模板可锁配色（暗夜/胶片/备忘录这类强风格），否则跟随用户选的色板 */
+  const st = tpl.palette || STYLES[state.st];
+  const vars = styleVars(st);
+  const swiss = (!tpl.palette && st.fam === 'swiss') ? ' swiss' : '';
+  return `<div class="card ${tpl.cls}${swiss}" style="${vars}">
+    <div class="grain"></div>
+    ${tpl.head ? `<div class="lh">${tpl.head()}</div>` : ''}
+    ${longBody(role, blk)}
+    <div class="lf">${tpl.foot(idx + 1, total)}</div>
+  </div>`;
+}
+
+let longCards = [];
+/** 单页内容超出时整体等比缩小。
+ *  2026-10-31：polaroid 的正文区只有 730px（上面留 420px 给照片框），
+ *  而开篇页的 lead 是固定 74px、加 sub 后要 883px —— 装不下，实测溢出。
+ *  这是模板几何决定的，分页算法解决不了（不是分段问题，是单页设计本身超了）。
+ *
+ *  ⚠️ 关键：光 `transform: scale(k)` 不够 —— transform 会把 **body 盒子本身**也缩小，
+ *     于是「内容视觉高 = used·k」但「body 视觉高 = avail·k」，永远差一截。
+ *     必须同时把 body 的布局高度撑到 avail/k（并解掉 bottom 定位），
+ *     这样 body 视觉高 = (avail/k)·k = avail，内容视觉高 = used·k = avail，两者相等。
+ *
+ *  ⚠️ 也不要用改 font-size 的办法：开篇/金句的字号是设计的一部分，改了就不成版式了。 */
+function fitOverflowCards(root){
+  (root || document).querySelectorAll('.card .body').forEach((body) => {
+    /* 完全重置（内联 style 在模板里是空的，安全） */
+    body.style.transform = '';
+    body.style.transformOrigin = '';
+    body.style.height = '';
+    body.style.bottom = '';
+    /* ⚠️ 2026-10-31 最终方案：用 CSS `zoom` 而不是 `transform: scale()`。
+       为什么前者不行（连踩三次）：
+         · body 在 deck 里已被外层 transform:scale() 缩放过，offsetHeight（布局值）
+           与 getBoundingClientRect（视觉值）**不在同一坐标系**，混用算出的 k 是错的；
+         · transform 只缩「视觉」，body 盒子本身跟着缩 → 可用高也缩，
+           「内容视觉高 = used·k」永远对不上「body 视觉高 = avail·k」；
+         · 想用固定 height 补偿，又会被 absolute + top/bottom 定位吃掉。
+       `zoom` 是布局级缩放：可用高与内容高一起按同比例缩，比值不变，一次算对。
+       实测：polaroid 开篇页 used 209.7 > avail 206.7，zoom 0.986 后 208.6 ≤ 207.4 ✓。 */
+    const rect = body.getBoundingClientRect();
+    const avail = rect.height;
+    let contentBottom = rect.top;
+    [...body.children].forEach((c) => {
+      if (getComputedStyle(c).position === 'absolute') return;
+      const r = c.getBoundingClientRect();
+      if (r.height > 0) contentBottom = Math.max(contentBottom, r.bottom);
+    });
+    const used = contentBottom - rect.top;
+    if (used <= avail + 1) return;
+    /* 循环收敛：一次算出的 k 可能因取整/换行重排差几像素，
+       实测还剩 7px 溢出（closing 页）。每次缩 2% 再量，最多 8 轮。 */
+    let k = Math.max(0.4, (avail / used) * 0.99);
+    for (let i = 0; i < 8; i++) {
+      body.style.zoom = k;
+      const r2 = body.getBoundingClientRect();
+      let bot = r2.top;
+      [...body.children].forEach((c) => {
+        if (getComputedStyle(c).position === 'absolute') return;
+        const cr = c.getBoundingClientRect();
+        if (cr.height > 0) bot = Math.max(bot, cr.bottom);
+      });
+      if (bot - r2.top <= r2.height - 1) break;
+      k *= 0.98;
+    }
+  });
+}
+
+function renderLong(){
+  /* 2026-10-31：成套 = 1 张封面 + N 张内页。
+     封面复用标题图当前的版式（含底图与压暗判定），内页纯色排版。 */
+  const innerPages = buildLong(state.longText);
+  const pages = [{ role:'cover', blocks:[] }, ...innerPages];
+  longCards = pages.map((p, i) => longCard(p.role, p.blocks, i, pages.length));
+
+  const cs2 = canvasSize();
+  const w = DECK_W, scale = w / cs2.w;
+  $('deck').style.gridTemplateColumns = `repeat(auto-fill,${w}px)`;
+  $('deck').innerHTML = pages.map((p, i) => `
+    <div class="slot">
+      <div class="frame" data-i="${i}" style="width:${w}px;height:${Math.round(cs2.h * scale)}px">
+        <div class="zoom" style="transform:scale(${scale})">${longCards[i]}</div>
+      </div>
+      <div class="cap">
+        <span class="role ${p.role}">${ROLES[p.role].label}</span>
+        <span class="fs">${ROLES[p.role].fs}</span>
+        <span class="fs">P${String(i+1).padStart(2,'0')}</span>
+      </div>
+    </div>`).join('');
+
+  $('deck').querySelectorAll('.frame').forEach((f) => {
+    f.addEventListener('click', () => openLightbox(longCards[+f.dataset.i]));
+  });
+
+  /* 单页超高的兜底（polaroid 这类内容区特别矮的模板）：渲染完才能量，所以放这里 */
+  fitOverflowCards($('deck'));
+
+/* 逐块比对：每个原文块的文字都必须出现在渲染产物里（比总字数比对更准确，
+   因为渲染会额外加「— 阿苏」「摘自正文」等装饰文字，总字数必然对不上） */
+  const box = document.createElement('div');
+  let out = '';
+  longCards.forEach((h) => {
+    box.innerHTML = h;
+    const b = box.querySelector('.body');
+    if (b) out += b.textContent;
+  });
+  const norm = (s) => String(s || '').replace(/\s+/g,'')
+    .replace(/\*\*(.+?)\*\*/g,'$1').replace(/==(.+?)==/g,'$1').replace(/\*([^*]+?)\*/g,'$1');
+  /* 按「句」比对：长段落会被拆到两页，按整段比会误报 */
+  const srcPieces = [];
+  splitLongParas(parseBlocks(state.longText)).forEach((b) => {
+    if (!b.text || b.type === 'pagebreak') return;
+    if (b.text.length > 60){
+      b.text.split(/(?<=[。！？!?；;])/).forEach((s) => { if (norm(s).length > 8) srcPieces.push(s); });
+    } else srcPieces.push(b.text);
+  });
+  const missing = srcPieces.filter((s) => !norm(out).includes(norm(s)));
+  const roles = [...new Set(pages.map((p) => p.role))];
+  /* 2026-10-31 UX 修（产品经理视角）：空文本时原来报「✗ 0/0 句未落版」——
+     把「没内容」当成「失败」，用户会以为自己哪步做错了。
+     空态应该说明「还没输入」，而不是打红叉。 */
+  const blank = srcPieces.length === 0;
+  const ok = pages.length >= 2 && missing.length === 0;
+  $('selfcheck').className = 'selfcheck' + (ok || blank ? '' : ' bad');
+  $('selfcheck').innerHTML = blank
+    ? '<b>还没有正文</b> · 把文章粘到左边，这里会自动分页成一套图文'
+    : (ok
+      ? `<b>✓ 产物自检</b> · ${pages.length} 页 / ${roles.length} 种版式（${roles.map((r) => ROLES[r].label).join('·')}） · 原文 ${srcPieces.length} 句全部落版 · 最小字号 19px（页脚）`
+      : `<b>✗ 产物自检</b> · ${missing.length}/${srcPieces.length} 句未落版：` +
+        missing.slice(0,3).map((m) => `「${esc(m.slice(0,10))}」`).join(' '));
+
+  $('longMeta').textContent = `${pages.length} 页 · ${canvasSize().hint} · ${STYLES[state.st].name}`;
+  $('topHint').textContent = `${pages.length} 页 · ${roles.length} 种版式`;
+  /* 2026-10-31 UX 修：导出按钮显示真实页数（用户要一眼知道会出几张图） */
+  $('save').innerHTML = `导出一整套 <small>${pages.length} 张 PNG</small>`;
+  $('note').innerHTML = `长文路径：<b>${pages.length} 页</b>（封面 + ${pages.length - 1} 张内页），` +
+    '每页按内容形态自动排版（开篇/清单/金句/正文/结尾），整套共用一套模板。';
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   渲染入口
+   ══════════════════════════════════════════════════════════════════ */
+function renderAll(){
+  if (state.path === 'cover'){ syncImgPanel(); renderCover(); } else renderLong();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   交互
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 路径切换 */
+$('paths').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const p = b.dataset.path;
+  if (p === state.path) return;
+  /* 保存当前路径的输入，再加载另一条路径的输入 */
+  if (state.path === 'cover'){ state.coverTitle = $('txt').value; state.coverSub = $('sub').value; }
+  else state.longText = $('txt').value;
+
+  state.path = p;
+  document.querySelectorAll('#paths button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.path === p)));
+  $('rightCover').classList.toggle('hidden', p !== 'cover');
+  $('rightLong').classList.toggle('hidden', p !== 'long');
+  $('secImg').classList.toggle('hidden', p !== 'cover');
+  $('sub').classList.toggle('hidden', p !== 'cover');
+  $('adv').classList.toggle('hidden', p !== 'cover');
+
+  const txt = $('txt');
+  if (p === 'cover'){
+    txt.className = 'biginput';
+    txt.value = state.coverTitle; $('sub').value = state.coverSub;
+    txt.placeholder = '写个标题，比如「周末去了趟海边」';
+    $('inputLabel').textContent = '一句话，变成一张图';
+    $('save').innerHTML = '保存图片<small>1080×1440</small>';
+    $('topHint').textContent = '一句话 → 一张图';
+    $('note').innerHTML = '首屏只有：一句话 + 配图方式 + 预览。其余收进「调整」。';
+  } else {
+    txt.className = 'biginput long';
+    txt.value = state.longText;
+    txt.placeholder = '粘贴一整篇笔记，自动分页成一套图文';
+    $('inputLabel').textContent = '一整篇文章，自动变成一套图文';
+    /* 2026-10-31 UX 修：原来写死「PNG × 页数」，用户看不到到底会出几张。
+       页数在 renderLong 里算出来后再回填（见 syncSaveLabel）。 */
+    $('save').innerHTML = '导出一整套<small>PNG</small>';
+  }
+  renderAll();
+});
+
+/* 输入（防抖 200ms） */
+let tTimer = null;
+$('txt').addEventListener('input', () => {
+  clearTimeout(tTimer);
+  tTimer = setTimeout(() => {
+    if (state.path === 'cover'){ state.coverTitle = $('txt').value; renderCover(); }
+    else { state.longText = $('txt').value; renderLong(); }
+  }, 200);
+});
+$('sub').addEventListener('input', () => {
+  clearTimeout(tTimer);
+  tTimer = setTimeout(() => { state.coverSub = $('sub').value; renderCover(); }, 200);
+});
+
+/* ── 长文模板选择器（2026-10-31，放右栏，与标题图路径同一套交互）─── */
+/* ── 长文模板选择器（2026-10-31 按竞品调研重做）─────────────────────
+   **一个**选择器，12 套模板整套生效：封面 = 这套模板的 P1，内页 = 它的 P2~N。
+
+   依据 docs/research-2026-10-31-xhs-longform-generators.md：
+     · XHS-TextCard 编辑器里，模板只有一个选择（「内页」Tab 的「内页模板」12 选 1）；
+       「封面」Tab 只有「启用封面 / 封面图片 / 封面字号 / 社交图标」，**没有版式选择**；
+     · 它的 API 也只有一个 `template` 字段 —— 不是每页一个；
+     · 设计侧同理：Dhia「One template family, not fifty one-offs」、
+       CreatorFlow「Same color palette across all slides」。
+
+   ⚠️ 走错过的两个版本，都记在这里免得再犯：
+     ① 只按内容分页，没有封面概念；
+     ② 拆成「封面版式（12 种标题图版式）+ 内页风格（5 种）」两个选择器
+        → 封面选全出血、内页选杂志编辑，第一页和后面完全不同，用户当场否掉：
+        「假如是长图长文的第一页和其他页完全不同，也很奇怪啊。」 */
+$('composerInner').innerHTML = `<div class="compgrid">${LONG_TPLS.map((t) => `
+  <button class="comp" data-tpl="${t.id}" aria-pressed="${t.id === state.longTpl}" title="${esc(t.desc)}">
+    <span class="mini lt-th-${t.id}"><i class="im"></i><i class="tx"></i></span>
+    <span class="l">${t.name}</span>
+  </button>`).join('')}</div>`;
+$('composerInner').addEventListener('click', (e) => {
+  const b = e.target.closest('.comp'); if (!b) return;
+  state.longTpl = b.dataset.tpl;
+  $('composerInner').querySelectorAll('.comp').forEach((x) =>
+    x.setAttribute('aria-pressed', String(x.dataset.tpl === state.longTpl)));
+  renderLong();
+});
+
+/* ── 构图/版式切换条（2026-10-31：扩为 12 种，分两组）───────────────
+   组①图文封面 C1–C6（有底图）｜组②纯文字封面 T1–T6（不用底图）。
+   分组而不是混排：用户是「先决定有没有图」，再决定排版。
+   缩略图 m1–m6 复用原六构图图形；纯文字组用 tl-a / tl-b 两个通用图形。 */
+$('composer').innerHTML = `
+  <div class="compgroup">
+    <div class="compgroup-lb">① 图文封面 · 配图</div>
+    <div class="compgrid">${COMPS.map((c, i) => `
+      <button class="comp" data-c="${c.id}" aria-pressed="${c.id === state.comp}" title="${esc(c.sub)}">
+        <span class="mini m${i+1}"><i class="im"></i><i class="tx"></i></span>
+        <span class="l">${c.name}</span>
+      </button>`).join('')}</div>
+  </div>
+  <div class="compgroup">
+    <div class="compgroup-lb">② 纯文字封面 · 不用配图</div>
+    <div class="compgrid">${TEXT_LAYOUTS.map((c, i) => `
+      <button class="comp" data-c="${c.id}" aria-pressed="${c.id === state.comp}" title="${esc(c.sub)}">
+        <span class="mini ${['mm1','mm2','mm3','mm4','mm5','mm6'][i]}"><i class="im"></i><i class="tx"></i></span>
+        <span class="l">${c.name}</span>
+      </button>`).join('')}</div>
+  </div>`;
+$('composer').addEventListener('click', (e) => {
+  const b = e.target.closest('.comp'); if (!b) return;
+  state.comp = b.dataset.c;
+  document.querySelectorAll('.comp').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.c === state.comp)));
+  syncImgPanel();
+  renderCover();
+});
+
+/** 纯文字版式不需要配图 —— 把左侧「配图来源 / 搜图」整块收起，
+ *  避免「选了不用图的版式，左边还在让你搜图」的自相矛盾。
+ *  切回图文版式时原样恢复用户之前选的来源。 */
+function syncImgPanel(){
+  const text = isTextLayout(state.comp);
+  const sec = $('secImg');
+  if (!sec) return;
+  sec.classList.toggle('muted-by-layout', text);
+  if (text){
+    $('note').innerHTML = '这个版式<b>不用配图</b>：靠留白 + 字号对比撑住画面。' +
+      '想让照片参与排版，选上面「① 图文封面」的任意一款。';
+  } else {
+    $('note').innerHTML = '首屏只有：一句话 + 配图方式 + 预览。其余收进「调整」。';
+  }
+}
+
+/* 数字键 1–6 快速切构图 */
+document.addEventListener('keydown', (e) => {
+  if (state.path !== 'cover' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^[1-6]$/.test(e.key)){
+    const c = COMPS[+e.key - 1];
+    state.comp = c.id;
+    document.querySelectorAll('.comp').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.c === state.comp)));
+    renderCover();
+  }
+});
+
+/* 色板 */
+function palHtml(wide){
+  /* wide=true 时给每个色块带上名字（右栏空间够，带名字更好认） */
+  return STYLES.map((s, i) => `<button data-st="${i}" aria-pressed="${i === state.st}"
+    ${wide ? `data-name="${esc(s.name)}" class="sw-wide"` : ''}
+    style="background:${s.sw}" title="${s.name} · ${s.ds}"></button>`).join('');
+}
+/* V5：色点只剩「调整」里那一份（#palM）。预览头部改为显示当前色板名，
+   桌面与手机同一套交互，8 个色点不再常驻占 Tab 站。 */
+$('palM').innerHTML = palHtml();
+$('palWide').innerHTML = palHtml(true);
+function syncPalName(){
+  const s = STYLES[state.st];
+  const label = s ? `${s.name} · ${s.ds}` : '';
+  const a = $('palName'), b = $('palName2');
+  if (a) a.textContent = label;
+  if (b) b.textContent = label;
+}
+syncPalName();
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.pal button'); if (!b) return;
+  state.st = +b.dataset.st;
+  document.querySelectorAll('.pal button').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.st === state.st)));
+  syncPalName();
+  renderAll();
+});
+
+/* 配图方式 */
+$('imgopts').addEventListener('click', (e) => {
+  const b = e.target.closest('.iop'); if (!b) return;
+  state.img = b.dataset.img;
+  document.querySelectorAll('.iop').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.img === state.img)));
+  $('kwbox').classList.toggle('on', state.img === 'search');
+  if (state.img === 'none'){
+    $('note').innerHTML = '纯文字版式：不加图，用色块 + 字号对比撑住整张。<b>搜图仍是特色，但它是可选步</b>。';
+  } else if (state.img === 'upload'){
+    $('note').innerHTML = '上传：原型用左侧照片代替（<b>不实际选文件</b>）。';
+  } else {
+    $('note').innerHTML = '搜图：图来自 <b>Pexels 免费图库</b>。关键词可从标题自动提取，也可手动改。';
+  }
+  renderCover();
+});
+
+/* 关键词 chips */
+$('kwchips').addEventListener('click', (e) => {
+  const b = e.target.closest('.kwchip'); if (!b) return;
+  $('kw').value = b.dataset.kw;
+  document.querySelectorAll('.kwchip').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+});
+
+/* 搜图：未配 Key → 就地降级（不置灰、不报错 toast） */
+$('kwgo').addEventListener('click', () => {
+  if (!state.keyReady){
+    $('kwdegrade').classList.add('on');
+    $('kwres').classList.remove('on');
+    return;
+  }
+  $('kwdegrade').classList.remove('on');
+  $('kwres').classList.add('on');
+});
+$('goKey').addEventListener('click', () => {
+  state.keyReady = true;
+  $('keyTail').textContent = 'Key 已配置';
+  $('kwdegrade').classList.remove('on');
+  $('kwres').classList.add('on');
+  $('note').innerHTML = '（原型模拟）Key 已配置 → 出 4 张候选。真实产品是 6 张 Pexels 结果。';
+  renderPicks();
+});
+$('useSolid').addEventListener('click', () => {
+  state.img = 'none';
+  document.querySelectorAll('.iop').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.img === 'none')));
+  $('kwdegrade').classList.remove('on');
+  $('note').innerHTML = '已降级到<b>纯色版式</b>：不出图也能交付，不是死路。';
+  renderCover();
+});
+$('keyTail').addEventListener('click', () => {
+  /* 原型演示开关：让评审能来回看两种状态 */
+  state.keyReady = !state.keyReady;
+  $('keyTail').textContent = state.keyReady ? 'Key 已配置' : 'Key 未配置';
+  if (state.keyReady){ $('kwdegrade').classList.remove('on'); $('kwres').classList.add('on'); }
+  if (!state.keyReady){ $('kwres').classList.remove('on'); }
+  renderPicks();
+});
+
+function renderPicks(){
+  $('kwres').innerHTML = state.keyReady ? PHOTOS.map((p, i) => `
+    <button class="pick" data-p="${i}" aria-pressed="${i === state.photo}">
+      <img src="${p.src}" alt=""><span>${p.name}</span>
+    </button>`).join('') : '';
+}
+$('kwres').addEventListener('click', (e) => {
+  const b = e.target.closest('.pick'); if (!b) return;
+  state.photo = +b.dataset.p;
+  document.querySelectorAll('.pick').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.p === state.photo)));
+  renderCover();
+});
+renderPicks();
+
+/* 调整：折叠 + chips
+   2026-10-31：移除 ch-layout（版式入口只保留预览上方的分组切换条）。
+   尺寸目前仍是占位 chip（只切换选中态，不改变画布）—— 见 handoff §11 已知缺口。 */
+$('advhead').addEventListener('click', () => $('adv').classList.toggle('open'));
+/** 切换尺寸（2026-10-31：抽成函数，标题图与长文两处按钮共用） */
+function setSize(id){
+  state.size = id || 'xhs';
+  syncSizeLabels();
+  /* 换尺寸要重渲染：内容区高度变了 → 实测装箱会重新分页 */
+  if (state.path === 'cover') renderCover(); else renderLong();
+}
+['ch-size', 'ch-size2'].forEach((gid) => {
+  const g = $(gid); if (!g) return;
+  g.addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    setSize(b.dataset.size);
+  });
+});
+
+/** 尺寸相关的文案同步（保存按钮、预览头、放大会用到） */
+function syncSizeLabels(){
+  const s = canvasSize();
+  const sv = $('save');
+  if (sv && state.path === 'cover') sv.innerHTML = `保存图片<small>${s.hint}</small>`;
+  const pv = $('pvMeta');
+  if (pv) pv.textContent = `${s.hint} · ${STYLES[state.st].name}`;
+  const lm = $('longMeta');
+  if (lm) lm.textContent = lm.textContent.replace(/\d+ × \d+/, s.hint.replace('×',' × '));
+  /* 两处尺寸区下面那行小字：写清实际像素 + 用途，省得用户自己换算 */
+  const use = { xhs:'小红书主图', square:'方图 · 头像/九宫格', wide:'横版 · 头图/横幅' }[state.size] || '';
+  const label = `${s.hint.replace('×',' × ')} · ${use}`;
+  ['sizeHint', 'sizeHint2'].forEach((id) => { const el = $(id); if (el) el.textContent = label; });
+  /* 两处尺寸组的高亮同步（含 URL 初始化路径） */
+  ['ch-size', 'ch-size2'].forEach((id) => {
+    const g = $(id); if (!g) return;
+    g.querySelectorAll('.chip').forEach((x) =>
+      x.setAttribute('aria-pressed', String(x.dataset.size === state.size)));
+  });
+}
+/** 字体切换（2026-10-31：右栏与左侧抽屉两处按钮共用同一份状态） */
+function setFont(id){
+  state.font = id || 'serif';
+  ['ch-font','ch-font2'].forEach((g) => {
+    const el = $(g); if (!el) return;
+    el.querySelectorAll('.chip').forEach((x) =>
+      x.setAttribute('aria-pressed', String(x.dataset.font === state.font)));
+  });
+  if (state.path === 'cover') renderCover(); else renderLong();
+}
+['ch-font','ch-font2'].forEach((g) => {
+  const el = $(g); if (!el) return;
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    setFont(b.dataset.font);
+  });
+});
+/* 标题排法：默认 / 大字压阵 / 竖排（2026-10-31 纳入，来源 textmode.js） */
+/** 标题排法切换（同上，两处联动） */
+function setTmode(id){
+  state.tmode = id || 'stack';
+  ['ch-tmode','ch-tmode2'].forEach((g) => {
+    const el = $(g); if (!el) return;
+    el.querySelectorAll('.chip').forEach((x) =>
+      x.setAttribute('aria-pressed', String(x.dataset.tmode === state.tmode)));
+  });
+  if (state.path === 'cover') renderCover(); else renderLong();
+}
+['ch-tmode','ch-tmode2'].forEach((g) => {
+  const el = $(g); if (!el) return;
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    setTmode(b.dataset.tmode);
+  });
+});
+
+/* 保存（原型不实际导出） */
+$('save').addEventListener('click', () => {
+  $('note').innerHTML = state.path === 'cover'
+    ? '（原型）保存会输出 1080×1440 PNG。<b>不实际下载</b> —— 本次只验证交互。'
+    : '（原型）导出会把整套页打成 zip/多张 PNG。<b>不实际下载</b>。';
+});
+
+/* 灯箱 */
+const lb = $('lb'), lbframe = $('lbframe');
+function openLightbox(html){
+  const cs2 = canvasSize();
+  const maxW = Math.min(600, window.innerWidth - 140);
+  const maxH = window.innerHeight - 130;
+  const scale = Math.min(maxW / cs2.w, maxH / cs2.h);
+  lbframe.style.width = Math.round(cs2.w * scale) + 'px';
+  lbframe.style.height = Math.round(cs2.h * scale) + 'px';
+  lbframe.innerHTML = `<div class="zoom" style="transform:scale(${scale})">${html}</div>`;
+  lb.classList.add('on');
+}
+$('coverFrame').addEventListener('click', () => openLightbox($('coverZoom').innerHTML));
+$('lbclose').addEventListener('click', () => lb.classList.remove('on'));
+lb.addEventListener('click', (e) => { if (e.target === lb) lb.classList.remove('on'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.classList.remove('on'); });
+
+/* 缩放窗口时重算舞台 */
+let rTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(rTimer);
+  rTimer = setTimeout(() => { if (state.path === 'cover') renderCover(); }, 140);
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   启动
+   ══════════════════════════════════════════════════════════════════ */
+$('txt').value = state.coverTitle;
+$('sub').value = state.coverSub;
+$('note').innerHTML = '首屏只有：一句话 + 配图方式 + 预览。其余收进「调整」。';
+
+const qs = new URLSearchParams(location.search);
+if (qs.get('p')) state.photo = Math.max(0, Math.min(PHOTOS.length - 1, +qs.get('p')));
+if (qs.get('w')) DECK_W = Math.max(160, Math.min(720, +qs.get('w')));
+/* 长文模板：?tpl=editorial|swiss|notion|book|memo|polaroid|aura|night|doc|film|starry|blank */
+if (qs.get('tpl')) state.longTpl = qs.get('tpl');
+if (qs.get('path') === 'long'){
+  $('paths').querySelector('[data-path="long"]').click();
+  /* 同步高亮：选择器在 renderLong 之前已渲染，这里补一次 aria-pressed，
+     否则 ?tpl=night 时界面仍高亮「杂志编辑」。 */
+  document.querySelectorAll('#composerInner .comp').forEach((x) =>
+    x.setAttribute('aria-pressed', String(x.dataset.tpl === state.longTpl)));
+  renderLong();
+} else {
+  if (qs.get('comp')) state.comp = qs.get('comp');
+  if (qs.get('st')) state.st = +qs.get('st');
+  if (qs.get('img')) state.img = qs.get('img');
+  if (qs.get('size')) state.size = qs.get('size');          // ?size=xhs|square|wide
+  if (qs.get('key') === '1') state.keyReady = true;
+  document.querySelectorAll('.comp').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.c === state.comp)));
+  document.querySelectorAll('.pal button').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.st === state.st)));
+  document.querySelectorAll('.iop').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.img === state.img)));
+  document.querySelectorAll('#ch-size .chip').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.size === state.size)));
+  $('kwbox').classList.toggle('on', state.img === 'search');
+  $('keyTail').textContent = state.keyReady ? 'Key 已配置' : 'Key 未配置';
+  renderPicks();
+  /* Key 已配 → 直接露出候选（原型审阅用 ?key=1） */
+  if (state.keyReady){ $('kwdegrade').classList.remove('on'); $('kwres').classList.add('on'); }
+  syncSizeLabels();
+  renderCover();
+}
+/* 审阅钩子：?auto=degrade|adv|lightbox ，仅用于截图自查 */
+if (qs.get('auto') === 'degrade') $('kwgo').click();
+if (qs.get('auto') === 'adv'){ $('advhead').click(); $('ch-font').querySelector('[data-font="sans"]').click(); }
+if (qs.get('auto') === 'lightbox') setTimeout(() => $('coverFrame').click(), 400);
+/* 字体没加载完时布局会跳，加载后补一次 */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderAll());
+
+/* ══════════════════════════════════════════════════════════════════
+   UX 层（Phase 2 · ux-designer）—— 只新增，不改既有渲染与样式
+   ──────────────────────────────────────────────────────────────────
+   ① 关键词从标题自动提取（证明「搜图不用额外打字」这条点击链是真的）
+   ② 搜图 5 状态机：未配Key / 搜索中 / 有结果 / 无结果 / 失败超时
+   ③ 语义与焦点：tablist / radiogroup / roving tabindex / 焦点可见
+   ④ 灯箱：Esc、焦点锁、关闭后焦点归位
+   ⑤ 375px：长文横滑翻页、调整底部 sheet 的键盘可达
+   ══════════════════════════════════════════════════════════════════ */
+const uxqs = new URLSearchParams(location.search);
+
+/* ── ① 从标题提取搜图关键词 ───────────────────────────────────────
+   设计依据：搜图要 1 步到达 —— 用户写标题时顺手就搜了，不再单独想词。 */
+const KW_MAP = [
+  [/(海边|海浪|沙滩|大海|赶海|看海)/, '海边'],
+  [/(日落|黄昏|傍晚|夕阳|落日)/, '日落'],
+  [/(森林|树林|林间|树)/, '森林'],
+  [/(咖啡|手冲|咖啡馆)/, '咖啡'],
+  [/(猫|撸猫)/, '猫'],
+  [/(山|徒步|登山|露营)/, '山'],
+  [/(城市|街|夜|霓虹|下班)/, '城市夜景'],
+  [/(花|花园|野花)/, '花'],
+  [/(天空|云|蓝天)/, '天空'],
+  [/(书|阅读|读书|笔记)/, '书桌'],
+];
+let kwTouched = false;
+function kwFromTitle(t){
+  for (const [re, kw] of KW_MAP) if (re.test(String(t || ''))) return kw;
+  return '';
+}
+/* 只在「用户没手动改过关键词」时预填 —— 不覆盖用户的输入 */
+function syncKwFromTitle(){
+  if (kwTouched || state.path !== 'cover' || state.img !== 'search') return;
+  const k = kwFromTitle(state.coverTitle);
+  if (!k) return;
+  if ($('kw').value === k) return;
+  $('kw').value = k;
+  $('kwauto').textContent = `关键词已从标题自动填入「${k}」，可改`;
+  $('kwauto').classList.add('on');
+  $('kwchips').classList.remove('on');
+}
+$('kw').addEventListener('input', () => {
+  kwTouched = true;
+  $('kwauto').classList.remove('on');
+  $('kwchips').classList.toggle('on', !$('kw').value.trim());
+});
+$('txt').addEventListener('input', () => setTimeout(syncKwFromTitle, 220));
+
+/* ── ② 搜图 5 状态机 ──────────────────────────────────────────────
+   超时值与 search.js 一致：REQ_TIMEOUT 9000ms（请求） / IMG_TIMEOUT 15000ms（取图）。
+   设计决定：请求 9s 就判超时，**不**等 15s —— 用户盯 9 秒已经到忍耐上限；
+   图片单独慢不算失败（骨架继续，图逐张落位）。 */
+const SR_REQ_TIMEOUT = 9000;
+let srTimer = null, srTimeout = null;
+const SR_IDS = ['kwsk','kwdegrade','kwres','kwmsg','kwmore'];
+function srClear(){ clearTimeout(srTimer); clearTimeout(srTimeout); srTimer = null; srTimeout = null; }
+function srShow(ids){
+  SR_IDS.forEach((i) => { const el = $(i); if (el) el.classList.remove('on'); });
+  ids.forEach((i) => { const el = $(i); if (el) el.classList.add('on'); });
+}
+function srKw(){
+  return ($('kw').value || '').trim() || kwFromTitle(state.coverTitle) || '海边';
+}
+function srState(s, arg){
+  srClear();
+  /* 推荐词只在「没有关键词」或「没配 Key」时出现 —— 其余状态里它只是噪音，
+     而且空结果/超时的文案块自带「换成…」按钮，不需要再摆一排 chip */
+  const showChips = (s === 'nokey') || (s === 'idle' && !$('kw').value.trim());
+  $('kwchips').classList.toggle('on', showChips);
+  const kw = arg === 'timeout' ? srKw() : (arg || srKw());
+  if (s === 'idle'){ srShow([]); return; }
+
+  if (s === 'nokey'){
+    srShow(['kwdegrade']);
+    $('keyTail').textContent = 'Key 未配置';
+    return;
+  }
+
+  if (s === 'loading'){
+    state.keyReady = true;
+    $('keyTail').textContent = 'Key 已配置';
+    srShow(['kwsk','kwmsg']);
+    $('kwmsg').innerHTML =
+      `<p class="m-t"><b>正在 Pexels 找「${esc(kw)}」…</b></p>` +
+      `<p class="m-s">一般 1–3 秒。超过 9 秒会自动判超时，不会一直转。</p>` +
+      `<div class="m-row"><button class="minibtn" type="button" id="srCancel">取消</button></div>`;
+    $('srCancel').addEventListener('click', () => {
+      srClear(); srShow([]);
+      $('kwmsg').innerHTML = `<p class="m-s">已取消，预览保持不变。</p>`;
+      $('kwmsg').classList.add('on');
+    });
+    /* ?srch=loading 用于截图审阅：停在加载态不自动跳走 */
+    if (uxqs.get('srch') !== 'loading'){
+      srTimer = setTimeout(() => srState('results', kw), 1200);
+      srTimeout = setTimeout(() => srState('error', 'timeout'), SR_REQ_TIMEOUT);
+    }
+    return;
+  }
+
+  if (s === 'results'){
+    state.keyReady = true;
+    $('keyTail').textContent = 'Key 已配置';
+    srShow(['kwres','kwmore']);
+    renderPicks();
+    $('kwmore').innerHTML = `换一批 <span aria-hidden="true">⟳</span>`;
+    setTimeout(syncAria, 0);
+    return;
+  }
+
+  if (s === 'empty'){
+    srShow(['kwmsg']);
+    $('kwmsg').innerHTML =
+      `<p class="m-t"><b>没搜到「${esc(kw)}」的图</b></p>` +
+      `<p class="m-s">可能是这个词太笼统，或者 Pexels 这个库里没有对应素材。</p>` +
+      `<div class="m-row">` +
+        `<button class="minibtn" type="button" data-sug="海边">换成「海边」</button>` +
+        `<button class="minibtn" type="button" data-sug="咖啡">换成「咖啡」</button>` +
+        `<button class="minibtn" type="button" id="srUp1">传自己的图</button>` +
+        `<button class="minibtn solid" type="button" id="srSolid1">先用纯色版式</button>` +
+      `</div>`;
+    $('kwmsg').querySelectorAll('[data-sug]').forEach((b) => b.addEventListener('click', () => {
+      $('kw').value = b.dataset.sug; kwTouched = true; srState('loading', b.dataset.sug);
+    }));
+    $('srUp1').addEventListener('click', () => $('imgopts').querySelector('[data-img="upload"]').click());
+    $('srSolid1').addEventListener('click', () => $('useSolid').click());
+    return;
+  }
+
+  if (s === 'error'){
+    srShow(['kwmsg']);
+    const isTimeout = (arg === 'timeout');
+    $('kwmsg').innerHTML =
+      `<p class="m-t err"><b>${isTimeout ? '搜图超时了（等了 9 秒）' : '没连上 Pexels'}</b></p>` +
+      `<p class="m-s">${isTimeout
+        ? '图库这次响应太慢。预览没受影响，还是上一张图 —— 你现在就能保存。'
+        : '可能是断网、网络被拦，或者 Key 失效了。'}</p>` +
+      `<div class="m-row">` +
+        `<button class="minibtn solid" type="button" id="srRetry">重试一次</button>` +
+        `<button class="minibtn" type="button" id="srUp2">传自己的图</button>` +
+        `<button class="minibtn" type="button" id="srSolid2">先用纯色版式</button>` +
+      `</div>`;
+    $('srRetry').addEventListener('click', () => srState('loading', kw));
+    $('srUp2').addEventListener('click', () => $('imgopts').querySelector('[data-img="upload"]').click());
+    $('srSolid2').addEventListener('click', () => $('useSolid').click());
+    return;
+  }
+}
+
+/* 覆盖既有按钮行为：注册在既有监听之后 → 本段最后执行，状态以本段为准 */
+$('kwgo').addEventListener('click', () => {
+  if (!state.keyReady){ srState('nokey'); return; }
+  srState('loading', srKw());
+});
+$('goKey').addEventListener('click', () => {
+  state.keyReady = true;
+  $('keyTail').textContent = 'Key 已配置';
+  srState('loading', srKw());
+});
+$('keyTail').addEventListener('click', () => {
+  if (!state.keyReady){ srShow([]); $('kwauto').classList.remove('on'); }
+});
+$('kwmore').addEventListener('click', () => {
+  $('kwmore').innerHTML = `换一批 <span aria-hidden="true">⟳</span>`;
+  srState('loading', srKw());
+});
+$('kw').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){ e.preventDefault(); $('kwgo').click(); }
+});
+
+/* ── ③ 语义与焦点 ───────────────────────────────────────────────── */
+function syncAria(){
+  /* 顶部路径 = tablist。保留 aria-pressed 只做样式钩子，语义走 aria-selected */
+  const tabs = [...document.querySelectorAll('#paths button')];
+  tabs.forEach((b, i) => {
+    const on = b.getAttribute('aria-pressed') === 'true';
+    if (!b.id) b.id = i === 0 ? 'tabCover' : 'tabLong';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(on));
+    b.setAttribute('aria-controls', b.dataset.path === 'cover' ? 'rightCover' : 'rightLong');
+    b.tabIndex = on ? 0 : -1;
+  });
+  [['rightCover','tabCover'], ['rightLong','tabLong']].forEach(([p, t]) => {
+    const el = $(p); if (!el) return;
+    el.setAttribute('role', 'tabpanel');
+    el.setAttribute('aria-labelledby', t);
+    el.tabIndex = -1;
+  });
+
+  /* 构图 = 单选组，roving tabindex：整组只占 1 个 Tab 站（原来 6 个） */
+  [...document.querySelectorAll('.comp')].forEach((b) => {
+    const on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+
+  /* 色板 = 单选组，且必须有可读名（原来 16 个无名 button） */
+  [...document.querySelectorAll('.pal')].forEach((g) => {
+    g.setAttribute('role', 'radiogroup');
+    if (!g.getAttribute('aria-label')) g.setAttribute('aria-label', '色板');
+  });
+  [...document.querySelectorAll('.pal button')].forEach((b) => {
+    const on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(on));
+    if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.title || '色板');
+    b.tabIndex = on ? 0 : -1;
+  });
+
+  /* 候选图 = 单选组 */
+  [...document.querySelectorAll('#kwres .pick')].forEach((b) => {
+    const on = b.getAttribute('aria-pressed') === 'true';
+    const nm = (b.querySelector('span') || {}).textContent || '候选图';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(on));
+    if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', nm);
+    b.tabIndex = on ? 0 : -1;
+  });
+
+  /* 调整 = 可展开按钮 */
+  const ah = $('advhead');
+  if (ah) ah.setAttribute('aria-expanded', String($('adv').classList.contains('open')));
+}
+
+/* 方向键在单选组内移动（← ↑ 上一个 / → ↓ 下一个） */
+function bindRoving(container, itemSel){
+  if (!container) return;
+  container.addEventListener('keydown', (e) => {
+    const step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1
+      : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? -1 : 0;
+    if (!step) return;
+    const items = [...container.querySelectorAll(itemSel)];
+    if (!items.length) return;
+    let i = items.findIndex((x) => x.getAttribute('aria-pressed') === 'true'
+      || x.getAttribute('aria-checked') === 'true');
+    if (i < 0) i = 0;
+    const n = (i + step + items.length) % items.length;
+    e.preventDefault();
+    items[n].click();
+    items[n].focus();
+  });
+}
+bindRoving($('paths'), 'button');
+bindRoving($('composer'), '.comp');
+bindRoving($('palM'), 'button');
+bindRoving($('kwres'), '.pick');
+
+/* 键盘能开「调整」与「放大预览」（原来都是 div + click，键盘完全进不去） */
+$('advhead').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('advhead').click(); }
+});
+/* 手机上「调整」是底部 sheet：点遮罩或按 Esc 都要能收起（遮罩是 .adv::before，
+   点击事件的 target 就是 .adv 本身） */
+$('adv').addEventListener('click', (e) => {
+  if (e.target === $('adv') && $('adv').classList.contains('open')) $('advhead').click();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('adv').classList.contains('open')) return;
+  if (!window.matchMedia('(max-width:640px)').matches) return;
+  $('advhead').click();
+  $('advhead').focus();
+});
+$('coverFrame').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('coverFrame').click(); }
+});
+
+/* 任何交互后同步一次语义。
+   用 setTimeout(0) 而不是 requestAnimationFrame：rAF 在后台标签页/无头渲染里
+   不一定被调度，会导致 aria 状态滞留（实测过）。 */
+['click', 'keydown', 'input', 'change'].forEach((ev) =>
+  document.addEventListener(ev, () => setTimeout(syncAria, 0)));
+
+/* ── ④ 灯箱：焦点锁 + 关闭归位 ───────────────────────────────────── */
+let lbOpener = null;
+const _openLightbox = openLightbox;
+openLightbox = function(html){
+  /* 触发源要记住：键盘用户在缩略卡上按回车时，activeElement 才是那张卡；
+     程序化打开时 activeElement 是 body，回落到主预览（否则关闭后焦点丢到 body） */
+  const ae = document.activeElement;
+  lbOpener = (ae && ae !== document.body) ? ae : $('coverFrame');
+  _openLightbox(html);
+  document.body.classList.add('lb-open');
+  $('lbclose').focus();
+};
+function lbAfterClose(){
+  document.body.classList.remove('lb-open');
+  if (lbOpener && typeof lbOpener.focus === 'function'){
+    try { lbOpener.focus(); } catch (err) { /* 元素已不在 */ }
+  }
+}
+$('lbclose').addEventListener('click', lbAfterClose);
+lb.addEventListener('click', (e) => { if (e.target === lb) lbAfterClose(); });
+/* 守卫用 body.lb-open 而不是 .lb.on —— 既有的 Esc 监听注册在本段之前，
+   它先把 .on 摘掉了，这里再看 .on 会永远为 false（实测踩过：焦点不归位） */
+document.addEventListener('keydown', (e) => {
+  if (!document.body.classList.contains('lb-open')) return;
+  if (e.key === 'Escape'){ lbAfterClose(); return; }
+  if (e.key !== 'Tab'){ return; }
+  const f = [...lb.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])')]
+    .filter((x) => x.getBoundingClientRect().width > 0);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  else if (!lb.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+});
+
+/* ── ⑤ 长文：横滑翻页 + 缩略卡键盘可达 ──────────────────────────── */
+function applyDeck(){
+  const frames = [...$('deck').querySelectorAll('.frame')];
+  frames.forEach((f, i) => {
+    f.setAttribute('role', 'button');
+    f.setAttribute('tabindex', '0');
+    f.setAttribute('aria-label', `第 ${i + 1} 页，放大查看`);
+    if (!f.dataset.kb){
+      f.dataset.kb = '1';
+      f.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); f.click(); }
+      });
+    }
+  });
+  updateDeckPos();
+}
+function curDeckIndex(){
+  const slots = [...$('deck').querySelectorAll('.slot')];
+  if (!slots.length) return 0;
+  const dr = $('deck').getBoundingClientRect();
+  const mid = dr.left + dr.width / 2;
+  let best = 0, bd = 1e9;
+  slots.forEach((s, i) => {
+    const r = s.getBoundingClientRect();
+    const d = Math.abs((r.left + r.right) / 2 - mid);
+    if (d < bd){ bd = d; best = i; }
+  });
+  return best;
+}
+function updateDeckPos(){
+  const slots = $('deck').querySelectorAll('.slot');
+  const n = slots.length || 1;
+  const i = Math.min(curDeckIndex(), n - 1);
+  $('deckPos').textContent = `P${String(i + 1).padStart(2, '0')} / ${String(n).padStart(2, '0')}`;
+  $('deckPrev').disabled = i <= 0;
+  $('deckNext').disabled = i >= n - 1;
+}
+function deckStep(d){
+  const slots = [...$('deck').querySelectorAll('.slot')];
+  if (!slots.length) return;
+  const n = Math.max(0, Math.min(slots.length - 1, curDeckIndex() + d));
+  slots[n].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+$('deckPrev').addEventListener('click', () => deckStep(-1));
+$('deckNext').addEventListener('click', () => deckStep(1));
+$('deck').addEventListener('scroll', () => updateDeckPos(), { passive: true });
+new MutationObserver(applyDeck).observe($('deck'), { childList: true });
+
+/* 手机：重算长文缩略图宽度（375 屏用容器宽的 92%，不写死 255px） */
+function fitDeck(){
+  if (!window.matchMedia('(max-width:640px)').matches) return;
+  if (uxqs.get('w')) return;                     /* 审阅参数优先 */
+  const host = $('deck').parentElement;
+  const avail = (host && host.clientWidth) || (window.innerWidth - 32);
+  const w = Math.max(200, Math.min(340, Math.round(avail * 0.92)));
+  if (w !== DECK_W){
+    DECK_W = w;
+    if (state.path === 'long') renderLong();
+  }
+}
+let fitTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => { fitDeck(); updateDeckPos(); syncAria(); }, 160);
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   顶栏复刻件的行为
+   说明：顶栏是原系统的全局导航。本原型只复刻它的结构/外观/入口位置，
+   除 #btn-cover 之外不做真实功能；但下拉的开合、点外面关、Esc 关
+   都照 pwa/src/app.js:1416-1422 / 1519 的写法，不做假动作。
+   #btn-ai（AI 工具、配 Pexels Key）不在本次重设计范围内，保持原样不接线。
+   ══════════════════════════════════════════════════════════════════ */
+function setTopMenu(btnId, menuId, open){
+  $(menuId).hidden = !open;
+  $(btnId).setAttribute('aria-expanded', String(open));
+}
+function closeTopMenus(){
+  setTopMenu('btn-export', 'menu-export', false);
+  setTopMenu('btn-more', 'menu', false);
+}
+$('btn-export').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = $('menu-export').hidden;
+  closeTopMenus();
+  setTopMenu('btn-export', 'menu-export', open);
+});
+$('btn-more').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = $('menu').hidden;
+  closeTopMenus();
+  setTopMenu('btn-more', 'menu', open);
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.top-right')) closeTopMenus(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTopMenus(); });
+
+/* #btn-cover ＝ 原系统唯一的总开关（cover/index.js:101-121）：
+   未按下 → 在「公众号排版」页，按钮文案是「小红书标题图生成」；
+   按下   → 在标题图页，按钮文案翻成「公众号排版」。
+   原型里排版页不实现，留一块占位，讲清这颗按钮的进出关系。 */
+$('btn-cover').addEventListener('click', () => {
+  const toCover = $('btn-cover').getAttribute('aria-pressed') !== 'true';
+  $('btn-cover').setAttribute('aria-pressed', String(toCover));
+  $('btn-cover').textContent = toCover ? '公众号排版' : '小红书标题图生成';
+  $('wrap').classList.toggle('hidden', !toCover);
+  $('pathbar').classList.toggle('hidden', !toCover);
+  $('slotPh').classList.toggle('hidden', toCover);
+});
+
+/* ── 启动：语义 + 搜图初始状态（?srch=nokey|loading|results|empty|error 供审阅）── */
+$('paths').setAttribute('role', 'tablist');
+$('paths').setAttribute('aria-label', '生成路径');
+$('composer').setAttribute('role', 'radiogroup');
+$('composer').setAttribute('aria-label', '构图');
+$('palM').innerHTML = palHtml();
+$('palM').setAttribute('aria-label', '色板');
+$('palM').setAttribute('role', 'radiogroup');
+
+const sr0 = uxqs.get('srch');
+syncKwFromTitle();
+if (sr0 && sr0 !== 'nokey') $('keyTail').textContent = 'Key 已配置';
+if (sr0 === 'nokey'){ state.keyReady = false; srState('nokey'); }
+else if (sr0 === 'loading'){ state.keyReady = true; srState('loading'); }
+else if (sr0 === 'empty'){ state.keyReady = true; srState('empty', '月球'); }
+else if (sr0 === 'error'){ state.keyReady = true; srState('error', 'timeout'); }
+else if (sr0 === 'results'){ srState('results'); }
+else { srState(state.keyReady ? 'results' : 'idle'); }
+
+if (uxqs.get('annot') === '1') document.body.classList.add('annot');
+fitDeck();
+applyDeck();
+syncAria();
+/* 再补两次：字体就绪 / load 之后各同步一次，避免首次渲染时序把 roving 状态冲掉 */
+setTimeout(syncAria, 60);
+window.addEventListener('load', () => setTimeout(syncAria, 0));
+</script>
+</body>
+</html>

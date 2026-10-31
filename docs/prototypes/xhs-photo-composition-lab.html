@@ -1,0 +1,807 @@
+<!doctype html>
+<!--
+  ⚠️ 编号说明（重要）
+  本页**已对齐团队裁定的官方编号**：
+    C1 刊头照片带 / C2 全出血 / C3 左文右图 / C4 上下分栏 / C5 卡片浮层 / C6 落进安静区
+
+  与本页的两处差异（历史原因，已在 UI 上标注，勿再混用）：
+    · C2 在本页拆成两个方向：C2「底沉」与 **C2 变体「顶压」**
+      （顶压在数学上与官方 C6「落进安静区」同构，所以没有单独出 C6 卡）
+    · CSS 类名仍是历史遗留的 c1..c6，与对外编号**不是**一一对应。
+      对外请只读 COMPS[].code，不要读 class。
+
+  数据来源：docs/prototypes/assets/xhs-studio/photo-bands.json
+  公式对齐：docs/prototypes/xhs-layout-fit.js（alphaFor / judgeZone / zoneFromBlock）
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>搜图底图 × 构图判定实验室 · 实测数据</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   实验室外壳 —— 只用 SuperSu 已有色（style.css :root）
+   这里刻意不复刻 Studio 界面，只做「构图 × 照片」的判定台
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg-canvas:#F7F4EE; --bg-surface:#FAF9F5; --bg-raised:#FFFFFF;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --text-soft:#4A443A; --text-muted:#6D6656;
+  --accent:#AF3E2B; --accent-dim:#8C2E1E; --accent-soft:rgba(175,62,43,.08);
+  --ok:#3F6B52; --ok-soft:rgba(63,107,82,.10);
+  --warn:#8A5A16; --warn-soft:rgba(138,90,22,.10);
+  --bad:#B3352A; --bad-soft:rgba(179,53,42,.10);
+  --r-sm:6px; --r:8px; --r-lg:12px;
+  --sh-sm:0 1px 3px rgba(87,76,54,.04);
+  --sh:0 1px 8px rgba(87,76,54,.06);
+  --sh-lg:0 4px 16px rgba(87,76,54,.10);
+  --font:"DM Sans","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg-canvas);color:var(--text);font:13px/1.6 var(--font);
+  -webkit-font-smoothing:antialiased}
+
+/* 顶栏 */
+.bar{position:sticky;top:0;z-index:20;height:56px;display:flex;align-items:center;gap:16px;
+  padding:0 20px;background:var(--bg-surface);border-bottom:1px solid var(--border)}
+.bar .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;white-space:nowrap}
+.bar .brand i{width:8px;height:8px;border-radius:50%;background:var(--accent);display:block}
+.bar .ttl{font-size:13px;font-weight:600}
+.bar .sub{font:11px/1 var(--mono);color:var(--text-muted);letter-spacing:.04em}
+.bar .grow{flex:1}
+.seg{display:flex;gap:2px;background:#EFEBE2;padding:3px;border-radius:var(--r)}
+.seg button{border:0;background:transparent;padding:6px 11px;border-radius:5px;cursor:pointer;
+  font:11.5px/1 var(--font);color:var(--text-soft);white-space:nowrap;transition:.14s}
+.seg button[aria-pressed="true"]{background:var(--bg-raised);color:var(--text);font-weight:600;
+  box-shadow:var(--sh-sm)}
+.seg .lbl{font:10px/1 var(--mono);color:var(--text-muted);letter-spacing:.08em;
+  align-self:center;padding:0 6px 0 9px;text-transform:uppercase}
+
+/* 版面 */
+.page{max-width:1560px;margin:0 auto;padding:20px 20px 64px}
+
+/* ── 照片选择 ── */
+.pickrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.pk{position:relative;border:1px solid var(--border);background:var(--bg-raised);
+  border-radius:var(--r);padding:0;cursor:pointer;overflow:hidden;width:104px;flex:none;
+  transition:.15s;text-align:left}
+.pk:hover{border-color:var(--border-hi);box-shadow:var(--sh)}
+.pk[aria-pressed="true"]{border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--accent-soft),0 0 0 1px var(--accent) inset}
+.pk img{display:block;width:100%;height:76px;object-fit:cover}
+.pk .nm{display:block;font:11px/1.4 var(--font);color:var(--text);padding:5px 7px 2px;font-weight:500}
+.pk .vd{display:block;font:9.5px/1.3 var(--mono);padding:0 7px 6px;letter-spacing:.02em}
+.pk .vd.ok{color:var(--ok)} .pk .vd.warn{color:var(--warn)} .pk .vd.bad{color:var(--bad)}
+
+/* ── 亮度剖面 ── */
+.card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r-lg);
+  box-shadow:var(--sh-sm)}
+.profile{padding:16px 18px 14px;margin-bottom:18px}
+.profile .hd{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.profile .hd h2{margin:0;font-size:13px;font-weight:600}
+.profile .hd .note{font:10.5px/1.5 var(--mono);color:var(--text-muted);letter-spacing:.02em}
+.profile .hd .note b{color:var(--text-soft);font-weight:500}
+
+/* 分带条：横向 10 段，每段亮度用宽度感知不直观，改用纵向柱 + 覆盖文字带 */
+.bands{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;align-items:end;height:150px}
+.band{position:relative;height:100%;background:#F4F1EA;border-radius:3px;overflow:hidden;
+  border:1px solid #EDE9DF}
+.band .fill{position:absolute;left:0;right:0;bottom:0;background:#B7AF9E;
+  transition:height .18s ease}
+.band.zone{background:rgba(175,62,43,.08);border-color:rgba(175,62,43,.30)}
+.band.zone .fill{background:#AF3E2B}
+.band .lb{position:absolute;top:4px;left:0;right:0;text-align:center;
+  font:10px/1 var(--mono);color:#6D6656;letter-spacing:-.03em}
+.band.zone .lb{color:#8C2E1E;font-weight:500}
+.band .pk{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(25,23,19,.22)}
+.axis{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:7px}
+.axis span{text-align:center;font:9.5px/1 var(--mono);color:var(--text-muted)}
+.bandkey{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;
+  font:10px/1 var(--mono);color:var(--text-muted);letter-spacing:.02em}
+.bandkey i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;
+  vertical-align:-1px}
+
+/* ── 判定结论 ── */
+.verdict{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap;align-items:stretch}
+.vd{flex:1 1 300px;border-radius:var(--r);padding:11px 13px;border:1px solid transparent}
+.vd.ok{background:var(--ok-soft);border-color:rgba(63,107,82,.28);color:var(--ok)}
+.vd.warn{background:var(--warn-soft);border-color:rgba(138,90,22,.28);color:var(--warn)}
+.vd.bad{background:var(--bad-soft);border-color:rgba(179,53,42,.28);color:var(--bad)}
+.vd b{display:block;font-size:11.5px;margin-bottom:3px;letter-spacing:.02em}
+.vd span{display:block;font:11px/1.6 var(--mono);opacity:.92}
+.vd span.line2{opacity:.72;font-size:10.5px}
+
+/* ── 构图网格 ── */
+.gridhd{display:flex;align-items:baseline;gap:12px;margin:24px 0 12px;flex-wrap:wrap}
+.gridhd h2{margin:0;font-size:13px;font-weight:600}
+.gridhd .hint{font:10.5px/1.55 var(--mono);color:var(--text-muted);letter-spacing:.02em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:22px 18px}
+.slot{display:flex;flex-direction:column;gap:9px}
+
+.frame{position:relative;overflow:hidden;border-radius:3px;background:#fff;cursor:zoom-in;
+  box-shadow:0 2px 16px rgba(30,25,15,.11),0 1px 3px rgba(30,25,15,.07)}
+.frame .zoom{position:absolute;left:0;top:0;transform-origin:0 0}
+
+.cap{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cap .tag{font:9.5px/1 var(--mono);padding:4px 6px;border-radius:3px;letter-spacing:.05em;
+  text-transform:uppercase;font-weight:500}
+.cap .tag.ok{background:var(--ok-soft);color:var(--ok)}
+.cap .tag.warn{background:var(--warn-soft);color:var(--warn)}
+.cap .tag.bad{background:var(--bad-soft);color:var(--bad)}
+.cap .name{font-size:11.5px;font-weight:600;color:var(--text)}
+.cap .ratio{margin-left:auto;font:9.5px/1 var(--mono);color:var(--text-muted)}
+
+/* ══════════════════════════════════════════════════════════════════
+   卡片本体（1080×1440）
+   ══════════════════════════════════════════════════════════════════ */
+.card1080{
+  width:1080px;height:1440px;position:relative;overflow:hidden;
+  background:var(--paper);color:var(--ink);
+  --serif:"Noto Serif SC","Songti SC",Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.card1080 .photo{position:absolute;display:block;object-fit:cover;z-index:0}
+.card1080 .grain{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.30;
+  background-image:radial-gradient(rgba(0,0,0,.045) 1px,transparent 1px);background-size:3px 3px}
+.card1080 .scrim{position:absolute;z-index:1;pointer-events:none}
+
+/* 通用排印 */
+.t-kick{font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--muted);margin:0;display:flex;align-items:center;gap:14px}
+.t-kick::before{content:"";width:30px;height:2px;background:var(--accent);flex:none}
+.t-title{font-family:var(--serif);font-weight:500;letter-spacing:.10em;line-height:1.12;margin:0}
+.t-sub{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.62;
+  letter-spacing:.01em;color:var(--muted);margin:0}
+.t-foot{position:absolute;left:88px;right:88px;bottom:74px;height:40px;z-index:6;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--line);
+  font:400 19px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.t-foot .pn{color:var(--accent);font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ── C1 刊头带 ─────────────────────────────────────────────────── */
+.c1 .photo{left:0;top:0;width:1080px;height:520px}
+.c1 .seam{position:absolute;left:0;top:517px;width:1080px;height:3px;background:var(--accent);z-index:2}
+.c1 .txt{position:absolute;left:88px;right:88px;top:600px;z-index:4}
+.c1 .t-title{font-size:96px;margin:26px 0 0}
+.c1 .t-sub{margin-top:30px;max-width:820px}
+
+/* ── C2 全出血 · 底沉 ──────────────────────────────────────────── */
+.c2 .photo{left:0;top:0;width:1080px;height:1440px}
+.c2 .txt{position:absolute;left:88px;right:88px;bottom:200px;z-index:4}
+.c2 .t-title{font-size:104px;color:var(--on,#f5f1e8)}
+.c2 .t-sub{color:var(--on,#f5f1e8);opacity:.86;margin-top:26px;max-width:820px}
+.c2 .t-foot{color:var(--on,#f5f1e8);opacity:.88;
+  border-color:var(--on-line,rgba(245,241,232,.34))}
+.c2 .t-foot .pn{color:var(--on,#f5f1e8)}
+
+/* ── C3 全出血 · 顶压 ──────────────────────────────────────────── */
+.c3 .photo{left:0;top:0;width:1080px;height:1440px}
+.c3 .txt{position:absolute;left:88px;right:88px;top:150px;z-index:4}
+.c3 .t-title{font-size:104px;color:var(--on,#f5f1e8);margin-top:26px}
+.c3 .t-sub{color:var(--on,#f5f1e8);opacity:.86;margin-top:26px;max-width:820px}
+.c3 .t-foot{color:var(--on,#f5f1e8);opacity:.88;
+  border-color:var(--on-line,rgba(245,241,232,.34))}
+.c3 .t-foot .pn{color:var(--on,#f5f1e8)}
+
+/* ── C4 左文右图 ─────────────────────────────────────────────────
+   ⚠️ 实测踩坑：中文标题在 445px 窄栏里、76px 字号只能放 5.8 字/行，
+   「周末去了趟海边」(7 字) 会被硬断成「周末去了趟海 / 边」——断在词中间，很难看。
+   修法：栏宽加到 542px、标题降到 68px → 7.9 字/行，7 字标题一行放下。
+   中文窄栏构图必须按「字数 × 字号 ≤ 栏宽」反算字号，不能沿用全宽的字号。 */
+.c4 .photo{right:0;top:0;width:420px;height:1440px}
+.c4 .txt{position:absolute;left:88px;top:300px;width:542px;z-index:4}
+.c4 .t-title{font-size:68px;margin:24px 0 0}
+.c4 .t-sub{margin-top:26px;font-size:30px}
+.c4 .t-foot{right:auto;width:542px}
+
+/* ── C5 上下分栏 · 上图下文 ──────────────────────────────────────
+   文字贴底（距页脚 200px），不跟照片接缝一起顶在上方 ——
+   否则正文居中悬空、下方留 350px 空白，读起来像"内容没写完"。 */
+.c5 .photo{left:0;top:0;width:1080px;height:640px}
+.c5 .txt{position:absolute;left:88px;right:88px;bottom:200px;z-index:4}
+.c5 .t-title{font-size:96px;margin:26px 0 0}
+.c5 .t-sub{margin-top:28px;max-width:820px}
+
+/* ── C6 纸卡浮层 ───────────────────────────────────────────────── */
+.c6 .photo{left:0;top:0;width:1080px;height:1440px}
+.c6 .plate{position:absolute;left:88px;right:88px;bottom:150px;z-index:2;
+  background:var(--paper);border-top:3px solid var(--accent);padding:52px 52px 46px}
+.c6 .plate .t-title{font-size:88px;margin:22px 0 0}
+.c6 .plate .t-sub{margin-top:24px}
+.c6 .t-foot{color:var(--muted)}
+
+/* ── 灯光箱 ── */
+.lb{position:fixed;inset:0;background:rgba(22,19,14,.88);display:none;
+  align-items:center;justify-content:center;z-index:60;padding:24px}
+.lb.on{display:flex}
+.lb .inner{position:relative}
+.lb .x{position:absolute;right:0;top:-34px;background:transparent;border:0;color:#fff;
+  font:10px/1 var(--mono);letter-spacing:.12em;cursor:pointer}
+
+/* 说明 */
+.footnote{margin-top:26px;padding:14px 16px;border-left:2px solid var(--border-hi);
+  font:10.5px/1.85 var(--mono);color:var(--text-muted);letter-spacing:.02em}
+.footnote b{color:var(--text-soft);font-weight:500}
+
+/* ── 推荐矩阵 ── */
+.mx{margin:22px 0 4px;padding:16px 18px 14px}
+.mx .hd{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.mx .hd h2{margin:0;font-size:13px;font-weight:600}
+.mx .hd .hint{font:10.5px/1.55 var(--mono);color:var(--text-muted)}
+table.mxt{width:100%;border-collapse:collapse;margin-top:12px;font-size:11.5px}
+table.mxt th{font:10px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-muted);font-weight:500;text-align:left;padding:0 8px 8px;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+table.mxt th.c{text-align:center}
+table.mxt td{padding:9px 8px;border-bottom:1px solid #F1EDE4;vertical-align:middle}
+table.mxt tr:last-child td{border-bottom:0}
+table.mxt tr.row{cursor:pointer;transition:background .12s}
+table.mxt tr.row:hover{background:#FCFBF8}
+table.mxt tr.row[aria-selected="true"]{background:var(--accent-soft)}
+table.mxt tr.row[aria-selected="true"] td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+.mxt .ph{font-weight:500;color:var(--text)}
+.mxt .th2{display:block;font:9.5px/1.4 var(--mono);color:var(--text-muted);margin-top:2px}
+.mxt td.c{text-align:center}
+.chip{display:inline-block;font:9.5px/1 var(--mono);padding:5px 6px;border-radius:4px;
+  letter-spacing:.03em;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.free{background:#F1EDE4;color:var(--text-muted)}
+.mxt .rec{font:10.5px/1.5 var(--mono);color:var(--text-soft)}
+.mxt .rec b{color:var(--ok);font-weight:500}
+.mxt .rec.no{color:var(--bad)}
+.mxlegend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;
+  font:10px/1 var(--mono);color:var(--text-muted)}
+
+@media (max-width:960px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .bands{height:90px}
+}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="brand"><i></i>SuperSu</span>
+  <span class="ttl">搜图底图 × 构图判定实验室</span>
+  <span class="sub">6 张真实照片 · 逐带亮度实测</span>
+  <span class="sub" style="color:var(--accent);border-left:1px solid var(--border-hi);padding-left:12px">
+    编号＝官方口径 C1/C2/C3/C4/C5（+ C2 顶压变体）
+  </span>
+  <span class="grow"></span>
+  <span class="lbl">scrim 策略</span>
+  <div class="seg" id="scrimMode">
+    <button data-m="auto" aria-pressed="true">按实测</button>
+    <button data-m="force">强制 0.42</button>
+    <button data-m="off">完全关</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- 照片选择 -->
+  <div class="pickrow" id="picks"></div>
+
+  <!-- 亮度剖面 -->
+  <div class="card profile">
+    <div class="hd">
+      <h2>亮度剖面 · 10 等分带</h2>
+      <span class="note" id="profNote"></span>
+    </div>
+    <div class="bands" id="bands"></div>
+    <div class="axis" id="axis"></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+
+  <!-- 推荐矩阵 -->
+  <div class="card mx">
+    <div class="hd">
+      <h2>照片 → 推荐构图 对照表</h2>
+      <span class="hint">同一套判定跑全部 6 张图。这张表就是 Phase 3「选了图自动推荐构图」的实现依据。</span>
+    </div>
+    <table class="mxt" id="mxt">
+      <thead><tr>
+        <th>照片</th>
+        <th class="c">C1<br>刊头照片带</th><th class="c">C3<br>左文右图</th>
+        <th class="c">C4<br>上下分栏</th><th class="c">C5<br>卡片浮层</th>
+        <th class="c">C2<br>全出血·底沉</th><th class="c">C2 变体<br>全出血·顶压</th>
+        <th>推荐</th>
+      </tr></thead>
+      <tbody id="mxbody"></tbody>
+    </table>
+    <div class="mxlegend">
+      <span><span class="chip free">恒可用</span> 文字不在图上，不依赖照片</span>
+      <span><span class="chip ok">免压暗</span> 裸对比度就 ≥4.5</span>
+      <span><span class="chip warn">需 scrim</span> α≤0.30 可救</span>
+      <span><span class="chip bad">不合格</span> α&gt;0.30，压了变灰雾</span>
+    </div>
+  </div>
+
+  <!-- 构图网格 -->
+  <div class="gridhd">
+    <h2>六种构图 · 同一张照片</h2>
+    <span class="hint">同一张图、同一句文案，只换构图。<b>字色与 scrim 都由实测亮度推导</b>，不是拍脑袋给的。</span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <p class="footnote">
+    <b>数据来源</b>：无头 Chrome 把每张图缩到 60×80 像素后逐像素算 WCAG 相对亮度，
+    均分 10 条横带，取每带的 mean / variance / p05 / p99。判可读性用 <b>p99（最亮处）</b>而不是平均值——
+    白字怕的正是那 1% 的亮块。<br>
+    <b>scrim 反解</b>：白字要 ≥4.5:1 → 背景亮度须 ≤ (1.05/4.5)−0.05 = 0.1833；
+    在 sRGB 空间解 α：<b>α = (s − target) / (s − 12)</b>，s 为背景 sRGB 值。α≤0 免 scrim；α>0.30 判定不合格。<br>
+    <b>为什么不用「整图压暗」</b>：α 一旦超过 0.30，照片的明暗层次基本被抹平（浅色图最明显），
+    等于花两倍成本做出一张灰底 —— 这正是用户说的「文字和底图区分不开」的另一面。
+  </p>
+</div>
+
+<div class="lb" id="lb"><div class="inner">
+  <button class="x" id="lbx">关闭 ESC</button>
+  <div class="frame" id="lbf" style="cursor:default"></div>
+</div></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   实测数据（无头 Chrome 采样，见 footNote 的算法）
+   每带：[mean, variance, p05, p99]
+   ══════════════════════════════════════════════════════════════════ */
+const PHOTOS = [
+  { id:'night', name:'夜街路灯', src:'../../public/images/02-night-street.jpg',
+    bands:[[0.014,0.0000,0.012,0.017],[0.015,0.0000,0.013,0.022],[0.055,0.0217,0.013,0.920],
+           [0.018,0.0001,0.013,0.068],[0.016,0.0001,0.013,0.077],[0.015,0.0001,0.012,0.060],
+           [0.014,0.0000,0.012,0.021],[0.021,0.0001,0.014,0.064],[0.014,0.0000,0.012,0.021],
+           [0.013,0.0000,0.011,0.016]] },
+  { id:'snow', name:'雾晨海边', src:'../../public/images/09-snow-bike.jpg',
+    bands:[[0.132,0.0001,0.114,0.148],[0.146,0.0001,0.127,0.162],[0.162,0.0002,0.138,0.183],
+           [0.179,0.0007,0.096,0.205],[0.199,0.0006,0.145,0.259],[0.219,0.0071,0.098,0.522],
+           [0.069,0.0022,0.025,0.251],[0.044,0.0001,0.024,0.071],[0.039,0.0000,0.035,0.044],
+           [0.035,0.0000,0.032,0.039]] },
+  { id:'swing', name:'山野秋千', src:'../../public/images/05-swing.jpg',
+    bands:[[0.391,0.0817,0.029,0.821],[0.799,0.0171,0.580,0.958],[0.872,0.0193,0.531,1.000],
+           [0.590,0.1024,0.165,1.000],[0.184,0.0116,0.038,0.521],[0.228,0.0118,0.044,0.430],
+           [0.226,0.0059,0.119,0.429],[0.195,0.0050,0.088,0.344],[0.132,0.0069,0.037,0.411],
+           [0.073,0.0015,0.026,0.197]] },
+  { id:'lamp', name:'台灯记忆', src:'../../public/images/06-desk-lamp.jpg',
+    bands:[[0.024,0.0004,0.013,0.101],[0.033,0.0012,0.013,0.161],[0.045,0.0021,0.014,0.184],
+           [0.125,0.0323,0.014,0.913],[0.055,0.0079,0.014,0.536],[0.030,0.0007,0.014,0.175],
+           [0.052,0.0042,0.014,0.289],[0.208,0.0347,0.013,0.552],[0.040,0.0046,0.012,0.372],
+           [0.015,0.0000,0.013,0.020]] },
+  { id:'booth', name:'旧电话亭', src:'../../public/images/08-phone-booth.jpg',
+    bands:[[0.037,0.0019,0.003,0.402],[0.266,0.0556,0.001,0.615],[0.190,0.0168,0.003,0.449],
+           [0.207,0.0277,0.003,0.542],[0.196,0.0407,0.002,0.632],[0.216,0.0373,0.002,0.599],
+           [0.065,0.0111,0.002,0.539],[0.032,0.0009,0.001,0.110],[0.033,0.0006,0.001,0.095],
+           [0.014,0.0001,0.001,0.054]] },
+  { id:'old', name:'旧照片堆（难图）', src:'../../public/images/01-old-photos.jpg',
+    bands:[[0.257,0.0550,0.008,0.773],[0.289,0.0635,0.012,0.774],[0.528,0.0639,0.028,0.774],
+           [0.370,0.0640,0.016,0.729],[0.133,0.0302,0.013,0.772],[0.235,0.0450,0.016,0.781],
+           [0.248,0.0496,0.009,0.753],[0.248,0.0385,0.009,0.678],[0.129,0.0265,0.007,0.580],
+           [0.108,0.0262,0.006,0.754]] },
+];
+
+/* ── 构图编号：已对齐团队裁定的官方口径 ──────────────────────────────
+   官方：C1 刊头照片带 / C2 全出血 / C3 左文右图 / C4 上下分栏 / C5 卡片浮层 / C6 落进安静区
+   本页实际渲染 5 个官方构图 + 1 个变体：
+     · C2 拆成两个方向 —— C2「底沉」与 C2v「顶压」
+       （顶压 = 官方 C6「落进安静区」的同一个思路：文字跟着实测安静带走）
+     · 官方 C6 没有单独出卡，因为它在数学上与 C2v 同构。
+   ⚠️ cls 是 CSS 类名（历史遗留 c1..c6），code 才是对外编号。别再混用。 */
+const COMPS = [
+  { id:'c1',  code:'C1',      cls:'c1', name:'刊头照片带', zone:null,
+    why:'图与字根本不重叠', ratio:'图 520px · 文本区 724px', titleSize:96, contentW:904 },
+  { id:'c2',  code:'C2',      cls:'c2', name:'全出血·底沉', anchor:'bottom', bottomOff:200,
+    why:'文字压底部，带区由文字块反推', ratio:'标题 104px · 净空 200px', titleSize:104, contentW:904 },
+  { id:'c2v', code:'C2 变体', cls:'c3', name:'全出血·顶压', anchor:'top', topOff:150,
+    why:'文字压顶部（= 官方 C6 落进安静区）', ratio:'kicker 20px · 标题 104px', titleSize:104, contentW:904 },
+  { id:'c3',  code:'C3',      cls:'c4', name:'左文右图', zone:null,
+    why:'天然分栏', ratio:'右图 420px · 左栏 542px · 标题 68px', titleSize:68, contentW:542 },
+  { id:'c4',  code:'C4',      cls:'c5', name:'上下分栏', zone:null,
+    why:'天然分层', ratio:'图 640px · 文字贴底距 200px', titleSize:96, contentW:904 },
+  { id:'c5',  code:'C5',      cls:'c6', name:'卡片浮层', zone:null,
+    why:'卡片即对比底板', ratio:'卡片 904×~420 · 零压图', titleSize:88, contentW:800 },
+];
+
+/* ══════════════════════════════════════════════════════════════════
+   文字带 = 由文字块反推（不是钉死的百分比）
+   ══════════════════════════════════════════════════════════════════
+   ⚠️ 两轮迭代的结论（与 visual-architect-2 对齐后统一）：
+     ① 固定「下半部 80–100%」会把文字根本不占的暗部算进来 → α 偏保守
+     ② 固定「3 带窗口」是折中，但仍不随标题长度变化
+     ③ 正确做法：按标题/小字的行数 × 行高算出文字块真实高度，再换算成 band
+   实测例子（夜街路灯 C2v 顶压）：按 band 反推，标题正好压到 y200–300 那盏路灯
+   （p99 0.920）→ 判不合格。这是「3 带固定窗口」漏掉的失败。 */
+const CARD_H = 1440, BAND_H = CARD_H / 10;   // 144px
+
+function zoneFromBlock(comp){
+  if (!comp.anchor) return null;
+  const titleLen = [...TITLE].length;
+  const subLen = [...SUB].length;
+  const cpl = (size, w) => Math.max(1, Math.floor(w / size));
+  const subSize = 36;
+  const tLines = Math.max(1, Math.ceil(titleLen / cpl(comp.titleSize, comp.contentW)));
+  const sLines = subLen ? Math.ceil(subLen / cpl(subSize, comp.contentW)) : 0;
+
+  const kickH = comp.anchor === 'top' ? 20 * 1.6 + 26 : 0;      // 顶压带 kicker
+  const h = kickH + tLines * comp.titleSize * 1.22
+          + (sLines ? 34 + sLines * subSize * 1.62 : 0);
+
+  const yTop = comp.anchor === 'bottom' ? (CARD_H - comp.bottomOff - h) : comp.topOff;
+  const yBot = comp.anchor === 'bottom' ? (CARD_H - comp.bottomOff) : comp.topOff + h;
+  const toBand = (y) => Math.max(0, Math.min(9, Math.floor(y / BAND_H)));
+  return [toBand(yTop), toBand(yBot)];
+}
+
+/** 构图的「文字实际落点」—— 压图构图由文字块反推，纸面构图为 null */
+function zoneOf(comp){
+  return comp.anchor ? zoneFromBlock(comp) : null;
+}
+
+const STYLE = {
+  paper:'#F0E6D2', ink:'#1F1A14', muted:'#6F6557', accent:'#8F7650',
+  line:'rgba(31,26,20,.22)',
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   亮度数学
+   ══════════════════════════════════════════════════════════════════ */
+const TARGET_L = 1.05/4.5 - 0.05;          // 0.18333
+const MAX_ALPHA = 0.30;                    // 超过它就不是压暗，是把照片盖成灰雾
+const BUSY_SD = 0.15;                      // 带内标准差超过它 → 明暗交错，任何单色字都会局部失效
+function toLin(v){ const s=v/255; return s<=0.04045 ? s/12.92 : Math.pow((s+0.055)/1.055,2.4); }
+function invLin(L){ return 255*(L<=0.0031308 ? 12.92*L : (1.055*Math.pow(L,1/2.4)-0.055)); }
+function crWhite(L){ return 1.05/(L+0.05); }
+function crBlack(L){ return (L+0.05)/0.05; }
+
+/** 白字达标所需 scrim α —— sRGB 空间解。
+ *  ⚠️ 不能用 1 − 0.1833/L（线性光近似）：实测差 0.12–0.25，
+ *  在 L 0.26–0.37 区间会把「能救的图」误判成不合格。 */
+function alphaFor(maxL){
+  if (maxL <= TARGET_L) return 0;
+  const s = invLin(maxL), t = invLin(TARGET_L);
+  return Math.max(0, Math.min(1, (s - t) / (s - 12)));
+}
+
+/** 文字带判定。顺序不能换：busy 必须先于 α。
+ *  原因：换 sRGB 公式后，高反差照片按 α 可能只需 0.15，数学上「可救」，
+ *  但带内明暗交错，压完仍然局部糊 —— 真正拦住烂照片的是 busy，不是 α。
+ *  统计量用 p99 / p05，不用 mean：mean 会低估最亮处。
+ *  （`pwa/src/cover/analyze.js` 也是 p99，注释写明「白字最怕的就是那 1% 的亮块」） */
+function judgePhotoZone(bands, zone){
+  const seg = bands.slice(zone[0], zone[1]+1);
+  const maxL = Math.max(...seg.map(b=>b[3]));       // p99
+  const minL = Math.min(...seg.map(b=>b[2]));       // p05
+  const sd   = Math.max(...seg.map(b=>Math.sqrt(b[1])));
+  const busy = sd > BUSY_SD;
+  const cw = crWhite(maxL), cb = crBlack(minL);
+  const needA = alphaFor(maxL);
+
+  let kind, ink, worst;
+  if (busy){                       // ① busy 优先
+    kind = 'unfit'; ink = '#f5f1e8'; worst = cw;
+  } else if (cw >= 4.5){           // ② 白字免压
+    kind = 'ok-white'; ink = '#f5f1e8'; worst = cw;
+  } else if (cb >= 4.5 && cb > cw){// ③ 黑字免压
+    kind = 'ok-ink'; ink = '#141110'; worst = cb;
+  } else if (needA <= MAX_ALPHA){  // ④ 局部 scrim 可救
+    kind = 'scrim'; ink = '#f5f1e8'; worst = cw;
+  } else {                         // ⑤ 换构图
+    kind = 'unfit'; ink = '#f5f1e8'; worst = cw;
+  }
+  const needAlpha = (kind === 'scrim') ? needA : 0;
+  return { ink, maxL, minL, sd, busy, cw, cb, needA, needAlpha, worst, kind };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   渲染：照片选择
+   ══════════════════════════════════════════════════════════════════ */
+const state = { photo:0, scrim:'auto' };
+
+/** 每张图的总体判定（取全图最佳带，用于选择器上的小标签） */
+function overallVerdict(p){
+  let bestW = 0, bestB = 0;
+  for (let i=0; i<=p.bands.length-2; i++){
+    const j = judgePhotoZone(p.bands, [i, i+1]);
+    bestW = Math.max(bestW, j.cw); bestB = Math.max(bestB, j.cb);
+  }
+  if (bestW >= 4.5) return { k:'ok',  t:`白字 ${bestW.toFixed(1)}:1` };
+  if (bestB >= 4.5) return { k:'warn', t:`要黑字 ${bestB.toFixed(1)}:1` };
+  return { k:'bad', t:`不合格 最高 ${Math.max(bestW,bestB).toFixed(1)}:1` };
+}
+
+function renderPicks(){
+  document.getElementById('picks').innerHTML = PHOTOS.map((p,i)=>{
+    const v = overallVerdict(p);
+    return `<button class="pk" data-i="${i}" aria-pressed="${i===state.photo}">
+      <img src="${p.src}" alt="">
+      <span class="nm">${p.name}</span>
+      <span class="vd ${v.k}">${v.t}</span>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('.pk').forEach(b=>{
+    b.addEventListener('click',()=>{ state.photo = +b.dataset.i; renderAll(); });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   渲染：亮度剖面
+   ══════════════════════════════════════════════════════════════════ */
+function renderProfile(){
+  const p = PHOTOS[state.photo];
+
+  /* 先算最佳带，剖面图要把它高亮出来 */
+  let best = { s:-9, i:0 };
+  for (let i=0;i<=p.bands.length-2;i++){
+    const j = judgePhotoZone(p.bands,[i,i+1]);
+    const quiet = (p.bands[i][1]+p.bands[i+1][1])/2;
+    const s = Math.max(j.cw, j.cb) - quiet*8;
+    if (s > best.s) best = { s, i };
+  }
+
+  /* ⚠️ 亮度值域是 0.01–1.0，线性高度会让暗部全部看不见（实测第一版就是一片空白）。
+     改用 sqrt 感知刻度：L=0.014 → 12%，L=0.9 → 95%，暗部细节能看出来。 */
+  const box = document.getElementById('bands');
+  box.innerHTML = p.bands.map((b,i)=>{
+    const L = b[0];
+    const inZone = i>=best.i && i<=best.i+1;
+    const h = Math.max(3, Math.sqrt(L)*100);
+    return `<div class="band ${inZone?'zone':''}">
+      <div class="fill" style="height:${h.toFixed(1)}%"></div>
+      <div class="lb">${L<0.1?L.toFixed(3).slice(1):L.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('axis').innerHTML =
+    p.bands.map((_,i)=>`<span>${i*10}–${(i+1)*10}</span>`).join('');
+
+  const bj = judgePhotoZone(p.bands,[best.i,best.i+1]);
+
+  document.getElementById('profNote').innerHTML =
+    `本图为 <b>${p.name}</b> · 白字最高 <b>${Math.max(...p.bands.map(b=>crWhite(b[3]))).toFixed(1)}:1</b>` +
+    ` · 黑字最高 <b>${Math.max(...p.bands.map(b=>crBlack(b[2]))).toFixed(1)}:1</b>` +
+    ` · 柱高为 √L 感知刻度，柱顶标真实亮度`;
+
+  const vbox = document.getElementById('verdict');
+  const bjWorst = Math.max(bj.cw, bj.cb);
+  const cls = bj.needA === 0 ? 'ok' : (bj.needA <= 0.30 ? 'warn' : 'bad');
+  const msg = bj.needA === 0
+    ? `最佳文字带 y${best.i*10}–${(best.i+2)*10}% · ${bj.ink==='#141110'?'黑字':'白字'} ${bjWorst.toFixed(1)}:1 · 免 scrim`
+    : (bj.needA <= 0.30
+        ? `最佳文字带 y${best.i*10}–${(best.i+2)*10}% · 需 scrim α=${bj.needA.toFixed(2)}`
+        : `无合格文字带 · 全图最高 ${bjWorst.toFixed(1)}:1（<4.5）→ 只能走纸面构图`);
+
+  vbox.innerHTML = `
+    <div class="vd ${cls}">
+      <b>${cls==='ok'?'✓ 可以压字':cls==='warn'?'△ 需要补一层局部 scrim':'✗ 这张图不能压字'}</b>
+      <span>${msg}</span>
+      <span class="line2">最亮处 p99 L=${bj.maxL.toFixed(3)} · 最暗处 p05 L=${bj.minL.toFixed(3)}</span>
+    </div>
+    <div class="vd ${cls==='bad'?'warn':'ok'}" style="flex:1 1 240px">
+      <b>零 scrim 的构图恒可用</b>
+      <span>刊头带 / 左文右图 / 上图下文 / 纸卡浮层</span>
+      <span class="line2">这 4 种文字根本不在图上 —— 所以永远不需要判断照片</span>
+    </div>`;
+
+  /* 让构图卡也知道高亮哪条带 */
+  state.zone = [best.i, best.i+1];
+  return { best, bj };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   渲染：卡片
+   ══════════════════════════════════════════════════════════════════ */
+const TITLE = '周末去了趟海边';
+const SUB   = '两天里我没看手机，只听见浪';
+
+/** scrim：只盖文字真正所在的那两条带，四周淡出。
+ *  4 档渐变防色带（Material anti-banding：两档会出现肉眼可见的 Mach band 暗边）。 */
+function scrimCss(alpha, z0, z1){
+  if (state.scrim === 'off') return '';
+  /* ★ 核心规则：α>0.30 就**不压**。
+     压了确实能读，但照片的明暗层次被抹平（浅色图最明显），
+     等于花两倍成本做出一张灰底 —— 用户说的「文字和底图区分不开」就是这么来的。
+     这种图应该换构图（C1/C4/C5/C6 零压暗），不是加浓遮罩。
+     「强制 0.42」模式保留，专门用来给团队看这个失败长什么样。 */
+  if (state.scrim !== 'force' && alpha > MAX_ALPHA) return '';
+  const a = state.scrim === 'force' ? 0.42 : alpha;
+  const y0 = z0 * 10, y1 = (z1 + 1) * 10;
+  const A = a.toFixed(3);
+  /* scrim 色 rgb(10,9,8) 与卡片 CSS 的 rgba(10,9,8,α) 一致（不是纯黑：纯黑读起来像"标注层"） */
+  if (z0 < 5){          // 文字在上半 → 向下淡出
+    return `background:linear-gradient(180deg,
+      rgba(10,9,8,${A}) 0%,
+      rgba(10,9,8,${A}) ${Math.max(0,y1-6)}%,
+      rgba(10,9,8,${(a*0.62).toFixed(3)}) ${y1}%,
+      rgba(10,9,8,${(a*0.22).toFixed(3)}) ${Math.min(100,y1+6)}%,
+      rgba(10,9,8,0) ${Math.min(100,y1+13)}%)`;
+  }
+  return `background:linear-gradient(180deg,
+    rgba(10,9,8,0) ${Math.max(0,y0-13)}%,
+    rgba(10,9,8,${(a*0.22).toFixed(3)}) ${Math.max(0,y0-6)}%,
+    rgba(10,9,8,${(a*0.72).toFixed(3)}) ${y0}%,
+    rgba(10,9,8,${A}) ${y0+7}%,
+    rgba(10,9,8,${A}) 100%)`;
+}
+
+function cardHtml(comp){
+  const p = PHOTOS[state.photo];
+  const zone = zoneOf(comp);
+  let scrim = '', onInk = '#f5f1e8', onLine = 'rgba(245,241,232,.34)';
+  if (zone){
+    /* 判定窗口 = 压暗窗口 = 文字实际占位（由文字块反推），三者同源。
+       位置由 CSS 的 bottom:200 / top:150 决定，这里不再二次平移。 */
+    const j = judgePhotoZone(p.bands, zone);
+    scrim = j.kind === 'scrim' ? scrimCss(j.needAlpha, zone[0], zone[1]) : '';
+    onInk = j.ink;
+    if (onInk === '#141110') onLine = 'rgba(20,17,16,.30)';
+  }
+  const vars = `--paper:${STYLE.paper};--ink:${STYLE.ink};--muted:${STYLE.muted};` +
+               `--accent:${STYLE.accent};--line:${STYLE.line};` +
+               `--on:${onInk};--on-line:${onLine}`;
+  const img = () => `<img class="photo" src="${p.src}" alt="">`;
+  const sl = scrim ? `<div class="scrim" style="left:0;right:0;top:0;bottom:0;z-index:1;${scrim}"></div>` : '';
+
+  const foot = `<div class="t-foot"><span>SuperSu</span><span class="pn">01</span></div>`;
+  const kick = (onPhoto) => `<p class="t-kick"${onPhoto?` style="color:${onInk};opacity:.9"`:''}>Vol. 01 — 2026 — 生活</p>`;
+
+  if (comp.id === 'c1') return `<div class="card1080 c1" style="${vars}">
+    ${img()}<div class="seam"></div><div class="grain"></div>
+    <div class="txt">${kick(false)}<h1 class="t-title">${TITLE}</h1><p class="t-sub">${SUB}</p></div>
+    ${foot}</div>`;
+
+  if (comp.id === 'c2') return `<div class="card1080 c2" style="${vars}">
+    ${img()}${sl}<div class="grain"></div>
+    <div class="txt"><h1 class="t-title">${TITLE}</h1><p class="t-sub">${SUB}</p></div>
+    ${foot}</div>`;
+
+  if (comp.id === 'c2v') return `<div class="card1080 c3" style="${vars}">
+    ${img()}${sl}<div class="grain"></div>
+    <div class="txt">${kick(true)}<h1 class="t-title">${TITLE}</h1><p class="t-sub">${SUB}</p></div>
+    ${foot}</div>`;
+
+  if (comp.id === 'c3') return `<div class="card1080 c4" style="${vars}">
+    ${img()}<div class="grain"></div>
+    <div class="txt">${kick(false)}<h1 class="t-title">${TITLE}</h1><p class="t-sub">${SUB}</p></div>
+    ${foot}</div>`;
+
+  if (comp.id === 'c4') return `<div class="card1080 c5" style="${vars}">
+    ${img()}<div class="grain"></div>
+    <div class="txt">${kick(false)}<h1 class="t-title">${TITLE}</h1><p class="t-sub">${SUB}</p></div>
+    ${foot}</div>`;
+
+  return `<div class="card1080 c6" style="${vars}">
+    ${img()}<div class="grain"></div>
+    <div class="plate">${kick(false)}<h1 class="t-title">${TITLE}</h1><p class="t-sub">${SUB}</p></div>
+    ${foot}</div>`;
+}
+
+/* 每张构图卡的判定标签 */
+function badgeFor(comp){
+  const p = PHOTOS[state.photo];
+  const zone = zoneOf(comp);
+  if (!zone) return { k:'ok', t:'零 scrim' };
+  const j = judgePhotoZone(p.bands, zone);
+  if (state.scrim === 'off') return { k:'bad', t:'已关 scrim' };
+  if (state.scrim === 'force') return { k:'bad', t:'强制 0.42' };
+  if (j.kind === 'ok-white') return { k:'ok',   t:`免压暗 白 ${j.cw.toFixed(1)}:1` };
+  if (j.kind === 'ok-ink')   return { k:'ok',   t:`免压暗 黑 ${j.cb.toFixed(1)}:1` };
+  if (j.kind === 'scrim')    return { k:'warn', t:`scrim α${j.needAlpha.toFixed(2)} → 4.5:1` };
+  return { k:'bad', t: j.busy ? `不合格 sd ${j.sd.toFixed(2)}` : `不合格 α${j.needA.toFixed(2)}` };
+}
+
+const SCALE = 0.25;   // 1080*0.25 = 270
+function renderGrid(){
+  const box = document.getElementById('grid');
+  box.innerHTML = COMPS.map(c=>{
+    const b = badgeFor(c);
+    return `<div class="slot">
+      <div class="frame" data-c="${c.id}" style="width:${Math.round(1080*SCALE)}px;height:${Math.round(1440*SCALE)}px">
+        <div class="zoom" style="transform:scale(${SCALE})">${cardHtml(c)}</div>
+      </div>
+      <div class="cap">
+        <span class="tag ${b.k}">${b.t}</span>
+        <span class="name">${c.code} ${c.name}</span>
+      </div>
+      <div class="cap" style="margin-top:-4px">
+        <span style="font:10px/1.5 var(--mono);color:var(--text-muted)">${c.why} · ${c.ratio}</span>
+      </div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.frame').forEach(f=>{
+    f.addEventListener('click',()=>{
+      const c = COMPS.find(x=>x.id===f.dataset.c);
+      openLb(cardHtml(c));
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   推荐矩阵：照片 → 构图（用官方编号）
+   这张表回答的不是「构图长什么样」，而是「搜到这张图该选哪个」。
+   ══════════════════════════════════════════════════════════════════ */
+function verdictOf(j){
+  if (j.kind === 'ok-white') return { k:'ok',   t:`免压暗 白 ${j.cw.toFixed(1)}:1` };
+  if (j.kind === 'ok-ink')   return { k:'ok',   t:`免压暗 黑 ${j.cb.toFixed(1)}:1` };
+  if (j.kind === 'scrim')    return { k:'warn', t:`α${j.needAlpha.toFixed(2)}` };
+  return { k:'bad', t: j.busy ? `不合格 sd${j.sd.toFixed(2)}` : `不合格 α${j.needA.toFixed(2)}` };
+}
+
+/** 单张照片 × 一个压图构图的判定 */
+function evalOnPhoto(p, comp){
+  const zone = zoneOf(comp);
+  const j = judgePhotoZone(p.bands, zone);
+  return { zone, j, v: verdictOf(j) };
+}
+
+function renderMatrix(){
+  const body = document.getElementById('mxbody');
+  body.innerHTML = PHOTOS.map((p, i) => {
+    const c2  = evalOnPhoto(p, COMPS.find(c => c.id === 'c2'));
+    const c2v = evalOnPhoto(p, COMPS.find(c => c.id === 'c2v'));
+    const free = `<span class="chip free">恒可用</span>`;
+    const recs = [];
+    if (c2.v.k  === 'ok') recs.push('C2 底沉');
+    if (c2v.v.k === 'ok') recs.push('C2v 顶压');
+    const recHtml = recs.length
+      ? `<span class="rec"><b>${recs.join(' / ')}</b>${recs.length === 1 ? ' <span style="color:var(--text-muted)">（另一侧压不住）</span>' : ''}</span>`
+      : `<span class="rec no">压图两种都不可用 → 走 C1 / C3 / C4 / C5</span>`;
+    /* 每格带「实测最亮 L + y 带 + 判定」，便于核对 */
+    const cell = (e) => `<td class="c"><span class="chip ${e.v.k}">${e.v.t}</span>
+      <span class="th2">y${e.zone[0]*10}–${(e.zone[1]+1)*10}% · L${e.j.maxL.toFixed(2)}</span></td>`;
+    return `<tr class="row" data-i="${i}" aria-selected="${i === state.photo}">
+      <td><span class="ph">${p.name}</span></td>
+      <td class="c">${free}</td><td class="c">${free}</td>
+      <td class="c">${free}</td><td class="c">${free}</td>
+      ${cell(c2)}${cell(c2v)}
+      <td>${recHtml}</td></tr>`;
+  }).join('');
+  body.querySelectorAll('tr.row').forEach(tr => {
+    tr.addEventListener('click', () => { state.photo = +tr.dataset.i; renderAll(); });
+  });
+}
+
+/* 灯箱 */
+const lbEl = document.getElementById('lb'), lbF = document.getElementById('lbf');
+function openLb(html){
+  const maxW = Math.min(520, window.innerWidth - 100);
+  const maxH = window.innerHeight - 110;
+  const s = Math.min(maxW/1080, maxH/1440);
+  lbF.style.width = Math.round(1080*s)+'px';
+  lbF.style.height = Math.round(1440*s)+'px';
+  lbF.innerHTML = `<div class="zoom" style="transform:scale(${s})">${html}</div>`;
+  lbEl.classList.add('on');
+}
+document.getElementById('lbx').addEventListener('click',()=>lbEl.classList.remove('on'));
+lbEl.addEventListener('click',e=>{ if(e.target===lbEl) lbEl.classList.remove('on'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') lbEl.classList.remove('on'); });
+
+/* 交互 */
+document.getElementById('scrimMode').addEventListener('click',e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#scrimMode button').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.scrim = b.dataset.m;
+  renderAll();
+});
+
+function renderAll(){ renderPicks(); renderProfile(); renderMatrix(); renderGrid(); }
+
+/* 启动：支持 ?p=0..5 & ?s=auto|force|off */
+const qs = new URLSearchParams(location.search);
+if (qs.get('p') !== null) state.photo = Math.max(0, Math.min(PHOTOS.length-1, +qs.get('p')));
+if (qs.get('s')) {
+  state.scrim = qs.get('s');
+  document.querySelectorAll('#scrimMode button').forEach(x=>
+    x.setAttribute('aria-pressed', String(x.dataset.m === state.scrim)));
+}
+renderAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderAll);
+</script>
+</body>
+</html>

@@ -1,0 +1,1454 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书文字卡 v2 · 版式系统原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ══════════════ 应用外壳 ══════════════ */
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#efece5;color:#1c1a16;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.app{display:grid;grid-template-columns:342px 1fr;height:100vh}
+.panel{background:#fbfaf7;border-right:1px solid #e2ddd2;padding:20px 18px 40px;overflow-y:auto}
+.panel h1{font-size:15px;margin:0 0 3px;font-weight:600}
+.panel .sub{font:10.5px/1.5 "IBM Plex Mono",monospace;color:#8a8378;margin:0 0 18px;letter-spacing:.04em}
+.sec{margin:0 0 17px}
+.sec>label{display:block;font-size:10.5px;font-weight:600;color:#8a8378;letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:7px}
+textarea{width:100%;height:130px;resize:vertical;border:1px solid #ded8cb;border-radius:8px;
+  background:#fff;padding:9px;font:12px/1.65 "Noto Sans SC",sans-serif;color:#1c1a16;outline:0}
+textarea:focus{border-color:#b4552f}
+.seg{display:flex;gap:5px;flex-wrap:wrap}
+.seg button{flex:1;min-width:0;padding:7px 3px;border:1px solid #ded8cb;background:#fff;
+  border-radius:7px;font:11.5px/1.2 inherit;color:#57524a;cursor:pointer;transition:.14s}
+.seg button:hover{border-color:#c3bbaa}
+.seg button[aria-pressed="true"]{background:#1c1a16;border-color:#1c1a16;color:#fff;font-weight:600}
+.samples{display:flex;gap:5px;margin-top:6px}
+.samples button{flex:1;padding:5px 3px;border:1px dashed #ded8cb;background:transparent;
+  border-radius:6px;font:10.5px/1.2 inherit;color:#8a8378;cursor:pointer}
+.samples button:hover{color:#b4552f;border-color:#b4552f}
+.styles{display:flex;flex-direction:column;gap:5px}
+.st{display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid #ded8cb;
+  border-radius:8px;background:#fff;cursor:pointer;text-align:left}
+.st[aria-pressed="true"]{border-color:#1c1a16;box-shadow:0 0 0 2px rgba(28,26,22,.09)}
+.st .sw{width:24px;height:24px;border-radius:5px;flex:none;display:grid;place-items:center;
+  font:600 12px/1 "Noto Serif SC",serif}
+.st .info{min-width:0;flex:1}
+.st .nm{display:block;font:11.5px/1.3 inherit;color:#1c1a16;font-weight:600}
+.st .ds{display:block;font:10px/1.3 inherit;color:#8a8378;margin-top:1px}
+.chk{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#57524a;margin-bottom:5px;cursor:pointer}
+.chk input{accent-color:#b4552f}
+.hint{font:10.5px/1.6 "IBM Plex Mono",monospace;color:#8a8378;margin:6px 0 0}
+.stats{border-top:1px solid #e2ddd2;padding-top:12px;margin-top:4px}
+.stats dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0;font-size:11px}
+.stats dt{color:#8a8378}
+.stats dd{margin:0;font-family:"IBM Plex Mono",monospace;color:#1c1a16;font-size:10.5px}
+.stats dd.good{color:#2e7d5b}
+.stats dd.bad{color:#c0392b}
+.check{margin-top:12px;padding:9px 10px;border-radius:8px;font:10.5px/1.6 "IBM Plex Mono",monospace}
+.check.ok{background:#e8f4ed;color:#1e6b4a;border:1px solid #b7ddc7}
+.check.bad{background:#fbe9e4;color:#a3271a;border:1px solid #eec0b4}
+.check b{display:block;font-size:11px;margin-bottom:4px}
+.check ul{margin:0;padding-left:14px}
+.check li{margin:1px 0}
+.note{font:10px/1.65 "IBM Plex Mono",monospace;color:#8a8378;
+  border-left:2px solid #ded8cb;padding-left:8px;margin-top:12px}
+
+/* ══════════════ 舞台 ══════════════ */
+.stage{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.toolbar{flex:none;display:flex;align-items:center;gap:9px;padding:10px 20px;
+  background:#fbfaf7;border-bottom:1px solid #e2ddd2;flex-wrap:wrap}
+.toolbar .ttl{font-size:12px;font-weight:600}
+.toolbar .tag{font:9.5px/1 "IBM Plex Mono",monospace;padding:4px 6px;border-radius:4px;
+  background:#eae4d7;color:#7a6f62;letter-spacing:.05em}
+.toolbar .tag.warn{background:#fbe9e4;color:#c0392b}
+.legend{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.legend span{font:9px/1 "IBM Plex Mono",monospace;padding:3px 5px;border-radius:3px;
+  letter-spacing:.05em}
+.deck{flex:1;overflow-y:auto;padding:26px 22px 70px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:30px 20px;
+  align-content:start}
+.slot{display:flex;flex-direction:column;gap:7px}
+.frame{position:relative;overflow:hidden;border-radius:3px;background:#fff;cursor:zoom-in;
+  box-shadow:0 2px 16px rgba(30,25,15,.11),0 1px 3px rgba(30,25,15,.07)}
+.frame .zoom{position:absolute;left:0;top:0;transform-origin:0 0}
+.cap{display:flex;align-items:center;gap:6px;font:9.5px/1 "IBM Plex Mono",monospace;
+  color:#8a8378;letter-spacing:.03em}
+.cap .role{padding:3px 6px;border-radius:3px;background:#eae4d7;color:#5d564b;font-weight:500;
+  text-transform:uppercase;letter-spacing:.06em}
+.cap .role.opening{background:#e6e0d1}
+.cap .role.points{background:#dfe8e0;color:#3d5c47}
+.cap .role.quote{background:#ece1e6;color:#6d4453}
+.cap .role.steps{background:#e2e3ef;color:#41456b}
+.cap .role.dense{background:#eae4d7;color:#5d564b}
+.cap .role.compare{background:#e8e5ef;color:#4a4260}
+.cap .role.closing{background:#f0e3d8;color:#7a4d2e}
+.cap .idx{margin-left:auto;color:#a9a196;font-variant-numeric:tabular-nums}
+.cap .bar{width:36px;height:3px;border-radius:2px;background:#e2ddd2;overflow:hidden;flex:none}
+.cap .bar i{display:block;height:100%;background:#2e7d5b}
+.cap .bar.low i{background:#d8a24a}
+.cap .bar.over i{background:#c0392b}
+.lightbox{position:fixed;inset:0;background:rgba(22,19,14,.86);display:none;
+  align-items:center;justify-content:center;z-index:50;padding:24px}
+.lightbox.on{display:flex}
+.lightbox .inner{position:relative}
+.lightbox .close{position:absolute;right:-4px;top:-34px;background:transparent;border:0;
+  color:#fff;font:10px/1 "IBM Plex Mono",monospace;cursor:pointer;letter-spacing:.1em}
+
+/* ══════════════════════════════════════════════════════════════════
+   卡片本体 —— 字号/字重严格按 references/components.md
+   大标题一律 weight 500 + 宽字距（the larger, the lighter）
+   ══════════════════════════════════════════════════════════════════ */
+.card{
+  width:1080px;height:1440px;position:relative;overflow:hidden;
+  background:var(--paper);color:var(--ink);
+  --serif:"Noto Serif SC","Songti SC",Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.card .grain{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.30;
+  background-image:radial-gradient(var(--grain) 1px,transparent 1px);background-size:3px 3px}
+
+/* ── 底图与文字保护（2026-10-30 第二轮）──────────────────────────
+   用户反馈「文字和底图区分不开」。
+   三层保护，照 Material Design scrim 规范 + 项目 templates.js 的既有做法：
+     ① 底图本身（.cimg）
+     ② 局部 scrim：只压文字所在的区域，不整图满铺（官方明令 Don't over-scrim）
+     ③ text-shadow：只做辅助（社区共识 scrim 管 90%，投影补边缘）
+   不做「整图纯黑遮罩」——那会把照片压成灰板。
+
+   ⚠️ 2026-10-30 三次修正后的最终结论（每次都实测）：
+     ① 整页铺图 + 压暗  → 照片被压成灰雾（浅色照片最明显），等于白放
+     ② 图铺上半屏 + 正文下移 → 可用高度 1124→630，页数 3→7，图把版面吃掉了
+     ③ **最终：图作为「刊头照片带」**（顶部 0–374px），正文起点只从 166 下移到 420，
+        可用高度仍有 870。照片清晰、文字清晰、页数基本不变。
+        这也符合编辑式排版「照片作刊头」的惯例（style-system.md：照片是证据，不是装饰）。 */
+.card .cimg{position:absolute;left:0;right:0;top:0;height:520px;width:100%;
+  object-fit:cover;object-position:center 40%;z-index:0;display:block;margin:0}
+.card .cscrim{position:absolute;left:0;right:0;top:0;height:520px;z-index:1;pointer-events:none}
+/* 页眉压在照片带上 → 白字 + 投影 */
+.card.has-img .head{color:#fff;top:40px}
+.card.has-img.shadow .head{text-shadow:0 1px 2px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.40)}
+/* 照片带底边一条 accent 细线做分界（比阴影干净） */
+.card.has-img .cimg{border-bottom:3px solid var(--accent)}
+/* 正文区下移到照片带下方（420），可用高度 870 */
+.card.has-img .body{top:566px}
+.card.has-img .body,
+.card.has-img .foot{color:var(--ink)}
+.card.has-img .body p,
+.card.has-img .body .h2,
+.card.has-img .body .h3,
+.card.has-img .body .ttl,
+.card.has-img .body .lead,
+.card.has-img .body .qt,
+.card.has-img .body .ct,
+.card.has-img .body .st{color:var(--ink)}
+.card.has-img .body .sub,
+.card.has-img .body .cd,
+.card.has-img .body .sd,
+.card.has-img .body .qctx,
+.card.has-img .body .pintro{color:var(--muted)}
+.card.has-img .body .row .t{color:var(--ink)}
+.card.has-img .body .row .n{color:var(--accent)}
+.card.has-img .body .row{border-color:var(--line)}
+.card.has-img .body .step:not(:last-child)::before{background:var(--line)}
+.card.has-img .foot{border-color:var(--line)}
+/* 装饰元素在有底图时保持原样（它们本来就在纸面上） */
+.card.has-img .grain{opacity:.22}
+.card .head{position:absolute;left:88px;right:88px;top:76px;height:40px;z-index:4;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  font:500 19px/1 var(--mono);letter-spacing:.20em;text-transform:uppercase;color:var(--muted)}
+.card .head .hl{display:flex;align-items:center;gap:14px;min-width:0}
+.card .head .hl::before{content:"";width:30px;height:2px;background:var(--accent);flex:none}
+.card .head .hl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .foot{position:absolute;left:88px;right:88px;bottom:74px;height:40px;z-index:4;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--line);
+  font:400 19px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.card .foot .pn{color:var(--accent);font-weight:500;font-variant-numeric:tabular-nums}
+.card .body{position:absolute;left:88px;right:88px;top:166px;bottom:150px;z-index:4;
+  display:flex;flex-direction:column}
+
+
+/* 排印基元 */
+.body p{margin:0 0 var(--pgap);font-family:var(--serif);font-weight:400;
+  font-size:var(--fs);line-height:1.74;text-align:justify}
+.body .h2{font-family:var(--serif);font-weight:500;letter-spacing:.03em;
+  font-size:calc(var(--fs) * 1.40);line-height:1.32;margin:0 0 calc(var(--fs) * .48)}
+.body .h3{font-family:var(--serif);font-weight:500;letter-spacing:.02em;
+  font-size:calc(var(--fs) * 1.10);line-height:1.38;
+  margin:calc(var(--fs) * .58) 0 calc(var(--fs) * .26)}
+.body strong{font-weight:600}
+.body em{font-family:"Playfair Display",var(--serif);font-style:italic}
+.body .mark{background:var(--hl);padding:0 3px;border-radius:2px}
+
+/* ── ① 开篇 opening ───────────────────────────────────────────── */
+.body.r-opening{justify-content:center}
+.r-opening .rule{width:62px;height:2px;background:var(--accent);margin:0 0 38px;flex:none}
+.r-opening .lead{font-family:var(--serif);font-weight:500;font-size:74px;line-height:1.36;
+  letter-spacing:.03em;margin:0;max-width:900px}
+.r-opening .sub{font-family:"Playfair Display",var(--serif);font-style:italic;font-weight:400;
+  font-size:31px;line-height:1.52;color:var(--muted);margin:32px 0 0;max-width:820px}
+.r-opening .sign{margin-top:64px;font:400 20px/1 var(--mono);letter-spacing:.20em;
+  text-transform:uppercase;color:var(--muted)}
+
+/* ── ② 清单 points：oversized 编号 + 细线行 ──────────────────── */
+/* ⚠️ 2026-10-30 修：这里**不能**写 position:relative。
+   .card .body 是 absolute（left/right 88px 定宽），而 .body.r-points 与它同 specificity 且更靠后，
+   会把 absolute 覆盖成 relative → left/right 同时生效时宽度撑满 1080，右边界溢出 88px，
+   文字被卡片边缘裁切（实测清单页「…都不一样」「…二十分钟就够」末字被切）。
+   .body 本身是 absolute，已是 positioned element，足够给 .big-num 做定位参照。 */
+.body.r-points{}
+.r-points .big-num{position:absolute;right:-26px;top:-58px;z-index:0;pointer-events:none;
+  font:600 300px/1 var(--serif);color:var(--accent);opacity:.10;letter-spacing:-.03em}
+.r-points .ttl{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  letter-spacing:.03em;font-size:56px;line-height:1.32;margin:0 0 36px}
+.r-points .rows{position:relative;z-index:1;display:flex;flex-direction:column}
+.r-points .row{display:flex;gap:26px;align-items:baseline;padding:25px 0;
+  border-top:1px solid var(--line)}
+.r-points .row:last-child{border-bottom:1px solid var(--line)}
+.r-points .row .n{flex:none;font:500 24px/1 var(--mono);letter-spacing:.10em;
+  color:var(--accent);padding-top:5px;font-variant-numeric:tabular-nums}
+.r-points .row .t{flex:1;font-family:var(--serif);font-size:var(--fs);line-height:1.62;
+  font-weight:400;text-align:justify}
+.r-points .row .t b{font-weight:600}
+/* 清单/流程页的引导语（同页段落，保证不丢内容） */
+.r-points .pintro,.r-steps .pintro{
+  position:relative;z-index:1;font-family:var(--serif);font-weight:400;
+  font-size:calc(var(--fs) * .88);line-height:1.7;color:var(--muted);
+  margin:0 0 30px;text-align:justify;
+}
+
+/* ── ③ 金句 quote ────────────────────────────────────────────── */
+/* 同上：不要 position:relative（会让 .qbg 的参照变成普通流，正文溢出） */
+.body.r-quote{justify-content:center;text-align:center}
+/* 超大淡色装饰引号压在背后，撑满视觉重量（oversized 装饰是竞品共识手法）
+   ⚠️ 2026-10-30：opacity 0.055 在暖纸底上完全看不见（实测），提到 0.13 才成立。 */
+.r-quote .qbg{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-56%);z-index:0;
+  font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:400;
+  font-size:560px;line-height:.9;color:var(--accent);opacity:.13;pointer-events:none;
+}
+.r-quote .qmark{position:relative;z-index:1;font-family:"Playfair Display",Georgia,serif;
+  font-style:italic;font-size:130px;line-height:.55;color:var(--accent);opacity:.34;
+  margin:0 0 22px;align-self:center}
+.r-quote .qt{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  font-size:78px;line-height:1.46;letter-spacing:.03em;margin:0;max-width:840px;align-self:center}
+.r-quote .qrule{position:relative;z-index:1;width:54px;height:2px;background:var(--accent);
+  margin:42px auto 0;opacity:.70}
+/* 金句页的上下文段落：给孤句配承托，避免整页空荡（实测把 17% 填充拉到 50%+） */
+.r-quote .qctx{position:relative;z-index:1;margin:40px auto 0;max-width:760px;
+  font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.72;
+  color:var(--muted);text-align:justify}
+.r-quote .qsign{position:relative;z-index:1;margin:30px auto 0;
+  font:400 20px/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+
+/* ── ④ 步骤 steps：竖排编号 + 连接线 ─────────────────────────── */
+.r-steps .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;font-size:56px;
+  line-height:1.32;margin:0 0 42px}
+.r-steps .flow{display:flex;flex-direction:column}
+.r-steps .step{display:flex;gap:28px;position:relative;padding-bottom:36px}
+.r-steps .step:last-child{padding-bottom:0}
+.r-steps .step:not(:last-child)::before{content:"";position:absolute;left:28px;top:56px;
+  bottom:0;width:1px;background:var(--line)}
+.r-steps .step .sn{flex:none;width:56px;height:56px;border-radius:50%;display:grid;
+  place-items:center;border:1px solid var(--accent);color:var(--accent);
+  font:500 21px/1 var(--mono);font-variant-numeric:tabular-nums;background:var(--paper);
+  position:relative;z-index:1}
+.r-steps .step .sc{flex:1;padding-top:5px}
+.r-steps .step .st{font-family:var(--serif);font-weight:600;font-size:calc(var(--fs) * 1.0);
+  line-height:1.5;margin:0 0 8px}
+.r-steps .step .sd{font-family:var(--serif);font-weight:400;font-size:calc(var(--fs) * .82);
+  line-height:1.68;color:var(--muted);margin:0;text-align:justify}
+
+/* ── ⑤ 对比 compare ──────────────────────────────────────────── */
+.r-compare .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;font-size:56px;
+  line-height:1.32;margin:0 0 38px}
+.r-compare .pair{display:grid;grid-template-columns:1fr 1fr;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.r-compare .col{padding:32px 24px 32px 0}
+.r-compare .col + .col{border-left:1px solid var(--line);padding-left:28px;padding-right:0}
+.r-compare .tagline{display:flex;align-items:center;gap:10px;margin:0 0 18px;
+  font:500 18px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.r-compare .tagline .ic{width:22px;height:22px;display:grid;place-items:center;
+  border-radius:50%;font-size:14px;font-weight:600;flex:none}
+.r-compare .no .ic{border:1px solid var(--muted);color:var(--muted)}
+.r-compare .yes .ic{border:1px solid var(--accent);color:var(--accent)}
+.r-compare .no .tagline{color:var(--muted)}
+.r-compare .yes .tagline{color:var(--accent)}
+.r-compare .ct{font-family:var(--serif);font-size:calc(var(--fs) * .88);line-height:1.72;
+  font-weight:400;margin:0;text-align:justify}
+.r-compare .no .ct{color:var(--muted)}
+
+/* ── ⑥ 正文 dense：唯一「像文章」的版式，靠小标题分节奏 ──────── */
+.r-dense .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;
+  font-size:calc(var(--fs) * 1.36);line-height:1.34;margin:0 0 calc(var(--fs) * .50)}
+/* 中文没有首字下沉传统，硬做会很怪（实测「两」「到」「那」被放大后像错字）。
+   改用「段首短引导线」：一个 40px 的小色条，起同样的视觉锚点作用，但不破坏字形。 */
+.r-dense .drop{position:relative}
+.r-dense .drop::before{
+  content:"";display:block;width:40px;height:2px;background:var(--accent);
+  margin:0 0 22px;opacity:.75;
+}
+
+/* ── ⑦ 结尾 closing ─────────────────────────────────────────── */
+/* 同上：不要 position:relative（会让 .cbg 的参照变成普通流，正文溢出） */
+.body.r-closing{justify-content:center}
+/* 超大淡色页脚数字做配重，避免结尾页太空（实测只有 24% 填充） */
+.r-closing .cbg{
+  position:absolute;right:-30px;bottom:-60px;z-index:0;pointer-events:none;
+  font:600 340px/1 var(--serif);color:var(--accent);opacity:.09;letter-spacing:-.04em;
+}
+.r-closing .rule{position:relative;z-index:1;width:62px;height:2px;background:var(--accent);
+  margin:0 0 34px;flex:none}
+.r-closing .ct{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  font-size:66px;line-height:1.42;letter-spacing:.03em;margin:0;max-width:860px}
+.r-closing .cd{position:relative;z-index:1;font-family:var(--serif);font-weight:400;
+  font-size:31px;line-height:1.68;color:var(--muted);margin:30px 0 0;max-width:780px;text-align:justify}
+.r-closing .cta{position:relative;z-index:1;display:inline-flex;align-items:center;gap:14px;
+  margin-top:56px;font:500 21px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);border-top:1px solid var(--line);padding-top:24px;align-self:flex-start}
+.r-closing .cta::before{content:"";width:28px;height:2px;background:var(--accent)}
+
+/* 瑞士模式：无衬线 / 无圆角 / 无纹理 / 一个强调色 */
+.card.swiss .body p,.card.swiss .row .t,.card.swiss .ct,.card.swiss .sd{
+  font-family:var(--sans)}
+.card.swiss .r-quote .qt,.card.swiss .r-opening .lead,.card.swiss .r-closing .ct,
+.card.swiss .r-points .ttl,.card.swiss .r-steps .ttl,.card.swiss .r-dense .ttl,
+.card.swiss .r-compare .ttl,.card.swiss .r-opening .sub{
+  font-family:var(--sans);font-weight:300;letter-spacing:.01em}
+.card.swiss .grain{display:none}
+.card.swiss .r-steps .step .sn{border-radius:0}
+.card.swiss .r-compare .tagline .ic{border-radius:0}
+.card.swiss .body .mark{background:var(--accent);color:var(--paper);padding:0 5px}
+
+/* 测量探针：套真实卡片 CSS，只量高度 */
+.probe{position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none;
+  width:1080px;height:auto !important}
+.probe .body{position:static !important;width:904px;height:auto !important}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:auto}
+  .panel{border-right:0;border-bottom:1px solid #e2ddd2}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <h1>小红书文字卡 · 版式系统 v2</h1>
+    <p class="sub">7 种页面角色 · 真分页 · 非示意图</p>
+
+    <div class="sec">
+      <label>正文</label>
+      <textarea id="src" spellcheck="false"></textarea>
+      <div class="samples">
+        <button data-sample="short">短篇</button>
+        <button data-sample="mid">中篇</button>
+        <button data-sample="long">长篇</button>
+        <button data-sample="list">清单</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <label>风格（对应现有封面模板，保证同族）</label>
+      <div class="styles" id="styles"></div>
+    </div>
+
+    <div class="sec">
+      <label>正文字号（括号内是手机等效）</label>
+      <div class="seg" id="tier">
+        <button data-v="44">44（15.3）</button>
+        <button data-v="52" aria-pressed="true">52（18.1）</button>
+        <button data-v="60">60（20.8）</button>
+      </div>
+      <p class="hint">微信正文通常 16–17px。44px 在 375 屏上只有 15.3px，偏小 → 默认改 52。</p>
+    </div>
+
+    <div class="sec">
+      <label>底图（有图时必须保护文字）</label>
+      <div class="seg" id="bg">
+        <button data-v="none" aria-pressed="true">无</button>
+        <button data-v="dark">深色照片</button>
+        <button data-v="light">浅色照片</button>
+        <button data-v="busy">高反差</button>
+      </div>
+      <label class="chk" style="margin-top:7px"><input type="checkbox" id="shadow" checked> 文字投影（text-shadow）</label>
+      <label class="chk"><input type="checkbox" id="scrim2" checked> 局部压暗（scrim）</label>
+    </div>
+
+    <div class="sec">
+      <label>版式分配</label>
+      <div class="seg" id="roleMode">
+        <button data-v="auto" aria-pressed="true">自动</button>
+        <button data-v="flat">全正文页</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <label>显示</label>
+      <label class="chk"><input type="checkbox" id="phone"> 手机视角（375px）</label>
+    </div>
+
+    <div class="stats"><dl id="stats"></dl></div>
+    <div class="check" id="check"></div>
+    <p class="note">
+      手机等效字号 = 卡片字号 × 375 / 1080。<br>
+      版式系统要点：每页角色不同，不连续 3 页同一版式。
+    </p>
+  </aside>
+
+  <main class="stage">
+    <div class="toolbar">
+      <span class="ttl" id="mode-ttl">文字卡 · 版式系统</span>
+      <span class="tag" id="tag-fs">正文 44px</span>
+      <span class="tag" id="tag-note"></span>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="deck" id="deck"></div>
+  </main>
+</div>
+
+<div class="lightbox" id="lb">
+  <div class="inner">
+    <button class="close" id="lb-close">关闭 ESC</button>
+    <div class="frame" id="lb-frame" style="cursor:default"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   常量（与 references/components.md 对齐）
+   ══════════════════════════════════════════════════════════════════ */
+const BUILD = 'v2-roles';
+const CARD_W = 1080, CARD_H = 1440;
+const PAD_X = 88, HEAD_TOP = 76, HEAD_H = 40, FOOT_BOT = 74, FOOT_H = 40;
+const SAFETY = 20;
+/* 正文区：top 166 → bottom 150，可用高度 = 1440-166-150 = 1124 */
+/* 正文区：无底图 top 166 → bottom 150；有底图 top 660（照片占上半部）
+   ⚠️ 可用高度必须随底图状态变化，否则分页按旧高度算 → 有图时溢出。
+   注意：用函数求值而不是顶层常量，避免和 state 的初始化顺序打架。 */
+const BODY_TOP = 166, BODY_TOP_IMG = 566, BODY_BOTTOM = 150;
+const availOf = (bg) => bg === 'none'
+  ? (CARD_H - BODY_TOP - BODY_BOTTOM)          // 1124
+  : (CARD_H - BODY_TOP_IMG - BODY_BOTTOM);     // 724
+let AVAIL = 1124;                              // 分页用的可用高度（render 时刷新）
+const AVAIL_IMG = CARD_H - BODY_TOP_IMG - BODY_BOTTOM;   // 724（有照片带时）
+const CONTENT_W = CARD_W - PAD_X * 2;      // 904
+
+/* 风格：直接映射现有封面模板的色板（同族才能封面+内页成套） */
+const STYLES = [
+  { key:'dune', name:'沙丘暖纸', ds:'暖纸 + 沙褐', card:'editorial',
+    paper:'#f0e6d2', paper2:'#ded0b7', ink:'#1f1a14', muted:'#6f6557',
+    accent:'#8f7650', line:'rgba(31,26,20,.22)', hl:'rgba(143,118,80,.20)',
+    grain:'rgba(0,0,0,.045)', sw:'#8f7650', swText:'#f0e6d2' },
+  { key:'forest', name:'森林墨绿', ds:'米白 + 墨绿', card:'editorial',
+    paper:'#f5f1e8', paper2:'#e7e1d3', ink:'#16211b', muted:'#5c6a60',
+    accent:'#2e6b4f', line:'rgba(22,33,27,.20)', hl:'rgba(46,107,79,.16)',
+    grain:'rgba(0,0,0,.042)', sw:'#2e6b4f', swText:'#f5f1e8' },
+  { key:'indigo', name:'靛蓝瓷白', ds:'瓷白 + 靛蓝', card:'editorial',
+    paper:'#f2f4f5', paper2:'#e2e8ec', ink:'#161c26', muted:'#5b6675',
+    accent:'#315d93', line:'rgba(22,28,38,.18)', hl:'rgba(49,93,147,.14)',
+    grain:'rgba(0,0,0,.040)', sw:'#315d93', swText:'#f2f4f5' },
+  { key:'kraft', name:'牛皮纸', ds:'牛皮 + 焦褐', card:'editorial',
+    paper:'#eedfc7', paper2:'#dccaa9', ink:'#241c12', muted:'#6b5b42',
+    accent:'#9b5a2e', line:'rgba(36,28,18,.24)', hl:'rgba(155,90,46,.20)',
+    grain:'rgba(0,0,0,.050)', sw:'#9b5a2e', swText:'#eedfc7' },
+  { key:'midnight', name:'午夜墨金', ds:'墨黑 + 暗金', card:'editorial',
+    paper:'#0e0d0c', paper2:'#1a1816', ink:'#f0e9db', muted:'#9a917f',
+    accent:'#d4a04a', line:'rgba(240,233,219,.18)', hl:'rgba(212,160,74,.22)',
+    grain:'rgba(255,255,255,.045)', sw:'#d4a04a', swText:'#0e0d0c' },
+  { key:'ikb', name:'克莱因蓝', ds:'瑞士 · 无衬线', card:'swiss',
+    paper:'#fafaf8', paper2:'#f0f0ec', ink:'#111111', muted:'#6b6b66',
+    accent:'#002FA7', line:'rgba(17,17,17,.18)', hl:'rgba(0,47,167,.10)',
+    grain:'rgba(0,0,0,.035)', sw:'#002FA7', swText:'#fafaf8' },
+  { key:'lemon', name:'柠檬黄', ds:'瑞士 · 高能', card:'swiss',
+    paper:'#fafaf8', paper2:'#f1f1ea', ink:'#111111', muted:'#6b6b66',
+    accent:'#C5E803', line:'rgba(17,17,17,.18)', hl:'rgba(197,232,3,.34)',
+    grain:'rgba(0,0,0,.035)', sw:'#C5E803', swText:'#111111' },
+  { key:'orange', name:'安全橙', ds:'瑞士 · 冲击', card:'swiss',
+    paper:'#fafaf8', paper2:'#f2f0eb', ink:'#111111', muted:'#6b6b66',
+    accent:'#FF6B35', line:'rgba(17,17,17,.18)', hl:'rgba(255,107,53,.16)',
+    grain:'rgba(0,0,0,.035)', sw:'#FF6B35', swText:'#fafaf8' },
+];
+
+/* 页面角色：每种角色的版式结构完全不同（这是 v2 的核心） */
+const ROLES = {
+  opening: { label:'开篇', cn:'开篇' },
+  points:  { label:'清单', cn:'清单' },
+  quote:   { label:'金句', cn:'金句' },
+  steps:   { label:'步骤', cn:'步骤' },
+  compare: { label:'对比', cn:'对比' },
+  dense:   { label:'正文', cn:'正文' },
+  closing: { label:'结尾', cn:'结尾' },
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   底图与 scrim（复用项目 analyze.js 的 WCAG 思路）
+   ══════════════════════════════════════════════════════════════════
+   原型不引外部图片：用 SVG 生成三种典型底图（深色/浅色/高反差），
+   都是真实会遇到的场景。真实产品里用用户上传的图。
+   关键：scrim 只压文字区域（顶部页眉带 + 底部正文带），不整图满铺。
+*/
+function bgDataUrl(kind){
+  const svgs = {
+    /* 深色：夜空 / 室内，白字天然可读 */
+    dark: `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1b2430"/><stop offset=".5" stop-color="#2c3a4a"/>
+        <stop offset="1" stop-color="#141a22"/></linearGradient></defs>
+      <rect width="1080" height="1440" fill="url(#g)"/>
+      <circle cx="820" cy="380" r="190" fill="#3d4f63" opacity=".55"/>
+      <ellipse cx="300" cy="1120" rx="420" ry="180" fill="#243040" opacity=".6"/>
+    </svg>`,
+    /* 浅色：白墙 / 雪地 —— 白字压上去直接消失，最需要保护 */
+    light: `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f7f4ee"/><stop offset=".6" stop-color="#eae5db"/>
+        <stop offset="1" stop-color="#dcd5c8"/></linearGradient></defs>
+      <rect width="1080" height="1440" fill="url(#g)"/>
+      <circle cx="300" cy="180" r="220" fill="#ffffff" opacity=".62"/>
+      <rect x="640" y="90" width="420" height="420" fill="#fff" opacity=".55"/>
+      <ellipse cx="540" cy="420" rx="480" ry="150" fill="#d8d0c0" opacity=".42"/>
+      <circle cx="540" cy="980" r="260" fill="#f2ede3" opacity=".55"/>
+    </svg>`,
+    /* 高反差：明暗交错 —— 任何单一字色都会在某处失效，考验 scrim */
+    busy: `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440">
+      <rect width="1080" height="1440" fill="#6b6b6b"/>
+      <rect x="0" y="0" width="1080" height="360" fill="#f4f1ea"/>
+      <rect x="0" y="360" width="1080" height="300" fill="#161616"/>
+      <rect x="0" y="660" width="1080" height="260" fill="#efe9dc"/>
+      <rect x="0" y="920" width="1080" height="520" fill="#2a2a2a"/>
+      <circle cx="760" cy="480" r="120" fill="#ffd166" opacity=".85"/>
+      <rect x="120" y="1000" width="380" height="300" fill="#f8f6f0"/>
+    </svg>`,
+  };
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgs[kind] || '');
+}
+
+/* 三种底图的「文字区实测亮度」（文字占顶部页眉带 + 底部正文带）
+   真实产品里由 analyze.js 从像素算；原型里给实测值，够验证逻辑。 */
+const BG_LUM = {
+  dark:  { zone: 0.22, needsTint: false, peak: 0.10 },
+  light: { zone: 0.88, needsTint: true,  peak: 0.62 },
+  busy:  { zone: 0.55, needsTint: true,  peak: 0.55 },
+};
+
+/**
+ * 生成局部 scrim CSS（v2 修正版）。
+ *
+ * ⚠️ 2026-10-30 实测教训：整页压暗会把照片压成灰雾（浅色照片尤其明显），
+ *    照片本身失去意义，等于花了两倍成本做出一个灰底。
+ *
+ * 正确做法（对齐 style-system.md「照片是证据，不是装饰」+ Material 局部 scrim）：
+ *   · 底图只铺**上半部**（0–42%），文字区在下半部纯色纸面上 → 根本不需要压暗
+ *   · 只在照片与文字的交界处加一条短渐变，让接缝自然
+ *   · 这样照片清晰、文字清晰，两者不打架
+ */
+function scrimCss(peak){
+  if (peak <= 0) return 'background:none';
+  const p = peak.toFixed(3);
+  /* ⚠️ 2026-10-30 三次迭代后的最终做法：
+     ① 整页压暗 → 照片变灰雾，等于白放
+     ② 压整个照片带 → 照片失去层次，页眉仍可能读不清
+     ③ **只压页眉那一条（顶部 0–150px）**，下方照片保持原样 ——
+        这才是 Material「局部 scrim」的本意：只盖文字，不盖图。
+     浅色图峰值 0.62，深色图 0.10，按底图实测亮度给。 */
+  return `background:linear-gradient(180deg,
+    rgba(10,9,8,${p}) 0px,
+    rgba(10,9,8,${(p*0.94).toFixed(3)}) 62px,
+    rgba(10,9,8,${(p*0.62).toFixed(3)}) 96px,
+    rgba(10,9,8,${(p*0.26).toFixed(3)}) 122px,
+    rgba(10,9,8,0) 150px)`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   解析：Markdown 子集 → 块
+   ══════════════════════════════════════════════════════════════════ */
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+/* 行内：**粗** / ==高亮== / *斜* */
+function inline(s){
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/==(.+?)==/g,'<span class="mark">$1</span>')
+    .replace(/\*([^*]+?)\*/g,'<em>$1</em>');
+}
+
+function parseBlocks(md){
+  const lines = String(md).replace(/\r\n/g,'\n').split('\n');
+  const blocks = [];
+  let para = [];
+  const flush = () => {
+    if (!para.length) return;
+    const t = para.join('\n').trim();
+    if (t) blocks.push({ type:'p', text:t });
+    para = [];
+  };
+  for (const raw of lines){
+    const line = raw.trim();
+    if (!line){ flush(); continue; }
+    if (/^(-{3,}|\*{3,})$/.test(line)){ flush(); blocks.push({ type:'pagebreak' }); continue; }
+    let m = line.match(/^(#{1,4})\s+(.+)$/);
+    if (m){ flush(); blocks.push({ type:'h'+m[1].length, text:m[2] }); continue; }
+    if (/^>\s?/.test(line)){
+      flush();
+      blocks.push({ type:'quote', text:line.replace(/^>\s?/,'') });
+      continue;
+    }
+    /* 步骤：① 或 1. 或 第一步 */
+    m = line.match(/^(?:第([一二三四五六七八九十]+)步|[①-⑳]|(\d{1,2})[.、)])\s*(.+)$/);
+    if (m){
+      flush();
+      const txt = m[3];
+      /* 「标题：说明」→ 拆成 st / sd */
+      const sp = txt.split(/[：:]/);
+      blocks.push({ type:'step', text:txt,
+        title: (sp.length > 1 ? sp[0] : txt).trim(),
+        desc: sp.length > 1 ? sp.slice(1).join('：').trim() : '' });
+      continue;
+    }
+    m = line.match(/^[-*•·]\s+(.+)$/);
+    if (m){
+      flush();
+      blocks.push({ type:'li', text:m[1] });
+      continue;
+    }
+    para.push(line);
+  }
+  flush();
+  return blocks;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   真实测量（用真实卡片 CSS 量高度）
+   ══════════════════════════════════════════════════════════════════ */
+let probe = null;
+function getProbe(st, fs){
+  if (!probe){
+    probe = document.createElement('div');
+    probe.className = 'probe';
+    document.body.appendChild(probe);
+  }
+  /* 探针套用与卡片完全相同的 CSS 变量与字体，只改宽度为内容宽 */
+  probe.style.cssText = probe.style.cssText;   // keep
+  probe.className = 'probe card' + (st.card === 'swiss' ? ' swiss' : '');
+  probe.style.setProperty('--paper', st.paper);
+  probe.style.setProperty('--ink', st.ink);
+  probe.style.setProperty('--muted', st.muted);
+  probe.style.setProperty('--accent', st.accent);
+  probe.style.setProperty('--line', st.line);
+  probe.style.setProperty('--hl', st.hl);
+  probe.style.setProperty('--fs', fs + 'px');
+  probe.style.setProperty('--pgap', Math.round(fs * 0.82) + 'px');
+  return probe;
+}
+
+/** 量一组块的正文高度 */
+function measureBlocks(st, fs, blocks){
+  const p = getProbe(st, fs);
+  p.innerHTML = `<div class="body" style="position:static;height:auto;width:${CONTENT_W}px">` +
+    blocks.map(renderBlock).join('') + '</div>';
+  return p.querySelector('.body').scrollHeight;
+}
+
+/** 单块 HTML（正文语境） */
+function renderBlock(b){
+  if (b.type === 'p'){
+    const t = b.text;
+    /* 首段做首字下沉（仅 dense 角色会用，其他角色不影响） */
+    return `<p${b.drop ? ' class="drop"' : ''}>${inline(t)}</p>`;
+  }
+  if (b.type === 'h1' || b.type === 'h2') return `<p class="h2">${inline(b.text)}</p>`;
+  if (b.type === 'h3' || b.type === 'h4') return `<p class="h3">${inline(b.text)}</p>`;
+  if (b.type === 'quote') return `<p><em>${inline(b.text)}</em></p>`;
+  if (b.type === 'li') return `<p>· ${inline(b.text)}</p>`;
+  if (b.type === 'step') return `<p><strong>${inline(b.title)}</strong>${b.desc ? '：' + inline(b.desc) : ''}</p>`;
+  return '';
+}
+
+/** 单块按句拆（超高时回退） */
+function splitText(b, st, fs){
+  if (b.type !== 'p' && b.type !== 'quote') return null;
+  const sents = b.text.split(/(?<=[。！？!?；;])/).filter(Boolean);
+  if (sents.length < 2) return null;
+  const out = [];
+  let cur = '';
+  for (const s of sents){
+    const test = cur + s;
+    if (measureBlocks(st, fs, [{ type:b.type, text:test }]) > AVAIL && cur){
+      out.push({ type:b.type, text:cur });
+      cur = s;
+    } else cur = test;
+  }
+  if (cur) out.push({ type:b.type, text:cur });
+  return out.length > 1 ? out : null;
+}
+
+/**
+ * 分页：贪心装页 + keep-with-next + 溢出回退
+ * ⚠️ 2026-10-30 关键修正：**列表块整体成页**。
+ *    实测清单样例 164 字被塞进 1 页（填充 96%），角色判定只能给 dense，
+ *    列表退化成圆点平铺 —— 正是设计规范明令禁止的「千篇一律列表」。
+ *    修法：遇到「连续 ≥3 个 li」时，把它们连同前面的小标题一起**优先独立成页**，
+ *    这样 points 角色才有机会接手。
+ */
+function paginate(blocks, st, fs){
+  const pages = [];
+  const forced = new Set();
+  let cur = [];
+  const flush = () => { pages.push(cur); cur = []; };
+
+  for (let i = 0; i < blocks.length; i++){
+    const b = blocks[i];
+
+    if (b.type === 'pagebreak'){
+      if (cur.length){ flush(); forced.add(pages.length); }
+      continue;
+    }
+
+    /* 小标题 keep-with-next */
+    if (b.type === 'h1' || b.type === 'h2' || b.type === 'h3' || b.type === 'h4'){
+      const nx = blocks[i+1] && blocks[i+1].type !== 'pagebreak' ? blocks[i+1] : null;
+      const pair = nx ? [b, nx] : [b];
+      if (measureBlocks(st, fs, cur.concat(pair)) <= AVAIL){
+        cur.push(b); if (nx){ cur.push(nx); i++; }
+      } else if (cur.length){ flush(); i--; }
+      else cur.push(b);
+      continue;
+    }
+
+    /* ★ 列表成组：先看后面连续有多少个 li */
+    if (b.type === 'li'){
+      let runLen = 0;
+      for (let k = i; k < blocks.length && blocks[k].type === 'li'; k++) runLen++;
+      const group = blocks.slice(i, i + runLen);
+
+      /* 整组能装进当前页 → 一起装（不拆列表） */
+      if (measureBlocks(st, fs, cur.concat(group)) <= AVAIL){
+        cur.push(...group);
+        i += runLen - 1;
+        continue;
+      }
+      /* 装不下但当前页非空 → 换页，让列表整组进新页（不跨页拆列表） */
+      if (cur.length){ flush(); i--; continue; }
+      /* 空页都装不下整组 → 只能按条目硬塞（退化，但内容不丢） */
+      cur.push(b);
+      continue;
+    }
+
+    /* ★ 引用块处理（2026-10-30 二次修正）
+       第一版把 `>` 引用**孤立抽成一页** → 实测填充只有 17%，整页空荡荡，
+       因为一句 40 字的话撑不起 1440px。
+       正确做法（对齐 M04 Pull Quote 的结构）：
+         · 引用块**留在当页**，但升级为该页的「视觉主体」——由 quote 角色渲染
+         · 只有当页还装得下前后文时才这样，否则才单独成页
+       实现：不强制 flush，只是标记「本页含引用」，由 assignRoles 优先给 quote。 */
+    if (b.type === 'quote'){
+      /* 若当前页已有内容且加上引用会超 → 先封页，引用进新页 */
+      if (cur.length && measureBlocks(st, fs, cur.concat([b])) > AVAIL){
+        flush();
+      }
+      cur.push(b);
+      /* 引用后面紧跟的段落也装进来（给金句页配上下文，避免空页） */
+      continue;
+    }
+
+    if (measureBlocks(st, fs, cur.concat([b])) <= AVAIL){ cur.push(b); continue; }
+
+    if (cur.length){ flush(); i--; continue; }
+
+    /* 空页也放不下 → 拆 */
+    const parts = splitText(b, st, fs);
+    if (parts){ cur.push(parts[0]); blocks.splice(i+1, 0, ...parts.slice(1)); }
+    else cur.push(b);
+    flush();
+  }
+  if (cur.length) flush();
+  return { pages, forced };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   角色分配 —— v2 的灵魂：让每页版式不同
+   ══════════════════════════════════════════════════════════════════
+   规则（参考 xhs 设计共识「不连续 3 页同版式」「每页一个核心点」）：
+     第 1 页          → opening（开篇大引言）
+     末页（≥3页）     → closing（结尾金句 + CTA）
+     中间：按内容形态判定
+       · 连续 step 块 ≥2        → steps
+       · 纯 li 块 ≥3            → points
+       · 单个 quote 块           → quote
+       · 连续 ≥2 段正文          → dense
+     强制交替：同角色不连续出现（除 dense 可连 2 页）
+   ══════════════════════════════════════════════════════════════════ */
+function pickRole(page, prevRole){
+  if (!page.length) return 'dense';
+  const steps = page.filter((b) => b.type === 'step').length;
+  const lis = page.filter((b) => b.type === 'li').length;
+  const quotes = page.filter((b) => b.type === 'quote').length;
+  const paras = page.filter((b) => b.type === 'p').length;
+
+  let role = 'dense';
+  /* 阈值放宽：≥2 个步骤就是流程页；≥2 个条目就是清单页
+     （原先要 ≥3，导致两条一页的清单退化成圆点平铺） */
+  if (steps >= 2) role = 'steps';
+  else if (lis >= 2) role = 'points';
+  else if (quotes >= 1 && quotes === page.length) role = 'quote';
+  else if (paras >= 1) role = 'dense';
+
+  /* 不连续：同一角色最多连 2 页（dense 允许），其余角色强制换 */
+  if (role === prevRole && role !== 'dense') role = role === 'points' ? 'dense' : role;
+  return role;
+}
+
+/** 一页的文字总量（判断某角色装不装得下） */
+function pageChars(page){
+  return page.reduce((n, b) => n + (b.text ? b.text.length : 0), 0);
+}
+
+/**
+ * 开篇/金句/结尾这类「大字版式」能承载的字数上限。
+ * ⚠️ 关键约束：这些版式**不渲染整页所有块**，只把文字合并成一段大字。
+ *    所以只有当整页字数 ≤ 上限时才允许用，否则必须退回 dense —— 否则丢内容。
+ *    （2026-10-30 踩过：opening 只取前 60 字，自检却验的是分页结构，
+ *      显示「315=315 通过」，实际渲染丢了半页正文。）
+ *
+ * 有底图时这些页的正文区从 1124 缩到 630（照片占上半部），
+ * 容量要同比收紧到约 56%，否则大字会溢出。
+ */
+const BIGTYPE_CAP = { opening: 90, quote: 60, closing: 120 };
+const capOf = (role, bg) => {
+  const base = BIGTYPE_CAP[role] ?? 0;
+  const imgRoles = ['opening', 'closing'];
+  return (bg !== 'none' && imgRoles.includes(role))
+    ? Math.round(base * 0.64)   // 724/1124 ≈ 0.64
+    : base;
+};
+
+function assignRoles(pages, forced, bg = 'none'){
+  const roles = [];
+  const n = pages.length;
+
+  for (let i = 0; i < n; i++){
+    const chars = pageChars(pages[i]);
+    const lis = pages[i].filter((b) => b.type === 'li').length;
+    const steps = pages[i].filter((b) => b.type === 'step').length;
+
+    /* ★ 优先级修正（2026-10-30）：
+       列表/步骤页**优先**判定，不要因为「是首页」就被 opening/dense 抢走。
+       否则清单文章只有 1 页时，164 字 > opening 容量 → 落到 dense → 列表变圆点平铺。
+       内容形态（列表/流程）比「页面位置」更能决定版式。 */
+    if (steps >= 2){ roles.push('steps'); continue; }
+    if (lis >= 2){ roles.push('points'); continue; }
+
+    /* 金句页：页内含引用块，且总字数在容量内（quote 版式能承载）
+       阈值 200：引用 + 一段上下文，实测填充能到 50%+ */
+    const hasQuote = pages[i].some((b) => b.type === 'quote');
+    if (hasQuote && chars <= 200){
+      roles.push('quote'); continue;
+    }
+
+    /* 开篇：只在首页，且字数在容量内 */
+    if (i === 0){
+      roles.push(chars <= capOf('opening', bg) ? 'opening' : 'dense');
+      continue;
+    }
+    /* 结尾：末页且内容偏短 → closing 大字版收尾。
+       ⚠️ 2026-10-30 修正：原先要求 ≥3 页才有结尾，导致 2 页的文章没有收尾页。
+       小红书整套图需要「最后一张有落点」（收藏/关注），2 页也要有。
+       但首末不能是同一页（1 页时不加结尾）。 */
+    if (i === n - 1 && n >= 2){
+      roles.push(chars <= capOf('closing', bg) ? 'closing' : 'dense');
+      continue;
+    }
+    roles.push(pickRole(pages[i], roles[i-1]));
+  }
+
+  /* 兜底：不连续 3 页同版式（dense 除外） */
+  for (let i = 2; i < roles.length; i++){
+    if (roles[i] === roles[i-1] && roles[i] === roles[i-2] && roles[i] !== 'dense'){
+      roles[i] = 'dense';
+    }
+  }
+  return roles;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   渲染各角色
+   ══════════════════════════════════════════════════════════════════ */
+function bodyFor(role, page, ctx){
+  const { fs, st, artTitle, author } = ctx;
+
+  if (role === 'opening'){
+    /* 开篇：**整页所有块都渲染**。第一个块当大字引言，其余作为斜体副标。
+       ⚠️ 不能只取前 N 字 —— 那会丢内容（2026-10-30 踩过）。
+       容量由 BIGTYPE_CAP 在 assignRoles 里把关，这里只管「全渲染」。 */
+    const all = page.filter((b) => b.text);
+    const lead = all[0] ? all[0].text : artTitle;
+    const rest = all.slice(1).map((b) => b.text).join(' ');
+    return `<div class="body r-opening">
+      <div class="rule"></div>
+      <p class="lead">${inline(lead)}</p>
+      ${rest ? `<p class="sub">${inline(rest)}</p>` : ''}
+      <div class="sign">${esc(author || 'By Author')}</div>
+    </div>`;
+  }
+
+  if (role === 'quote'){
+    /* 金句页：引用块当视觉主体（居中大字），同页其余段落作为「上下文」排在下方。
+       ⚠️ 必须渲染整页所有块，否则丢内容（自检会报缺块）。
+       这样既解决「孤句太空」（实测 17%），又不丢字。 */
+    const q = page.find((b) => b.type === 'quote');
+    const rest = page.filter((b) => b !== q && b.text);
+    const qt = q ? q.text : (page[0] ? page[0].text : '');
+    const ctxTxt = rest.map((b) => b.text).join(' ');
+    return `<div class="body r-quote">
+      <div class="qbg">&ldquo;</div>
+      <div class="qmark">&ldquo;</div>
+      <p class="qt">${inline(qt)}</p>
+      <div class="qrule"></div>
+      ${ctxTxt ? `<p class="qctx">${inline(ctxTxt)}</p>` : ''}
+      <div class="qsign">— ${esc(author || '摘自正文')}</div>
+    </div>`;
+  }
+
+  if (role === 'points'){
+    const ttlBlock = page.find((b) => b.type === 'h1' || b.type === 'h2' || b.type === 'h3');
+    const items = page.filter((b) => b.type === 'li');
+    /* ⚠️ 同页的段落/引用**必须一起渲染**，否则丢内容（自检会报缺块）。
+       做法：段落作为清单的引导语放在标题下、列表上方。 */
+    const others = page.filter((b) =>
+      b.type !== 'li' && b !== ttlBlock && (b.type === 'p' || b.type === 'quote'));
+    const ttl = ttlBlock ? ttlBlock.text : '';
+    const rows = items.map((b, i) => `
+      <div class="row"><span class="n">${String(i + 1).padStart(2,'0')}</span>
+        <span class="t">${inline(b.text)}</span></div>`).join('');
+    const intro = others.map((b) => `<p class="pintro">${inline(b.text)}</p>`).join('');
+    return `<div class="body r-points">
+      <div class="big-num">${String(items.length || 1).padStart(2,'0')}</div>
+      ${ttl ? `<p class="ttl">${inline(ttl)}</p>` : ''}
+      ${intro}
+      <div class="rows">${rows}</div>
+    </div>`;
+  }
+
+  if (role === 'steps'){
+    const ttlBlock = page.find((b) => b.type === 'h1' || b.type === 'h2' || b.type === 'h3');
+    const steps = page.filter((b) => b.type === 'step');
+    const ttl = ttlBlock ? ttlBlock.text : '';
+    /* 同页的段落/引用也要渲染，否则丢内容 */
+    const others = page.filter((b) =>
+      b.type !== 'step' && b !== ttlBlock && (b.type === 'p' || b.type === 'quote'));
+    const flow = steps.map((b, i) => `
+      <div class="step">
+        <div class="sn">${String(i + 1).padStart(2,'0')}</div>
+        <div class="sc">
+          <p class="st">${inline(b.title)}</p>
+          ${b.desc ? `<p class="sd">${inline(b.desc)}</p>` : ''}
+        </div>
+      </div>`).join('');
+    const intro = others.map((b) => `<p class="pintro">${inline(b.text)}</p>`).join('');
+    return `<div class="body r-steps">
+      ${ttl ? `<p class="ttl">${inline(ttl)}</p>` : ''}
+      ${intro}
+      <div class="flow">${flow}</div>
+    </div>`;
+  }
+
+  if (role === 'compare'){
+    const ttlBlock = page.find((b) => b.type === 'h1' || b.type === 'h2' || b.type === 'h3');
+    const ps = page.filter((b) => b.type === 'p');
+    const ttl = ttlBlock ? ttlBlock.text : '';
+    const no = ps[0] ? ps[0].text : '';
+    const yes = ps[1] ? ps[1].text : '';
+    return `<div class="body r-compare">
+      <p class="ttl">${inline(ttl)}</p>
+      <div class="pair">
+        <div class="col no"><p class="tagline"><span class="ic">✕</span>Before</p>
+          <p class="ct">${inline(no)}</p></div>
+        <div class="col yes"><p class="tagline"><span class="ic">✓</span>After</p>
+          <p class="ct">${inline(yes)}</p></div>
+      </div>
+    </div>`;
+  }
+
+  if (role === 'closing'){
+    /* 结尾：整页所有块都渲染 —— 最后一段当大字结论，前面的是补充说明 */
+    const all = page.filter((b) => b.text);
+    const ct = all.length ? all[all.length - 1].text : artTitle;
+    const cd = all.length > 1 ? all.slice(0, -1).map((b) => b.text).join(' ') : '';
+    return `<div class="body r-closing">
+      <div class="cbg">${String(page.length).padStart(2,'0')}</div>
+      <div class="rule"></div>
+      <p class="ct">${inline(ct)}</p>
+      ${cd ? `<p class="cd">${inline(cd)}</p>` : ''}
+      <div class="cta">关注 ${esc(author || '我')}</div>
+    </div>`;
+  }
+
+  /* dense：唯一「像文章」的版式，首段首字下沉做锚点。
+     注意：只把**第一个 h1/h2** 当页标题，其余块全部原样渲染，一个不漏。 */
+  const ttlBlock = page.find((b) => b.type === 'h1' || b.type === 'h2');
+  const ttl = ttlBlock ? ttlBlock.text : '';
+  const rest = page.filter((b) => b !== ttlBlock);
+  if (rest.length && rest[0].type === 'p') rest[0] = { ...rest[0], drop:true };
+  return `<div class="body r-dense">
+    ${ttl ? `<p class="ttl">${inline(ttl)}</p>` : ''}
+    ${rest.map(renderBlock).join('')}
+  </div>`;
+}
+
+function cardHtml(role, page, ctx, idx, total){
+  const { st, fs, bg } = ctx;
+  const vars = `--paper:${st.paper};--paper2:${st.paper2};--ink:${st.ink};` +
+    `--muted:${st.muted};--accent:${st.accent};--line:${st.line};--hl:${st.hl};` +
+    `--grain:${st.grain};--fs:${fs}px;--pgap:${Math.round(fs * 0.82)}px`;
+  const sw = st.card === 'swiss' ? ' swiss' : '';
+
+  /* 底图：只在有图时才加三层保护（图 + 局部 scrim + 可选投影）
+     ⚠️ 2026-10-30 三次修正后的结论：
+       ① 整页铺图 + 压暗 → 照片被压成灰雾，等于白放（实测浅色照片最明显）
+       ② 图只铺上半部 + 正文下移 → 可用高度 1124→630，页数 3→7，图把版面吃掉了
+       ③ 最终方案：**图作为「刊头照片带」**（顶部 0–520px），
+          正文起点从 166 下移到 566（可用高度 724），
+          照片清晰、文字清晰、页数几乎不变。这也符合编辑式排版「图作刊头」的惯例。
+     ⚠️ 不再用「transform 缩放」兜底 —— 实测会把正文压到 62%，字变小反而违背用户诉求。
+        改为在**分页阶段**就按 724 排（见 render 里的 availOf）。 */
+  const hasImg = bg && bg !== 'none';
+  const info = hasImg ? BG_LUM[bg] : null;
+  const peak = (hasImg && state.scrim) ? info.peak : 0;
+  const imgLayer = hasImg
+    ? `<img class="cimg" src="${bgDataUrl(bg)}" alt="">
+       <div class="cscrim" style="${scrimCss(peak)}"></div>`
+    : '';
+  const cls = `card${sw}${hasImg ? ' has-img' : ''}${hasImg && state.shadow ? ' shadow' : ''}`;
+
+  const roleLabel = ROLES[role] ? ROLES[role].label : role;
+  return `<div class="${cls}" style="${vars}">
+    ${imgLayer}
+    <div class="grain"></div>
+    <div class="head">
+      <div class="hl"><span>${esc(ctx.artTitle.slice(0, 22))}</span></div>
+      <div>${esc(roleLabel)} · ${String(idx + 1).padStart(2,'0')}/${String(total).padStart(2,'0')}</div>
+    </div>
+    ${bodyFor(role, page, ctx)}
+    <div class="foot">
+      <span>SuperSu</span>
+      <span class="pn">${String(idx + 1).padStart(2,'0')}</span>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   自检（产物级断言）
+   ══════════════════════════════════════════════════════════════════
+   ⚠️ 2026-10-30 教训：只验「分页数据结构」是不够的。
+      上一版自检显示「315=315 通过」，但 opening 角色渲染时只取了前 60 字，
+      实际画面丢了半页正文 —— 数据结构没丢，HTML 里丢了。
+      所以这里必须**从渲染后的 DOM 里取文字**再比对。
+   ══════════════════════════════════════════════════════════════════ */
+let lastCheck = null;
+
+/** 从渲染好的卡片 HTML 里抽出正文文字（去掉页眉页脚） */
+function textFromCardHtml(html){
+  const box = document.createElement('div');
+  box.innerHTML = html;
+  const head = box.querySelector('.head');
+  const foot = box.querySelector('.foot');
+  if (head) head.remove();
+  if (foot) foot.remove();
+  const body = box.querySelector('.body');
+  return body ? body.textContent : '';
+}
+
+function selfCheck(blocks, cards, roles, st, fs){
+  const norm = (s) => String(s || '').replace(/\s+/g,'');
+  /* ⚠️ 比对口径必须一致：原文也要先去掉 **bold** / ==mark== / *italic* 标记，
+     否则「带标记的原文 vs 去标记的产物」会误报缺字（2026-10-30 踩过）。 */
+  const stripMd = (s) => String(s || '')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/==(.+?)==/g,'$1')
+    .replace(/\*([^*]+?)\*/g,'$1');
+
+  /* 原文（去掉手动分页符 + markdown 标记） */
+  const src = norm(blocks.filter((b) => b.type !== 'pagebreak' && b.text)
+    .map((b) => stripMd(b.text)).join(''));
+
+  /* 渲染产物：逐卡从 DOM 取文字 */
+  const out = norm(cards.map((c) => textFromCardHtml(c.html)).join(''));
+
+  /* 完整性：逐块检查（比滑窗更精确，能定位到具体哪个块丢了） */
+  const missing = [];
+  blocks.forEach((b, bi) => {
+    if (b.type === 'pagebreak' || !b.text) return;
+    const t = norm(stripMd(b.text));
+    if (t && !out.includes(t)){
+      missing.push({ bi, type: b.type, text: t.slice(0, 16) });
+    }
+  });
+  const complete = missing.length === 0;
+
+  /* 溢出 */
+  const over = [];
+  cards.forEach((c, i) => {
+    const h = measureBlocks(st, fs, c.page);
+    if (h > AVAIL) over.push(`P${i+1} ${h}>${AVAIL}`);
+  });
+
+  /* 标题落页尾 */
+  const tail = [];
+  cards.forEach((c, i) => {
+    if (i === cards.length - 1) return;
+    const last = c.page[c.page.length - 1];
+    if (last && /^h[1-4]$/.test(last.type)) tail.push(`P${i+1}`);
+  });
+
+  /* 版式单调 */
+  const mono = [];
+  for (let i = 2; i < roles.length; i++){
+    if (roles[i] === roles[i-1] && roles[i] === roles[i-2] && roles[i] !== 'dense'){
+      mono.push(`P${i-1}~${i+1}`);
+    }
+  }
+
+  const fsOk = fs >= 28;
+
+  lastCheck = {
+    ok: complete && !over.length && !tail.length && !mono.length && fsOk,
+    complete, missing, srcLen: src.length, outLen: out.length,
+    over, tail, mono, fsOk,
+  };
+  return lastCheck;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   主渲染
+   ══════════════════════════════════════════════════════════════════ */
+const state = { fs:52, st:0, roleMode:'auto', phone:false,
+  bg:'none', shadow:true, scrim:true };
+
+const deckEl = document.getElementById('deck');
+const statsEl = document.getElementById('stats');
+const srcEl = document.getElementById('src');
+const tagFs = document.getElementById('tag-fs');
+const tagNote = document.getElementById('tag-note');
+const legendEl = document.getElementById('legend');
+
+function articleTitle(blocks){
+  const h = blocks.find((b) => b.type === 'h1' || b.type === 'h2');
+  if (h) return h.text;
+  const p = blocks.find((b) => b.type === 'p' || b.type === 'li');
+  return p ? p.text : '未命名';
+}
+
+function render(){
+  /* ★ 分页统一按「纯色页」的可用高度（1124）来排 ——
+     底图只铺开篇/结尾，正文页是纯色，按 630 排会让页数暴涨（实测 3 页→7 页）。
+     开篇/结尾本来就内容少，渲染时再用 630 兜底即可（见 cardHtml 的容量检查）。 */
+  AVAIL = availOf(state.bg);   // 无图 1124 / 有图 724
+
+  const blocks = parseBlocks(srcEl.value);
+  const st = STYLES[state.st];
+  const fs = state.fs;
+  const artTitle = articleTitle(blocks);
+  const ctx = { fs, st, artTitle, author:'阿苏', bg: state.bg };
+
+  const { pages, forced } = paginate(blocks.slice(), st, fs);
+  let roles;
+  if (state.roleMode === 'flat'){
+    roles = pages.map((_, i) => i === 0 ? 'opening' : (i === pages.length-1 && pages.length>=3 ? 'closing' : 'dense'));
+  } else {
+    roles = assignRoles(pages, forced, state.bg);
+  }
+
+  const cards = pages.map((p, i) => ({
+    html: cardHtml(roles[i], p, ctx, i, pages.length),
+    role: roles[i],
+    page: p,
+    fill: measureBlocks(st, fs, p) / AVAIL,
+  }));
+
+  selfCheck(blocks, cards, roles, st, fs);
+
+  const cw = state.phone ? 375 : 288;
+  const scale = cw / CARD_W;
+
+  deckEl.innerHTML = cards.map((c, i) => {
+    const pct = Math.min(100, Math.round(c.fill * 100));
+    const cls = c.fill > 0.99 ? 'over' : c.fill < 0.60 ? 'low' : '';
+    const r = ROLES[c.role] || { label:c.role, cn:c.role };
+    return `<div class="slot">
+      <div class="frame" data-i="${i}" style="width:${cw}px;height:${Math.round(CARD_H*scale)}px">
+        <div class="zoom" style="transform:scale(${scale})">${c.html}</div>
+      </div>
+      <div class="cap">
+        <span class="role ${c.role}">${r.label}</span>
+        <span>${c.role === 'opening' ? '大引言' : c.role === 'closing' ? 'CTA' : c.role === 'points' ? '清单' : c.role === 'steps' ? '流程' : c.role === 'quote' ? '金句' : '正文'}</span>
+        <span class="bar ${cls}"><i style="width:${pct}%"></i></span>
+        <span class="idx">${String(i+1).padStart(2,'0')}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  deckEl.querySelectorAll('.frame').forEach((f) => {
+    f.addEventListener('click', () => openLightbox(cards[+f.dataset.i].html));
+  });
+
+  /* 统计 */
+  const phoneFs = (fs * 375 / CARD_W).toFixed(1);
+  const totalChars = blocks.reduce((n,b) => n + (b.text ? b.text.length : 0), 0);
+  const fills = cards.map((c) => Math.round(c.fill*100));
+  const roleCount = {};
+  roles.forEach((r) => { roleCount[r] = (roleCount[r]||0)+1; });
+
+  /* 底图文字对比度：按「scrim 之后」的真实亮度算 WCAG 比值
+     （不能拿 scrim 前的值给用户看 —— 那是未成品状态） */
+  const bgLabel = { dark:'深色照片', light:'浅色照片', busy:'高反差' }[state.bg] || '';
+  let contrastLabel = '';
+  if (state.bg !== 'none'){
+    const info = BG_LUM[state.bg];
+    const peak = state.scrim ? info.peak : 0;
+    /* 白字：背景压暗后的亮度 L = 0.22*(1-peak)（近似）；对比度 = (1.05)/(L+0.05) */
+    const L = info.zone * (1 - peak) * (1 - peak);
+    const cr = 1.05 / (L + 0.05);
+    contrastLabel = `${cr.toFixed(1)}:1${cr >= 4.5 ? '' : ' ← 不足 4.5'}`;
+  }
+
+  statsEl.innerHTML = `
+    <dt>页数</dt><dd>${cards.length} 张</dd>
+    <dt>版式</dt><dd>${Object.entries(roleCount).map(([k,v]) => (ROLES[k]?ROLES[k].label:k)+'×'+v).join(' · ')}</dd>
+    <dt>正文总量</dt><dd>${totalChars} 字</dd>
+    <dt>平均每页</dt><dd>${cards.length ? Math.round(totalChars/cards.length) : 0} 字</dd>
+    <dt>各页填充</dt><dd>${fills.join('% / ')}%</dd>
+    <dt>手机等效字号</dt><dd class="${+phoneFs >= 16 ? 'good' : 'bad'}">${phoneFs} px${+phoneFs >= 16 ? '' : ' ← 偏小'}</dd>
+    <dt>底图</dt><dd>${state.bg === 'none' ? '无' : bgLabel + ' · ' + contrastLabel}</dd>
+  `;
+
+  tagFs.textContent = `正文 ${fs}px`;
+  tagNote.textContent = `${cards.length} 页 · ${new Set(roles).size} 种版式`;
+  tagNote.className = 'tag';
+
+  /* 图例 */
+  const used = [...new Set(roles)];
+  legendEl.innerHTML = used.map((r) => {
+    const rr = ROLES[r] || { label:r };
+    const cls = `role ${r}`;
+    return `<span class="${cls}" style="padding:3px 5px">${rr.label}</span>`;
+  }).join('');
+
+  /* 自检面板 */
+  const chkEl = document.getElementById('check');
+  const c = lastCheck;
+  if (c.ok){
+    chkEl.className = 'check ok';
+    chkEl.innerHTML = `<b>✓ 自检通过（产物级）</b><ul>
+      <li>完整性：原文 ${c.srcLen} 字全部出现在渲染产物里</li>
+      <li>无溢出（${cards.length} 页 ≤ ${AVAIL}px）</li>
+      <li>无连续 3 页同版式</li>
+      <li>标题未落页尾 · 字号合规</li></ul>`;
+  } else {
+    chkEl.className = 'check bad';
+    const li = [];
+    if (!c.complete) li.push(`渲染产物缺 ${c.missing.length} 块：<br>` +
+      c.missing.slice(0, 4).map((m) => `[${m.type}]「${esc(m.text)}」`).join(' '));
+    if (c.over.length) li.push(`溢出 ${c.over.join(',')}`);
+    if (c.tail.length) li.push(`标题落页尾 ${c.tail.join(',')}`);
+    if (c.mono.length) li.push(`版式单调 ${c.mono.join(',')}`);
+    if (!c.fsOk) li.push('字号低于 28px');
+    chkEl.innerHTML = `<b>✗ 自检失败</b><ul>${li.map((x)=>`<li>${x}</li>`).join('')}</ul>`;
+  }
+}
+
+/* 灯箱 */
+const lb = document.getElementById('lb');
+const lbFrame = document.getElementById('lb-frame');
+function openLightbox(html){
+  const maxW = Math.min(560, window.innerWidth - 120);
+  const maxH = window.innerHeight - 120;
+  const scale = Math.min(maxW / CARD_W, maxH / CARD_H);
+  lbFrame.style.width = Math.round(CARD_W * scale) + 'px';
+  lbFrame.style.height = Math.round(CARD_H * scale) + 'px';
+  lbFrame.innerHTML = `<div class="zoom" style="transform:scale(${scale})">${html}</div>`;
+  lb.classList.add('on');
+}
+document.getElementById('lb-close').addEventListener('click', () => lb.classList.remove('on'));
+lb.addEventListener('click', (e) => { if (e.target === lb) lb.classList.remove('on'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.classList.remove('on'); });
+
+/* ══════════════════════════════════════════════════════════════════
+   样例文案
+   ══════════════════════════════════════════════════════════════════ */
+const SAMPLES = {
+short: `# 周末去海边，我把手机调成了飞行模式
+
+两天的沉默之后，我重新听见了海浪。
+
+出发前我做了件很小的事：把手机调成飞行模式，塞进背包最底下。
+
+后来我发现，不是手机太吵，是我太久没给自己留过安静的地方。`,
+
+mid: `# 周末去海边，我把手机调成了飞行模式
+
+两天的沉默之后，我重新听见了海浪。
+
+出发前我做了件很小的事：把手机调成飞行模式，塞进背包最底下。不是戒断，就是想让自己歇一歇。
+
+## 第一天
+
+到的时候是下午四点，太阳斜着，把整片海照成一块旧铜。
+
+我坐在防波堤上，看一个小孩追浪，追了大概二十分钟，一次也没追上，但他一直在笑。
+
+> 后来我想，我大概已经很久没有做过「明知道做不成还认真做」的事了。
+
+## 第二天
+
+早上六点被海鸥吵醒，索性起来沿着海岸线走。
+
+走到一半开始下雨，不大，是那种落在皮肤上没感觉、但走十分钟全身湿的雨。
+
+回来的时候我想明白一件事：**不是手机太吵，是我太久没给自己留过安静的地方。**
+
+现在我把飞行模式当成一个按钮，不是仪式。累的时候就按下去，哪怕只有一小时。`,
+
+long: `# 周末去海边，我把手机调成了飞行模式
+
+两天的沉默之后，我重新听见了海浪。
+
+出发前我做了件很小的事：把手机调成飞行模式，塞进背包最底下。不是戒断，不是挑战，就是想让自己歇两天。
+
+这个念头不是突然来的。上周三晚上，我在刷一个完全不想看的视频，刷到第三十分钟的时候突然意识到：我并不是在放松，我只是在等困。
+
+## 第一天
+
+到的时候是下午四点，太阳斜着，把整片海照成一块旧铜。
+
+我坐在防波堤上，看一个小孩追浪，追了大概二十分钟，一次也没追上，但他一直在笑。
+
+> 后来我想，我大概已经很久没有做过「明知道做不成还认真做」的事了。
+
+那天我没拍照片。手机在包里，包在屋里，我在外面。晚上吃饭的时候，老板娘问我要不要 Wi-Fi 密码，我说不用。
+
+## 第二天
+
+早上六点被海鸥吵醒。不是被吵醒的，是本来就睡得浅，海鸥只是给了我一个起床的理由。
+
+沿着海岸线走，走到一半开始下雨。不大，是那种落在皮肤上没感觉、但走十分钟全身湿透的雨。
+
+回来的时候我想明白一件事：**不是手机太吵，是我太久没给自己留过安静的地方。**
+
+现在我把飞行模式当成一个按钮，不是仪式。累的时候就按下去，哪怕只有一小时。
+
+如果你也想试，不用去海边。把手机放进抽屉，出门走二十分钟就行。安静不需要风景，只需要一段没人能找到你的时间。`,
+
+list: `# 5 个让周末不再虚度的小事
+
+这五条不是攻略，是我自己试过、真的有用才留下来的。
+
+- 早点睡，别熬到两点，第二天整个人都不一样
+- 出门走走，别一直刷手机，二十分钟就够
+- 给自己煮碗面，认真煮，不要泡面
+- 把手机放远一点，放到另一个房间
+- 读十页书，十页不多，但能让你静下来
+- 早点回家，别在外面耗到没力气
+
+做完这六件事，周末才算真的休息过。`,
+
+steps: `# 一个人去海边，我是这么安排的
+
+第一次一个人出门，其实没那么难。
+
+第一步：先定住的地方。不用海景房，干净、离海近就行。
+
+第二步：只带一个包。装不下的东西，说明你也不需要。
+
+第三步：把手机调成飞行模式。这是最重要的一步。
+
+第四步：到了先别拍照，坐十分钟再说。
+
+第五步：走一段路，不用有目的。走着走着就有想法了。`
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   交互
+   ══════════════════════════════════════════════════════════════════ */
+const stylesEl = document.getElementById('styles');
+stylesEl.innerHTML = STYLES.map((s, i) => `
+  <button class="st" data-i="${i}" aria-pressed="${i===0}">
+    <span class="sw" style="background:${s.sw};color:${s.swText}">A</span>
+    <span class="info"><span class="nm">${s.name}</span><span class="ds">${s.ds}</span></span>
+  </button>`).join('');
+stylesEl.addEventListener('click', (e) => {
+  const b = e.target.closest('.st'); if (!b) return;
+  stylesEl.querySelectorAll('.st').forEach((x) => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.st = +b.dataset.i;
+  render();
+});
+
+document.getElementById('tier').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#tier button').forEach((x) => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.fs = +b.dataset.v;
+  render();
+});
+
+document.getElementById('roleMode').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#roleMode button').forEach((x) => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.roleMode = b.dataset.v;
+  render();
+});
+
+/* 底图 */
+document.getElementById('bg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#bg button').forEach((x) => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.bg = b.dataset.v;
+  render();
+});
+document.getElementById('shadow').addEventListener('change', (e) => { state.shadow = e.target.checked; render(); });
+document.getElementById('scrim2').addEventListener('change', (e) => { state.scrim = e.target.checked; render(); });
+
+document.querySelectorAll('.samples button').forEach((b) => {
+  b.addEventListener('click', () => { srcEl.value = SAMPLES[b.dataset.sample]; render(); });
+});
+document.getElementById('phone').addEventListener('change', (e) => { state.phone = e.target.checked; render(); });
+
+let timer = null;
+srcEl.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(render, 240); });
+
+/* 启动 */
+const qs = new URLSearchParams(location.search);
+const initSample = qs.get('sample');
+srcEl.value = SAMPLES[initSample] || SAMPLES.mid;
+if (qs.get('fs')) state.fs = +qs.get('fs');
+if (qs.get('style')) state.st = +qs.get('style');
+if (qs.get('bg')){
+  state.bg = qs.get('bg');
+  document.querySelectorAll('#bg button').forEach((b) =>
+    b.setAttribute('aria-pressed', b.dataset.v === state.bg ? 'true' : 'false'));
+}
+if (qs.get('noshow')){ state.shadow = false; document.getElementById('shadow').checked = false; }
+if (qs.get('noscrim')){ state.scrim = false; document.getElementById('scrim2').checked = false; }
+render();
+
+/* hash 直达 */
+if (location.hash === '#phone'){
+  state.phone = true; document.getElementById('phone').checked = true; render();
+}
+</script>
+</body>
+</html>

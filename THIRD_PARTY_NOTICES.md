@@ -31,7 +31,23 @@
 
 > ⚠️ 如本项目未来改为闭源部署或商用，须先取得 BLCaptain 作者的书面商业授权（联系：blteam2026@outlook.com）。
 
-### 3. fitty
+### 3. XHS-TextCard（视觉模板的参考 · 仅借鉴，未复制代码）
+
+| 项 | 内容 |
+|---|---|
+| 上游仓库 | https://github.com/geekfoxcharlie/XHS-TextCard |
+| 许可证 | **MIT** |
+| 版权 | Copyright (c) geekfoxcharlie |
+| 上游形态 | 纯前端 Canvas 渲染的小红书文字卡片生成器（12 套模板 / 智能分页 / 零后端） |
+| 本项目使用范围 | **仅借鉴视觉手法与信息层级**。落点是 `docs/prototypes/xhs-studio-redesign.html` 的 12 套视觉模板（杂志编辑 / 瑞士网格 / 效率笔记 / 书籍内页 / 苹果备忘录 / 拍立得 / 弥散极光 / 暗夜深思 / 大厂文档 / 电影胶片 / 星光质感 / 极简留白）。<br>⚠️ 这 12 套是**整套图文**共用的视觉模板（不是每页各选一个）—— 与竞品一致：模板选一次，封面与内页都按这套排。详见 `docs/research-2026-10-31-xhs-longform-generators.md` |
+| 本项目所做修改 | **代码全部独立重写**：上游用 Canvas 2D 绘制（`TemplateDefinitions.js` 三钩子 getContentBox/drawBackground/drawForeground），本项目用 HTML + CSS（配置数组 `LONG_TPLS` + 每套一组 CSS 类）。未复制其任何 JS/CSS 源码；分页算法（实测高度装箱 + 超长单段递归切分）亦为独立实现，未沿用其 `TextSplitter.js` |
+| 借鉴内容（非代码） | ① 模板三要素的组织方式（内容区几何 / 页面装饰 / 文字配色）<br>② 各模板的视觉语汇：拍立得胶带与照片框、书籍装订阴影、macOS 窗口三点、宽银幕遮幅与胶片齿孔、星空与月亮微光等<br>③ 模板配置文件里公开的配色与排印参数（底色/字色/强调色/行高/字距） |
+| 参考资产存档 | `docs/prototypes/assets/xhs-studio/ref-xhs-textcard-*.png`（官方站示例截图，仅作设计对照，不参与构建、不随产品分发） |
+| 修改日期 | 2026-10-31 |
+
+> 为什么不用 GPL 的同类项目：调研中 `pangxiaobin/MarkCardStudio`（314★）功能更全，但为 **GPL-3.0**，并入本项目会强制整体 GPL 化，与当前 AGPL-3.0 发布方式冲突，故未采用。
+
+### 4. fitty
 
 | 项 | 内容 |
 |---|---|
@@ -40,7 +56,7 @@
 | 许可证 | **MIT** |
 | 版权 | Copyright (c) Rik Schennink |
 
-### 4. modern-screenshot
+### 5. modern-screenshot
 
 | 项 | 内容 |
 |---|---|
@@ -50,7 +66,7 @@
 | 版权 | Copyright (c) wxm |
 | 用途 | PWA 小红书封面：在浏览器里把 DOM 渲成 PNG（离屏 iframe，不依赖 Playwright） |
 
-### 5. fflate
+### 6. fflate
 
 | 项 | 内容 |
 |---|---|

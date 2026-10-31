@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书文字卡 · 可交互原型</title>
+<style>
+/* ── 应用外壳 ──────────────────────────────────────────────────────── */
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:#f3f1ec;color:#1c1a16;
+  font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.app{display:grid;grid-template-columns:330px 1fr;height:100vh}
+
+/* 左栏 */
+.panel{background:#fbfaf7;border-right:1px solid #e2ddd2;padding:20px 18px 40px;overflow-y:auto}
+.panel h1{font-size:15px;margin:0 0 4px;font-weight:600;letter-spacing:.01em}
+.panel .sub{font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8378;margin:0 0 20px}
+.sec{margin:0 0 20px}
+.sec>label{display:block;font-size:11px;font-weight:600;color:#8a8378;letter-spacing:.06em;margin-bottom:7px}
+textarea{
+  width:100%;height:150px;resize:vertical;border:1px solid #ded8cb;border-radius:8px;
+  background:#fff;padding:10px;font:12.5px/1.7 inherit;color:#1c1a16;outline:0;
+}
+textarea:focus{border-color:#b4552f}
+.seg{display:flex;gap:5px;flex-wrap:wrap}
+.seg button{
+  flex:1;min-width:0;padding:7px 4px;border:1px solid #ded8cb;background:#fff;border-radius:7px;
+  font:12px/1.2 inherit;color:#57524a;cursor:pointer;transition:.14s;
+}
+.seg button:hover{border-color:#c3bbaa}
+.seg button[aria-pressed="true"]{background:#b4552f;border-color:#b4552f;color:#fff;font-weight:600}
+.samples{display:flex;gap:5px;margin-top:6px}
+.samples button{
+  flex:1;padding:5px 4px;border:1px dashed #ded8cb;background:transparent;border-radius:6px;
+  font:11px/1.2 inherit;color:#8a8378;cursor:pointer;
+}
+.samples button:hover{color:#b4552f;border-color:#b4552f}
+.pals{display:flex;gap:8px}
+.pal{
+  flex:1;padding:8px;border:1px solid #ded8cb;border-radius:8px;background:#fff;cursor:pointer;
+  display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+}
+.pal[aria-pressed="true"]{border-color:#b4552f;box-shadow:0 0 0 2px rgba(180,85,47,.15)}
+.pal .dots{display:flex;gap:3px}
+.pal .dots i{width:12px;height:12px;border-radius:3px;display:block}
+.pal .nm{font:10.5px/1 inherit;color:#8a8378}
+.chk{display:flex;align-items:center;gap:7px;font-size:12px;color:#57524a;margin-bottom:6px;cursor:pointer}
+.chk input{accent-color:#b4552f}
+.stats{border-top:1px solid #e2ddd2;padding-top:14px;margin-top:6px}
+.stats dl{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin:0;font-size:11.5px}
+.stats dt{color:#8a8378}
+.stats dd{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#1c1a16}
+.stats dd.bad{color:#c0392b}
+.stats dd.good{color:#2e7d5b}
+.note{font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8378;
+      border-left:2px solid #ded8cb;padding-left:9px;margin-top:14px}
+.check{margin-top:14px;padding:10px 11px;border-radius:8px;font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+.check.ok{background:#e8f4ed;color:#1e6b4a;border:1px solid #b7ddc7}
+.check.bad{background:#fbe9e4;color:#a3271a;border:1px solid #eec0b4}
+.check b{display:block;font-size:12px;margin-bottom:5px;letter-spacing:.02em}
+.check ul{margin:0;padding-left:15px}
+.check li{margin:2px 0;word-break:break-all}
+
+/* 右栏 */
+.stage{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.toolbar{
+  flex:none;display:flex;align-items:center;gap:14px;padding:11px 20px;
+  background:#fbfaf7;border-bottom:1px solid #e2ddd2;
+}
+.toolbar .ttl{font-size:12.5px;font-weight:600}
+.toolbar .tag{
+  font:10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 7px;border-radius:4px;
+  background:#eae4d7;color:#7a6f62;
+}
+.toolbar .tag.warn{background:#fbe9e4;color:#c0392b}
+.pager{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pager button{
+  width:26px;height:26px;border:1px solid #ded8cb;background:#fff;border-radius:6px;
+  cursor:pointer;font:13px/1 inherit;color:#57524a;
+}
+.pager button:hover{border-color:#b4552f;color:#b4552f}
+.pager .pg{font:11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8378;min-width:52px;text-align:center}
+
+.deck{
+  flex:1;overflow-y:auto;padding:26px 24px 60px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:26px 22px;
+  align-content:start;
+}
+.slot{display:flex;flex-direction:column;gap:8px}
+.slot .cap{display:flex;align-items:center;gap:7px;font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8378}
+.slot .cap b{color:#1c1a16;font-weight:600}
+.slot .cap .fill{margin-left:auto;display:flex;align-items:center;gap:5px}
+.slot .cap .bar{width:44px;height:3px;border-radius:2px;background:#e2ddd2;overflow:hidden}
+.slot .cap .bar i{display:block;height:100%;background:#2e7d5b}
+.slot .cap .bar.low i{background:#d8a24a}
+.slot .cap .bar.over i{background:#c0392b}
+
+/* 缩放容器：真实卡片 1080×1440 用 transform 缩到展示尺寸 */
+.frame{position:relative;overflow:hidden;border-radius:10px;background:#fff;
+       box-shadow:0 2px 14px rgba(30,25,15,.10),0 1px 3px rgba(30,25,15,.06);cursor:zoom-in}
+.frame .zoom{position:absolute;left:0;top:0;transform-origin:0 0}
+
+/* ── 卡片本体（真实尺寸，导出就是这个） ──────────────────────────── */
+.card{
+  width:1080px;height:1440px;position:relative;overflow:hidden;
+  background:var(--paper);color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+.card .grain{
+  position:absolute;inset:0;pointer-events:none;opacity:.45;
+  background-image:radial-gradient(rgba(0,0,0,.05) 1px,transparent 1px);background-size:3px 3px;
+}
+.card .head{
+  position:absolute;left:96px;right:96px;top:88px;height:46px;
+  display:flex;align-items:center;justify-content:space-between;
+  font:500 28px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.16em;color:var(--muted);text-transform:uppercase;
+}
+.card .head .hl{display:flex;align-items:center;gap:16px;min-width:0}
+.card .head .hl::before{content:"";width:34px;height:3px;background:var(--accent);flex:none}
+.card .head .hl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .foot{
+  position:absolute;left:96px;right:96px;bottom:88px;height:46px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--rule);
+  font:400 28px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.12em;color:var(--muted);
+}
+.card .foot .pn{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600}
+
+/* 正文层：字号全部由 --fs 推导，换档位只改一个变量 */
+.card-body,.probe{
+  font-size:var(--fs);line-height:var(--lh);color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.card .card-body{position:absolute;left:96px;right:96px;top:178px;}
+.card-body>*:first-child{margin-top:0}
+.card-body p{margin:0 0 var(--pgap);text-align:justify}
+.card-body br{content:""}
+.card-body h1,.card-body h2,.card-body h3{margin:0;font-weight:700;letter-spacing:-.01em}
+.card-body h1{font-size:calc(var(--fs) * 1.72);line-height:1.22;margin-bottom:calc(var(--fs) * .46)}
+.card-body h2{font-size:calc(var(--fs) * 1.45);line-height:1.26;margin:calc(var(--fs) * .78) 0 calc(var(--fs) * .36)}
+.card-body h3{font-size:calc(var(--fs) * 1.18);line-height:1.34;margin:calc(var(--fs) * .62) 0 calc(var(--fs) * .26)}
+.card-body .li{
+  display:flex;gap:calc(var(--fs) * .42);margin:0 0 calc(var(--fs) * .34);align-items:baseline;
+}
+.card-body .li .mk{
+  flex:none;min-width:calc(var(--fs) * .72);color:var(--accent);font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.card-body .li .tx{flex:1;text-align:justify}
+.card-body blockquote{
+  margin:0 0 var(--pgap);padding:calc(var(--fs)*.42) 0 calc(var(--fs)*.42) calc(var(--fs)*.52);
+  border-left:6px solid var(--accent);background:var(--paper2);border-radius:0 10px 10px 0;
+  color:var(--muted);font-size:calc(var(--fs) * .94);line-height:1.7;
+}
+.card-body hr{border:0;border-top:1px solid var(--rule);margin:calc(var(--fs)*.6) 0}
+.card-body strong{font-weight:700;color:var(--ink)}
+.card-body .mark{background:linear-gradient(180deg,transparent 62%,var(--hl) 62%);padding:0 2px}
+
+/* 探测容器（量高度用，不可见但样式必须与卡片一致） */
+.probe{position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none}
+
+/* 参考线 */
+.frame.show-guide .card-body::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1000px;border-top:1px dashed rgba(192,57,43,.5);
+}
+
+/* 旧版（现状）卡片样式：只为对比，故意照搬 story.js 的毛病 */
+.card.old .card-body{font-size:34px;line-height:1.7;color:var(--muted)}
+.card.old .big{font-size:76px;line-height:1.2;font-weight:700;color:var(--ink);margin:0 0 44px}
+.card.old .card-body .li{font-size:34px;color:var(--ink);margin-bottom:26px}
+.card.old .card-body .li .mk{color:var(--accent)}
+
+/* 灯箱 */
+.lightbox{
+  position:fixed;inset:0;background:rgba(22,19,14,.82);display:none;
+  align-items:center;justify-content:center;z-index:50;padding:24px;
+}
+.lightbox.on{display:flex}
+.lightbox .inner{position:relative}
+.lightbox .close{
+  position:absolute;right:-6px;top:-38px;background:transparent;border:0;color:#fff;
+  font:12px/1 inherit;cursor:pointer;letter-spacing:.1em;
+}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:auto}
+  .panel{border-right:0;border-bottom:1px solid #e2ddd2}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <h1>小红书「文字卡」原型</h1>
+    <p class="sub">真实分页 · 量 offsetHeight · 非示意图</p>
+
+    <div class="sec">
+      <label>正文（支持 # 标题 / 列表 / &gt; 引用 / --- 手动分页）</label>
+      <textarea id="src" spellcheck="false"></textarea>
+      <div class="samples">
+        <button data-sample="short">短篇</button>
+        <button data-sample="mid">中篇</button>
+        <button data-sample="long">长篇</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <label>方案对比</label>
+      <div class="seg" id="mode">
+        <button data-v="new" aria-pressed="true">新：文字卡</button>
+        <button data-v="old">现状：封面骨架</button>
+      </div>
+    </div>
+
+    <div class="sec" id="fs-sec">
+      <label>正文字号（1080 宽下的真实 px）</label>
+      <div class="seg" id="tier">
+        <button data-v="44" aria-pressed="true">44 标准</button>
+        <button data-v="52">52 大</button>
+        <button data-v="60">60 特大</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <label>色板（沿用现有 catalog 的三套）</label>
+      <div class="pals" id="pals"></div>
+    </div>
+
+    <div class="sec">
+      <label>显示</label>
+      <label class="chk"><input type="checkbox" id="phone"> 手机视角（375px 等比）</label>
+      <label class="chk"><input type="checkbox" id="guide" checked> 显示分页安全线</label>
+    </div>
+
+    <div class="stats"><dl id="stats"></dl></div>
+    <div class="check" id="check"></div>
+    <p class="note">
+      手机等效字号 = 卡片字号 × 375 / 1080。<br>
+      微信/小红书里图片按屏幕宽等比缩放，所以卡片上的 px 要按这个比例折算成人眼看到的字号。
+    </p>
+  </aside>
+
+  <main class="stage">
+    <div class="toolbar">
+      <span class="ttl" id="mode-ttl">文字卡</span>
+      <span class="tag" id="tag-fs">正文 44px</span>
+      <span class="tag" id="tag-note"></span>
+      <div class="pager">
+        <button id="prev" title="上一页">‹</button>
+        <span class="pg" id="pgn">—</span>
+        <button id="next" title="下一页">›</button>
+      </div>
+    </div>
+    <div class="deck" id="deck"></div>
+  </main>
+</div>
+
+<div class="lightbox" id="lb">
+  <div class="inner">
+    <button class="close" id="lb-close">关闭 ESC</button>
+    <div class="frame" id="lb-frame" style="cursor:default"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   1. 常量（与真实渲染器一致；改这里就等于改产品）
+   ════════════════════════════════════════════════════════════════════ */
+const CARD_W = 1080, CARD_H = 1440;
+const BUILD = 'b2-merge';                 // 改动后改这个，用来确认浏览器没吃缓存
+const PAD_X = 96, PAD_TOP = 88, PAD_BOTTOM = 88;
+const HEAD_H = 46, HEAD_GAP = 44;          // 页眉高度 + 与正文的间距
+const FOOT_H = 46, FOOT_GAP = 32;          // 页脚高度 + 与正文的间距
+const SAFETY = 20;                         // 字体度量差异的安全余量（竞品共识）
+const CONTENT_W = CARD_W - PAD_X * 2;      // 888
+const AVAIL = CARD_H - PAD_TOP - HEAD_H - HEAD_GAP - FOOT_H - FOOT_GAP - PAD_BOTTOM - SAFETY;
+// = 1440 - 88 - 46 - 44 - 46 - 32 - 88 - 20 = 1076
+
+const PALETTES = [
+  { key:'paper', name:'暖纸', paper:'#f4efe4', paper2:'#eae2d2', ink:'#1c1a16',
+    muted:'#6f6a5f', accent:'#b4552f', rule:'rgba(28,26,22,.16)', hl:'rgba(180,85,47,.22)' },
+  { key:'ink', name:'墨夜', paper:'#12110f', paper2:'#1c1a17', ink:'#f0e9db',
+    muted:'#9a917f', accent:'#d8a24a', rule:'rgba(240,233,219,.18)', hl:'rgba(216,162,74,.28)' },
+  { key:'bold', name:'亮橙', paper:'#fff7ee', paper2:'#ffe9d6', ink:'#141110',
+    muted:'#7a6f62', accent:'#ff3b1f', rule:'rgba(20,17,16,.14)', hl:'rgba(255,59,31,.20)' },
+];
+
+/* ════════════════════════════════════════════════════════════════════
+   2. 轻量块解析（不引 markdown 库，够用就好）
+   ════════════════════════════════════════════════════════════════════ */
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;');
+}
+
+function parseBlocks(md){
+  const lines = String(md).replace(/\r\n/g,'\n').split('\n');
+  const blocks = [];
+  let para = [];
+  const flushPara = () => {
+    if (!para.length) return;
+    const t = para.join('\n').trim();
+    if (t) blocks.push({ type:'p', text:t,
+      html:`<p>${esc(t).replace(/\n/g,'<br>')}</p>` });
+    para = [];
+  };
+  for (const raw of lines){
+    const line = raw.trim();
+    if (!line){ flushPara(); continue; }
+    if (/^(-{3,}|\*{3,})$/.test(line)){ flushPara(); blocks.push({type:'pagebreak'}); continue; }
+    let m = line.match(/^(#{1,3})\s+(.+)$/);
+    if (m){
+      flushPara();
+      const lv = m[1].length;
+      blocks.push({ type:'h'+lv, text:m[2], html:`<h${lv}>${esc(m[2])}</h${lv}>` });
+      continue;
+    }
+    if (/^>\s?/.test(line)){
+      flushPara();
+      const t = line.replace(/^>\s?/,'');
+      blocks.push({ type:'quote', text:t, html:`<blockquote>${esc(t)}</blockquote>` });
+      continue;
+    }
+    m = line.match(/^(\d{1,2})[.、)]\s+(.+)$/);
+    if (m){
+      flushPara();
+      blocks.push({ type:'li', text:m[2], mk:m[1]+'.',
+        html:`<div class="li"><span class="mk">${esc(m[1])}.</span><span class="tx">${esc(m[2])}</span></div>` });
+      continue;
+    }
+    m = line.match(/^[-*•·]\s+(.+)$/);
+    if (m){
+      flushPara();
+      blocks.push({ type:'li', text:m[1], mk:'·',
+        html:`<div class="li"><span class="mk">·</span><span class="tx">${esc(m[1])}</span></div>` });
+      continue;
+    }
+    para.push(line);
+  }
+  flushPara();
+  return blocks;
+}
+
+/* 行内标记：**加粗** 与 ==高亮== （小红书最常用的两个） */
+function inline(html){
+  return html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+             .replace(/==(.+?)==/g,'<span class="mark">$1</span>');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   3. 真实测量分页
+   ════════════════════════════════════════════════════════════════════ */
+let probe = null;
+function getProbe(fs){
+  if (!probe){
+    probe = document.createElement('div');
+    probe.className = 'probe card-body';
+    document.body.appendChild(probe);
+  }
+  probe.style.width = CONTENT_W + 'px';
+  probe.style.setProperty('--fs', fs + 'px');
+  probe.style.setProperty('--lh', '1.78');
+  probe.style.setProperty('--pgap', Math.round(fs * 0.78) + 'px');
+  return probe;
+}
+
+/** 把若干块拼起来量总高 */
+function measure(fs, htmls){
+  const p = getProbe(fs);
+  p.innerHTML = htmls.join('');
+  return p.scrollHeight;
+}
+
+/** 单个块太大时按标点回退拆段（抄 RedBookCards 的 _try_split_paragraph 思路） */
+function splitBlock(block, fs, avail){
+  const pieces = [];
+  if (block.type === 'p' || block.type === 'quote'){
+    // 按句末标点切成句子，贪心装
+    const sents = block.text.split(/(?<=[。！？!?；;])/).filter(Boolean);
+    if (sents.length < 2) return null;
+    let cur = '';
+    for (const s of sents){
+      const test = cur + s;
+      const html = block.type === 'quote'
+        ? `<blockquote>${esc(test)}</blockquote>`
+        : `<p>${esc(test)}</p>`;
+      if (measure(fs,[html]) > avail && cur){
+        pieces.push(cur); cur = s;
+      } else cur = test;
+    }
+    if (cur) pieces.push(cur);
+    return pieces.map((t) => block.type === 'quote'
+      ? { type:'quote', text:t, html:`<blockquote>${esc(t)}</blockquote>` }
+      : { type:'p', text:t, html:`<p>${esc(t)}</p>` });
+  }
+  return null;   // 列表等其它类型不拆（整块迁移，与竞品一致）
+}
+
+/**
+ * 主分页：贪心装页 + 三条保护
+ *   ① keep-with-next：标题后面至少跟 2 行正文，否则标题一起搬下页
+ *   ② 图片/引用/列表整块迁移，不裁切
+ *   ③ 单块超高按标点回退拆段
+ */
+function paginate(blocks, fs){
+  const avail = AVAIL;
+  const pages = [];
+  const forced = new Set();            // 手动 --- 造成的页边界，禁止被合并
+  let cur = [];                        // 存块对象（不是 html）→ 自检才能逐块比对文本
+
+  const flush = () => { pages.push(cur); cur = []; };
+  const htmls = (arr) => arr.map((b) => b.html);
+
+  for (let i = 0; i < blocks.length; i++){
+    const b = blocks[i];
+
+    if (b.type === 'pagebreak'){
+      if (cur.length){ flush(); forced.add(pages.length); }   // 下一页是强制起始页
+      continue;
+    }
+
+    /* ① 标题 keep-with-next：后面至少跟 2 行正文，否则标题一起搬下页 */
+    if (b.type === 'h1' || b.type === 'h2' || b.type === 'h3'){
+      const next = blocks[i+1] && blocks[i+1].type !== 'pagebreak' ? blocks[i+1] : null;
+      const pair = next ? [b, next] : [b];
+      if (measure(fs, htmls(cur.concat(pair))) <= avail){
+        cur.push(b);
+        if (next){ cur.push(next); i++; }
+      } else if (cur.length){
+        flush();                     // 本页放不下这对 → 标题搬下页
+        i--;                          // 重新处理这个标题
+        continue;
+      } else {
+        cur.push(b);                  // 空页都放不下（极端情况）→ 硬放
+      }
+      continue;
+    }
+
+    /* ② 普通块 */
+    if (measure(fs, htmls(cur.concat([b]))) <= avail){ cur.push(b); continue; }
+
+    if (cur.length){                  // 本页满了 → 换页重试
+      flush();
+      i--;
+      continue;
+    }
+
+    /* ③ 空页也放不下 → 尝试拆 */
+    const parts = splitBlock(b, fs, avail);
+    if (parts && parts.length > 1){
+      cur.push(parts[0]);
+      blocks.splice(i+1, 0, ...parts.slice(1));   // 余下塞回队列
+    } else {
+      cur.push(b);                    // 拆不动就硬放（防死循环）
+    }
+    flush();
+  }
+  if (cur.length) flush();
+
+  return optimizePages(pages, forced, fs);
+}
+
+/**
+ * 合并优化：贪心分页必然留下半空页（实测 long@44 有一页只占 18%）。
+ * 竞品（RedBookCards optimize_pages）的做法是合并相邻页，这里照做：
+ *   · 只合并「后一页不是手动分页起始」的组合
+ *   · 合并后必须 ≤ 可用高度 × 0.97（留余量，避免刚好卡线）
+ *   · 前页太满（>75%）就不动，免得把正常页也搅乱
+ */
+function optimizePages(pages, forced, fs){
+  const MERGE_IF_BELOW = 0.62;         // 前页填充低于这个才考虑合并
+  const MERGE_TO = 0.97;               // 合并后允许达到的填充上限
+  const out = [];
+  for (let i = 0; i < pages.length; i++){
+    const p = pages[i];
+    const next = pages[i+1];
+    if (!next || forced.has(i+1)){ out.push(p); continue; }
+
+    const hP = measure(fs, p.map((b) => b.html));
+    if (hP / AVAIL > 0.75){ out.push(p); continue; }
+    if (hP / AVAIL >= MERGE_IF_BELOW){ out.push(p); continue; }
+
+    const merged = p.concat(next);
+    const hM = measure(fs, merged.map((b) => b.html));
+    if (hM <= AVAIL * MERGE_TO){
+      out.push(merged);
+      i++;                              // 吃掉下一页
+    } else {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   4. 现状复刻（只为对比：正文 34px + 大标题 + 截断）
+   ════════════════════════════════════════════════════════════════════ */
+function paginateOld(blocks){
+  const items = blocks.filter((b) => b.type === 'li' || b.type === 'p')
+    .flatMap((b) => b.text.split(/(?<=[。！？!?])/).filter(Boolean));
+  if (!items.length) return [];
+  const pages = [];
+  for (let i = 0; i < items.length && pages.length < 3; i += 3){
+    pages.push({ heading: items[i].slice(0, 18), items: items.slice(i, i+3) });
+  }
+  return pages;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   4b. 自检（产物级断言，不是「有反应」）
+   ════════════════════════════════════════════════════════════════════ */
+let lastCheck = null;
+
+/**
+ * 分页正确性的硬断言：
+ *   ① 完整性：原文每个非空文本块都出现在某页里（逐块计数比对）
+ *   ② 无重复：同一块不会被放进两页
+ *   ③ 无溢出：每页实测高度 ≤ 可用高度
+ *   ④ 标题不落页尾：除末页外，页内最后一个块不能是标题
+ */
+function selfCheck(blocks, pages, fs){
+  const norm = (s) => String(s || '').replace(/\s+/g, '');
+  const src = blocks.filter((b) => b.type !== 'pagebreak' && b.text)
+    .map((b) => norm(b.text));
+  const out = pages.flat().filter((b) => b.text).map((b) => norm(b.text));
+
+  // ① 完整性：拼起来必须能拼回原文（顺序敏感）
+  const srcJoined = src.join('');
+  const outJoined = out.join('');
+  const complete = srcJoined === outJoined;
+
+  // 找出第一个对不上的位置，方便定位
+  let diffAt = -1;
+  if (!complete){
+    const n = Math.min(srcJoined.length, outJoined.length);
+    for (let i = 0; i < n; i++) if (srcJoined[i] !== outJoined[i]){ diffAt = i; break; }
+    if (diffAt < 0) diffAt = n;
+  }
+
+  // ③ 无溢出
+  const over = [];
+  pages.forEach((p, i) => {
+    const h = measure(fs, p.map((b) => b.html));
+    if (h > AVAIL) over.push(`P${i+1} ${h}>${AVAIL}`);
+  });
+
+  // ④ 标题落页尾
+  const tail = [];
+  pages.forEach((p, i) => {
+    if (i === pages.length - 1) return;             // 末页允许
+    const last = p[p.length - 1];
+    if (last && /^h[1-3]$/.test(last.type)) tail.push(`P${i+1}`);
+  });
+
+  // ② 重复（按块文本计次）
+  const cnt = {};
+  out.forEach((t) => { cnt[t] = (cnt[t] || 0) + 1; });
+  const dup = Object.keys(cnt).filter((k) => cnt[k] > 1 && k.length > 12);
+
+  lastCheck = {
+    ok: complete && !over.length && !tail.length && !dup.length,
+    complete, diffAt, srcLen: srcJoined.length, outLen: outJoined.length,
+    over, tail, dup,
+    srcPreview: diffAt >= 0 ? srcJoined.slice(Math.max(0, diffAt - 12), diffAt + 12) : '',
+    outPreview: diffAt >= 0 ? outJoined.slice(Math.max(0, diffAt - 12), diffAt + 12) : '',
+  };
+  return lastCheck;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   5. 渲染
+   ════════════════════════════════════════════════════════════════════ */
+const state = { fs:44, pal:0, mode:'new', phone:false, guide:true };
+
+const deckEl  = document.getElementById('deck');
+const statsEl = document.getElementById('stats');
+const srcEl   = document.getElementById('src');
+const pgnEl   = document.getElementById('pgn');
+const modeTtl = document.getElementById('mode-ttl');
+const tagFs   = document.getElementById('tag-fs');
+const tagNote = document.getElementById('tag-note');
+
+function palVars(p){
+  return `--paper:${p.paper};--paper2:${p.paper2};--ink:${p.ink};` +
+         `--muted:${p.muted};--accent:${p.accent};--rule:${p.rule};--hl:${p.hl};`;
+}
+
+function articleTitle(blocks){
+  const h = blocks.find((b) => b.type === 'h1' || b.type === 'h2');
+  if (h) return h.text.slice(0, 22);
+  const p = blocks.find((b) => b.type === 'p' || b.type === 'li');
+  return p ? p.text.slice(0, 22) : '未命名';
+}
+
+function buildCard({ bodyHtml, pal, fs, idx, total, title, old }){
+  return `
+  <div class="card ${old ? 'old' : ''}" style="${palVars(pal)}">
+    <div class="grain"></div>
+    ${old ? '' : `
+    <div class="head">
+      <div class="hl"><span>${esc(title)}</span></div>
+      <div>${String(idx+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}</div>
+    </div>`}
+    <div class="card-body" style="--fs:${old ? 34 : fs}px;--lh:${old ? 1.7 : 1.78};--pgap:${old ? 35 : Math.round(fs*0.78)}px">
+      ${bodyHtml}
+    </div>
+    <div class="foot">
+      <span>SuperSu · 文字卡</span>
+      <span class="pn">${String(idx+1).padStart(2,'0')}</span>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const blocks = parseBlocks(srcEl.value);
+  const title = articleTitle(blocks);
+  const pal = PALETTES[state.pal];
+
+  let cards = [];
+
+  if (state.mode === 'new'){
+    const pages = paginate(blocks.slice(), state.fs);
+    cards = pages.map((page, i) => ({
+      html: buildCard({
+        bodyHtml: page.map((b) => inline(b.html)).join(''), pal, fs: state.fs,
+        idx: i, total: pages.length, title,
+      }),
+      body: page,
+      fill: measure(state.fs, page.map((b) => b.html)) / AVAIL,
+    }));
+    selfCheck(blocks, pages, state.fs);
+  } else {
+    const pages = paginateOld(blocks);
+    cards = pages.map((p, i) => ({
+      html: buildCard({
+        bodyHtml: `<div class="big">${esc(p.heading)}</div>` +
+          p.items.map((t, j) => `<div class="li"><span class="mk">0${j+1}</span><span class="tx">${esc(t)}</span></div>`).join(''),
+        pal, old:true, idx:i, total:pages.length, title,
+      }),
+      fill: 0.28,
+    }));
+  }
+
+  /* 尺寸 */
+  const cw = state.phone ? 375 : 300;
+  const scale = cw / CARD_W;
+
+  deckEl.innerHTML = cards.map((c, i) => {
+    const fillPct = Math.min(100, Math.round(c.fill * 100));
+    const cls = c.fill > 0.97 ? 'over' : c.fill < 0.62 ? 'low' : '';
+    return `
+    <div class="slot">
+      <div class="frame ${state.guide && state.mode==='new' ? 'show-guide' : ''}"
+           data-i="${i}" style="width:${cw}px;height:${Math.round(CARD_H*scale)}px">
+        <div class="zoom" style="transform:scale(${scale})">${c.html}</div>
+      </div>
+      <div class="cap">
+        <b>${state.mode==='new' ? '内页' : '现状'} ${i+1}</b>
+        <span>${c.body ? c.body.length + ' 块' : ''}</span>
+        ${state.mode==='new' ? `<span class="fill"><span class="bar ${cls}"><i style="width:${fillPct}%"></i></span>${fillPct}%</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  /* 灯箱点击 */
+  deckEl.querySelectorAll('.frame').forEach((f) => {
+    f.addEventListener('click', () => openLightbox(cards[+f.dataset.i].html, f.style.width));
+  });
+
+  /* 统计 */
+  const phoneFs = (state.fs * 375 / CARD_W).toFixed(1);
+  const oldPhoneFs = (34 * 375 / CARD_W).toFixed(1);
+  const totalChars = blocks.reduce((n,b)=> n + (b.text ? b.text.length : 0), 0);
+  const avgChars = cards.length ? Math.round(totalChars / cards.length) : 0;
+  const fills = cards.map((c)=>Math.round(c.fill*100));
+
+  statsEl.innerHTML = `
+    <dt>页数</dt><dd>${cards.length} 张</dd>
+    <dt>可用高度</dt><dd>${AVAIL} px</dd>
+    <dt>正文总量</dt><dd>${totalChars} 字</dd>
+    <dt>平均每页</dt><dd>${avgChars} 字</dd>
+    <dt>页面填充</dt><dd>${fills.length ? fills.join('% / ') + '%' : '—'}</dd>
+    <dt>手机等效字号</dt><dd class="${state.mode==='new' ? 'good' : 'bad'}">${state.mode==='new' ? phoneFs : oldPhoneFs} px</dd>
+    <dt>现状对比</dt><dd class="bad">${oldPhoneFs} px</dd>
+  `;
+
+  modeTtl.textContent = state.mode === 'new' ? '方案：文字卡（全文渲染）' : '现状：封面骨架复用';
+  tagFs.textContent = state.mode === 'new' ? `正文 ${state.fs}px` : '正文 34px';
+  tagNote.textContent = state.mode === 'new' ? `${cards.length} 页 · 全文无截断` : '标题 76px + 截断';
+  tagNote.className = 'tag' + (state.mode === 'new' ? '' : ' warn');
+  pgnEl.textContent = `1 / ${cards.length || 1}`;
+  document.getElementById('fs-sec').style.opacity = state.mode === 'new' ? 1 : .4;
+
+  /* 自检面板 */
+  const chkEl = document.getElementById('check');
+  if (state.mode !== 'new' || !lastCheck){
+    chkEl.className = 'check bad';
+    chkEl.innerHTML = `<b>现状方案：内容截断</b>正文只取每段前 140–200 字进 lead，` +
+      `列表每页硬切 3 条 → 原文无法还原。切回「新：文字卡」看自检。`;
+    return;
+  }
+  const c = lastCheck;
+  if (c.ok){
+    chkEl.className = 'check ok';
+    chkEl.innerHTML = `<b>✓ 分页自检通过</b>` +
+      `<ul><li>完整性：${c.srcLen} 字原文 = ${c.outLen} 字输出，逐块拼回一致</li>` +
+      `<li>无溢出：${cards.length} 页全部 ≤ ${AVAIL}px</li>` +
+      `<li>标题未落页尾</li><li>无重复块</li></ul>`;
+  } else {
+    chkEl.className = 'check bad';
+    const li = [];
+    if (!c.complete) li.push(`完整性失败（原文 ${c.srcLen} 字 / 输出 ${c.outLen} 字）` +
+      `<br>首个差异 @${c.diffAt}：原文「…${esc(c.srcPreview)}…」输出「…${esc(c.outPreview)}…」`);
+    if (c.over.length) li.push(`溢出：${c.over.join('，')}`);
+    if (c.tail.length) li.push(`标题落页尾：${c.tail.join('，')}`);
+    if (c.dup.length) li.push(`重复块 ${c.dup.length} 处`);
+    chkEl.innerHTML = `<b>✗ 分页自检失败</b><ul>${li.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+  }
+}
+
+/* 灯箱 */
+const lb = document.getElementById('lb');
+const lbFrame = document.getElementById('lb-frame');
+function openLightbox(html, cssW){
+  const maxW = Math.min(560, window.innerWidth - 120);
+  const maxH = window.innerHeight - 120;
+  const scale = Math.min(maxW / CARD_W, maxH / CARD_H);
+  lbFrame.style.width = Math.round(CARD_W * scale) + 'px';
+  lbFrame.style.height = Math.round(CARD_H * scale) + 'px';
+  lbFrame.innerHTML = `<div class="zoom" style="transform:scale(${scale})">${html}</div>`;
+  lb.classList.add('on');
+}
+document.getElementById('lb-close').addEventListener('click', () => lb.classList.remove('on'));
+lb.addEventListener('click', (e) => { if (e.target === lb) lb.classList.remove('on'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.classList.remove('on'); });
+
+/* 翻页（滚到对应卡片） */
+let curPage = 0;
+function jump(d){
+  const slots = deckEl.querySelectorAll('.slot');
+  if (!slots.length) return;
+  curPage = Math.max(0, Math.min(slots.length - 1, curPage + d));
+  slots[curPage].scrollIntoView({ behavior:'smooth', block:'center' });
+  pgnEl.textContent = `${curPage + 1} / ${slots.length}`;
+}
+document.getElementById('prev').addEventListener('click', () => jump(-1));
+document.getElementById('next').addEventListener('click', () => jump(1));
+
+/* ════════════════════════════════════════════════════════════════════
+   6. 样例文案
+   ════════════════════════════════════════════════════════════════════ */
+const SAMPLES = {
+short: `# 周末去海边，我把手机调成了飞行模式
+
+两天的沉默之后，我重新听见了海浪。
+
+1. 早点睡，别熬到两点
+2. 出门走走，别一直刷手机
+3. 给自己煮碗面
+4. 把手机放远一点
+5. 读十页书
+6. 早点回家`,
+
+mid: `# 周末去海边，我把手机调成了飞行模式
+
+两天的沉默之后，我重新听见了海浪。
+
+出发前我做了件很小的事：把手机调成飞行模式，塞进背包最底下。不是戒断，就是想让耳朵空两天。
+
+## 第一天：什么都没干
+
+到的时候是下午四点，太阳斜着，把整片海照成一块旧铜。我坐在防波堤上，看一个小孩追浪，追了大概二十分钟，一次也没追上，但他一直在笑。
+
+> 后来我想，我大概已经很久没有做过「明知道做不成还认真做」的事了。
+
+那天我没拍照片。手机在包里，包在屋里，我在外面。晚上吃饭的时候，老板娘问我要不要 Wi-Fi 密码，我说不用。
+
+## 第二天：走了七公里
+
+早上六点被海鸥吵醒，索性起来沿着海岸线走。走到一半开始下雨，不大，是那种落在皮肤上没感觉、但走十分钟全身湿的雨。
+
+1. 早点睡，别熬到两点
+2. 出门走走，别一直刷手机
+3. 给自己煮碗面
+4. 把手机放远一点
+5. 读十页书
+6. 早点回家
+
+回来的时候我想明白一件事：**不是手机太吵，是我太久没给自己留过安静的地方。**
+
+现在我把飞行模式当成一个按钮，不是仪式。累的时候就按下去，哪怕只有一小时。`,
+
+long: `# 周末去海边，我把手机调成了飞行模式
+
+两天的沉默之后，我重新听见了海浪。
+
+## 出发前
+
+我做了件很小的事：把手机调成飞行模式，塞进背包最底下。不是戒断，不是挑战，就是想让耳朵空两天。
+
+这个念头不是突然来的。上周三晚上，我在刷一个完全不想看的视频，刷到第三十分钟的时候突然意识到：我并不是在放松，我只是在等困。
+
+## 第一天：什么都没干
+
+到的时候是下午四点，太阳斜着，把整片海照成一块旧铜。我坐在防波堤上，看一个小孩追浪，追了大概二十分钟，一次也没追上，但他一直在笑。
+
+> 后来我想，我大概已经很久没有做过「明知道做不成还认真做」的事了。
+
+那天我没拍照片。手机在包里，包在屋里，我在外面。晚上吃饭的时候，老板娘问我要不要 Wi-Fi 密码，我说不用。她愣了一下，然后笑了，说：「你是这个月第三个。」
+
+## 第二天：走了七公里
+
+早上六点被海鸥吵醒。不是被吵醒的，是本来就睡得浅，海鸥只是给了我一个起床的理由。
+
+沿着海岸线走，走到一半开始下雨。不大，是那种落在皮肤上没感觉、但走十分钟全身湿透的雨。我没躲，因为躲也没地方躲，前面是三公里沙滩，后面是三公里沙滩。
+
+1. 早点睡，别熬到两点
+2. 出门走走，别一直刷手机
+3. 给自己煮碗面
+4. 把手机放远一点
+5. 读十页书
+6. 早点回家
+
+这六条是我在回程的车上写的，不是攻略，是给自己的提醒。
+
+## 回来之后
+
+我打开手机，187 条未读。逐条看完，需要回复的只有 4 条。
+
+这大概是这两天最有价值的一个数字。**不是手机太吵，是我太久没给自己留过安静的地方。**
+
+现在我把飞行模式当成一个按钮，不是仪式。累的时候就按下去，哪怕只有一小时。
+
+---
+
+## 最后
+
+如果你也想试，不用去海边。把手机放进抽屉，出门走二十分钟就行。
+
+安静不需要风景，只需要一段没人能找到你的时间。`
+};
+
+/* ════════════════════════════════════════════════════════════════════
+   7b. 全组合自检（#selftest 触发，用于自动化验证而不是靠肉眼看）
+   ════════════════════════════════════════════════════════════════════ */
+function runAllTests(){
+  const rows = [];
+  const tiers = [44, 52, 60];
+  for (const key of Object.keys(SAMPLES)){
+    for (const fs of tiers){
+      const blocks = parseBlocks(SAMPLES[key]);
+      const pages = paginate(blocks.slice(), fs);
+      const c = selfCheck(blocks, pages, fs);
+      const fills = pages.map((p) => Math.round(measure(fs, p.map((b) => b.html)) / AVAIL * 100));
+      const chars = blocks.filter((b) => b.text).reduce((n, b) => n + b.text.length, 0);
+      rows.push({
+        name: `${key} @ ${fs}px`, ok: c.ok, pages: pages.length,
+        chars, perPage: Math.round(chars / pages.length),
+        fills, note: c.ok ? '' :
+          [!c.complete && `完整性 ${c.srcLen}≠${c.outLen} @${c.diffAt}`,
+           c.over.length && `溢出 ${c.over.join(',')}`,
+           c.tail.length && `标题落页尾 ${c.tail.join(',')}`,
+           c.dup.length && `重复 ${c.dup.length}`].filter(Boolean).join(' / '),
+      });
+    }
+  }
+  const pass = rows.filter((r) => r.ok).length;
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:0;z-index:99;background:#fbfaf7;overflow:auto;' +
+    'padding:24px;font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;color:#1c1a16';
+  box.innerHTML = `
+    <h2 style="margin:0 0 4px;font-size:16px">分页全组合自检 · ${pass}/${rows.length} 通过 · BUILD-${BUILD}</h2>
+    <p style="color:#8a8378;margin:0 0 16px">每个组合都逐块比对原文与输出，任何丢字/重复/溢出即 FAIL</p>
+    <table style="border-collapse:collapse;width:100%;max-width:1000px">
+      <thead><tr style="text-align:left;color:#8a8378">
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">组合</th>
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">结果</th>
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">页数</th>
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">总字数</th>
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">每页字数</th>
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">各页填充</th>
+        <th style="padding:6px 10px;border-bottom:1px solid #ded8cb">问题</th>
+      </tr></thead><tbody>
+      ${rows.map((r) => `<tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de">${r.name}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de;color:${r.ok ? '#1e6b4a' : '#a3271a'};font-weight:600">${r.ok ? 'PASS' : 'FAIL'}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de">${r.pages}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de">${r.chars}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de">${r.perPage}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de">${r.fills.join('% / ')}%</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee9de;color:#a3271a">${r.note || '—'}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    <p style="margin:16px 0 0;color:#8a8378">可用高度 ${AVAIL}px · 卡片 ${CARD_W}×${CARD_H}</p>`;
+  document.body.appendChild(box);
+  document.title = `SELFTEST ${pass}/${rows.length}`;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   8. 交互接线
+   ════════════════════════════════════════════════════════════════════ */
+function segWire(id, key, cast){
+  const el = document.getElementById(id);
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    state[key] = cast ? cast(b.dataset.v) : b.dataset.v;
+    render();
+  });
+}
+segWire('mode','mode');
+segWire('tier','fs', Number);
+
+/* 色板 */
+const palsEl = document.getElementById('pals');
+palsEl.innerHTML = PALETTES.map((p, i) => `
+  <button class="pal" data-i="${i}" aria-pressed="${i===0}">
+    <span class="dots">
+      <i style="background:${p.paper}"></i><i style="background:${p.ink}"></i><i style="background:${p.accent}"></i>
+    </span>
+    <span class="nm">${p.name}</span>
+  </button>`).join('');
+palsEl.addEventListener('click', (e) => {
+  const b = e.target.closest('.pal'); if (!b) return;
+  palsEl.querySelectorAll('.pal').forEach((x) => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.pal = +b.dataset.i;
+  render();
+});
+
+/* 样例 */
+document.querySelectorAll('.samples button').forEach((b) => {
+  b.addEventListener('click', () => { srcEl.value = SAMPLES[b.dataset.sample]; render(); });
+});
+
+document.getElementById('phone').addEventListener('change', (e) => { state.phone = e.target.checked; render(); });
+document.getElementById('guide').addEventListener('change', (e) => { state.guide = e.target.checked; render(); });
+
+let t = null;
+srcEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 220); });
+
+/* 启动 */
+srcEl.value = SAMPLES.mid;
+render();
+
+/* #selftest → 跑全组合，用截图当证据 */
+if (location.hash === '#selftest') runAllTests();
+
+/* #phone → 直接以手机视角打开（375px），用于检查「手机上到底看不看得清」 */
+if (location.hash === '#phone'){
+  state.phone = true;
+  document.getElementById('phone').checked = true;
+  render();
+}
+
+/* #old → 直接打开现状对比 */
+if (location.hash === '#old'){
+  state.mode = 'old';
+  document.querySelectorAll('#mode button').forEach((b) =>
+    b.setAttribute('aria-pressed', b.dataset.v === 'old' ? 'true' : 'false'));
+  render();
+}
+</script>
+</body>
+</html>
