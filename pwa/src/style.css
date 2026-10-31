@@ -656,3 +656,31 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 .mp-status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.7; }
 .mp-status.ok { background: rgba(46, 125, 50, .12); color: #2e7d32; }
 .mp-status.warn { background: rgba(230, 126, 34, .12); color: #b3651c; }
+
+/* ── 备份 / 恢复对话框（2026-11-01，审计 P1） ───────────────────── */
+.bk-stat { margin: 10px 0 14px; padding: 10px 12px; border-radius: 8px;
+  background: var(--border); font-size: 12px; color: var(--text-soft); }
+.bk-block { margin-bottom: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.bk-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.bk-check { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 10px;
+  font-size: 12px; line-height: 1.6; color: var(--text-soft); cursor: pointer; }
+.bk-check input { margin-top: 2px; flex: none; }
+.bk-modes { display: flex; flex-direction: column; gap: 2px; margin: 8px 0; }
+.bk-preview { margin: 10px 0; padding: 10px 12px; border-radius: 8px;
+  font-size: 12px; line-height: 1.7; }
+.bk-preview.ok { background: rgba(46, 125, 50, .12); color: #2e7d32; }
+.bk-preview.err { background: rgba(198, 40, 40, .12); color: #c62828; }
+
+/* ── 备份 / 恢复对话框（2026-11-01，审计 P1） ───────────────────── */
+.bk-stat { margin: 10px 0 14px; padding: 10px 12px; border-radius: 8px;
+  background: var(--border); font-size: 12px; color: var(--text-soft); }
+.bk-block { margin-bottom: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.bk-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.bk-check { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 10px;
+  font-size: 12px; line-height: 1.6; color: var(--text-soft); cursor: pointer; }
+.bk-check input { margin-top: 2px; flex: none; }
+.bk-modes { display: flex; flex-direction: column; gap: 2px; margin: 8px 0; }
+.bk-preview { margin: 10px 0; padding: 10px 12px; border-radius: 8px;
+  font-size: 12px; line-height: 1.7; }
+.bk-preview.ok { background: rgba(46, 125, 50, .12); color: #2e7d32; }
+.bk-preview.err { background: rgba(198, 40, 40, .12); color: #c62828; }

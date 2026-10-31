@@ -9,6 +9,7 @@ import { createEngine } from './bridge.js';
 import { renderLight } from './light.js';
 import { scanExternalImages, localizeImages, failureSummary } from './images.js';
 import { insertImageFiles } from './editor-images.js';
+import { buildBackup, backupSummary, downloadBackup, parseBackup, applyBackup } from './backup.js';
 import { loadCfg, saveCfg, isConfigured, testConnection, pushDraft, wechatErrMsg } from './push.js';
 
 /* ── 存储键 ─────────────────────────────────────────────────── */
@@ -902,6 +903,105 @@ async function insertEditorImages(files) {
 
 function fmtKb(n) { return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.round(n / 1024)}KB`; }
 
+/* ── 备份 / 恢复本机数据（2026-11-01，审计 P1）─────────────────
+ * 数据只在单浏览器 localStorage，清缓存即全丢 → 提供 JSON 导出/导入。
+ * 键范围用 `supersu.` 前缀全量扫描（与 clearAll 同一真源，新增键自动纳入）。 */
+
+let pendingBackup = null;   // 已解析、待恢复的备份
+
+function openBackupDialog() {
+  $('bk-dialog').hidden = false;
+  $('bk-mask').hidden = false;
+  refreshBackupStat();
+  $('bk-preview').hidden = true;
+  $('btn-bk-restore').disabled = true;
+  pendingBackup = null;
+  $('bk-file').value = '';
+}
+
+function closeBackupDialog() {
+  $('bk-dialog').hidden = true;
+  $('bk-mask').hidden = true;
+  pendingBackup = null;
+}
+
+function refreshBackupStat() {
+  const b = buildBackup({ includeSecrets: false });
+  const s = backupSummary(b);
+  const parts = [`当前本机共 ${s.keyCount} 项数据（约 ${fmtKb(s.bytes)}）`];
+  if (s.hasDraft) parts.push('含草稿');
+  if (s.skipped) parts.push(`${s.skipped} 项 Key 默认不导出`);
+  $('bk-stat').textContent = parts.join(' · ');
+}
+
+function bindBackupDialog() {
+  $('btn-bk-close').addEventListener('click', closeBackupDialog);
+  $('bk-mask').addEventListener('click', closeBackupDialog);
+
+  $('btn-bk-export').addEventListener('click', () => {
+    const includeSecrets = $('bk-include-secrets').checked;
+    const b = buildBackup({ includeSecrets });
+    const name = downloadBackup(b);
+    const s = backupSummary(b);
+    toast(
+      includeSecrets
+        ? `已导出 ${name}（${s.keyCount} 项，含 API Key —— 请勿分享此文件）`
+        : `已导出 ${name}（${s.keyCount} 项，约 ${fmtKb(s.bytes)}）`,
+      'ok',
+    );
+  });
+
+  // 选文件后先解析并预览，不直接覆盖 —— 恢复是不可逆操作，必须先让用户看清要写入什么
+  $('bk-file').addEventListener('change', async () => {
+    const f = $('bk-file').files?.[0];
+    if (!f) return;
+    const text = await f.text();
+    const r = parseBackup(text);
+    const box = $('bk-preview');
+    box.hidden = false;
+    if (!r.ok) {
+      pendingBackup = null;
+      $('btn-bk-restore').disabled = true;
+      box.className = 'bk-preview err';
+      box.textContent = `无法读取：${r.error}`;
+      return;
+    }
+    pendingBackup = r.backup;
+    const s = backupSummary(r.backup);
+    const when = r.backup.exportedAt ? new Date(r.backup.exportedAt).toLocaleString() : '未知时间';
+    box.className = 'bk-preview ok';
+    box.innerHTML = `备份来自 <b>${when}</b>，共 <b>${s.keyCount}</b> 项`
+      + (s.hasDraft ? '，含草稿' : '，不含草稿')
+      + (s.includesSecrets ? '，<b>含 API Key</b>' : '，不含 API Key')
+      + `<br>将写入 ${r.validKeys.length} 个 supersu.* 键`;
+    $('btn-bk-restore').disabled = false;
+  });
+
+  $('btn-bk-restore').addEventListener('click', () => {
+    if (!pendingBackup) return;
+    const mode = document.querySelector('input[name="bk-mode"]:checked')?.value || 'replace';
+    const confirmText = mode === 'replace'
+      ? '整机恢复会先清空当前所有本机数据（草稿、收藏、偏好、Key），再用备份覆盖。继续？'
+      : '合并恢复会用备份里的项覆盖同名项，其它现有数据保留。继续？';
+    if (!confirm(confirmText)) return;
+
+    const res = applyBackup(pendingBackup, { mode });
+    const s = backupSummary(pendingBackup);
+    closeBackupDialog();
+    toast(
+      mode === 'replace'
+        ? `已整机恢复：清空 ${res.removed} 项，写入 ${res.written} 项，页面即将刷新`
+        : `已合并恢复：写入 ${res.written} 项（未清空现有数据），页面即将刷新`,
+      'ok',
+    );
+    if (s.includesSecrets) toast('提示：本次恢复包含 API Key，请确认是在自己的设备上操作', 'err');
+    // 数据变化后必须重载：各模块的内存状态（主题/收藏/草稿）都基于旧 localStorage
+    // 重载前关掉自动保存，否则 pagehide 会用当前空编辑器覆盖刚恢复的草稿
+    window.__supersuSkipAutoSave = true;
+    setTimeout(() => location.reload(), 1200);
+  });
+}
+
 /* ── 公众号推送（高级功能，默认隐藏） ─────────────────────────
  * 门控规则（用户拍板 2026-10-31）：只有配置了 AppID/AppSecret，导出菜单才出现
  * 「推送草稿箱」、编辑器才出现「插图」；未配置时贴图只提示一次配置入口。 */
@@ -1368,10 +1468,16 @@ function bindUI() {
   });
 
   // 切走/关闭页面时补一刀（移动端 visibilitychange 比 beforeunload 可靠）
+  // ⚠️ 备份恢复后会自动 reload：此时编辑器还是空的，若照常保存会把刚恢复的草稿覆盖成空。
+  //    用 __supersuSkipAutoSave 标志跳过（2026-11-01 实测发现的真缺陷）
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveDraft(input.value);
+    if (document.visibilityState === 'hidden' && !window.__supersuSkipAutoSave) {
+      saveDraft(input.value);
+    }
   });
-  window.addEventListener('pagehide', () => saveDraft(input.value));
+  window.addEventListener('pagehide', () => {
+    if (!window.__supersuSkipAutoSave) saveDraft(input.value);
+  });
 
   // 粘贴：纯文本照旧立刻排版；带图片（截图/复制的图）则拦截并压缩插入（2026-10-31）。
   // 贴图是推送闭环的入口 → 未配置公众号推送时功能不出现（产品决策：避免「贴了图复制必丢」的坑），
@@ -1603,6 +1709,7 @@ function bindUI() {
     }
     if (act === 'clear-all') clearAll();
     if (act === 'mp-setup') openMpDialog();
+    if (act === 'backup') openBackupDialog();
     if (act === 'update') $('btn-update')?.click();   // 移动端浮动入口隐藏，从「更多」进
     if (act === 'about') openAbout();
   });
@@ -1691,11 +1798,12 @@ function bindUI() {
   // 快捷键
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doRender(); }
-    if (e.key === 'Escape') { closeDrawer(); closeAbout(); closeMpDialog(); if (!$('menu-export').hidden) { $('menu-export').hidden = true; $('btn-export').setAttribute('aria-expanded', 'false'); } }
+    if (e.key === 'Escape') { closeDrawer(); closeAbout(); closeMpDialog(); closeBackupDialog(); if (!$('menu-export').hidden) { $('menu-export').hidden = true; $('btn-export').setAttribute('aria-expanded', 'false'); } }
   });
 
   // 公众号推送（高级功能）：绑定对话框 + 按配置解锁 UI（贴图按钮 / 导出菜单推送项）
   bindMpDialog();
+  bindBackupDialog();
   refreshMpUi();
 }
 

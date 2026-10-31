@@ -11,6 +11,7 @@
 
 | 日期 | 任务 | 结果 | 详细记录 |
 |:--|:--|:--|:--|
+| 2026-11-01 | 审计 P0（线上 CSP 等安全响应头）+ P1（本机数据备份/恢复） | 已实现并通过产物级验证；门禁与线上结果见 gate-run 日志 | `output/audit-review-2026-10-31.md`（P0/P1 条目）、`pwa/src/backup.js` |
 | 2026-10-31 | 小红书 Studio 重设计落地（Phase 3 主体迁移 + §12.7 四项增强）+ 发版 | 已上线（版本/构建号见 STATE.md）；门禁与线上结果见 gate-run 日志 | `docs/design-xhs-studio-redesign.md` §9/§12、`docs/handoff-xhs-studio-redesign.md` |
 | 2026-10-31 | 三模块信息架构拆分（公众号排版/小红书标题图/小红书长图文）+ 发版 | 已上线（版本/构建号见 STATE.md）；方案与原型见 docs/design-module-split-ia.md、docs/prototypes/three-module-ia.html；门禁与线上结果见 gate-run 日志 | `docs/design-module-split-ia.md` |
 | 2026-10-30 | 独立质量诊断（71 用例 / 3 缺陷）+ 全部修复 + 产物级断言门禁 + 收尾洁癖 | 门禁 17/17；`artifact_assert` 新套件入库；归档 6 份过期方案稿 + legacy 脚本 | `docs/testing/`（四件套） |

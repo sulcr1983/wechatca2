@@ -60,6 +60,7 @@
       <button data-act="ai-tools">AI 工具</button>
       <button data-act="draft">恢复草稿</button>
       <button data-act="clear-draft">清空草稿</button>
+      <button data-act="backup">备份 / 恢复本机数据</button>
       <button data-act="clear-all">清除本地数据</button>
       <button data-act="mp-setup">高级：公众号推送</button>
       <button data-act="update">更新记录</button>
@@ -295,6 +296,48 @@
 
 <!-- ── toast ──────────────────────────────────────────────────── -->
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- ── 备份 / 恢复本机数据（2026-11-01，审计 P1）──────────────── -->
+<div class="dialog-mask" id="bk-mask" hidden></div>
+<div class="dialog" id="bk-dialog" hidden role="dialog" aria-modal="true">
+  <div class="dialog-head">
+    <div class="dialog-title"><b>备份 / 恢复本机数据</b></div>
+    <button class="icon-btn" id="btn-bk-close" aria-label="关闭">×</button>
+  </div>
+  <div class="dialog-body">
+    <p class="mp-note">草稿、收藏、主题偏好、封面设置都只存在这台设备的浏览器里。
+      清缓存、换浏览器或换电脑就会全部丢失，且无法找回 —— 定期导出一份备份是最稳的保险。</p>
+    <div class="bk-stat" id="bk-stat">正在统计…</div>
+
+    <div class="bk-block">
+      <div class="bk-title">导出备份</div>
+      <label class="bk-check">
+        <input type="checkbox" id="bk-include-secrets">
+        <span>包含 API Key（AI / 图库）—— 迁移到新设备时才需要，<b>文件请勿分享</b></span>
+      </label>
+      <button class="ghost-btn" id="btn-bk-export">导出 JSON 文件</button>
+    </div>
+
+    <div class="bk-block">
+      <div class="bk-title">从备份恢复</div>
+      <label class="ai-field">选择之前导出的 JSON 文件
+        <input type="file" id="bk-file" accept="application/json,.json">
+      </label>
+      <div class="bk-modes">
+        <label class="bk-check">
+          <input type="radio" name="bk-mode" value="replace" checked>
+          <span>整机恢复：清空现有数据后写入（推荐，换设备时用）</span>
+        </label>
+        <label class="bk-check">
+          <input type="radio" name="bk-mode" value="merge">
+          <span>合并：只覆盖备份里有的项，保留其它现有数据</span>
+        </label>
+      </div>
+      <div class="bk-preview" id="bk-preview" hidden></div>
+      <button class="ghost-btn" id="btn-bk-restore" disabled>恢复</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── 公众号推送设置（高级功能，⋯ 菜单进入） ─────────────────── -->
 <div class="dialog-mask" id="mp-mask" hidden></div>

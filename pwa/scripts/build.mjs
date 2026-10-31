@@ -664,9 +664,60 @@ function buildAssetManifest() {
 }
 
 /* ── Cloudflare Pages 响应头 ──────────────────────────────────── */
-const HEADERS_TXT = `# 由 pwa/scripts/build.mjs 生成（2026-10-18 增量更新）
+/* 安全响应头（2026-11-01，审计 SEC-01 / P0）：
+ *   纵深防御：AI Key 与图库 Key 明文存 localStorage，一旦出现 XSS 就能被带走。
+ *   本产品运行时的真实需求（逐项核对过代码，别凭印象放宽）：
+ *     · style-src 必须 unsafe-inline：排版引擎输出的是**内联样式 HTML**，这是产品核心
+ *     · script-src 必须 'wasm-unsafe-eval'：Pyodide 要实例化 WebAssembly
+ *     · worker-src 需 self/blob：engine.worker.js 用 classic Worker + importScripts
+ *     · connect-src 需放开 BYOK 大模型与 Pexels（用户自填 Key 直连，域名不固定）
+ *     · frame-src 需 srcdoc 预览（sandbox 已禁脚本，iframe 内不执行任何代码）
+ *   先用 Report-Only 观察一轮真实流量，确认无阻断再切强制（见 CSP_ENFORCE 开关）。
+ */
+const CSP_POLICY = [
+  "default-src 'self'",
+  // 内联脚本：index.html 有少量内联初始化；wasm-unsafe-eval 供 Pyodide
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  // 内联样式是产品输出形态（排版即内联 style），无法改为 nonce
+  "style-src 'self' 'unsafe-inline'",
+  // 图片：data URI（编辑器贴图/封面底图内嵌）+ blob（导出）+ 微信图床/图库外链
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  // BYOK 直连第三方大模型与 Pexels；同源主题/引擎资源
+  "connect-src 'self' https: http://127.0.0.1:*",
+  // 预览 iframe 用 srcdoc（继承 self）；封面模板用同源 html
+  "frame-src 'self' data:",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "media-src 'self' data: blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+  // 显式声明升级不安全请求，避免混合内容
+  "upgrade-insecure-requests",
+].join('; ');
+
+// 灰度开关：true = 强制拦截（Enforce），false = 只上报（Report-Only）
+// 2026-11-01 首轮发版用 Report-Only，观察 1~2 天无 report 后再切 true
+const CSP_ENFORCE = false;
+
+const CSP_HEADER = CSP_ENFORCE
+  ? 'Content-Security-Policy'
+  : 'Content-Security-Policy-Report-Only';
+
+const HEADERS_TXT = `# 由 pwa/scripts/build.mjs 生成（2026-10-18 增量更新，2026-11-01 加安全头）
 # 只有「URL 随内容变」的资源才配长缓存；HTML / SW / 版本文件必须每次校验。
 # themes、py 走 ?h=<sha256> 缓存键，由 Service Worker 命中，这里用默认策略。
+
+# ── 安全响应头（全局，所有路径）────────────────────────────────
+/*
+  ${CSP_HEADER}: ${CSP_POLICY}
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
