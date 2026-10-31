@@ -30,11 +30,15 @@
   <div class="top-left">
     <img class="brand-mark" src="./brand/logo-64.png" alt="">
     <span class="brand">SuperSu<span class="brand-tail">公众号编辑器</span></span>
-    <!-- 小红书标题图生成：放在系统名称右侧（不是最右边），文案说清它做什么。
-         窄屏用 data-short 显示短文案，避免 8 个字挤爆顶栏（2026-10-25） -->
+    <!-- 三模块导航（design-module-split-ia.md §3.1，R6 拍板全称不缩词）：
+         公众号排版 / 小红书标题图 / 小红书长图文，当前页 aria-pressed 高亮。
+         窄屏不缩词 —— 缩的是周围元素（brand 文字/副标/引擎徽标，导出并入更多菜单）。 -->
+    <button class="cover-btn" id="btn-editor" aria-pressed="true"
+            title="公众号文章排版（164 套主题）">公众号排版</button>
     <button class="cover-btn" id="btn-cover" aria-pressed="false"
-            data-short="标题图"
-            title="生成小红书标题图（3 种尺寸）">小红书标题图生成</button>
+            title="小红书标题图：一句话，配张图，出封面（3 种尺寸）">小红书标题图</button>
+    <button class="cover-btn" id="btn-longform" aria-pressed="false"
+            title="小红书长图文：一整篇文章，出一套图文（封面 + 内页）">小红书长图文</button>
     <span class="brand-sub">本地排版 · 数据不出浏览器</span>
   </div>
   <div class="top-right">
@@ -51,6 +55,9 @@
     <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
     <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
+      <button data-act="export-menu">导出与分发</button>
+      <button data-act="ai-tools">AI 工具</button>
+      <button data-act="ai-tools">AI 工具</button>
       <button data-act="draft">恢复草稿</button>
       <button data-act="clear-draft">清空草稿</button>
       <button data-act="clear-all">清除本地数据</button>
@@ -205,7 +212,8 @@
   </main>
 
 <!-- 封面页（DOM 由 src/cover/index.js 注入） -->
-<div id="cover-root" hidden></div>
+<div id="title-root" hidden></div>
+<div id="longform-root" hidden></div>
 
 <!-- 移动端底部切换 -->
 <nav class="tabs" id="tabs">

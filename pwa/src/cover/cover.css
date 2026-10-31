@@ -11,7 +11,8 @@
   --cv-panel-w: 348px;
 }
 
-#cover-root {
+#title-root,
+#longform-root {
   height: calc(100% - var(--top-h));
   background: var(--bg-canvas);
 }
@@ -28,28 +29,8 @@
 .cover-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .cover-btn[aria-pressed="true"]::before { background: #fff; }
 
-/* ══ 路径切换条（design §3：双路径，二级行）═════════════════════════
-   顶栏的 #btn-cover 已是「公众号排版 ↔ 封面页」总开关；标题图/长文图文
-   是封面页内部的选择，不该占全局导航位（handoff §5 的定案）。 */
-.cv-pathbar {
-  grid-column: 1 / -1;
-  display: flex; align-items: center; gap: 4px;
-  padding: 8px 16px 0;
-}
-.cv-path {
-  height: 34px; padding: 0 16px; border-radius: 8px;
-  font-size: 13px; font-weight: 500; color: var(--text-muted);
-  transition: background .15s, color .15s;
-}
-.cv-path:hover { color: var(--text); }
-.cv-path[aria-selected="true"] {
-  background: var(--bg-raised); color: var(--text); font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-}
-
-/* ── 面板可见性：data-path 驱动（JS 只改一个属性）─────────────────── */
-.cv-stage[data-path="cover"] [data-pane="long"],
-.cv-stage[data-path="long"] [data-pane="cover"] { display: none !important; }
+/* ══ 路径切换条已废除（2026-10-31 模块拆分）：标题图/长图长文升格为
+   平级顶级模块，导航在顶栏三 tab（design-module-split-ia.md §3.1）═══ */
 
 .cv-stage {
   height: 100%;
@@ -635,7 +616,6 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr);
   }
-  .cv-pathbar { grid-column: 1 / -1; }
   .cv-col-left { grid-row: 2; }
   .cv-col-mid { grid-row: 3; grid-column: 1; }
   .cv-col-right {
@@ -647,12 +627,13 @@
 
 /* ── 档 3：单栏（≤640）：输入 → 配图 → 预览 → 结果；抽屉变底部 sheet ── */
 @media (max-width: 640px) {
-  #cover-root { height: auto; overflow-y: auto; }
+  /* 导航 tab 全称不缩词（R6）：字号收紧。.cover-btn 基础样式在本文件，
+     媒体查询必须也放这里——放 style.css 会被本文件后加载的基础规则覆盖（实测踩过） */
+  .cover-btn { font-size: 10px; padding: 0 6px; height: 30px; }
+  #title-root,
+#longform-root { height: auto; overflow-y: auto; }
   .cv-stage { display: flex; flex-direction: column; height: auto; }
   .cv-col { overflow: visible; }
-  .cv-pathbar { padding: 8px 12px 0; position: sticky; top: 0; z-index: 6;
-    background: var(--bg); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-
   /* 顺序重排（2026-10-27 的 display:contents 方案沿用）：
      中栏拆散 → 预览优先；右栏拆散 → 风格紧跟预览；左栏输入最先。 */
   .cv-col-left { order: 1; border-right: 0; border-top: 0; }
@@ -661,11 +642,8 @@
   .cv-pv-head, .cv-preview-box, .cv-long-stage {
     order: 1; padding-left: 16px; padding-right: 16px;
   }
-  .cv-col-right > .cv-sec { padding-left: 16px; padding-right: 16px; margin-bottom: 0; }
-  .cv-col-right > .cv-sec[data-pane="cover"] {
-    order: 2; padding-top: 14px; border-top: 1px solid var(--border);
-  }
-  .cv-col-right > .cv-sec[data-pane="long"] { order: 2; padding-top: 14px; border-top: 1px solid var(--border); }
+  .cv-col-right > .cv-sec { padding-left: 16px; padding-right: 16px; margin-bottom: 0;
+    order: 2; padding-top: 14px; border-top: 1px solid var(--border); }
   .cv-out-head, #cv-gallery, #cv-empty, #cv-samples, .cv-tip { order: 3; padding-left: 16px; padding-right: 16px; }
 
   .cv-preview-box { height: min(118vw, 62vh); }

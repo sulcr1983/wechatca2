@@ -1,7 +1,7 @@
 {
   "version": "1.11.0",
-  "generatedAt": "2026-10-31T13:37:46+08:00",
-  "totalCommits": 273,
+  "generatedAt": "2026-10-31T16:27:00+08:00",
+  "totalCommits": 277,
   "releases": [
     {
       "version": "1.11.0",
@@ -16,9 +16,9 @@
       ],
       "counts": {
         "added": 2,
-        "changed": 2,
+        "changed": 5,
         "fixed": 2,
-        "other": 1
+        "other": 2
       },
       "groups": [
         {
@@ -47,6 +47,30 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "原型审批反馈落档 + 既有文档标注（R5 长文文章置顶 / R6 tab 全称）",
+              "scope": "ia",
+              "hash": "d1d5904",
+              "date": "2026-10-31T15:58:31+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "三模块 IA 可交互原型（配套 design-module-split-ia.md，供审批）",
+              "scope": "proto",
+              "hash": "d27ac0d",
+              "date": "2026-10-31T15:44:40+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "三模块拆分方案 —— 公众号排版 / 标题图 / 长图长文（前期设计，待落地）",
+              "scope": "ia",
+              "hash": "ed07964",
+              "date": "2026-10-31T14:32:24+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "台账行去掉手写数字（活文档只许指向 STATE.md）",
               "scope": "closure",
@@ -91,6 +115,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "同步线上构建号 b320（更新记录修正已上线）",
+              "scope": "state",
+              "hash": "6730c94",
+              "date": "2026-10-31T13:42:05+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "同步 STATE.md 线上构建号 + CLOSURE 台账（v1.11.0 / b316 已上线）",
               "scope": "state",

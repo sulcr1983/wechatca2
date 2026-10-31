@@ -1430,6 +1430,14 @@ function bindUI() {
       lsDel(LS.draft);
       toast('草稿已清除');
     }
+    if (act === 'ai-tools') $('btn-ai')?.click();   // 窄屏 AI 按钮收进更多菜单
+
+    if (act === 'ai-tools') $('btn-ai')?.click();   // 窄屏 AI 按钮收进更多菜单
+
+    if (act === 'export-menu') {                      // 窄屏「导出 ▾」藏进更多菜单后的可达路径
+
+      $('btn-export')?.click();
+    }
     if (act === 'clear-all') clearAll();
     if (act === 'update') $('btn-update')?.click();   // 移动端浮动入口隐藏，从「更多」进
     if (act === 'about') openAbout();
