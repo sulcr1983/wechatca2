@@ -1,7 +1,7 @@
 {
   "version": "1.9.5",
-  "generatedAt": "2026-10-31T12:22:11+08:00",
-  "totalCommits": 269,
+  "generatedAt": "2026-10-31T12:50:34+08:00",
+  "totalCommits": 270,
   "releases": [
     {
       "version": "1.9.5",
@@ -15,7 +15,7 @@
         "顺手修了两个内容 bug：封面副标会混进列表项（「…海浪。 · 1. 早点睡」）、清单条目被逗号切成两句无关的话"
       ],
       "counts": {
-        "added": 2,
+        "added": 3,
         "changed": 1,
         "fixed": 2,
         "other": 5
@@ -25,6 +25,14 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "§12.7 四项增强 —— 页码开关 / 签名 / 强制分页符 / 内页背景图",
+              "scope": "cover",
+              "hash": "23e650e",
+              "date": "2026-10-31T12:34:14+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "Phase 3 主体迁移 —— 双路径 IA + 7 角色长文渲染器 + 门禁产物断言",
               "scope": "cover",
