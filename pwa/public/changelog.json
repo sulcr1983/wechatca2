@@ -1,8 +1,61 @@
 {
-  "version": "1.13.0",
-  "generatedAt": "2026-10-31T21:01:10+08:00",
-  "totalCommits": 287,
+  "version": "1.14.0",
+  "generatedAt": "2026-10-31T21:52:19+08:00",
+  "totalCommits": 293,
   "releases": [
+    {
+      "version": "1.14.0",
+      "date": "2026-10-31",
+      "title": "高级功能：一键推送公众号草稿箱，贴图按需解锁",
+      "highlights": [
+        "一键推送草稿箱：在「⋯ → 高级：公众号推送」里填好 AppID/AppSecret，导出菜单就多出「推送草稿箱」——排好的文章连图一起进公众号后台草稿箱，不用再手动复制粘贴",
+        "贴图功能按需解锁：配置了公众号推送才会出现「插图」按钮和截图粘贴（没配置时贴了图复制过去也会丢，干脆不出现这个坑）",
+        "推送前「测试连接」会显示本机出口 IP，提醒你加进公众号后台 IP 白名单；IP 没加白名单时会直接告诉你该填哪个 IP",
+        "本机小工具 scripts/push_proxy.py：电脑上运行一条命令即可，不保存任何密码和文章，关掉窗口就停"
+      ],
+      "counts": {
+        "added": 1,
+        "other": 2
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "一键推送公众号草稿箱（高级功能，默认隐藏）",
+              "scope": "push",
+              "hash": "2116b5f",
+              "date": "2026-10-31T21:33:35+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "导出菜单断言改为可见项计数（推送项为门控解锁的高级功能）",
+              "scope": "export",
+              "hash": "b142e63",
+              "date": "2026-10-31T21:41:18+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "1.13.0 until 收口至 21:10 + 1.14.0 切点（推送高级功能）",
+              "scope": "changelog",
+              "hash": "82375f7",
+              "date": "2026-10-31T21:35:05+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.13.0",
       "date": "2026-10-31",
@@ -17,7 +70,7 @@
       ],
       "counts": {
         "added": 2,
-        "other": 1
+        "other": 4
       },
       "groups": [
         {
@@ -46,6 +99,30 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "v1.13.0 已部署上线（b337 已同步）",
+              "scope": "state",
+              "hash": "7ad52e1",
+              "date": "2026-10-31T21:05:24+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "同步 b338 与 1.13.0 待部署状态",
+              "scope": "state",
+              "hash": "8059deb",
+              "date": "2026-10-31T21:02:04+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "1.13.0 亮点补编辑器贴图功能，title 合并两主题",
+              "scope": "changelog",
+              "hash": "fc39fc8",
+              "date": "2026-10-31T21:01:51+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "1.13.0 切点 + 手写亮点（1.12.0 until 收口至 17:35）",
               "scope": "changelog",
