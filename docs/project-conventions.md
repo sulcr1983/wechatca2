@@ -132,7 +132,7 @@ type(scope): 中文摘要（不超过 50 字）
 | 3 | 文档职责重叠 | `HANDOFF` + `CLOSURE` + `docs/task_closure_*.md`×4 | ✅ 5 份 task_closure 已移入 `docs/archive/`，内容并入 CLOSURE | 低 | 已闭环 |
 | 4 | 废弃死代码 | `launcher.py`、`start_flask.py` 零引用 | ✅ 两文件已删除（2026-10 审计确认零引用后移除） | 低 | 已闭环 |
 | 5 | `blcaptain-style-skill/` 74MB | vendored（含 node_modules） | 保持 gitignore；**不在本仓库**，需单独获取 | 中（第三方） | P2 |
-| 6 | `HANDOFF` 过长 | 72.8KB | 现 83KB：已加「§0 最新交接快照」置顶（旧章节标为历史），**暂未按半年归档** | 低 | P2 |
+| 6 | `HANDOFF` 过长 | 72.8KB | ✅ **已闭环**（2026-11-01）：重写为全系统交接，27.7KB / 400 行；历史与过程记录改由 `docs/archive/` 承载 | 低 | 已闭环 |
 | 7 | 缩略图/字体等生成物 | `public/theme-thumbs`、`public/fonts`（PWA） | 进 Git（部署需要）✅ | 低 | — |
 | 8 | `output/` 长期堆积 | 无清理机制 | ✅ 2026-10-24 新增 `scripts/clean_output.py`：默认预览（保留最近 7 天），`--apply` 才真删；只动 `output/` 内部 | 低 | 已闭环 |
 

@@ -11,17 +11,13 @@
 
 | 日期 | 任务 | 结果 | 详细记录 |
 |:--|:--|:--|:--|
-| 2026-11-01 | 审计 P0（线上 CSP 等安全响应头）+ P1（本机数据备份/恢复） | 已实现并通过产物级验证；门禁与线上结果见 gate-run 日志 | `output/audit-review-2026-10-31.md`（P0/P1 条目）、`pwa/src/backup.js` |
-| 2026-10-31 | 小红书 Studio 重设计落地（Phase 3 主体迁移 + §12.7 四项增强）+ 发版 | 已上线（版本/构建号见 STATE.md）；门禁与线上结果见 gate-run 日志 | `docs/design-xhs-studio-redesign.md` §9/§12、`docs/handoff-xhs-studio-redesign.md` |
-| 2026-10-31 | 三模块信息架构拆分（公众号排版/小红书标题图/小红书长图文）+ 发版 | 已上线（版本/构建号见 STATE.md）；方案与原型见 docs/design-module-split-ia.md、docs/prototypes/three-module-ia.html；门禁与线上结果见 gate-run 日志 | `docs/design-module-split-ia.md` |
-| 2026-10-30 | 独立质量诊断（71 用例 / 3 缺陷）+ 全部修复 + 产物级断言门禁 + 收尾洁癖 | 门禁 17/17；`artifact_assert` 新套件入库；归档 6 份过期方案稿 + legacy 脚本 | `docs/testing/`（四件套） |
-| 2026-10-29 | 标题可读性护栏 + 死代码清理 + 文档一致性机检 | 上线；`core/` 收到 4 个模块；新增两道机检 | `docs/testing.md`、本文件 §3 |
-| 2026-10-29 | 文档合并：4 份重复交接/收尾文档归档成 1 份现行交接 + 本台账 | 根目录只剩 1 份交接文档 | `docs/archive/`（见 §4） |
-| 2026-10-25 | 门禁分层改造（默认测本地 / `--online` 才打线上）+ 交接文档 | 上线 | `docs/archive/handoff-2026-10-25-round.md` |
-| 2026-10-24 | 更新链路修复：版本号 + 静默自动升级 + AI 平台预设 + 全文档一致性审计（任务 20–23） | 上线 | `docs/archive/closure-2026-09-10-task-log.md` |
-| 2026-10-19 ~ 10-24 | 封面 / TXT 兼容 / 出口三件套 / 外链图本地化 / 九宫格 / 批量导图 / 模板库二维选择（任务 10–19） | 上线 | 同上 |
-| 2026-10-16 ~ 10-18 | 公众号页重设计 + 自动编辑三模式 + PWA 阶段 0 + 中文标题识别 + 品牌 logo（任务 5–9） | 上线 | 同上 |
-| 2026-07-11 ~ 10-13 | P0 修复（封面不可用 / 孤儿 LLM 调用 / 集成测试失真）+ 悬停试看改点击 + 六族十二色主题（任务 1–4） | 上线 | 同上 |
+| 2026-11-02 | 15 个杂志风版式 + 15 套整篇设计（kit）+ 编辑器图片能力 | 版式：`core/magazine_layouts.py` 新增 15 个版式（time/guardian/vogue…），注册进 `LAYOUT_REGISTRY`（19 个），出口带保真闸门；kit：15 个 `mg-*.json` 带 `kind:"kit"`+`locked_layout`（不复用 `layout`，避免被本机 `layoutOv` 覆盖），锁定时版式胶囊真 disabled、色卡置灰、退出回记忆主题；图片：恢复 `editor-images.js`（压缩 150KB/张）、`copyRich` 复制前自动内嵌外链图、搜图复用 Pexels、AI 生成英文关键词。验证：版式 15/15、kit 15/15、锁定态与退出实测、对比度 179/179、渲染 179/179 | [`HANDOFF.md`](HANDOFF.md) §0/§5、`docs/design-magazine-recipes.md`、`docs/design-kit-themes.md`、`docs/design-paste-image-and-typography.md`、`docs/research-2026-11-01-seneasy-copy-pipeline.md` |
+| 2026-11-01 | 更新记录缺最新版本（发版/部署流程加一道「更新记录」闸） | 根因：`changelog_milestones.json` 切点全靠手工加，1.14.0 之后连续三次发版漏加，1.16.0/1.16.1/1.17.0 的改动全被并进 1.14.0 卡片。修复：生成器缺切点自动补 + 自检断言、`preflight` 新增 `check_changelog()`、`build.mjs` 构建断言、`deploy.sh` 部署前复用 preflight、`release.py` 把 milestones 纳入生成物；并回填 1.14.0 收口与 1.17.0 切点/亮点 | [`AGENTS.md`](AGENTS.md) §「版本号规则」新增的更新记录说明段 |
+| 2026-11-01 | 小红书封面 UX 对抗性复核 + V2 重做（方案 / 原型 / 复核报告） | 只动 `docs/` 与 `scripts/`，**`pwa/src` 零改动**；5 个 P0 全部给实测证据并在 V2 原型里修掉；未提交 | [`HANDOFF.md`](HANDOFF.md) §6、`docs/review-xhs-studio-adversarial.md`、`docs/design-xhs-studio-final.md`、`docs/prototypes/v2/` |
+| 2026-11-01 | 全系统交接文档重写（并入探索史 / 被否方案 / 全部坑 / 未完成项） | `HANDOFF.md` 400 行；台账超 10 行，历史 11 行移入 `docs/archive/closure-2026-11.md` | [`HANDOFF.md`](HANDOFF.md) |
+
+> 更早的 11 行（2026-07-11 ~ 2026-11-01 上午）已按 §3 规则移入
+> [`docs/archive/closure-2026-11.md`](docs/archive/closure-2026-11.md)。
 
 ## 2. 一轮任务结束时做什么
 
@@ -42,6 +38,7 @@
 
 | 文件 | 是什么 |
 |:--|:--|
+| `closure-2026-11.md` | 2026-11-01 从本文件移出的 11 行台账（2026-07 ~ 2026-11） |
 | `closure-2026-09-10-task-log.md` | 任务 1–23 逐项收尾全文（930 行，含回滚点） |
 | `handoff-2026-10-flask-spec.md` | Flask 时代系统说明（模块地图 + 变更 1–24） |
 | `handover-2026-10-25-pwa-onboarding.md` | 2026-10-18 写的 PWA 交接说明 |

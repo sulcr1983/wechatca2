@@ -68,3 +68,13 @@ pwa/node_modules/
 
 # 验收脚本自动重写产物（ux_verify_p0/p1 每次运行覆盖，不入库）
 docs/ux-audit/shots/after/
+
+# 原型 v2 的字体/示例图副本（2026-11-01）
+# 为了让 docs/prototypes/v2 能被当静态站点直接托管，把 pwa/public/fonts 与 public/images
+# 拷了一份进来（13MB）。字体本来就在仓库里，不重复入库。
+# 回填：见 HANDOFF.md §3「看封面 UX 原型」
+docs/prototypes/v2/assets/
+
+# 调试/临时产物（2026-11-02）：不入库
+out/
+scripts/snippets/
