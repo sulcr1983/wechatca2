@@ -23,6 +23,8 @@
 - upgrade-insecure-requests 只在强制模式下追加 (8341e32)
 
 ### 其他
+- v1.17.0 已上线（b355，标题左对齐修复） (631164e)
+- 彻底移除公众号推送与编辑器贴图功能 (cd0668d)
 - cdp_measure 的 snippet 包成 async，支持直接 await (de0c2bf)
 - 同步部署状态（CSP 修复已上线） (9f85b62)
 - 重建 dist（CSP 修复后） (37cecda)

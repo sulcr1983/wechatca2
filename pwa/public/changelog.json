@@ -1,7 +1,7 @@
 {
   "version": "1.14.0",
-  "generatedAt": "2026-11-01T10:47:51+08:00",
-  "totalCommits": 303,
+  "generatedAt": "2026-11-01T12:02:14+08:00",
+  "totalCommits": 305,
   "releases": [
     {
       "version": "1.14.0",
@@ -16,7 +16,7 @@
       "counts": {
         "added": 2,
         "fixed": 2,
-        "other": 9
+        "other": 11
       },
       "groups": [
         {
@@ -67,6 +67,22 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "v1.17.0 已上线（b355，标题左对齐修复）",
+              "scope": "state",
+              "hash": "631164e",
+              "date": "2026-11-01T11:22:43+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "彻底移除公众号推送与编辑器贴图功能",
+              "scope": "push",
+              "hash": "cd0668d",
+              "date": "2026-11-01T11:10:00+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "cdp_measure 的 snippet 包成 async，支持直接 await",
               "scope": "tools",
