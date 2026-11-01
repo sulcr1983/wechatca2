@@ -45,15 +45,26 @@ def serve():
         def log_message(self, *a):
             pass
 
-    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    # ⚠️ 2026-11-01：端口从写死的 8090 改为让系统分配（bind 0）。
+    # 写死端口串跑时会被上一轮遗留的 TIME_WAIT 连接挡住，bind 抛
+    # PermissionError: [WinError 10013]，单跑永远正常 —— 属环境型假红。
+    global PORT
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     httpd.daemon_threads = True
     httpd.request_queue_size = 256
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    PORT = httpd.server_address[1]          # 实际拿到的端口，供 page.goto 用
     time.sleep(0.4)
     return httpd
 
 
 def main() -> int:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--smoke", action="store_true",
+                    help="只跑秒级的 UI 结构检查，跳过逐版式出图（前端改动时的快速有头验证）")
+    args = ap.parse_args()
+
     if not (DIST / "index.html").exists():
         print("pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", flush=True)
         return 2
@@ -189,6 +200,18 @@ def main() -> int:
             pick_style("editorial-dune")
             check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1)
             pick_style("editorial")
+
+            # ── --smoke：到这里就收工 ──────────────────────────────
+            # 以上是「页面结构 / 入口 / 版式卡 / 配色点 / 尺寸门控」检查，秒级完成。
+            # 下面是逐版式真出图（9 版式 + 3 尺寸 + 视觉差异比对），占整个套件
+            # 80% 以上耗时 —— 那部分属于「重 E2E」，日常前端改动不需要每次跑。
+            if args.smoke:
+                _browser.close()
+                print(f"\n{'=' * 60}")
+                print(f"封面快速验证（--smoke）：{sum(1 for _, ok, _ in results if ok)}/{len(results)} 通过")
+                print("（已跳过逐版式出图；完整验证请去掉 --smoke 或跑 run_gates --full-gates）")
+                print("=" * 60)
+                return 0 if all(ok for _, ok, _ in results) else 1
 
             # ── 每种风格必须生成「视觉上不同」的图（2026-10-25 补）──
             # 之前只断言「有 12 个按钮」，漏掉了「10 套模板纯色模式下全变灰白板」的

@@ -137,6 +137,99 @@ def load_milestones() -> list[dict]:
     return milestones
 
 
+def write_milestones(milestones: list[dict]) -> None:
+    """按「从新到旧」写回配置文件（与人工书写习惯一致）。"""
+    ordered = sorted(milestones, key=lambda m: m["until"], reverse=True)
+    with MILESTONES_FILE.open("w", encoding="utf-8", newline="\n") as fh:
+        json.dump(ordered, fh, ensure_ascii=False, indent=2)
+        fh.write("\n")
+
+
+def load_version() -> str:
+    """pwa/version.json 的语义化版本 —— 更新记录必须覆盖到这个版本。"""
+    version_file = ROOT / "pwa" / "version.json"
+    try:
+        return str(json.loads(version_file.read_text(encoding="utf-8")).get("version") or "")
+    except (OSError, ValueError) as e:
+        raise SystemExit(f"读不了 pwa/version.json（{type(e).__name__}: {e}）")
+
+
+def _parse_local_ts(value: str) -> datetime:
+    """把 '2026-10-31T23:59:59' 之类的本地时刻解析成 datetime（忽略时区后缀）。"""
+    text = str(value)[:19].replace(" ", "T")
+    return datetime.strptime(text, "%Y-%m-%dT%H:%M:%S")
+
+
+def _head_commit_time() -> datetime | None:
+    """HEAD 提交的提交时间（本地时区），用来保证新切点不会漏掉已经存在的提交。"""
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(ROOT), "log", "-1", "--date=iso-strict", "--format=%cd"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if r.returncode != 0 or not (r.stdout or "").strip():
+        return None
+    try:
+        return _parse_local_ts(r.stdout.strip())
+    except ValueError:
+        return None
+
+
+def ensure_milestone(milestones: list[dict], version: str) -> tuple[list[dict], dict | None]:
+    """保证 version.json 的版本在切点表里；缺了就追加一条「自动切点」。
+
+    2026-11-01 事故：1.14.0 之后连续三次发版（1.16.0 / 1.16.1 / 1.17.0）都忘了
+    手工加切点，于是所有改动都被塞进 1.14.0，用户打开更新记录看不到新内容。
+    现在由脚本兜住：版本号变了但切点没加 → 自动补一条，不再依赖人记得。
+
+    返回 (milestones, 新增的 milestone 或 None)。
+    """
+    if not version:
+        return milestones, None
+    if any(m["version"] == version for m in milestones):
+        return milestones, None
+
+    prev = milestones[-1] if milestones else None
+    now = datetime.now(CST).replace(tzinfo=None, microsecond=0)
+    head = _head_commit_time()
+    candidates = [now] + ([head] if head else [])
+    if prev:
+        # 新切点必须晚于上一条的 until，否则排序后会乱序 / 覆盖
+        try:
+            candidates.append(_parse_local_ts(prev["until"]) + timedelta(seconds=1))
+        except (KeyError, ValueError):
+            pass
+    until = max(candidates)
+    milestone = {
+        "version": version,
+        "date": now.strftime("%Y-%m-%d"),
+        "title": "",
+        "until": until.strftime("%Y-%m-%dT%H:%M:%S"),
+        # 自动补的切点做标记：以后人工补 title / highlights 时能看出来是兜底产物
+        "auto": True,
+    }
+    return milestones + [milestone], milestone
+
+
+def auto_highlights(items: list[dict]) -> list[str]:
+    """自动切点没有手写亮点时，从用户可见的条目里挑 3 条当作亮点。
+
+    只取非 dev（test/chore/docs 折叠项）且非发布噪音的条目，原文即 commit 标题，
+    不编造文案 —— 有手写 highlights 时永远优先用人工那三条。
+    """
+    picked: list[str] = []
+    for commit in items:
+        if commit["type"] in DEV_TYPES:
+            continue
+        text = commit["text"]
+        if text and text not in picked:
+            picked.append(text)
+        if len(picked) >= 3:
+            break
+    return picked
+
+
 def assign_release(commit_date: str, milestones: list[dict]) -> dict:
     """取 until 覆盖该时刻的最早（最接近）那个版本；越界兜到最新版本。
 
@@ -182,13 +275,20 @@ def build_payload(commits: list[dict], milestones: list[dict]) -> tuple[dict, di
                 )
             groups.append({"type": group_key, "label": GROUP_LABELS[group_key], "items": out_items})
             counts[group_key] = len(out_items)
+        # 手写亮点优先；自动补的切点没有手写亮点时，从真实条目里挑 3 条兜底，
+        # 否则用户在更新记录里看到的是一个只有版本号、没有内容的空卡片。
+        highlights = milestone.get("highlights") or []
+        if not highlights and milestone.get("auto"):
+            highlights = auto_highlights(items)
         releases.append(
             {
                 "version": milestone["version"],
                 "date": milestone["date"],
                 "title": milestone["title"],
                 # 发版时手写的 3 条「人话」亮点：更新记录与发布小票优先展示它们
-                "highlights": milestone.get("highlights") or [],
+                "highlights": highlights,
+                # 切点是脚本兜底补的（没人工写 title/highlights）：留痕，便于事后补文案
+                "autoCut": bool(milestone.get("auto")),
                 "counts": counts,
                 "groups": groups,
             }
@@ -243,7 +343,8 @@ def write_files(payload: dict) -> None:
         fh.write(render_markdown(payload))
 
 
-def self_check(payload: dict, kept: list[dict], raw_total: int, filtered: list[dict]) -> bool:
+def self_check(payload: dict, kept: list[dict], raw_total: int, filtered: list[dict],
+               expect_version: str = "") -> bool:
     print("=" * 60)
     print(f"版本数：{len(payload['releases'])}")
     print(f"git 原始 commit 数：{raw_total}，过滤噪音：{len(filtered)}，入库：{payload['totalCommits']}")
@@ -252,7 +353,8 @@ def self_check(payload: dict, kept: list[dict], raw_total: int, filtered: list[d
             print(f"  - 过滤 {commit['hash']} {commit['date']} {commit['subject']}")
     print("-" * 60)
     for release in payload["releases"]:
-        print(f"  {release['version']:<7} {release['date']}  {len(sum((g['items'] for g in release['groups']), [])):>3} 条  {release['title']}")
+        flag = "  [自动切点]" if release.get("autoCut") else ""
+        print(f"  {release['version']:<7} {release['date']}  {len(sum((g['items'] for g in release['groups']), [])):>3} 条  {release['title']}{flag}")
         if not release["groups"]:
             print(f"    !! {release['version']} 没有任何条目，里程碑切分有误")
 
@@ -271,18 +373,53 @@ def self_check(payload: dict, kept: list[dict], raw_total: int, filtered: list[d
     md_lines = len(MD_OUT.read_text(encoding="utf-8").splitlines()) if MD_OUT.exists() else 0
     print(f"CHANGELOG.md 行数：{md_lines}")
 
-    ok = counted == reloaded["totalCommits"] and all(r["groups"] for r in reloaded["releases"])
-    print("自检：" + ("通过" if ok else "未通过"))
+    problems: list[str] = []
+    if counted != reloaded["totalCommits"]:
+        problems.append(f"条目合计 {counted} ≠ totalCommits {reloaded['totalCommits']}")
+    empty = [r["version"] for r in reloaded["releases"] if not r["groups"]]
+    if empty:
+        problems.append(f"这些版本没有任何条目（切点有误）：{', '.join(empty)}")
+
+    # ★ 2026-11-01 事故防线：更新记录的最新版本必须等于 pwa/version.json 的版本。
+    # 缺切点时所有新改动都会挤进旧版本卡片，用户打开更新记录看不到最新内容。
+    latest = reloaded["releases"][0]["version"] if reloaded["releases"] else ""
+    print(f"最新版本：更新记录 v{latest} / version.json v{expect_version or '?'}")
+    if expect_version and latest != expect_version:
+        problems.append(
+            f"更新记录最新版本 v{latest} ≠ pwa/version.json v{expect_version}"
+            f"（缺版本切点：在 changelog_milestones.json 补一条，或去掉 --no-auto-cut 让其自动补）")
+
+    if problems:
+        for p in problems:
+            print(f"  ⛔ {p}")
+    print("自检：" + ("通过" if not problems else "未通过"))
     print("=" * 60)
-    return ok
+    return not problems
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="从 git 历史生成 changelog.json 与 CHANGELOG.md")
     parser.add_argument("--check", action="store_true", help="只做解析与自检，不写文件")
+    parser.add_argument("--no-auto-cut", action="store_true",
+                        help="版本号不在切点表里时不自动补切点，直接失败（CI 严格模式）")
     args = parser.parse_args()
 
+    version = load_version()
     milestones = load_milestones()
+    milestones, added = ensure_milestone(milestones, version)
+    if added:
+        # --check 与 --no-auto-cut 都是「严格模式」：只报警，不偷偷改配置
+        if args.no_auto_cut or args.check:
+            print("⛔ 更新记录缺版本切点：")
+            print(f"   pwa/version.json = v{version}，但 changelog_milestones.json 里没有这个版本。")
+            print("   后果：这个版本的所有改动都会被塞进上一版卡片，用户打开更新记录看不到最新内容。")
+            print("   修复：补一条切点（version/date/title/until/highlights），或直接跑 "
+                  "python pwa/scripts/gen_changelog.py 让其自动补切点。")
+            return 1
+        print(f"⚠️  pwa/version.json 是 v{version}，切点表里没有 —— 已自动补一条切点（date={added['date']}, until={added['until']}）")
+        print("   建议事后补上 title 与 highlights（3 条人话），更新记录里才会好看。")
+        write_milestones(milestones)
+
     commits = parse_commits(git_log())
     kept = [c for c in commits if not NOISE_RE.match(c["subject"])]
     filtered = [c for c in commits if NOISE_RE.match(c["subject"])]
@@ -290,7 +427,7 @@ def main() -> int:
     payload, _ = build_payload(kept, milestones)
     if not args.check:
         write_files(payload)
-    return 0 if self_check(payload, kept, len(commits), filtered) else 1
+    return 0 if self_check(payload, kept, len(commits), filtered, version) else 1
 
 
 if __name__ == "__main__":

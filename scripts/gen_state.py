@@ -118,7 +118,10 @@ def latest_gate() -> tuple[str, str, str]:
     m = re.search(r"# summary (\d+)/(\d+) stopped_at=(\S+)", txt)
     res = f"{m.group(1)}/{m.group(2)}" if m else "?"
     if m and m.group(3) not in ("None", "none"):
-        res += f"（在 {m.group(3)} 停）"
+        # 2026-11-01：门禁改为「失败不中断」，stopped_at 现在记录的是失败套件清单
+        # （逗号分隔，None 表示全绿），不再是「停在哪一个」。
+        names = m.group(3).split(",")
+        res += f"（失败：{', '.join(names)}）"
     stamp = dt.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
     return stamp, res, p.name
 

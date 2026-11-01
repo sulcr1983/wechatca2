@@ -78,7 +78,14 @@ def skip(name, detail=""):
 
 def serve():
     """静态服务 dist。⚠️ 必须起 serve_forever 线程（qa_story_verify.py 同款）——
-    只建 TCPServer 不启动 = 连接被 backlog 收下但永远不响应，page.goto 会挂死。"""
+    只建 TCPServer 不启动 = 连接被 backlog 收下但永远不响应，page.goto 会挂死。
+
+    ⚠️ 2026-11-01：端口从写死的 8097 改为让系统分配（bind 0）。
+    写死端口在串跑时必踩：前一个套件刚在这个端口上建立过大量连接，
+    它们还在 TIME_WAIT，紧接着重新 bind 会被 Windows 拒绝，报
+    `PermissionError: [WinError 10013]`，而单跑永远复现不了 ——
+    门禁「失败即停」于是停在长图文，后面十几个套件根本没跑。
+    """
     import functools
     import http.server
     import socketserver
@@ -90,9 +97,11 @@ def serve():
 
     socketserver.TCPServer.allow_reuse_address = True
     httpd = socketserver.ThreadingTCPServer(
-        ("127.0.0.1", PORT), functools.partial(H, directory=str(DIST)))
+        ("127.0.0.1", 0), functools.partial(H, directory=str(DIST)))
     httpd.daemon_threads = True
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    global PORT
+    PORT = httpd.server_address[1]          # 实际拿到的端口，供 page.goto 用
     print(f"serving {DIST} at http://127.0.0.1:{PORT}/", flush=True)
     return httpd
 

@@ -66,9 +66,15 @@ def _find_node() -> str:
 
 NODE = _find_node()
 VERSION_FILE = ROOT / "pwa" / "version.json"
-# build.mjs 会重写这四份已跟踪文件（CHANGELOG / changelog.json / version.json / STATE.md），
+# build.mjs 会重写这几份已跟踪文件（CHANGELOG / changelog.json / version.json / STATE.md），
 # 它们都是「构建产物」而非手写代码，统一在这里列一次，第 6 步按它提交、按它放行。
-GENERATED = ["CHANGELOG.md", "pwa/public/changelog.json", "pwa/version.json", "STATE.md"]
+#
+# ⚠️ 2026-11-01 加入 changelog_milestones.json：
+#    版本切点不再是「发完版记得手工加」的附赠动作 —— gen_changelog 会在缺切点时
+#    自动补一条写回该文件。既然它会变，就必须跟其它生成物一起提交，
+#    否则第 5 步 preflight --deploy 会被「工作区脏」拦下。
+GENERATED = ["CHANGELOG.md", "pwa/public/changelog.json", "pwa/version.json",
+             "pwa/scripts/changelog_milestones.json", "STATE.md"]
 
 steps_done: list[str] = []
 
@@ -78,7 +84,8 @@ def say(msg: str) -> None:
 
 
 def run(cmd: list[str], desc: str, *, check: bool = True,
-        dry: bool = False, timeout: int = 3600) -> tuple[bool, str]:
+        dry: bool = False, timeout: int = 3600,
+        extra_env: dict | None = None) -> tuple[bool, str]:
     """跑一条命令。dry=True 只打印不执行。
 
     ⚠️ 2026-10-25：去掉 IDE/沙箱注入的 node 删除保护环境变量。
@@ -98,6 +105,14 @@ def run(cmd: list[str], desc: str, *, check: bool = True,
     for k in ("NODE_OPTIONS", "CODEBUDDY_SAFE_DELETE_BULK_GUARD",
               "CODEBUDDY_SAFE_DELETE_SANDBOX"):
         env.pop(k, None)
+    # ⚠️ 2026-11-01：子进程输出走管道时 Windows 默认 GBK，任何带 emoji/特殊
+    # 字符的脚本（run_gates 开头就打印 🛡️）会 UnicodeEncodeError 退出 1，
+    # 看上去像「门禁失败」，实际是一键发版根本跑不完。这里统一钉成 UTF-8，
+    # 不依赖调用方是控制台还是管道。
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+    if extra_env:
+        env.update(extra_env)
     try:
         # ⚠️ 必须把上面清干净后的 env 真的传下去：漏传过一次（2026-10-29），
         # 结果 NODE_OPTIONS 里的 node-shim 仍生效，build.mjs 的 rmrf 被
@@ -190,22 +205,24 @@ def plan(args, new_ver: str) -> None:
     say(f"发版计划    当前版本 {read_version()}  →  目标版本 {new_ver}")
     say("=" * 66)
     rows = [
-        ("1", "前置检查", "preflight（dist 新鲜度 / 工作区）"),
-        ("2", f"升版本 → {new_ver}", "写 pwa/version.json"),
-        ("3", "生成更新记录", "pwa/scripts/gen_changelog.py"),
-        ("4", "构建 dist", "node pwa/scripts/build.mjs（注入 build=git 提交数）"),
-        ("5", "本地层门禁" if not args.skip_tests else "门禁（跳过）",
-         "run_gates.py（测当前代码）"),
-        ("6", "提交生成物", "CHANGELOG.md + changelog.json + version.json + STATE.md"),
-        ("7", "部署前复查", "preflight --deploy（工作区脏即拦）"),
-        ("8", "推送", "git push origin main"),
-        ("9", "部署" if not args.no_deploy else "部署（跳过）",
+        ("1", f"升版本 → {new_ver}", "写 pwa/version.json"),
+        ("2", "构建 dist", "build.mjs（内含生成更新记录 + 注入 build=git 提交数）"),
+        ("3", "本地层门禁" if not args.skip_tests else "门禁（跳过）",
+         "run_gates.py --local（本地层全跑）" if args.full_gates
+         else "run_gates.py（按改动面选套件，加 --full-gates 才全跑）"),
+        ("4", "提交生成物", "CHANGELOG.md + changelog.json + milestones + version.json + STATE.md"),
+        ("5", "部署前复查", "preflight --deploy（工作区脏即拦）"),
+        ("6", "推送", "git push origin main"),
+        ("7", "部署" if not args.no_deploy else "部署（跳过）",
          "pwa/scripts/deploy.sh → Cloudflare Pages"),
-        ("10", "线上验证" if not args.no_deploy else "线上验证（跳过）",
+        ("8", "线上验证" if not args.no_deploy else "线上验证（跳过）",
          "run_gates.py --online（版本对齐 + 冒烟）"),
     ]
     for n, name, cmd in rows:
         say(f"  {n:>2}. {name:<16} {cmd}")
+    say("")
+    say(f"  ℹ️  第 3 步会自动在 pwa/scripts/changelog_milestones.json 补 v{new_ver} 的切点；")
+    say("     想让更新记录好看，发版前把它的 title 与 highlights（3 条人话）填上。")
     say("")
     if args.skip_tests:
         say("  ⚠️  已指定 --skip-tests：门禁不跑，风险自负。")
@@ -224,6 +241,8 @@ def main() -> int:
     ap.add_argument("--version", default="", help="指定版本号（默认 patch +1）")
     ap.add_argument("--dry-run", action="store_true", help="只演练不执行（建议先跑）")
     ap.add_argument("--skip-tests", action="store_true", help="跳过门禁（紧急热修才用）")
+    ap.add_argument("--full-gates", action="store_true",
+                    help="发版门禁跑本地层全量（默认按改动面选套件，快；放心结时才用）")
     ap.add_argument("--no-deploy", action="store_true", help="只提交推送，不部署")
     ap.add_argument("--yes", action="store_true", help="跳过确认")
     args = ap.parse_args()
@@ -256,38 +275,48 @@ def main() -> int:
             say("\n已取消。")
             return 1
 
-    # ── 1 前置检查 ──
-    run([str(PY), "scripts/preflight.py"], "1/10 前置检查（dist 新鲜度 / 工作区）")
-    steps_done.append("preflight")
-
-    # ── 2 升版本 ──
-    say(f"\n▶ 2/10 升版本 {cur} → {new_ver}")
+    # ── 1 升版本 ──
+    # 2026-11-01 精简：原第 1 步「前置检查」已删。理由：release 调的是不带
+    # --deploy 的 preflight，工作区脏时只 WARN 不拦（实测：18 个未提交文件仍
+    # exit=0 打「✅ 通过」）。真正拦截的是第 6 步的 preflight --deploy，
+    # 那道还在，删掉的只是一次无意义的重复扫描。
+    say(f"\n▶ 1/8 升版本 {cur} → {new_ver}")
     write_version(new_ver)
     say(f"  → OK（已写 {VERSION_FILE.relative_to(ROOT)}）")
     steps_done.append("bump")
 
-    # ── 3 生成更新记录 ──
-    run([str(PY), "pwa/scripts/gen_changelog.py"], "3/10 生成更新记录（CHANGELOG.md + changelog.json）")
-    steps_done.append("changelog")
-
-    # ── 4 构建 ──
-    run([NODE, "pwa/scripts/build.mjs"], "4/10 构建 dist（注入 build = git 提交数）")
+    # ── 2 构建 ──
+    # 2026-11-01 精简：原「生成更新记录」独立步骤已删 —— build.mjs 内部第 476 行
+    # 就调用同一个 gen_changelog.py，紧接着又自己校验「更新记录最新版本 == 构建版本」
+    # 并 exit 1。那一步纯属把同一个脚本连跑两遍。
+    # 缺切点仍会自动补（gen_changelog 普通模式行为），只是现在由 build 触发。
+    run([NODE, "pwa/scripts/build.mjs"],
+        "2/8 构建 dist（内含生成更新记录 + 注入 build = git 提交数）")
     steps_done.append("build")
 
-    # ── 5 本地层门禁 ──
+    # ── 3 本地层门禁 ──
+    # B 档（2026-11-01）：发版默认也按改动面选套件（run_gates 默认档），
+    # 改文档的发版就不必跑封面 5 分钟。想结结实实全量请加 --full-gates。
+    # 为什么敢这么改：preflight 保证 dist 与源码一致，未改动的模块在上次发版
+    # 时已经验过，这次发出去的内容并没有变化。
     if args.skip_tests:
-        say("\n▶ 5/10 门禁 —— 已跳过（--skip-tests）")
+        say("\n▶ 3/8 门禁 —— 已跳过（--skip-tests）")
     else:
-        run([str(PY), "scripts/run_gates.py"], "5/10 本地层门禁（测当前代码）", timeout=3600)
+        gate_cmd = [str(PY), "scripts/run_gates.py"]
+        gate_desc = "3/8 本地层门禁（按改动面选套件）"
+        if args.full_gates:
+            gate_cmd.append("--local")
+            gate_desc = "3/8 本地层门禁（--full-gates：本地层全跑）"
+        run(gate_cmd, gate_desc, timeout=3600)
         steps_done.append("gates")
 
-    # ── 6 提交生成物 ──
-    say("\n▶ 6/10 提交生成物")
+    # ── 4 提交生成物 ──
+    say("\n▶ 4/8 提交生成物")
     status = git("status", "--porcelain", "--untracked-files=no")
     others = [ln for ln in status.splitlines()
               if ln.strip() and not any(g in ln for g in GENERATED)]
     if others:
-        # 除生成物外还有别的未提交改动 → 第 7 步 preflight --deploy 必然被拦。
+        # 除生成物外还有别的未提交改动 → 第 5 步 preflight --deploy 必然被拦。
         # 提前说清楚「是哪些文件」，不要让人误以为是发版脚本的锅。
         say("  ⛔ 除生成物外还有未提交改动，部署前检查会被拦：")
         for ln in others[:10]:
@@ -308,29 +337,34 @@ def main() -> int:
 
     # ── 7 部署前复查 ──
     run([str(PY), "scripts/preflight.py", "--deploy"],
-        "7/10 部署前复查（工作区脏即拦）")
+        "6/8 部署前复查（工作区脏即拦）")
     steps_done.append("preflight-deploy")
 
     # ── 8 推送 ──
-    run(["git", "push", "origin", "main"], "8/10 推送 origin/main")
+    run(["git", "push", "origin", "main"], "7/8 推送 origin/main")
     steps_done.append("push")
 
     if args.no_deploy:
-        say("\n▶ 9-10 部署 / 线上验证 —— 已跳过（--no-deploy）")
+        say("\n▶ 7-8 部署 / 线上验证 —— 已跳过（--no-deploy）")
         say(f"\n✅ 已完成到「推送」：v{new_ver} 已推到 origin/main，尚未部署。")
         say("   要部署请跑：bash pwa/scripts/deploy.sh")
         return 0
 
     # ── 9 部署 ──
+    # SKIP_PREFLIGHT=1：第 7 步刚跑过同一条 preflight --deploy，中间无改动，
+    # 让 deploy.sh 不再重复跑一遍；单独执行 deploy.sh 时保护照旧。
     bash = shutil.which("bash") or "bash"
-    run([bash, "pwa/scripts/deploy.sh"], "9/10 部署到 Cloudflare Pages", timeout=1800)
+    run([bash, "pwa/scripts/deploy.sh"], "8/8 部署到 Cloudflare Pages",
+        timeout=1800, extra_env={"SKIP_PREFLIGHT": "1"})
     steps_done.append("deploy")
 
-    # ── 10 线上验证 ──
-    say("\n▶ 10/10 线上验证（等 CDN 生效）")
+    # ── 8 线上验证 ──
+    say("\n▶ 8/8 线上验证（等 CDN 生效）")
     time.sleep(12)
+    # --online 只跑线上层（preflight --online + 线上冒烟），
+    # 不再把本地层整份重跑一遍 —— 第 3 步刚跑过，重复跑 10 分钟没有新增信息。
     run([str(PY), "scripts/run_gates.py", "--online"],
-        "10/10 线上层验证（版本对齐 + 冒烟）", timeout=3600)
+        "8/8 线上层验证（版本对齐 + 冒烟）", timeout=1800)
     steps_done.append("online")
 
     say("\n" + "=" * 66)

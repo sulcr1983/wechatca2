@@ -1,22 +1,24 @@
 {
-  "version": "1.14.0",
-  "generatedAt": "2026-11-01T12:02:14+08:00",
-  "totalCommits": 305,
+  "version": "1.17.0",
+  "generatedAt": "2026-11-02T00:43:19+08:00",
+  "totalCommits": 321,
   "releases": [
     {
-      "version": "1.14.0",
-      "date": "2026-10-31",
-      "title": "高级功能：一键推送公众号草稿箱，贴图按需解锁",
+      "version": "1.17.0",
+      "date": "2026-11-01",
+      "title": "安全响应头与数据备份 · 标题左对齐 · 移除推送",
       "highlights": [
-        "一键推送草稿箱：在「⋯ → 高级：公众号推送」里填好 AppID/AppSecret，导出菜单就多出「推送草稿箱」——排好的文章连图一起进公众号后台草稿箱，不用再手动复制粘贴",
-        "贴图功能按需解锁：配置了公众号推送才会出现「插图」按钮和截图粘贴（没配置时贴了图复制过去也会丢，干脆不出现这个坑）",
-        "推送前「测试连接」会显示本机出口 IP，提醒你加进公众号后台 IP 白名单；IP 没加白名单时会直接告诉你该填哪个 IP",
-        "本机小工具 scripts/push_proxy.py：电脑上运行一条命令即可，不保存任何密码和文章，关掉窗口就停"
+        "新增「本机数据备份 / 恢复」：配置、草稿、收藏一次导出成文件，换电脑或清理浏览器后能整机恢复；API Key 默认不导出，要带出去得自己勾",
+        "全站加了一道安全护栏：内容安全策略（CSP）、禁止被别的网站嵌进 iframe、限制权限与来源 —— 引擎、排版、164 套模板、导出实测零报错",
+        "长标题不再被强行凑成等长两行：改成左对齐、右侧整块留白，折行后也不会出现难看的空档",
+        "按用户要求移除公众号推送与编辑器贴图：入口、配置、代理脚本一并删掉，页面更干净"
       ],
+      "autoCut": false,
       "counts": {
         "added": 2,
+        "changed": 12,
         "fixed": 2,
-        "other": 11
+        "other": 12
       },
       "groups": [
         {
@@ -24,20 +26,122 @@
           "label": "新增",
           "items": [
             {
+              "text": "恢复编辑器贴图与搜图，复制到公众号自动内嵌图片",
+              "scope": "image",
+              "hash": "ffee888",
+              "date": "2026-11-02T00:22:05+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
               "text": "审计 P0 安全响应头 + P1 本机数据备份/恢复",
               "scope": "security+backup",
               "hash": "b878d7b",
               "date": "2026-11-01T01:18:49+08:00",
               "breaking": false,
               "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "未完成任务台账（防止对话压缩后丢任务）",
+              "scope": "",
+              "hash": "df97df6",
+              "date": "2026-11-01T23:58:24+08:00",
+              "breaking": false,
+              "dev": true
             },
             {
-              "text": "一键推送公众号草稿箱（高级功能，默认隐藏）",
-              "scope": "push",
-              "hash": "2116b5f",
-              "date": "2026-10-31T21:33:35+08:00",
+              "text": "用户实测确认「公众号接受 data URI 内嵌图」",
+              "scope": "design",
+              "hash": "5ab5db6",
+              "date": "2026-11-01T23:55:42+08:00",
               "breaking": false,
-              "dev": false
+              "dev": true
+            },
+            {
+              "text": "句方便复制链路完整抓包，推翻「对方排版更细」的判断",
+              "scope": "design",
+              "hash": "bfd582f",
+              "date": "2026-11-01T23:46:19+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "粘贴图片实测（推翻旧结论）+ 版式段去重 26→18",
+              "scope": "design",
+              "hash": "4a01b2b",
+              "date": "2026-11-01T23:41:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "字体可行性实测（公众号正文用不了自定义字体）",
+              "scope": "design",
+              "hash": "88dbda3",
+              "date": "2026-11-01T23:35:22+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "风格页加二级切换（配色主题 / 整篇设计），15 套一屏可见",
+              "scope": "prototype",
+              "hash": "40d4dce",
+              "date": "2026-11-01T23:14:40+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "抽屉改三段标签（风格 / 版式 / 更多），修「主题卡被挤没」",
+              "scope": "prototype",
+              "hash": "0f57c2f",
+              "date": "2026-11-01T23:04:04+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "kit 主题方案（15 套整篇设计）+ 引擎优化方案 + 原型实现",
+              "scope": "design",
+              "hash": "a4956c7",
+              "date": "2026-11-01T22:37:08+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "杂志风配方库 15 套（纯方案 + 原型，代码零改动）",
+              "scope": "design",
+              "hash": "2e8195d",
+              "date": "2026-11-01T22:09:18+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "方案 V3 —— 实证抄句方便 72 套的真实手法 + 紧凑版式条 + 长图文",
+              "scope": "design",
+              "hash": "4ece663",
+              "date": "2026-11-01T21:51:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "排版体系方案 V2 —— 三层模型（皮肤/钩子/版式）+ 开源调查",
+              "scope": "design",
+              "hash": "1112e97",
+              "date": "2026-11-01T21:29:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "排版骨架系统方案 —— 结构层与皮肤层分离",
+              "scope": "design",
+              "hash": "d367bdc",
+              "date": "2026-11-01T21:12:04+08:00",
+              "breaking": false,
+              "dev": true
             }
           ]
         },
@@ -67,6 +171,30 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "v1.17.0 已部署（b358，推送/贴图已移除）",
+              "scope": "state",
+              "hash": "c3c4130",
+              "date": "2026-11-01T12:16:25+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "封面可选字体清单（另一会话并行改动，随本次部署一并提交）",
+              "scope": "fonts",
+              "hash": "404aa54",
+              "date": "2026-11-01T12:13:13+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "重建 dist（移除推送/贴图后，清除 src 残留副本）",
+              "scope": "build",
+              "hash": "c90feab",
+              "date": "2026-11-01T12:12:58+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "v1.17.0 已上线（b355，标题左对齐修复）",
               "scope": "state",
@@ -138,7 +266,45 @@
               "date": "2026-10-31T22:26:09+08:00",
               "breaking": false,
               "dev": true
-            },
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.14.0",
+      "date": "2026-10-31",
+      "title": "高级功能：一键推送公众号草稿箱，贴图按需解锁",
+      "highlights": [
+        "一键推送草稿箱：在「⋯ → 高级：公众号推送」里填好 AppID/AppSecret，导出菜单就多出「推送草稿箱」——排好的文章连图一起进公众号后台草稿箱，不用再手动复制粘贴",
+        "贴图功能按需解锁：配置了公众号推送才会出现「插图」按钮和截图粘贴（没配置时贴了图复制过去也会丢，干脆不出现这个坑）",
+        "推送前「测试连接」会显示本机出口 IP，提醒你加进公众号后台 IP 白名单；IP 没加白名单时会直接告诉你该填哪个 IP",
+        "本机小工具 scripts/push_proxy.py：电脑上运行一条命令即可，不保存任何密码和文章，关掉窗口就停"
+      ],
+      "autoCut": false,
+      "counts": {
+        "added": 1,
+        "other": 2
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "一键推送公众号草稿箱（高级功能，默认隐藏）",
+              "scope": "push",
+              "hash": "2116b5f",
+              "date": "2026-10-31T21:33:35+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
             {
               "text": "导出菜单断言改为可见项计数（推送项为门控解锁的高级功能）",
               "scope": "export",
@@ -171,6 +337,7 @@
         "修：教程步骤转成列表后渲染时丢样式 —— 列表前后没空行被当成普通段落，现在引擎自动补",
         "修：长文分层对「一段开场 + 核心观点」这种典型结构不生效（首个小标题被间隔规则跳过）"
       ],
+      "autoCut": false,
       "counts": {
         "added": 2,
         "other": 4
@@ -249,6 +416,7 @@
         "手机上三个入口用全称显示（不缩写成「标题图」），空间从顶栏其他元素里腾出来；导出和 AI 工具收进了「更多」菜单",
         "顺手修：封面引语偶发混入列表项（如「…海浪。 · 1. 早点睡」）的回归"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "changed": 3,
@@ -389,6 +557,7 @@
         "长文右栏新增三个开关：显示页码（默认开）、页脚签名、内页背景图（6 套模板可用，自带背景的那几套会自动置灰并说明原因）",
         "配图从「藏在底图设置里的选项」提到首屏：搜图 / 上传 / 不要图三个大按钮，搜图还会从标题自动猜关键词（手改过就不再覆盖）"
       ],
+      "autoCut": false,
       "counts": {
         "added": 2,
         "changed": 2,
@@ -480,6 +649,7 @@
         "上传的底图会自动判断文字压不压得住：够清楚就完全不压暗，不够才在文字那一条补一层淡遮罩（不再整图压成灰雾）",
         "质量门禁补上「产物级」断言：剪贴板真实内容、导出文件真实字节、清除本地数据后无残留 —— 之前只查「按钮能用」，漏掉过 API Key 没清干净的隐私缺陷"
       ],
+      "autoCut": false,
       "counts": {
         "fixed": 1,
         "other": 5
@@ -558,6 +728,7 @@
         "生成完可以「打包整套」一次下载 ZIP（01-封面.png、02-内页1.png …）",
         "顺手修了两个内容 bug：封面副标会混进列表项（「…海浪。 · 1. 早点睡」）、清单条目被逗号切成两句无关的话"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1
       },
@@ -588,6 +759,7 @@
         "清除底图后预览会立刻回到纯色，不再留着上一张图",
         "顺手修了个小 bug：翻页标签一度显示成「第 [object PointerEvent] 页」"
       ],
+      "autoCut": false,
       "counts": {
         "fixed": 1
       },
@@ -617,6 +789,7 @@
         "配图文字的可读性按 Google 官方规范继续打磨：黑字不再加白色发光边（那会让笔画发虚）",
         "有头全量测试的过期断言修好（示例墙从 3 张改成 6 张后没跟上）"
       ],
+      "autoCut": false,
       "counts": {
         "fixed": 1
       },
@@ -648,6 +821,7 @@
         "黑字不再加白色发光边（那会让笔画发虚），而且只在真的看得清时才用黑字",
         "底图卡片上的可读性标记现在显示的是「最终成品」的数值，不再是处理前的"
       ],
+      "autoCut": false,
       "counts": {
         "fixed": 1
       },
@@ -679,6 +853,7 @@
         "底图卡片上会直接标出「文字清晰 12.3:1」或「文字会糊 2.1:1」，选图时就知道这张能不能用",
         "想手动调整？底图下面有「文字位置 偏上/居中/偏下」三档，还有可选的「文字区磨砂」开关（人物图默认不糊脸）"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1
       },
@@ -711,6 +886,7 @@
         "修好两个骗人的文字玩法：「错行」原来点了没反应（空实现），「大字压阵」原来没放大字号",
         "10 套模板的黑色遮罩按规范重做：改成取自模板自身色调的局部淡遮罩，照片不再发灰"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "other": 2
@@ -763,6 +939,7 @@
         "修的是引擎：颜色不够对比时自动按色相调一档，金色还是金色，不会变成一片黑",
         "新增对比度门禁（164 套全量），以后谁改主题颜色都有门禁把关"
       ],
+      "autoCut": false,
       "counts": {
         "changed": 2,
         "fixed": 1,
@@ -830,6 +1007,7 @@
         "版式条不再说假话——以前显示「默认」其实在跑目录导航，现在真的都是默认",
         "想用卡片流 / 杂志分栏 / 目录导航 / 首屏？点一下版式条就行，效果和以前一样"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1
       },
@@ -859,6 +1037,7 @@
         "默认版式不再自动插「本文目录」，打开就是干净正文；要目录点一下「目录导航」就行",
         "版式条现在会说真话：自带卡片流/杂志分栏的模板，会正确高亮对应的按钮"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "fixed": 1
@@ -903,6 +1082,7 @@
         "改名前的旧名字也能搜了：输入 Monocle、Vogue、字节、庙会，照样找得到现在的名字",
         "按颜色搜更准：搜「绿」从 13 套变成 29 套，茶青、竹青这类自造色名不会漏"
       ],
+      "autoCut": false,
       "counts": {
         "fixed": 1,
         "other": 1
@@ -947,6 +1127,7 @@
         "只下载变化的文件，更新包小了一个数量级",
         "升级后能直接看到「这次改了什么」，还能一键反馈问题"
       ],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "changed": 2,
@@ -1014,6 +1195,7 @@
         "模板能搜了：输入「绿」「周报」「商务」这类词就能找到",
         "手机上表格不再被压成一字一行"
       ],
+      "autoCut": false,
       "counts": {
         "added": 6,
         "changed": 4,
@@ -1300,6 +1482,7 @@
       "date": "2026-10-25",
       "title": "版式系统大修 · 小红书标题图 · 单一状态源 · 一键发版",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 2,
         "changed": 2,
@@ -1602,6 +1785,7 @@
       "date": "2026-10-24",
       "title": "AI 排版升级 · 模板库版式×色调 · 九宫格与图片导出",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 15,
         "changed": 17,
@@ -2016,6 +2200,7 @@
       "date": "2026-10-19",
       "title": "小红书封面（PWA）",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 5,
         "changed": 5,
@@ -2174,6 +2359,7 @@
       "date": "2026-10-18",
       "title": "提速与智能更新（增量 · 静默 · AI · 轻量预览）",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 3,
         "changed": 9,
@@ -2317,6 +2503,7 @@
       "date": "2026-10-18",
       "title": "PWA 主链路落地 · 上线 supersu.ccwu.cc",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "other": 2
@@ -2365,6 +2552,7 @@
       "date": "2026-10-18",
       "title": "阶段 0：引擎跑进浏览器（可行性验证）",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "changed": 1,
@@ -2420,6 +2608,7 @@
       "date": "2026-10-18",
       "title": "公众号页重做 · PWA 立项与方案定稿",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 4,
         "changed": 14,
@@ -2634,6 +2823,7 @@
       "date": "2026-10-13",
       "title": "启动链路根治与 164 套原创主题",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "changed": 2,
@@ -2712,6 +2902,7 @@
       "date": "2026-09-26",
       "title": "模板交互收口与渲染参数清理",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "changed": 2,
         "fixed": 2
@@ -2768,6 +2959,7 @@
       "date": "2026-09-25",
       "title": "主题体系重写、Pexels 配图与 UX 第一批",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 5,
         "changed": 4,
@@ -2894,6 +3086,7 @@
       "date": "2026-09-24",
       "title": "前端 UX 走查诊断与改造方案定稿",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "changed": 6
@@ -2974,6 +3167,7 @@
       "date": "2026-07-26",
       "title": "一键启动器、自动搜图与全系统 E2E",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 2,
         "changed": 3,
@@ -3116,6 +3310,7 @@
       "date": "2026-07-11",
       "title": "小红书封面修复与集成测试重写",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "changed": 1,
         "fixed": 1
@@ -3156,6 +3351,7 @@
       "date": "2026-05-27",
       "title": "AI 智能排版、配置统一与 Nuitka 打包",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 1,
         "changed": 1,
@@ -3242,6 +3438,7 @@
       "date": "2026-05-25",
       "title": "MVP 首发：本地预处理、SSE 排版与一键推送",
       "highlights": [],
+      "autoCut": false,
       "counts": {
         "added": 9,
         "changed": 3,

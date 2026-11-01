@@ -311,6 +311,11 @@ function buildThemeIndex() {
       // 这里会自动带出去，UI 才如实高亮（历史上曾因索引缺字段，界面显示「默认」
       // 实际跑着「目录导航」——见 docs/update-handoff.md）。
       layout: theme.layout || '',
+      // kit（整篇设计，2026-11-02）：版式与配色都锁死，不可与「版式层」自由组合。
+      // 用独立字段 locked_layout 而不是复用 layout —— 见 docs/design-kit-themes.md §2.3：
+      // layout 会被用户本机的 layoutOv[id] 覆盖，kit 的版式一旦被覆盖就不再锁定。
+      kind: theme.kind === 'kit' ? 'kit' : 'palette',
+      lockedLayout: theme.locked_layout || '',
     };
     entry.tags = tagsFor(entry, family);
     index.push(entry);
@@ -378,7 +383,7 @@ function main() {
 
   /* 5. Python 引擎 + markdown.zip */
   mkdirp(path.join(DIST, 'py'));
-  for (const name of ['format_engine.py', 'preprocessor.py']) {
+  for (const name of ['format_engine.py', 'preprocessor.py', 'magazine_layouts.py']) {
     copyFile(path.join(ROOT, 'core', name), path.join(DIST, 'py', name));
   }
 
@@ -468,14 +473,20 @@ function main() {
   log(`  ✓ 版本 v${ver.version}（git ${ver.build} 次提交，${ver.releasedAt}）`);
 
   // 更新记录：构建前用最新 git 历史重新生成 —— 这是「列表永远含最新内容」的保证。
-  // 失败不阻断构建，沿用现有 changelog.json（保证线上不会因为生成失败而空白）。
+  // ⚠️ 2026-11-01 事故：原来生成失败只 log 一句、沿用旧 changelog.json 就继续构建，
+  //    结果 1.14.0 之后三个版本的发版都用着停在 1.14.0 的更新记录上线了，
+  //    用户升级后「看不到这次改了什么」，而构建一路绿灯。
+  //    现在：生成失败可以容忍（沿用旧文件），但**版本对不上必须阻断** ——
+  //    否则就是把错的更新记录发出去。
   const genScript = path.join(PWA, 'scripts', 'gen_changelog.py');
+  let genError = '';
   if (fs.existsSync(genScript)) {
     try {
       execFileSync(pickPython(), [genScript], { cwd: ROOT, stdio: 'pipe' });
       log('  ✓ 更新记录已按最新 git 历史重新生成');
     } catch (e) {
-      log('  ! 重新生成更新记录失败，沿用现有 changelog.json：' + String((e && e.message) || e).split('\n')[0]);
+      genError = String((e && e.message) || e).split('\n')[0];
+      log('  ! 重新生成更新记录失败，沿用现有 changelog.json：' + genError);
     }
   }
 
@@ -484,6 +495,18 @@ function main() {
     copyFile(clSrc, path.join(DIST, 'changelog.json'));
     const cl = JSON.parse(fs.readFileSync(clSrc, 'utf8'));
     log(`  ✓ 更新记录 v${cl.version}（${cl.releases.length} 个版本 / ${cl.totalCommits} 次提交）`);
+    // 更新记录的最新版本必须等于这次构建的版本：不等就说明缺版本切点，
+    // 这一版的改动会被塞进旧卡片 —— 直接失败，不要发一份错的更新记录出去。
+    const latest = cl.releases && cl.releases[0] ? String(cl.releases[0].version || '') : '';
+    if (latest !== String(ver.version)) {
+      console.error('\n构建断言失败：');
+      console.error(`  ✗ 更新记录最新版本 v${latest} ≠ 本次构建版本 v${ver.version}`);
+      console.error('    含义：这个版本的改动被并进了旧版本卡片，用户打开更新记录看不到本次内容');
+      console.error('    修复：在 pwa/scripts/changelog_milestones.json 补这个版本的切点'
+        + '（含 title + highlights），或跑 python pwa/scripts/gen_changelog.py 自动补');
+      if (genError) console.error('    生成时的报错：' + genError);
+      process.exit(1);
+    }
   } else {
     log('  ! 没有 changelog.json，跑 python pwa/scripts/gen_changelog.py 生成');
   }

@@ -70,6 +70,38 @@ if [[ ! -f pwa/dist/index.html ]]; then
   exit 1
 fi
 
+# ── 更新记录必须覆盖本次要部署的版本（2026-11-01 事故防线）─────────────
+# 事故：1.14.0 之后连续三次发版都忘了在 changelog_milestones.json 加切点，
+#       1.16.0 / 1.16.1 / 1.17.0 的改动全被塞进 1.14.0 卡片，线上更新记录的
+#       最新版本一直停在 1.14.0 —— 用户升级后「看不到这次改了什么」。
+# 判据只有一条：dist/changelog.json 的最新版本 == dist/version.json 的 version。
+# 口径复用 scripts/preflight.py（同一条规则单一真源，不在 shell 里另写一套解析）。
+PYBIN=""
+for cand in .venv/Scripts/python.exe .venv/bin/python; do
+  if [[ -x "$cand" ]]; then PYBIN="$cand"; break; fi
+done
+if [[ -z "$PYBIN" ]]; then
+  PYBIN="$(command -v python3 || command -v python || true)"
+fi
+if [[ -n "$PYBIN" ]]; then
+  if [[ "${SKIP_PREFLIGHT:-0}" == "1" ]]; then
+    # 调用方（release.py 第 7 步）刚跑过同一条 preflight --deploy，中间没有任何改动 ——
+    # 再跑一遍纯属重复。单独执行 deploy.sh 时不会设这个变量，保护照旧。
+    echo "==> 跳过更新记录校验（调用方已执行 preflight --deploy）"
+  else
+    echo "==> 校验更新记录覆盖本次部署版本"
+    if ! preflight_out="$("$PYBIN" scripts/preflight.py --deploy 2>&1)"; then
+      echo "$preflight_out" >&2
+      echo "ERROR: 前置检查未通过（含「更新记录缺最新版本」）—— 拒绝部署一份错的更新记录" >&2
+      echo "       补切点：python pwa/scripts/gen_changelog.py（缺切点会自动补一条），再重新构建" >&2
+      exit 1
+    fi
+    echo "$preflight_out" | grep -E '更新记录|dist 新鲜|版本号' || true
+  fi
+else
+  echo "WARN: 找不到 python，跳过更新记录版本校验（建议装 python 或跑 preflight.py --deploy）" >&2
+fi
+
 # 凭证防打印：所有 wrangler 输出过一道脱敏（token 绝不外泄）
 # 凭证防打印：所有 wrangler 输出过一道脱敏（token 绝不外泄）
 # ⚠️ set -u 下未定义变量会报错，这里给空默认值（走登录态时没有 API_TOKEN）

@@ -131,13 +131,21 @@ python scripts/doc_sync_check.py # 文档一致性校验：活文档禁手写具
                                   # + 族名/主题套数必须与代码一致（退役族名「卷宗/庙会」当现状写会报错）
 python scripts/install_git_hooks.py  # 安装 pre-push 钩子：推送前查换行符漂移 / 构建产物误入 / 文档不一致
                                   # （不查「工作区脏」，那条交给 deploy.sh 与 preflight --deploy）
-python scripts/run_gates.py      # 一键门禁（**PWA only**），分层执行、失败即停：
-                                  #   0 前置检查 → 1 本地层（默认：本地 dist / 进程内源码，断网可跑）
-                                  #   → 2 线上层（--online，部署后打 https://supersu.ccwu.cc/）
-                                  #   → 3 有头层（--ui，约 20 分钟，用本地 dist）→ 4 扩展层（--full）
-                                  # ⚠️ 已剔除全部本地 Flask 版测试（不再起 127.0.0.1:5000、不再弹多余 Chrome 窗口）；
-                                  # --quick 最快核心 · 汇总表带 target 列（local / in-process / online）
-                                  # · 日志落 output/gate-run/
+python scripts/run_gates.py      # 一键门禁（**PWA only**）。默认按改动面选套件，失败不中断：
+                                  #   0 前置检查（dist 新鲜度/更新记录版本，阻断）→ 1 本地层 → 2 线上层 → 3 有头层 → 4 扩展层
+                                  #   ⚠️ **默认不是全量**：按工作区未提交改动挑套件（改文档→只跑 doc_sync，
+                                  #      改封面→cover 三件套…）。几秒到一两分钟即可，这是日常该用的档位。
+                                  #      命中核心路径（core/、app.js、style.css、themes/、build.mjs、sw.js）
+                                  #      或无法判断改动面时，保守地跑满本地层。
+                                  #   --quick 最快核心信号 · --local 本地层全跑（发版用）
+                                  #   --online 只跑线上层（部署后验证，**不再重跑本地层**）
+                                  #   --all / --full / --ui 才跑全量/扩展/有头层 —— 只在明确需要时加
+                                  #   ⚠️ 已剔除全部本地 Flask 版测试；汇总表带 target 列；日志落 output/gate-run/
+                                  #   ⚠️ 套件失败**不再中断**：全部跑完再汇总失败清单（原来第一个失败就把
+                                  #      后面十几个跳过了，看日志会误以为「只跑到第 8 个是正常」）。
+                                  #   ⚠️ cover 与 theme_drawer 并行跑（合计约占本地层 75%）。
+                                  #   ⚠️ 写死端口的套件会因 TIME_WAIT 出现 WinError 10013 假红，
+                                  #      新增套件一律 `("127.0.0.1", 0)` 让系统分配端口。
 python scripts/clean_output.py    # output/ 清理（U-15）：默认预览保留 7 天内；--days N 改保留期；--apply 才真删。
                                   # 只动 output/ 内部，绝不碰 data/ public/ pwa/dist/
 python scripts/audit_mobile_typography.py  # ★ 移动端排版体检（375px 微信环境）：静态层秒级，
@@ -236,6 +244,18 @@ python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排
 #   徽标（发布小票 / 更新记录面板）统一显示 `v1.5.0 · b147`。发版两件事缺一不可：
 #   ① bump `pwa/version.json` ② 在 `pwa/scripts/changelog_milestones.json` 加一条（`until` 为右闭边界），
 #   否则更新记录里不会出现该版本条目。
+#   ⚠️ **更新记录缺最新版本（2026-11-01 修复，别再靠人记）**：原先「② 加切点」纯靠发版时手工提交，
+#   漏了也没有任何检查 —— 结果连续三次发版都忘了加，新版本改动全被并进旧卡片，线上更新记录
+#   的最新版本一直停在老版本，用户升级后「看不到这次改了什么」。现在四处兜底：
+#   ① `gen_changelog.py` 发现 `version.json` 的版本不在切点表里 → **普通模式自动补一条切点**
+#      （标 `auto`，无手写亮点时从真实条目挑 3 条兜底），`--check` / `--no-auto-cut` 下直接退出 1；
+#   ② 自检断言「更新记录最新版本 == `version.json`」，不齐即失败；
+#   ③ `scripts/preflight.py` 的 `check_changelog()` 比 `dist/changelog.json` 与 `dist/version.json`
+#      （进 `run_gates` 第 0 步，`--deploy` 时同样阻断）；`build.mjs` 也有同一断言；
+#   ④ `release.py` 已把 `changelog_milestones.json` 列为**生成物**随第 6 步一起提交
+#      （否则自动补切点会把工作区弄脏、被部署前预检拦下）。
+#   自动补的切点 `title` 为空、亮点是 commit 标题原文；正式发版前仍应补上手写
+#   `title` + 3 条人话亮点 —— 自动化只保证「不漏」，不保证「好看」。
 # · 更新卡是「发布小票」：版本徽标 + 日期 + 3 条亮点（按文案自动标 新功能/优化/修复）+ 查看全部；
 #   `#upd-demo` 可随时预览该卡（不影响真实更新流程）。
 # · 预览里已移除「写留言/赞/在看」模拟底栏（PWA；Flask 本地版预览仍保留，随弃用不再跟进）。
@@ -535,7 +555,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - 封面溢出根因 ＝ **模板写死字号**（BLCaptain `template-still-paper-card.html:37` `.sp-display{font-size:76px}`），修复落在**引擎层**；且 `blcaptain-style-skill/` 是 vendored 子项目，须"改源 → 重生成 → 跑自带 .mjs 测试"。
   - 生成耗时大头 ＝ 联网搜图（本地版 `core/image_search.py`，已归档删除，timeout 15–20s）+ 引擎冷启动。治本是缓存/分段计时，**不是写死"约 10 秒"**。
   - 小红书 placeholder「AI 自动提取标题」是**假文案**——实际是本地函数 `extractSocialTitle`，无 AI 参与。
-- **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 164 套主题人工打标签分类 / 非技术用户可用性类验收。
+- **明确不做（防止重复讨论）**：首屏三步走常驻引导 / 复制升主按钮＋推送降级 / 179 套主题人工打标签分类 / 非技术用户可用性类验收。
 - **实施纪律**：一次一项 → 改完即验（`scripts/run_gates.py`；UI 改动含 `test_headed_full_e2e` **33/33**）→ 单项 commit → 回 `files/TODO.md` 打勾。验收截图基线见 `docs/ux-audit/shots/`（改前基线入库）；`shots/after/` 是 `ux_verify_p0/p1` 每次运行自动重写的产物，**已 gitignore 不入库**（2026-10-24 清理，省 30MB）。
 - **验收脚本计数（2026-09-25 订正）**：`ux_verify_p0` **15/15** · `ux_verify_p1` **15/15** · `ux_verify_tutorial` **13/13**。⚠️ 此前记为「15+13+13」已失效——教程弹窗（后加的产品行为）会遮罩挡住 p0/p1 的点击，两脚本已同步加弹窗关闭处理。
 - **实施状态（2026-09-25）**：第一批 U-1…U-6、第二批 U-7…U-11、U-2 真自适应、Pexels 配图与开源教程均已完成（`a4c869e`/`ef5b241`/`48eacf1` 及后续提交）；⚠️ 其中 U-7 的「悬停即试看」已于 **2026-09-26 按用户要求移除**——模板切换改为**仅点击触发**（悬停误触即切换体验不佳）；

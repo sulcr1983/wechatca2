@@ -166,6 +166,52 @@ def check_version_match() -> bool:
     return False
 
 
+def check_changelog() -> bool:
+    """更新记录必须覆盖到当前版本（2026-11-01 事故防线）。
+
+    事故：1.14.0 之后连续三次发版都忘了在 changelog_milestones.json 加切点，
+    于是 1.16.0 / 1.16.1 / 1.17.0 的改动全被塞进 1.14.0 卡片，线上更新记录
+    的最新版本一直停在 1.14.0 —— 用户升级后「看不到这次改了什么」。
+
+    判据只比版本号，不重复 gens 的分组逻辑（避免两套口径漂移）：
+    dist/changelog.json 的最新 release 必须等于 dist/version.json 的 version。
+    直接读 dist 而不读源文件，是因为线上跑的就是 dist 里那份。
+    """
+    dist_ver = None
+    try:
+        dist_ver = json.loads((DIST / "version.json").read_text(encoding="utf-8")).get("version")
+    except (OSError, ValueError):
+        pass
+    cl_path = DIST / "changelog.json"
+    if not cl_path.exists():
+        print(f"{FAIL} dist/changelog.json 不存在（更新记录缺失，用户升级后看不到改了什么）")
+        print("         修复：python pwa/scripts/gen_changelog.py && node pwa/scripts/build.mjs")
+        return False
+    try:
+        cl = json.loads(cl_path.read_text(encoding="utf-8"))
+    except ValueError as e:
+        print(f"{FAIL} dist/changelog.json 解析失败（{type(e).__name__}: {e}）")
+        print("         修复：node pwa/scripts/build.mjs")
+        return False
+
+    releases = cl.get("releases") or []
+    latest = str((releases[0] or {}).get("version") or "") if releases else ""
+    if not latest:
+        print(f"{FAIL} dist/changelog.json 里没有任何版本条目")
+        print("         修复：python pwa/scripts/gen_changelog.py")
+        return False
+
+    if dist_ver and latest != dist_ver:
+        print(f"{FAIL} 更新记录缺最新版本：dist 版本 v{dist_ver}，但更新记录最新只到 v{latest}")
+        print("         含义：这个版本的改动被塞进了旧版本卡片，用户打开更新记录看不到本次内容")
+        print("         修复：在 pwa/scripts/changelog_milestones.json 补 v%s 的切点"
+              "（含 title + highlights），或直接跑 python pwa/scripts/gen_changelog.py 自动补" % dist_ver)
+        return False
+
+    print(f"{OK} 更新记录覆盖当前版本：v{latest}（共 {len(releases)} 个版本）")
+    return True
+
+
 def check_clean(strict: bool) -> bool:
     out = git("status", "--porcelain", "--untracked-files=no")
     if not out:
@@ -221,7 +267,7 @@ def main() -> int:
 
     print(f"前置检查：{ROOT}")
     results = [check_dist_exists(), check_freshness(), check_version_match(),
-               check_clean(args.deploy)]
+               check_changelog(), check_clean(args.deploy)]
     if args.online:
         results.append(check_online())
 

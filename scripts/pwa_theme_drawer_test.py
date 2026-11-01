@@ -72,6 +72,8 @@ def main() -> int:
     ap.add_argument("--local", action="store_true",
                     help="测本地 dist（默认测线上服务器）")
     ap.add_argument("--url", default="", help="自定义目标地址")
+    ap.add_argument("--smoke", action="store_true",
+                    help="跳过「164 套逐个应用」那段（占本套件绝大多数耗时），只验证结构与族/色逻辑")
     args = ap.parse_args()
 
     use_local = args.local
@@ -255,10 +257,17 @@ def main() -> int:
                   f"{applied}/{sum(FAMILIES.values())}")
 
             # ③ 全部 164 套：搜索逐个应用，确认没有点不动的模板
-            bad = []
+            #    --smoke 跳过这一段：164 次搜索+点击+断言是本套件的主要耗时来源
+            #    （单跑约 167s）。结构与族/色逻辑已在上面验过，日常前端改动用
+            #    --smoke 足够；完整遍历留给 --full-gates。
+            if args.smoke:
+                print("  SKIP  164 套逐个应用（--smoke，完整验证请去掉该参数）", flush=True)
+                bad = []
+            else:
+                bad = []
             page.click("#drawer-filters .fchip[data-fam='all']")
             page.wait_for_timeout(250)
-            for tid in all_ids:
+            for tid in ([] if args.smoke else all_ids):
                 page.fill("#drawer-search", tid)
                 page.wait_for_timeout(90)
                 card = page.locator(f".d-card[data-id='{tid}']")
