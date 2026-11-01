@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>V2 · 小红书封面工坊（复核后重建）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23A83A26'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#F6F4EF; --raised:#fff; --sunken:#EFEBE3; --border:#E4DED2;
+  --text:#17150F; --soft:#6B6555; --muted:#9A9384; --accent:#A83A26; --accent-soft:#F7E7E2;
+  --ok:#2E7D5B; --bad:#9B2C1B;
+  --r:8px; --r-lg:12px;
+  --sh:0 1px 2px rgba(30,25,15,.05),0 8px 26px rgba(30,25,15,.07);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:14px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1020px;margin:0 auto;padding:52px 24px 80px}
+.eyebrow{font-size:11px;letter-spacing:.18em;color:var(--accent);font-weight:700}
+h1{font-size:30px;line-height:1.3;margin:10px 0 10px;letter-spacing:-.01em}
+.lede{font-size:14.5px;color:var(--soft);max-width:680px;margin:0 0 8px}
+.lede b{color:var(--text)}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:32px 0 40px}
+@media(max-width:820px){.cards{grid-template-columns:1fr}}
+.card{background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:20px;text-decoration:none;color:inherit;display:block;box-shadow:var(--sh);transition:.16s}
+.card:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(30,25,15,.11);border-color:#CFC5B0}
+.card .k{font-size:10.5px;letter-spacing:.16em;color:var(--muted);font-weight:700}
+.card .t{font-size:18px;font-weight:700;margin:6px 0 8px;display:flex;align-items:center;gap:8px}
+.card .t i{font-style:normal;color:var(--accent);font-weight:400}
+.card .d{font-size:12.5px;color:var(--soft);line-height:1.65;margin:0}
+.card .m{margin-top:12px;display:flex;gap:14px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.card .m b{color:var(--text);font-weight:600}
+
+h2{font-size:15px;font-weight:700;margin:38px 0 14px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--raised);
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:11px;letter-spacing:.05em;color:var(--muted);font-weight:700;background:var(--sunken)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.q{color:var(--soft)}
+.bad{color:var(--bad);font-weight:600}
+.good{color:var(--ok);font-weight:600}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.box{background:var(--raised);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.box h3{font-size:12.5px;margin:0 0 7px;font-weight:700}
+.box p{margin:0;font-size:12px;color:var(--soft);line-height:1.65}
+.box ul{margin:0;padding-left:16px;font-size:12px;color:var(--soft);line-height:1.75}
+.foot{margin-top:46px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:16px}
+code{background:var(--sunken);padding:1px 5px;border-radius:4px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">V2 / 复核后重建</div>
+  <h1>小红书封面工坊 · 三栏常驻</h1>
+  <p class="lede">上一版的问题不是「不够好看」，是<b>几何算错了</b>：方案自己写着「3 列 3 行是唯一能一屏看全 <b>9 套</b>的解」，
+     而版式已经涨到 26 套。于是「版式看不见」「都长得一样」「又只剩几套」这些抱怨反复出现。</p>
+  <p class="lede">这一版把宽度和高度重新分配，并把 5 个 P0 全部修掉。诊断过程见 <code>docs/review-xhs-studio-adversarial.md</code>。</p>
+
+  <div class="cards">
+    <a class="card" href="./title.html">
+      <div class="k">模块一</div>
+      <div class="t">标题图 <i>→</i></div>
+      <p class="d">左写文案与配图，中间画布，右边 26 套版式常驻。有图才有图文版式，没图就只给纯文字。</p>
+      <div class="m"><span>版式 <b>26</b></span><span>配色 <b>20</b></span><span>字体 <b>10</b></span><span>一屏全见 <b>16 套</b></span></div>
+    </a>
+    <a class="card" href="./longform.html">
+      <div class="k">模块二</div>
+      <div class="t">长图文 <i>→</i></div>
+      <p class="d">文章自动分页（7 类页型）+ 12 套真实长文模板（332 行 CSS 整段搬，不是换配色）。</p>
+      <div class="m"><span>模板 <b>12</b></span><span>页型 <b>7</b></span><span>右栏 <b>不滚</b></span></div>
+    </a>
+  </div>
+
+  <h2>五条 P0：改之前 / 改之后</h2>
+  <table>
+    <tr><th style="width:26%">问题</th><th style="width:37%">V1 实测</th><th>V2 实测</th></tr>
+    <tr>
+      <td><b>版式看不见</b><br><span class="q">几何按 9 套设计，版式已 26 套</span></td>
+      <td class="bad">右栏 360px / 3 列 107px<br>16 套里同屏只见 10 张，第 4 行切一半</td>
+      <td class="good">右栏 520px / 5 列 94px<br>16 套<b>全部一屏可见</b>（632/632 不滚）</td>
+    </tr>
+    <tr>
+      <td><b>有图不解锁图文版式</b><br><span class="q">可见性绑在 Key 上</span></td>
+      <td class="bad">上传自己的图后：<br>图文版式仍 0 套，还挂着「配个 Key 就出现」</td>
+      <td class="good">绑在「有没有一张图」上<br>上传即 26 套，回流提示自动消失</td>
+    </tr>
+    <tr>
+      <td><b>九宫格 7/9 张空白</b><br><span class="q">产物错，界面不报错</span></td>
+      <td class="bad">逐格墨迹 1,0,0,3428,2662,0,0,0,0<br>7 张空纸，无任何预警</td>
+      <td class="good">打开就逐格算覆盖率<br>「只有 3/9 格有内容，其余 6 张会是空白图」+ 一键铺满</td>
+    </tr>
+    <tr>
+      <td><b>色块压字看不清</b><br><span class="q">inkOn 是亮度阈值</span></td>
+      <td class="bad">23 套里 <b>11 套</b>不达 4.5:1<br>最差 2.26（薄荷绿）</td>
+      <td class="good">黑白择优 + 色块反解压深<br><b>20/20</b> 全过（正文≥7 / 其余≥4.5）</td>
+    </tr>
+    <tr>
+      <td><b>颜色单调没解决</b><br><span class="q">多巴胺只改了 accent</span></td>
+      <td class="bad">纸色一律近白，16 张缩略图<b>只有 7 种底色</b><br>「淡黄」变成「淡粉」</td>
+      <td class="good">三族 20 套：纸感 9 / <b>浓郁 6</b> / 暗夜 5<br>16 张缩略图 <b>11 种底色</b></td>
+    </tr>
+  </table>
+
+  <h2>被推翻的 5 个前提</h2>
+  <div class="grid2">
+    <div class="box"><h3>「三栏常驻 = 切换零成本」</h3><p>零成本的是<b>点击</b>，不是<b>看见</b>。看不见的选择等于不存在 —— 16 套里 6 套在折叠线以下。</p></div>
+    <div class="box"><h3>「版式越多越好」</h3><p>9 → 26 之后同屏可见率从 100% 掉到 17%，边际价值转负。数量增长必须伴随<b>呈现方式升级</b>。</p></div>
+    <div class="box"><h3>「没 Key 就隐藏图文版式」</h3><p>把主场景的可发现性交给了第三方 API，还误伤了「上传自己图」的用户。规则应绑「有没有图」。</p></div>
+    <div class="box"><h3>「画布是唯一主角」</h3><p>画布 591×788 撑在 856 宽的栏里，两侧 237px 纯空白；左栏下方还有 355px。主角地位没错，<b>几何没按这句话算</b>。</p></div>
+  </div>
+
+  <h2>这一轮顺带修的真 bug</h2>
+  <div class="box" style="margin-bottom:14px">
+    <h3>大字版标题断成 6+1</h3>
+    <p>字号写死 148px，7 个字 148×7=1036 &gt; 内容宽 904，贪心换行切成 6+1 —— 画面上「周末去了趟海 / 边」。
+       改成按内容宽求字号（上限仍 148），并在 <code>fitTitle</code> 里否决「最后一行只剩 1–2 个字」。</p>
+  </div>
+  <div class="box">
+    <h3>字体胶囊的字被看成一条横带</h3>
+    <p>不是被裁，是 <b>10.5px 的中文书法字形笔画断成点</b>。放大到 13.5px / 30px 高之后可读；
+       玩法与位置两行是工具字，用 12px 才排得下一行，把 31px 让给版式区。</p>
+  </div>
+
+  <h2>还没定的 4 件事（要你拍板）</h2>
+  <div class="box">
+    <ul>
+      <li><b>26 套要不要一屏全看？</b>现在 16 全见、26 滚 1.2 行。要全看得 5 列 74px，我认为不值得。备选：全屏总览（已有入口）。</li>
+      <li><b>「有图才出图文版式」这个修订落不落？</b>我按「有图」判断，偏离了原话「没 API 只出纯文字」。</li>
+      <li><b>九宫格要不要配一套专用版式？</b>现在是「预警 + 一键铺满」，复用已有能力。</li>
+      <li><b>长图文那 13 套配色还是老表</b>（部分不达 AA）。两套色板来源不同，合并要先定口径。</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    复核脚本：<code>scripts/ux_diag.mjs</code>（有头多状态截图 + 控制台抓错）·
+    <code>scripts/cdp_shot.mjs</code>（1:1 像素）·
+    <code>scripts/cdp_measure.mjs</code>（DOM 量取）·
+    <code>scripts/gen_v2_palettes.mjs</code>（配色对比度反解与校验）<br>
+    旧版仍在：<code>../ux-a-three-col.html</code> / <code>../ux-longform.html</code>，可对着看差异。
+  </div>
+</div>
+</body>
+</html>

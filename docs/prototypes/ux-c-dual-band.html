@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>方案 C · 双带环绕</title>
+<link rel="stylesheet" href="./xhs-ux-core.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   方案 C：双带环绕（画布居中，两条带子夹着它）
+   上 = 一条「写作 + 保存」条（横跨全宽，写的时候不用找）
+   左 = 版式竖排缩略图（贴画布左边，视线不用离开画布）
+   右 = 配色 / 字体 / 尺寸（窄，一列）
+   核心主张：**版式离画布最近**。切版式是最高频动作，它应该挨着画布，
+             而不是另一端；配色/字体低频一成，放右边一列。
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#F7F4EE; --surface:#FAF9F5; --raised:#fff; --hover:#F0EDE8; --sunken:#F2EEE7;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --soft:#6E6759; --muted:#9B9484;
+  --accent:#AF3E2B; --accent-soft:rgba(175,62,43,.08);
+  --r:8px; --r-lg:12px; --r-xl:16px;
+  --write-h:auto;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--text);overflow:hidden;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;   /* 写作条高度是 auto，必须靠 flex 分配剩余空间 */
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+
+/* ── 上：写作条 ── */
+.write{
+  flex:none;display:flex;align-items:center;gap:10px;padding:9px 14px;
+  background:var(--raised);border-bottom:1px solid var(--border);
+}
+.write .brand{display:flex;align-items:center;gap:7px;flex:none}
+.write .tag{font-size:11px;font-weight:700;letter-spacing:.08em;color:#fff;background:#2F4B8F;
+  padding:2px 7px;border-radius:4px}
+.write .nm{font-size:12.5px;font-weight:600;white-space:nowrap}
+#txt{
+  flex:1;min-width:0;height:38px;resize:none;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--surface);padding:8px 11px;font-size:13px;line-height:1.5;outline:0;
+  overflow-y:auto;
+}
+#txt:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft);background:var(--raised)}
+.write .cnt{font-size:10.5px;color:var(--muted);flex:none;font-variant-numeric:tabular-nums;width:34px;text-align:right}
+.mini{height:26px;padding:0 9px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:10.5px;color:var(--soft);flex:none}
+.mini:hover{background:var(--hover);color:var(--text)}
+.btn-save{height:32px;padding:0 16px;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;box-shadow:0 2px 8px rgba(175,62,43,.22);flex:none}
+.btn-save:hover{background:#9C3524}
+
+/* ── 中段三块 ── */
+.app{flex:1;display:flex;min-height:0}
+
+/* 左：版式竖排带（贴画布） */
+.band-lay{
+  width:118px;flex:none;border-right:1px solid var(--border);background:var(--surface);
+  display:flex;flex-direction:column;min-height:0;
+}
+.band-hd{
+  height:32px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 10px;border-bottom:1px solid var(--border);
+  font-size:10.5px;font-weight:700;color:var(--soft);letter-spacing:.04em;
+}
+.band-hd em{font-style:normal;font-weight:400;color:var(--muted)}
+.lay-list{flex:1;overflow-y:auto;min-height:0;padding:8px 8px 14px;
+  display:flex;flex-direction:column;gap:8px}
+.lay-list::-webkit-scrollbar{width:6px}
+.lay-list::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
+.lay{position:relative;text-align:left}
+.lay-th{position:relative;width:100%;aspect-ratio:3/4;border-radius:5px;overflow:hidden;background:#fff;
+  border:2px solid transparent;box-shadow:0 1px 2px rgba(30,25,15,.08);
+  transition:border-color .12s,box-shadow .12s}
+.lay:hover .lay-th{box-shadow:0 2px 8px rgba(30,25,15,.15)}
+.lay[aria-pressed="true"] .lay-th{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.thumb-art{position:absolute;left:0;top:0;transform-origin:top left}
+.lay-nm{font-size:10.5px;font-weight:600;margin-top:3px;text-align:center;color:var(--soft)}
+.lay[aria-pressed="true"] .lay-nm{color:var(--accent)}
+.lay[disabled]{cursor:not-allowed;opacity:.36}
+
+/* 中：画布 */
+.canvas{flex:1;min-width:0;display:flex;flex-direction:column;
+  background:radial-gradient(ellipse 72% 82% at 50% 46%,rgba(255,255,255,.62),rgba(255,255,255,0) 62%),var(--bg);}
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px}
+.cv-wrap{position:relative;overflow:hidden;border-radius:2px;background:#fff;
+  box-shadow:0 1px 2px rgba(30,25,15,.10),0 12px 38px rgba(30,25,15,.13)}
+#cv-art{position:absolute;inset:0}
+.meta{height:22px;display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:10.5px;color:var(--muted);padding-bottom:6px}
+.meta b{font-weight:600;color:var(--soft);font-variant-numeric:tabular-nums}
+.meta .dot{color:var(--border-hi)}
+
+/* 右：参数列 */
+.band-par{
+  width:212px;flex:none;border-left:1px solid var(--border);background:var(--surface);
+  overflow-y:auto;min-height:0;padding:12px 12px 20px;
+}
+.band-par::-webkit-scrollbar{width:6px}
+.band-par::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
+.p-sec + .p-sec{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.p-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+.p-hd b{font-size:11px;font-weight:700;color:var(--soft);letter-spacing:.04em}
+.p-hd em{font-style:normal;font-size:10.5px;color:var(--muted)}
+
+.pics{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.pic{position:relative;aspect-ratio:3/4;border-radius:5px;overflow:hidden;
+  border:2px solid transparent;background:var(--sunken)}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.pic span{display:none}
+
+.mode-row{display:flex;gap:4px;margin-bottom:7px}
+.mode-row button{flex:1;height:24px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:10.5px;color:var(--soft)}
+.mode-row button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+
+.pals{display:flex;flex-wrap:wrap;gap:6px}
+.pal{width:30px;height:20px;border-radius:4px;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.pal[aria-pressed="true"]{border-color:var(--accent)}
+
+.fonts{display:flex;flex-direction:column;gap:4px}
+.fnt{height:27px;padding:0 8px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:11.5px;color:var(--soft);text-align:left;
+  display:flex;align-items:center;justify-content:space-between;gap:6px}
+.fnt em{font-style:normal;font-size:9.5px;color:var(--muted);white-space:nowrap}
+.fnt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+.fnt[aria-pressed="true"] em{color:rgba(175,62,43,.6)}
+
+.sizes{display:flex;gap:4px}
+.sizes button{flex:1;height:26px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:11px;color:var(--soft)}
+.sizes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,8px);opacity:0;
+  background:rgba(25,23,19,.92);color:#fff;font-size:12px;padding:8px 14px;border-radius:99px;
+  transition:.18s;pointer-events:none;z-index:99}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<!-- 上：写作条（横跨全宽，写的时候不用找） -->
+<header class="write">
+  <div class="brand"><span class="tag">方案 C</span><span class="nm">双带环绕</span></div>
+  <textarea id="txt" spellcheck="false" rows="1"></textarea>
+  <span class="cnt" id="cnt"></span>
+  <button class="mini" id="smp">示例</button>
+  <button class="mini" id="clr">清空</button>
+  <button class="btn-save" id="save">保存大图</button>
+</header>
+
+<div class="app">
+  <!-- 左：版式竖排（挨着画布） -->
+  <aside class="band-lay">
+    <div class="band-hd"><span>版式</span><em id="lay-hint">9</em></div>
+    <div class="lay-list" id="lays"></div>
+  </aside>
+
+  <!-- 中：画布 -->
+  <main class="canvas">
+    <div class="stage" id="stage">
+      <div class="cv-wrap" id="cv-wrap"><div id="cv-art"></div></div>
+    </div>
+    <div class="meta">
+      <b id="dim">1080 × 1440</b><span class="dot">·</span>
+      <span id="vd">—</span><span class="dot">·</span><span>改完即时预览</span>
+    </div>
+  </main>
+
+  <!-- 右：参数列 -->
+  <aside class="band-par">
+    <div class="p-sec">
+      <div class="p-hd"><b>配图</b><em id="pic-hint">点一下即换</em></div>
+      <div class="mode-row" id="modes">
+        <button data-m="search" aria-pressed="true">搜图</button>
+        <button data-m="color" aria-pressed="false">不要图</button>
+      </div>
+      <div class="pics" id="pics"></div>
+    </div>
+    <div class="p-sec">
+      <div class="p-hd"><b>配色</b><em id="pal-hint"></em></div>
+      <div class="pals" id="pals"></div>
+    </div>
+    <div class="p-sec">
+      <div class="p-hd"><b>字体</b><em>只换标题</em></div>
+      <div class="fonts" id="fonts"></div>
+    </div>
+    <div class="p-sec">
+      <div class="p-hd"><b>尺寸</b><em>仅部分版式</em></div>
+      <div class="sizes" id="sizes"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./xhs-ux-core.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const SAMPLE = '周末去了趟海边\n两天里我没看手机，只听见浪';
+const DEF = '周末去了趟海边\n两天里我没看手机';
+
+const ST = { size:'xhs', img:'p1', mode:'search' };
+const ART = { W:1080, H:1440, k:1 };
+
+function toast(m){ const t=$('toast'); t.textContent=m; t.className='toast on';
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.className='toast',1800); }
+
+function fit(){
+  const stage=$('stage'), wrap=$('cv-wrap');
+  const k = Math.min((stage.clientWidth-4)/ART.W, (stage.clientHeight-4)/ART.H);
+  ART.k = k;
+  wrap.style.width = Math.round(ART.W*k)+'px';
+  wrap.style.height = Math.round(ART.H*k)+'px';
+  const a = wrap.querySelector('.cv-art');
+  if (a){ a.style.transform=`scale(${k})`; a.style.transformOrigin='top left'; }
+}
+
+function paint(){
+  const dim = SIZES[ST.size];
+  ART.W = dim.w; ART.H = dim.h;
+  const { title, sub } = extract($('txt').value);
+  const src = ST.mode==='color' ? '' : photoOf(ST.img).src;
+  const an = src ? analysisCache.get(src) : null;
+  if (!title){
+    $('cv-art').innerHTML = `<div class="cv-art" style="width:${dim.w}px;height:${dim.h}px;`
+      + `--paper:${palOf(state.pal).paper};display:grid;place-items:center">`
+      + `<div style="text-align:center;color:#9B9484;font-size:26px;line-height:1.8">`
+      + `上面写一句话<br><span style="font-size:20px">画布立刻就有内容</span></div></div>`;
+  } else {
+    const opt = { lay: state.lay, title, sub, auth: state.sign, photo: src, an,
+      kick: ST.mode==='color' ? '' : 'TRAVEL NOTES' };
+    $('cv-art').innerHTML = coverHtml(dim.w, dim.h, opt);
+    window.__lastVerdict = opt._verdict;
+  }
+  $('dim').textContent = `${dim.w} × ${dim.h}`;
+  const v = window.__lastVerdict;
+  $('vd').textContent = src && v && v.verdict ? `${v.verdict}${v.cr?` ${v.cr.toFixed(1)}:1`:''}`
+    : (ST.mode==='color' ? '纯文字' : '—');
+  fit();
+}
+
+/* ── 左带：版式 ── */
+function renderLays(){
+  const { title, sub } = extract($('txt').value);
+  const n = sub ? sub.split(/[·、\n]/).filter(Boolean).length : 0;
+  const avail = LAYS.filter(l => ST.mode==='color' ? !l.needImg : true);
+  $('lays').innerHTML = avail.map(l => {
+    const ok = l.id==='list' ? n>=2 : true;
+    // 缩略图渲染 240×320：显示宽约 100px，2 倍设备像素够用，也不压垮合成层
+    return `<button class="lay" data-l="${l.id}" aria-pressed="${state.lay===l.id}"${ok?'':' disabled'}`
+      + ` title="${ok?l.desc:'清单要 2 条以上小字'}">`
+      + `<div class="lay-th"><div class="thumb-art" data-w="240" data-h="320">`
+      + coverHtml(240,320,{ lay:l.id, title:title||'你的标题', sub:sub||'第二行当小字',
+          photo:l.needImg?photoOf(ST.img).src:'', an:l.needImg?analysisCache.get(photoOf(ST.img).src):null,
+          kick:l.needImg?'NOTES':'' })
+      + `</div></div><div class="lay-nm">${l.name}</div></button>`;
+  }).join('');
+  $('lay-hint').textContent = avail.length;
+  scaleThumbs();
+}
+function scaleThumbs(){
+  document.querySelectorAll('#lays .thumb-art').forEach(el=>{
+    const w = el.parentElement.clientWidth; if (!w) return;
+    el.style.width = el.dataset.w+'px'; el.style.height = el.dataset.h+'px';
+    el.style.transform = `scale(${w/Number(el.dataset.w)})`;
+  });
+}
+
+/* ── 右列 ── */
+function initPics(){
+  $('pics').innerHTML = PHOTOS.map(p =>
+    `<button class="pic" data-p="${p.id}" aria-pressed="${ST.img===p.id}" title="${p.name}">`
+    + `<img src="${p.src}" alt="${p.name}" loading="lazy"></button>`).join('');
+  $('pics').onclick = (e) => {
+    const b = e.target.closest('.pic'); if (!b) return;
+    ST.img = b.dataset.p;
+    if (ST.mode!=='search'){ ST.mode='search'; syncModes(); if(!layOf(state.lay).needImg) state.lay='image-led'; }
+    [...$('pics').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+    analyze(photoOf(ST.img).src).then(a=>{ analysisCache.set(photoOf(ST.img).src,a); paint(); }).catch(paint);
+    paint(); renderLays();
+  };
+}
+function syncModes(){
+  [...$('modes').children].forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.m===ST.mode)));
+  $('pics').hidden = ST.mode==='color';
+  $('pic-hint').textContent = ST.mode==='color' ? '纯文字版式' : '点一下即换';
+}
+$('modes').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  ST.mode = b.dataset.m;
+  if (ST.mode==='color' && layOf(state.lay).needImg) state.lay='swiss';
+  if (ST.mode==='search' && !layOf(state.lay).needImg) state.lay='image-led';
+  syncModes(); renderLays(); renderSizes(); paint();
+};
+function renderPals(){
+  $('pals').innerHTML = PALS.map(p =>
+    `<button class="pal" data-p="${p.key}" aria-pressed="${state.pal===p.key}" title="${p.name}"`
+    + ` style="background:linear-gradient(135deg,${p.paper} 0 54%,${p.accent} 54%)"></button>`).join('');
+  $('pal-hint').textContent = palOf(state.pal).name;
+}
+function renderFonts(){
+  $('fonts').innerHTML = FONTS.map(f =>
+    `<button class="fnt" data-f="${f.id}" aria-pressed="${state.font===f.id}">`
+    + `<span>${f.name}</span><em>${f.note}</em></button>`).join('');
+}
+function renderSizes(){
+  const ok = layOf(state.lay).needImg ? ['xhs','square','wide'] : ['xhs'];
+  $('sizes').innerHTML = ['xhs','square','wide'].map(k =>
+    `<button data-s="${k}" aria-pressed="${ST.size===k}"${ok.includes(k)?'':' disabled style="opacity:.34"'}>`
+    + `${SIZES[k].label}</button>`).join('');
+}
+
+$('lays').onclick = (e) => {
+  const b = e.target.closest('.lay'); if (!b || b.disabled) return;
+  state.lay = b.dataset.l;
+  [...$('lays').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  renderSizes(); paint();
+};
+$('pals').onclick = (e) => {
+  const b = e.target.closest('.pal'); if (!b) return;
+  state.pal = b.dataset.p;
+  [...$('pals').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  $('pal-hint').textContent = palOf(state.pal).name;
+  paint(); renderLays();
+};
+$('fonts').onclick = (e) => {
+  const b = e.target.closest('.fnt'); if (!b) return;
+  state.font = b.dataset.f;
+  [...$('fonts').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  paint(); renderLays();
+};
+$('sizes').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  ST.size = b.dataset.s; renderSizes(); paint();
+};
+
+/* ── 写作条：单行变高 ── */
+function autoH(){
+  const t = $('txt');
+  t.style.height = '38px';
+  t.style.height = Math.min(96, Math.max(38, t.scrollHeight)) + 'px';
+}
+$('txt').addEventListener('input', () => {
+  $('cnt').textContent = `${$('txt').value.length} 字`;
+  autoH(); paint(); renderLays();
+});
+$('txt').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('txt').blur(); }
+});
+$('smp').onclick = () => { $('txt').value = SAMPLE; $('txt').dispatchEvent(new Event('input')); };
+$('clr').onclick = () => { $('txt').value = ''; $('txt').dispatchEvent(new Event('input')); };
+$('save').onclick = () => toast('原型不导出：落地走 render.js 的 domToBlob');
+
+window.addEventListener('resize', () => { fit(); scaleThumbs(); });
+
+/* 启动 */
+$('txt').value = DEF;
+initPics(); syncModes(); renderPals(); renderFonts(); renderSizes(); renderLays();
+$('cnt').textContent = `${DEF.length} 字`;
+Promise.all(PHOTOS.map(p=>analyze(p.src).then(a=>analysisCache.set(p.src,a))))
+  .then(()=>{ paint(); renderLays(); })
+  .catch(()=>{});
+autoH(); paint();
+setTimeout(()=>{ fit(); scaleThumbs(); autoH(); }, 80);
+</script>
+</body>
+</html>

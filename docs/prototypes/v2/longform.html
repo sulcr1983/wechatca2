@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>V2 · 小红书长图文 · 三栏骨架</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23A83A26'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./xhs-ux-core.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   长图文页：与标题图共用同一套三栏骨架（左写 / 中看 / 右试）
+   差别只有三处：左栏是「文章条」、中栏多一条胶片、右栏是模板
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#FAF7F0; --canvas-bg:#F1EDE3; --raised:#FFFFFF; --surface:#FCFAF5;
+  --sunken:#F3EFE5; --border:#E4DDCF; --border-hi:#D2C8B4;
+  --text:#221D16; --soft:#6A6253; --muted:#9A9181;
+  --accent:#AF3E2B; --accent-soft:#F7E7E2;
+  --r:7px; --r-sm:5px; --r-lg:10px; --r-xl:14px;
+  --sh-1:0 1px 2px rgba(30,25,15,.06);
+  --sh-2:0 2px 10px rgba(30,25,15,.08);
+  --top-h:46px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);overflow:hidden;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.top{
+  height:var(--top-h);flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;
+  background:var(--raised);border-bottom:1px solid var(--border);
+}
+.brand{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.brand i{width:16px;height:16px;border-radius:3px;background:var(--accent);display:block}
+.tabs{display:flex;gap:2px;margin-left:8px}
+.tabs a{
+  height:26px;padding:0 11px;border-radius:var(--r);font-size:12px;color:var(--soft);
+  text-decoration:none;display:inline-flex;align-items:center;
+}
+.tabs a:hover{background:var(--sunken)}
+.tabs a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.say{margin-left:auto;font-size:11.5px;color:var(--muted)}
+
+.app{flex:1;display:flex;min-height:0}
+
+/* ── 左栏：文章条 ── */
+.col-write{
+  width:224px;flex:none;border-right:1px solid var(--border);background:var(--raised);
+  display:flex;flex-direction:column;min-height:0;padding:12px;
+}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.sec-title{font-size:11.5px;font-weight:700;color:var(--soft);letter-spacing:.03em}
+.sec-hint{font-size:10px;color:var(--muted)}
+.art-box{
+  border:1px solid var(--border);border-radius:var(--r);background:var(--surface);
+  padding:10px;display:flex;flex-direction:column;gap:6px;
+}
+.art-title{font-size:13.5px;font-weight:600;line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.art-title.empty{color:var(--muted);font-weight:400}
+.art-meta{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.mini{height:28px;padding:0 10px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--raised);font-size:11.5px;color:var(--soft);display:inline-flex;align-items:center;gap:4px}
+.mini:hover{border-color:var(--border-hi);color:var(--text)}
+.mini.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.mini.primary:hover{background:#9C3524}
+.art-pages{display:flex;flex-direction:column;gap:3px;margin-top:8px;overflow-y:auto;min-height:0}
+.art-pages .pg{
+  display:flex;align-items:baseline;gap:6px;padding:4px 6px;border-radius:4px;
+  font-size:11px;color:var(--soft);text-align:left;
+}
+.art-pages .pg:hover{background:var(--sunken)}
+.art-pages .pg[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.art-pages .pg em{font-style:normal;font-family:ui-monospace,monospace;font-size:10px;color:var(--muted)}
+.art-pages .pg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.divider{height:1px;background:var(--border);margin:12px 0}
+
+/* 封面配图（复用标题图的三态） */
+.pic-current{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.pic-current img{width:100%;display:block;aspect-ratio:3/4;object-fit:cover}
+.pic-meta{padding:6px 8px;font-size:10.5px;color:var(--muted);line-height:1.5}
+.pic-meta b{display:block;color:var(--text);font-size:11.5px;font-weight:600;margin-bottom:1px}
+.pic-btns{display:flex;gap:5px;margin-top:7px}
+
+/* ── 中栏：画布 + 动作条 + 胶片 ── */
+.col-canvas{
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+  padding:14px 16px 10px;background:
+    radial-gradient(ellipse 62% 78% at 50% 46%,rgba(255,255,255,.62) 0%,rgba(255,255,255,0) 62%),
+    var(--canvas-bg);
+}
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.cv-wrap{
+  position:relative;background:#fff;border-radius:2px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(30,25,15,.10),0 12px 40px rgba(30,25,15,.14);
+}
+.canvas-bar{
+  flex:none;height:46px;display:flex;align-items:center;gap:6px;
+  margin:8px auto 0;padding:0 2px;justify-content:space-between;
+}
+.cb-meta{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;
+  display:flex;align-items:center;gap:7px;min-width:0}
+.cb-meta .trust{color:var(--soft)}
+.cb-actions{display:flex;align-items:center;gap:6px;flex:none}
+.btn-ghost{
+  height:30px;padding:0 11px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--raised);font-size:12px;color:var(--soft);
+  display:inline-flex;align-items:center;gap:5px;
+}
+.btn-ghost:hover{background:var(--sunken);color:var(--text);border-color:var(--border-hi)}
+.btn-primary{
+  height:34px;padding:0 16px;border-radius:var(--r-lg);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;
+  box-shadow:0 2px 8px rgba(175,62,43,.24);
+}
+.btn-primary:hover{background:#9C3524}
+
+/* 胶片条 */
+.film{
+  flex:none;display:flex;gap:6px;margin:0 auto 4px;padding:6px 2px 2px;
+  overflow-x:auto;max-width:100%;
+}
+.film::-webkit-scrollbar{height:6px}
+.film::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
+.film-item{
+  flex:none;width:54px;border-radius:5px;overflow:hidden;border:2px solid transparent;
+  background:var(--raised);box-shadow:var(--sh-1);position:relative;padding:0;
+}
+.film-item[aria-pressed="true"]{border-color:var(--accent)}
+.film-th{position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;background:var(--sunken)}
+.film-art{position:absolute;left:0;top:0;transform-origin:top left}
+.film-no{
+  position:absolute;left:3px;bottom:2px;font:600 8px/1 ui-monospace,monospace;
+  color:#fff;background:rgba(20,17,16,.62);padding:2px 3px;border-radius:2px;
+}
+.film-role{
+  display:block;font-size:8.5px;color:var(--muted);text-align:center;padding:2px 0 3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* ── 右栏：模板 / 配色 / 选项 ── */
+.col-side{
+  width:360px;flex:none;border-left:1px solid var(--border);background:var(--raised);
+  display:flex;flex-direction:column;min-height:0;
+}
+.side-scroll{flex:1;min-height:0;padding:10px 12px;display:flex;flex-direction:column;overflow-y:auto}
+.side-scroll::-webkit-scrollbar{width:8px}
+.side-scroll::-webkit-scrollbar-track{background:var(--sunken);border-radius:4px}
+.side-scroll::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:4px}
+
+.tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tpl{
+  padding:0;border-radius:var(--r);border:2px solid transparent;background:none;
+  display:flex;flex-direction:column;gap:3px;text-align:left;
+}
+.tpl[aria-pressed="true"]{border-color:var(--accent)}
+.tpl[aria-pressed="true"] .tpl-th{box-shadow:0 0 0 1px var(--accent)}
+.tpl-th{
+  position:relative;width:100%;aspect-ratio:3/4;border-radius:5px;overflow:hidden;
+  box-shadow:var(--sh-1);background:#fff;
+}
+.tpl-art{position:absolute;left:0;top:0;transform-origin:top left}
+.tpl-nm{font-size:10px;font-weight:600;line-height:1.25;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.tpl-sub{font-size:8.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.row{display:flex;align-items:flex-start;gap:8px;margin-top:7px}
+.rlab{flex:none;width:26px;font-size:10.5px;color:var(--muted);padding-top:5px;letter-spacing:.02em}
+.pchips{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.pchip{
+  display:inline-flex;align-items:center;gap:5px;height:27px;padding:0 7px 0 5px;
+  border-radius:6px;border:1px solid var(--border);background:var(--surface);
+  font-size:10.5px;color:var(--soft);white-space:nowrap;line-height:1;
+}
+.pchip:hover{border-color:var(--border-hi);color:var(--text)}
+.pchip i{width:15px;height:15px;border-radius:50%;flex:none;
+  background:linear-gradient(135deg,var(--p) 0 52%,var(--a) 52%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.10)}
+.pchip[aria-pressed="true"]{border-color:var(--accent);color:var(--text);font-weight:600;background:var(--accent-soft)}
+.pchip[aria-pressed="true"] i{box-shadow:0 0 0 1.5px var(--accent)}
+
+.chips{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.chip{
+  height:26px;padding:0 9px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface);font-size:11px;color:var(--soft);white-space:nowrap;
+}
+.chip:hover{border-color:var(--border-hi);color:var(--text)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.sw{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--soft);
+  height:26px;padding:0 2px;white-space:nowrap}
+.sw input{width:12px;height:12px;accent-color:var(--accent)}
+.field{
+  flex:1;min-width:0;height:27px;padding:0 8px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface);font:inherit;font-size:11.5px;color:var(--text);outline:0;
+}
+.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   以下 332 行 CSS 直接取自 pwa/src/cover/cards.js 的 CARD_CSS_RAW
+   （只把 @@S@@ 作用域前缀换成空串）。
+   ──────────────────────────────────────────────────────────────────────
+   为什么必须整段搬：12 套长文模板的差别**不在颜色，在版式**——
+     · editorial  上下细线 + 衬线正文 + 首字下沉
+     · swiss      左侧贯穿色条 + 40px 网格 + REF 编号
+     · notion     顶部细线 + 面包屑 + 克制的灰
+     · book       左侧装订阴影 + 右缘高光 + 纸张纹理
+     · memo       iOS 顶栏 + 横线纸 + 圆角白卡
+     · polaroid   上部照片框 + 胶带 + 复古颗粒
+     · aura       三层光晕 + 毛玻璃圆角卡
+     · night      深色径向渐变 + 左侧发光竖线
+     · doc        网格底 + macOS 窗口
+     · film       宽银幕遮幅 + 胶片齿孔 + 帧编号
+     · starry     深蓝夜空 + 星点光晕 + 月亮微光
+     · blank      只有页码
+   上一版我只换了纸色和页眉文字，等于「12 个配色」而已（用户原话：
+   「里面基本上就是换一下颜色，根本没有排版的设计」）。
+   ══════════════════════════════════════════════════════════════════════ */
+
+.card{
+  width:1080px;height:1440px;position:relative;overflow:hidden;
+  background:var(--paper);color:var(--ink);
+  --serif:"Noto Serif SC","Songti SC",Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.card .grain{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.30;
+  background-image:radial-gradient(var(--grain) 1px,transparent 1px);background-size:3px 3px}
+.card .body{position:absolute;left:88px;right:88px;top:166px;bottom:150px;z-index:4;
+  display:flex;flex-direction:column}
+
+/* 页眉页脚通用（12 套模板各自微调几何） */
+.card .lh{position:absolute;left:88px;right:88px;top:66px;height:34px;z-index:5;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  font:600 16px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted)}
+.card .lf{position:absolute;left:88px;right:88px;bottom:56px;height:30px;z-index:5;
+  display:flex;align-items:center;justify-content:space-between;
+  font:500 16px/1 var(--mono);letter-spacing:.14em;color:var(--muted)}
+.card .lt-mast{font-weight:700;letter-spacing:.14em;color:var(--ink)}
+.card .lt-mast-r{font-style:italic;font-weight:400;letter-spacing:.10em}
+/* 页脚签名（design §12.4）：沿用页脚自身的字号与颜色，只加一点左间距分隔 */
+.card .lt-foot-sign{margin-left:10px;opacity:.72}
+/* 内页背景图 + 纸色蒙层（design §12.2）。z 序：图(0) → 蒙层(1) → 装饰/文字 */
+.card .lt-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:0;pointer-events:none}
+.card .lt-bg-mask{position:absolute;inset:0;z-index:1;pointer-events:none}
+/* 有背景图时纸纹让位（两层半透明叠加会显脏） */
+.card:has(.lt-bg) .grain{display:none}
+
+/* ── 1 杂志编辑：上下细线 + 衬线正文 ───────────────────────────── */
+.card.lt-editorial .lh{top:62px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.card.lt-editorial .body{top:150px;bottom:120px}
+.card.lt-editorial .lf{border-top:1px solid var(--line);padding-top:14px}
+.card.lt-editorial .body .h2{font-family:var(--serif);letter-spacing:.02em}
+
+/* ── 2 瑞士网格：左侧色条 + 40px 竖网格 ────────────────────────── */
+.card.lt-swiss{background-image:repeating-linear-gradient(90deg,
+  var(--line) 0 1px, transparent 1px 40px)}
+.card.lt-swiss::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;
+  background:var(--accent);z-index:2}
+.card.lt-swiss .lh{left:100px;right:60px;top:40px;justify-content:flex-end}
+.card.lt-swiss .body{left:100px;right:60px;top:110px;bottom:110px}
+.card.lt-swiss .lf{left:100px;right:60px}
+.card.lt-swiss .corner{width:20px;height:20px;border:2px solid var(--accent)}
+.card.lt-swiss .body p{font-family:var(--sans);line-height:1.62}
+.card.lt-swiss .body .h2{font-family:var(--sans);font-weight:700;letter-spacing:-.01em}
+
+/* ── 3 效率笔记：白纸 + 面包屑 + 顶部细线 ──────────────────────── */
+.card.lt-notion .lh{top:56px;padding-bottom:12px;border-bottom:1px solid var(--line);
+  text-transform:none;letter-spacing:.02em;font:500 17px/1 var(--sans)}
+.card.lt-notion .body{top:140px;bottom:110px}
+.card.lt-notion .body p{font-family:var(--sans);line-height:1.76}
+.card.lt-notion .body .h2{font-family:var(--sans);font-weight:600}
+
+/* ── 4 书籍内页：左侧装订阴影 + 右缘高光 + 纸张纹理 ────────────── */
+.card.lt-book{background:
+  linear-gradient(90deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.05) 4%, rgba(0,0,0,0) 12%),
+  linear-gradient(270deg, rgba(255,255,255,.5) 0 3px, transparent 3px),
+  var(--paper)}
+.card.lt-book .lh{top:68px;justify-content:center;column-gap:18px}
+.card.lt-book .lt-book-sect{color:var(--accent);font-size:22px;line-height:1}
+.card.lt-book .lt-book-mast{font:italic 500 15px/1 var(--serif);letter-spacing:.34em;color:var(--muted)}
+.card.lt-book .body{left:110px;right:96px;top:150px;bottom:130px}
+.card.lt-book .lf{left:110px;right:96px}
+
+/* ── 5 苹果备忘录：iOS 顶栏 + 横线纸 + 白卡 ────────────────────── */
+.card.lt-memo{padding:0}
+.card.lt-memo::before{content:"";position:absolute;left:15px;right:15px;top:55px;bottom:55px;
+  background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.05);z-index:1}
+.card.lt-memo .lh{left:40px;right:40px;top:16px;height:26px;z-index:5;
+  text-transform:none;letter-spacing:.01em;font:500 17px/1 var(--sans);color:var(--accent)}
+.card.lt-memo .lt-memo-date{color:var(--muted);font-weight:400;font-size:13px}
+.card.lt-memo .lt-memo-done{color:var(--accent);font-weight:600}
+.card.lt-memo .body{left:52px;right:52px;top:100px;bottom:110px;z-index:4;
+  background-image:repeating-linear-gradient(180deg,
+    transparent 0 calc(var(--fs) * 1.74 - 1px), var(--line) calc(var(--fs) * 1.74 - 1px) calc(var(--fs) * 1.74))}
+.card.lt-memo .body p{font-family:var(--sans);line-height:1.74}
+.card.lt-memo .body .h2{font-family:var(--sans);font-weight:600}
+
+/* ── 6 拍立得：上部照片框 + 胶带 ──────────────────────────────── */
+.card.lt-polaroid{background:#d6d6d6}
+.card.lt-polaroid::before{content:"";position:absolute;left:50px;top:60px;right:50px;bottom:60px;
+  background:#fafafa;box-shadow:0 14px 34px rgba(0,0,0,.16);z-index:1}
+/* 照片框按比例 26%（原型 T5 修：写死 420px 会把正文区压到 730px，开篇必溢出） */
+.card.lt-polaroid::after{content:"";position:absolute;left:80px;right:80px;top:90px;
+  height:calc(26% - 30px);
+  background:linear-gradient(140deg,#3a3a3a,#2c2c2c 60%,#4a4a4a);z-index:2}
+.card.lt-polaroid .lh{top:34px;z-index:6;left:0;right:0;justify-content:center}
+.card.lt-polaroid .lh::before{content:"";width:150px;height:36px;
+  background:rgba(255,255,255,.55);box-shadow:0 3px 8px rgba(0,0,0,.12);
+  transform:rotate(-2deg)}
+.card.lt-polaroid .body{left:90px;right:90px;top:calc(26% + 60px);bottom:130px;z-index:4}
+.card.lt-polaroid .lf{left:90px;right:90px}
+
+/* ── 7 弥散极光：三层光晕 + 毛玻璃卡 ──────────────────────────── */
+.card.lt-aura{background:
+  radial-gradient(80% 60% at 0% 0%, rgba(255,195,160,.34), transparent 70%),
+  radial-gradient(70% 55% at 100% 18%, rgba(255,175,189,.28), transparent 70%),
+  radial-gradient(90% 70% at 50% 100%, rgba(33,147,176,.18), transparent 70%),
+  #fff}
+.card.lt-aura::before{content:"";position:absolute;left:25px;right:25px;top:30px;bottom:60px;
+  background:rgba(255,255,255,.52);border:1.5px solid rgba(255,255,255,.75);
+  border-radius:28px;box-shadow:0 10px 40px rgba(0,0,0,.04);z-index:1;
+  backdrop-filter:blur(2px)}
+.card.lt-aura .lh{left:60px;right:60px;top:60px;z-index:5}
+.card.lt-aura .body{left:60px;right:60px;top:130px;bottom:110px;z-index:4}
+.card.lt-aura .lf{left:60px;right:60px;bottom:80px}
+
+/* ── 8 暗夜深思：径向渐变 + 左侧发光竖线 ──────────────────────── */
+.card.lt-night{background:radial-gradient(90% 70% at 50% 50%, #1a1a1a, #050505)}
+.card.lt-night::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg, transparent, var(--accent) 20% 80%, transparent);
+  opacity:.35;z-index:2}
+.card.lt-night::after{content:"";position:absolute;left:20px;right:20px;top:30px;bottom:60px;
+  border:1px solid rgba(255,255,255,.05);border-radius:16px;
+  background:rgba(255,255,255,.02);z-index:1}
+.card.lt-night .lh{left:52px;right:52px;top:50px;z-index:5}
+.card.lt-night .night-pn,.card.lt-night .lt-night-pn{color:rgba(255,255,255,.35)}
+.card.lt-night .body{left:52px;right:52px;top:120px;bottom:150px;z-index:4}
+.card.lt-night .lf{left:52px;right:52px;bottom:80px;padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.2)}
+.card.lt-night .body .h2{color:var(--accent)}
+
+/* ── 9 大厂文档：网格 + macOS 窗口 ────────────────────────────── */
+.card.lt-doc{background:
+  repeating-linear-gradient(90deg, rgba(0,102,255,.022) 0 1px, transparent 1px 20px),
+  repeating-linear-gradient(180deg, rgba(0,102,255,.022) 0 1px, transparent 1px 20px),
+  var(--paper)}
+.card.lt-doc::before{content:"";position:absolute;left:15px;right:15px;top:40px;bottom:60px;
+  background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.08);z-index:1}
+.card.lt-doc .lh{left:15px;right:15px;top:40px;height:30px;z-index:5;
+  border-radius:12px 12px 0 0;background:rgba(17,24,39,.05);padding:0 14px;
+  justify-content:flex-start;gap:14px}
+.card.lt-doc .lt-doc-dots{display:flex;gap:7px}
+.card.lt-doc .lt-doc-dots i{width:10px;height:10px;border-radius:50%;display:block}
+.card.lt-doc .lt-doc-dots i:nth-child(1){background:#ff5f56}
+.card.lt-doc .lt-doc-dots i:nth-child(2){background:#ffbd2e}
+.card.lt-doc .lt-doc-dots i:nth-child(3){background:#27c93f}
+.card.lt-doc .lt-doc-title{font:700 11px/1 var(--sans);letter-spacing:.06em;color:var(--muted)}
+.card.lt-doc .lt-mast-r{margin-left:auto;font:700 10px/1 var(--sans);letter-spacing:.08em}
+.card.lt-doc .body{left:50px;right:50px;top:130px;bottom:120px;z-index:4}
+.card.lt-doc .lf{left:50px;right:50px}
+
+/* ── 10 电影胶片：宽银幕遮幅 + 齿孔 ──────────────────────────── */
+.card.lt-film{background:radial-gradient(90% 75% at 50% 45%, #252320, #1a1a18 60%, #111110)}
+.card.lt-film::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+  box-shadow:inset 0 0 140px 30px rgba(0,0,0,.45)}
+.card.lt-film .lt-film-bars{position:absolute;left:0;right:0;height:7%;z-index:7;
+  background:#000;display:flex;align-items:center;padding:0 16px;
+  font:600 10px/1 "Courier New",monospace;letter-spacing:.06em;
+  color:rgba(200,184,154,.35)}
+.card.lt-film .lt-film-bars.top{top:0;border-bottom:.5px solid rgba(200,184,154,.2);
+  justify-content:space-between}
+.card.lt-film .lt-film-bars.bottom{bottom:0;border-top:.5px solid rgba(200,184,154,.2);
+  justify-content:space-between}
+.card.lt-film .lt-film-bars::before{content:"";position:absolute;left:0;right:0;top:50%;
+  height:45%;transform:translateY(-50%);
+  background-image:repeating-linear-gradient(90deg,
+    rgba(200,184,154,.12) 0 8px, transparent 8px 32px);
+  -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 32px);
+  pointer-events:none;opacity:.9}
+.card.lt-film .lh{left:0;right:0;top:7%;height:56px;z-index:8;justify-content:center}
+.card.lt-film .lt-film-title{font:italic 500 15px/1 var(--serif);letter-spacing:.22em;
+  color:rgba(200,184,154,.5)}
+.card.lt-film .body{left:70px;right:70px;top:calc(7% + 100px);bottom:calc(7% + 90px);z-index:5}
+.card.lt-film .lf{bottom:7%;height:7%;left:0;right:0;z-index:8;justify-content:center}
+.card.lt-film .lt-film-scene{font:500 12px/1 "Courier New",monospace;letter-spacing:.14em;
+  color:rgba(200,184,154,.4)}
+
+/* ── 11 星光质感：深蓝渐变 + 星点 + 月亮微光 ──────────────────── */
+.card.lt-starry{background:
+  radial-gradient(70% 50% at 85% 8%, rgba(251,191,36,.16), transparent 65%),
+  radial-gradient(120% 90% at 50% 20%, #1a1a3e, #0c1445 55%, #0f0f2d)}
+.card.lt-starry::before{content:"";position:absolute;inset:0;z-index:1;opacity:.9;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,.9), transparent),
+    radial-gradient(1px 1px at 28% 42%, rgba(255,255,255,.7), transparent),
+    radial-gradient(2px 2px at 44% 12%, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 62% 30%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 78% 15%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 88% 48%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 18% 68%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 72% 78%, rgba(255,255,255,.7), transparent);
+  background-size:100% 100%}
+.card.lt-starry .lh{left:60px;right:60px;top:56px;z-index:5;
+  border-bottom:1px solid rgba(251,191,36,.35);padding-bottom:16px}
+.card.lt-starry .lt-starry-mark{color:var(--accent);font-weight:600;letter-spacing:.16em}
+.card.lt-starry .body{left:60px;right:60px;top:140px;bottom:120px;z-index:4}
+.card.lt-starry .lf{left:60px;right:60px;color:rgba(251,191,36,.6)}
+
+/* ── 12 极简留白：只有页码 ──────────────────────────────────── */
+.card.lt-blank .body{top:120px;bottom:120px}
+.card.lt-blank .lh{display:none}
+
+/* 排印基元：:where() 归零特异性（见文件头说明） */
+:where(.card .body p){margin:0 0 var(--pgap);font-family:var(--serif);font-weight:400;
+  font-size:var(--fs);line-height:1.74;text-align:justify;text-wrap:pretty}
+:where(.card .body .h2){font-family:var(--serif);font-weight:500;letter-spacing:.03em;
+  font-size:calc(var(--fs) * 1.40);line-height:1.32;margin:0 0 calc(var(--fs) * .48);text-wrap:balance}
+:where(.card .body .h3){font-family:var(--serif);font-weight:500;letter-spacing:.02em;
+  font-size:calc(var(--fs) * 1.10);line-height:1.38;
+  margin:calc(var(--fs) * .58) 0 calc(var(--fs) * .26);text-wrap:balance}
+.card .body strong{font-weight:600}
+.card .body em{font-family:var(--serif);font-style:italic}
+.card .body .mark{background:var(--hl);padding:0 3px;border-radius:2px}
+
+/* ⓪ 封面页：封面 = 模板的 P1（与内页共用 .lh/.lf/配色，不出现「第一页和后面不同」）。
+   底图铺满整页压一层固定渐变（原型验证的装饰层），标题在照片上仍读得清。 */
+.card .body.r-cover{justify-content:flex-end;padding-bottom:0}
+.card .body.r-cover .lt-cover-img{position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 46%;z-index:0}
+.card .body.r-cover.has-img::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(10,9,8,0) 38%,rgba(10,9,8,.30) 62%,
+    rgba(10,9,8,.66) 84%,rgba(10,9,8,.80) 100%)}
+.card .body.r-cover .lt-cover-inner{position:relative;z-index:2;padding-bottom:8px}
+.card .body.r-cover .lt-cover-kick{margin:0 0 18px;font:500 21px/1 var(--mono);
+  letter-spacing:.22em;text-transform:uppercase;color:var(--accentText)}
+.card .body.r-cover .lt-cover-ttl{margin:0;font-family:var(--serif);font-weight:500;
+  font-size:calc(var(--fs) * 2.05);line-height:1.18;letter-spacing:.02em;text-wrap:balance}
+.card .body.r-cover .lt-cover-sub{margin:26px 0 0;font-family:var(--serif);
+  font-style:italic;font-size:calc(var(--fs) * .60);line-height:1.62;color:var(--muted);
+  max-width:820px;text-wrap:pretty}
+.card .body.r-cover.has-img .lt-cover-ttl{color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.45), 0 6px 22px rgba(0,0,0,.35)}
+.card .body.r-cover.has-img .lt-cover-sub{color:rgba(255,255,255,.88)}
+.card .body.r-cover.has-img .lt-cover-kick{color:rgba(255,255,255,.82)}
+
+/* ① 开篇 opening */
+.card .body.r-opening{justify-content:center}
+.r-opening .rule{width:62px;height:2px;background:var(--accent);margin:0 0 38px;flex:none}
+.r-opening .lead{font-family:var(--serif);font-weight:500;font-size:74px;line-height:1.36;
+  letter-spacing:.03em;margin:0;max-width:900px;text-wrap:balance}
+.r-opening .sub{font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:31px;line-height:1.52;color:var(--muted);margin:32px 0 0;max-width:820px;text-wrap:pretty}
+.r-opening .sign{margin-top:64px;font:400 20px/1 var(--mono);letter-spacing:.20em;
+  text-transform:uppercase;color:var(--muted)}
+
+/* ② 清单 points
+   ⚠️ .body 本身是 absolute（已是子元素的包含块），这里不能再写 position:relative ——
+   那会把它拉回普通流，宽度变成整卡 1080，右边界溢出 88px（原型实测）。 */
+.card .body.r-points{justify-content:center}
+.r-points .big-num{position:absolute;right:-30px;top:-16px;z-index:0;pointer-events:none;
+  font:600 300px/1 var(--serif);color:var(--accent);opacity:.10;letter-spacing:-.03em}
+.r-points .ttl{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  letter-spacing:.03em;font-size:56px;line-height:1.32;margin:0 0 36px;text-wrap:balance}
+.r-points .rows{position:relative;z-index:1;display:flex;flex-direction:column}
+.r-points .row{display:flex;gap:26px;align-items:baseline;padding:25px 0;
+  border-top:1px solid var(--line)}
+.r-points .row:last-child{border-bottom:1px solid var(--line)}
+.r-points .row .n{flex:none;font:500 24px/1 var(--mono);letter-spacing:.10em;
+  color:var(--accentText);padding-top:5px;font-variant-numeric:tabular-nums}
+.r-points .row .t{flex:1;font-family:var(--serif);font-size:var(--fs);line-height:1.62;
+  font-weight:400;text-align:justify;text-wrap:pretty}
+.r-points .row .t b{font-weight:600}
+.r-points .pintro,.r-steps .pintro{
+  position:relative;z-index:1;font-family:var(--serif);font-weight:400;
+  font-size:calc(var(--fs) * .88);line-height:1.7;color:var(--muted);
+  margin:0 0 30px;text-align:justify;text-wrap:pretty}
+
+/* ③ 金句 quote */
+.card .body.r-quote{justify-content:center;text-align:center}
+.r-quote .qbg{position:absolute;left:50%;top:50%;transform:translate(-50%,-56%);z-index:0;
+  font-family:Georgia,var(--serif);font-style:italic;font-weight:400;
+  font-size:560px;line-height:.9;color:var(--accent);opacity:.13;pointer-events:none}
+.r-quote .qmark{position:relative;z-index:1;font-family:Georgia,var(--serif);
+  font-style:italic;font-size:130px;line-height:.55;color:var(--accent);opacity:.34;
+  margin:0 0 22px;align-self:center}
+.r-quote .qt{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  font-size:78px;line-height:1.46;letter-spacing:.03em;margin:0;max-width:840px;
+  align-self:center;text-wrap:balance}
+.r-quote .qrule{position:relative;z-index:1;width:54px;height:2px;background:var(--accent);
+  margin:42px auto 0;opacity:.70}
+.r-quote .qctx{position:relative;z-index:1;margin:40px auto 0;max-width:760px;
+  font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.72;
+  color:var(--muted);text-align:justify;text-wrap:pretty}
+.r-quote .qsign{position:relative;z-index:1;margin:30px auto 0;
+  font:400 20px/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+
+/* ④ 步骤 steps */
+.r-steps .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;font-size:56px;
+  line-height:1.32;margin:0 0 42px;text-wrap:balance}
+.r-steps .flow{display:flex;flex-direction:column}
+.r-steps .step{display:flex;gap:28px;position:relative;padding-bottom:36px}
+.r-steps .step:last-child{padding-bottom:0}
+.r-steps .step:not(:last-child)::before{content:"";position:absolute;left:28px;top:56px;
+  bottom:0;width:1px;background:var(--line)}
+.r-steps .step .sn{flex:none;width:56px;height:56px;border-radius:50%;display:grid;
+  place-items:center;border:1px solid var(--accent);color:var(--accentText);
+  font:500 21px/1 var(--mono);font-variant-numeric:tabular-nums;background:var(--paper);
+  position:relative;z-index:1}
+.r-steps .step .sc{flex:1;padding-top:5px}
+.r-steps .step .st{font-family:var(--serif);font-weight:600;font-size:calc(var(--fs) * 1.0);
+  line-height:1.5;margin:0 0 8px;text-wrap:pretty}
+.r-steps .step .sd{font-family:var(--serif);font-weight:400;font-size:calc(var(--fs) * .82);
+  line-height:1.68;color:var(--muted);margin:0;text-align:justify;text-wrap:pretty}
+
+/* ⑤ 正文 dense —— 中文不做首字下沉，用 40px 小色条做段首锚点 */
+.r-dense .ttl{font-family:var(--serif);font-weight:500;letter-spacing:.03em;
+  font-size:calc(var(--fs) * 1.36);line-height:1.34;margin:0 0 calc(var(--fs) * .50);text-wrap:balance}
+.r-dense .drop{position:relative}
+.r-dense .drop::before{content:"";display:block;width:40px;height:2px;background:var(--accent);
+  margin:0 0 22px;opacity:.75}
+
+/* ⑥ 结尾 closing */
+.card .body.r-closing{justify-content:center}
+.r-closing .cbg{position:absolute;right:-30px;bottom:-60px;z-index:0;pointer-events:none;
+  font:600 340px/1 var(--serif);color:var(--accent);opacity:.09;letter-spacing:-.04em}
+.r-closing .rule{position:relative;z-index:1;width:62px;height:2px;background:var(--accent);
+  margin:0 0 34px;flex:none}
+.r-closing .ct{position:relative;z-index:1;font-family:var(--serif);font-weight:500;
+  font-size:66px;line-height:1.42;letter-spacing:.03em;margin:0;max-width:860px;text-wrap:balance}
+.r-closing .cd{position:relative;z-index:1;font-family:var(--serif);font-weight:400;
+  font-size:31px;line-height:1.68;color:var(--muted);margin:30px 0 0;max-width:780px;
+  text-align:justify;text-wrap:pretty}
+.r-closing .cta{position:relative;z-index:1;display:inline-flex;align-items:center;gap:14px;
+  margin-top:56px;font:500 21px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accentText);border-top:1px solid var(--line);padding-top:24px;align-self:flex-start}
+.r-closing .cta::before{content:"";width:28px;height:2px;background:var(--accent)}
+
+/* 瑞士模式：无衬线 / 无纹理 / 一个强调色（fam='swiss' 的色板附加类） */
+.card.swiss .body p,.card.swiss .row .t,.card.swiss .ct,.card.swiss .sd{font-family:var(--sans)}
+.card.swiss .r-quote .qt,.card.swiss .r-opening .lead,.card.swiss .r-closing .ct,
+.card.swiss .r-points .ttl,.card.swiss .r-steps .ttl,.card.swiss .r-dense .ttl,.card.swiss .r-opening .sub{
+  font-family:var(--sans);font-weight:300;letter-spacing:.01em}
+.card.swiss .grain{display:none}
+.card.swiss .r-steps .step .sn{border-radius:0}
+.card.swiss .body .mark{background:var(--accent);color:var(--paper);padding:0 5px}
+
+
+/* 卡片按 1080×1440 渲染，再整体 scale 到画布尺寸（和标题图的缩略图同一套做法） */
+.card-scale{transform-origin:top left}
+.card-scale .card{position:relative}
+
+/* 托盘 */
+.tray{
+  position:fixed;left:50%;bottom:16px;transform:translate(-50%,140%);
+  width:min(560px,calc(100vw - 32px));background:var(--raised);border:1px solid var(--border);
+  border-radius:var(--r-xl);box-shadow:0 12px 40px rgba(30,25,15,.20);
+  padding:12px 14px;display:flex;align-items:center;gap:12px;z-index:60;
+  transition:transform .28s cubic-bezier(.2,.8,.3,1);
+}
+.tray.on{transform:translate(-50%,0)}
+.tray-th{width:40px;height:53px;border-radius:4px;overflow:hidden;flex:none;background:var(--sunken)}
+.tray-th img{width:100%;height:100%;object-fit:cover;display:block}
+.tray-main{min-width:0;flex:1}
+.tray-t{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:5px}
+.tray-t svg{color:#2E7D5B}
+.tray-s{font-size:11px;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums}
+.tray-x{width:26px;height:26px;border-radius:50%;color:var(--muted);font-size:15px;line-height:1}
+.tray-x:hover{background:var(--sunken);color:var(--text)}
+.tray-btns{display:flex;gap:6px;flex:none}
+
+.toast{
+  position:fixed;left:50%;bottom:84px;transform:translate(-50%,20px);
+  background:rgba(24,21,17,.92);color:#fff;font-size:12px;padding:8px 14px;border-radius:20px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:80;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* 全屏文章编辑层 */
+.mask{
+  position:fixed;inset:0;background:rgba(28,24,18,.34);opacity:0;pointer-events:none;
+  transition:opacity .2s;z-index:70;backdrop-filter:blur(1px);
+}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-46%) scale(.985);
+  width:min(680px,calc(100vw - 40px));max-height:88vh;background:var(--raised);
+  border-radius:var(--r-xl);box-shadow:0 24px 70px rgba(30,25,15,.28);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:71;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sheet.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:14px 16px 8px}
+.sheet-title{font-size:13.5px;font-weight:700}
+.sheet-sub{font-size:11px;color:var(--muted);margin-left:auto}
+.sheet-body{padding:4px 16px 12px;overflow:auto}
+.sheet-foot{display:flex;gap:8px;padding:10px 16px 14px;border-top:1px solid var(--border)}
+.art-full{
+  width:100%;height:min(56vh,420px);min-height:220px;resize:none;
+  border:1px solid var(--border);border-radius:var(--r);background:var(--surface);
+  padding:12px 14px;outline:0;font:13.5px/1.78 inherit;
+}
+.art-full:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.art-foot{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:11.5px;color:var(--muted)}
+.art-hint{margin-left:auto}
+.sheet-x{margin-left:auto;width:26px;height:26px;border-radius:50%;color:var(--muted);font-size:15px}
+.sheet-x:hover{background:var(--sunken)}
+</style>
+<style>
+/* ══ V2 覆盖：长图文右栏 ═══════════════════════════════════════════════
+   实测旧版 side-scroll 内容 1013px / 容器 854px → 配色、字号、选项、署名
+   四项全部在折叠线以下，必须滚动才看得到（方案却写「全部常驻，一屏不滚」）。
+   做法：右栏 520px、模板 4 列（12 套正好 3 行）、配色两列紧凑。
+   空间从哪来：中栏画布是高度约束的，宽 856 里只有 495 是画布，361px 一直空着。 */
+.col-side{width:520px}
+.tpl-grid{grid-template-columns:repeat(4,1fr);gap:8px}
+.tpl-nm{font-size:11px}
+.tpl-sub{font-size:9px}
+.side-scroll{padding:10px 14px}
+#pals{display:flex;flex-wrap:wrap;gap:5px}
+.row > .rlab{width:26px;flex:none;font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand"><i></i>小红书封面工坊</div>
+  <div class="tabs">
+    <a href="ux-a-three-col.html">标题图</a>
+    <a href="ux-longform.html" aria-current="page">长图文</a>
+  </div>
+  <span class="say">文章在左、成图在中、模板在右，滚的只有模板区</span>
+</div>
+
+<div class="app">
+  <!-- ═══ 左栏 ═══ -->
+  <aside class="col-write">
+    <div class="sec-head"><span class="sec-title">整篇文章</span><span class="sec-hint" id="wcnt">0 字</span></div>
+    <div class="art-box">
+      <div class="art-title empty" id="art-title">把文章粘进来</div>
+      <div class="art-meta" id="art-meta">第一行作封面标题 ·「---」强制分页</div>
+      <button class="mini primary" id="art-edit" style="justify-content:center">编辑全文</button>
+    </div>
+
+    <div class="sec-head" style="margin-top:12px">
+      <span class="sec-title">分页</span><span class="sec-hint" id="pghint">自动</span>
+    </div>
+    <div class="art-pages" id="art-pages"></div>
+
+    <div class="divider"></div>
+
+    <div class="sec-head"><span class="sec-title">封面配图</span><span class="sec-hint" id="pic-hint">示例底图</span></div>
+    <div class="pic-current">
+      <img id="pic-img" alt="">
+    </div>
+    <div class="pic-meta"><b id="pic-name">海边雾晨</b><span id="pic-src">示例底图 · 点「换一张」用自己的</span></div>
+    <div class="pic-btns">
+      <button class="mini" id="pic-change">换一张</button>
+      <button class="mini" id="pic-upload">传一张</button>
+      <button class="mini" id="pic-none">不要图</button>
+    </div>
+  </aside>
+
+  <!-- ═══ 中栏 ═══ -->
+  <main class="col-canvas">
+    <div class="stage" id="stage">
+      <div class="cv-wrap" id="cv-wrap"><div id="cv-art"></div></div>
+    </div>
+
+    <div class="canvas-bar" id="cbar">
+      <div class="cb-meta">
+        <span id="dim">1080 × 1440</span>
+        <span>·</span>
+        <span id="pgnum">第 1 / 5 页</span>
+        <span class="trust">· 纯前端生成 · 内容不上传</span>
+      </div>
+      <div class="cb-actions">
+        <button class="btn-ghost" id="btn-copy">复制</button>
+        <button class="btn-ghost" id="btn-nine">九宫格</button>
+        <button class="btn-primary" id="btn-export">导出整套</button>
+      </div>
+    </div>
+
+    <div class="film" id="film"></div>
+  </main>
+
+  <!-- ═══ 右栏 ═══ -->
+  <aside class="col-side">
+    <div class="side-scroll">
+      <div class="sec-head"><span class="sec-title">模板</span><span class="sec-hint">12 套 · 点一下即换</span></div>
+      <div class="tpl-grid" id="tpls"></div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <span class="rlab">配色</span>
+        <div class="pchips" id="pals"></div>
+      </div>
+      <div class="row">
+        <span class="rlab">字号</span>
+        <div class="chips" id="sizes"></div>
+      </div>
+      <div class="row">
+        <span class="rlab">选项</span>
+        <div class="chips" id="opts"></div>
+        <label class="sw"><input type="checkbox" id="autolf" checked><span>自动排版</span></label>
+        <label class="sw"><input type="checkbox" id="pgno" checked><span>页码</span></label>
+      </div>
+      <div class="row">
+        <span class="rlab">署名</span>
+        <input class="field" id="sign" maxlength="16" placeholder="会出现在封面与收尾页">
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 出片托盘 -->
+<div class="tray" id="tray">
+  <div class="tray-th"><img id="tray-img" alt=""></div>
+  <div class="tray-main">
+    <div class="tray-t">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="tray-t">整套已生成</span>
+    </div>
+    <div class="tray-s" id="tray-s">封面 + 4 张内页 · 1080 × 1440</div>
+  </div>
+  <div class="tray-btns">
+    <button class="btn-ghost" id="tray-zip">打包 ZIP</button>
+    <button class="btn-primary" id="tray-dl">下载全部</button>
+  </div>
+  <button class="tray-x" id="tray-x" aria-label="关闭">✕</button>
+</div>
+
+<!-- 文章编辑层 -->
+<div class="mask" id="mask"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <span class="sheet-title">整篇文章</span>
+    <span class="sheet-sub">第一行作封面标题 · 「---」强制分页</span>
+    <button class="sheet-x" id="sheet-x" aria-label="关闭">✕</button>
+  </div>
+  <div class="sheet-body">
+    <textarea class="art-full" id="art-full" spellcheck="false"></textarea>
+    <div class="art-foot"><span id="art-full-count">0 字</span>
+      <span class="art-hint">改完点「完成」，画布会重新分页</span></div>
+  </div>
+  <div class="sheet-foot">
+    <button class="mini" id="art-cancel">取消</button>
+    <button class="mini primary" id="art-done" style="margin-left:auto">完成</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./xhs-ux-core.js"></script>
+<script src="./v2-shared.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   长图文：一篇 → 一套图（封面 + 开篇 + 正文 N 页 + 收尾）
+   ──────────────────────────────────────────────────────────────────────
+   分页口径沿用 2026-11-01 定下的「像素装箱 + 平均分配」：
+     ① 不能按「行数包络」估（4 段短句算 6.2 判够满，实际只占 1/3 画布）
+     ② 不能纯贪心（前页 100%、末页 35%，读者以为图断了）
+     ③ 先算总高定页数，再按「总高/页数」平均分配
+   ══════════════════════════════════════════════════════════════════════ */
+const $ = (id) => document.getElementById(id);
+
+const DEF_TEXT = `周末去了趟海边
+海风 · 日落 · 一部没电的手机
+
+两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。
+
+## 第一天：什么也没做
+
+下午四点到的，光刚好落在水面上，碎成一片一片。我什么也没做，就坐着。
+
+傍晚去镇上吃饭，点了一条鱼、一盘青菜。老板说这个季节的鱼最肥。
+
+> 后来我才发现，那天唯一拍下的照片，是手机彻底没电之前随手按的一张。
+
+## 第二天：五点起床看日出
+
+- 五点起床，裹着被子坐在阳台上
+- 六点零七分，太阳从海平面出来
+- 六点半回去睡回笼觉，睡到九点
+
+中午退房，在车站买了一个面包。回来的路上我想，好像什么也没发生，但好像又发生了什么。
+
+---
+下一次，想去看雪。`;
+
+/* ── 状态 ── */
+const LF = {
+  text: DEF_TEXT,
+  page: 0,
+  tpl: 'editorial',       // 模板 = cards.js 的 LONG_TPLS 之一
+  size: 44,               // 正文字号
+  showPageNo: true,
+  auto: true,             // 自动排版：按语义识别清单/金句/章节页
+  sign: '',
+};
+
+/* 6 套模板：名字 / 色板 / 页眉样式 / 默认字号 */
+/* ══ 12 套长文模板 —— 逐条照抄 pwa/src/cover/cards.js 的 LONG_TPLS ══
+   上一版我造了 6 套假的（杂志纸/极简白/墨夜/沙丘/克莱因/薄荷），
+   而产品里早就有 12 套，每套都有自己的 palette + head() + foot()。
+   用户原话：「现在长图文的模版版式已经很多了！你又自己造轮子！」
+   palette 为 null 的三套（editorial / swiss / blank）跟随右侧配色，其余锁自己的色。 */
+const TPLS = [
+  { id:'editorial', cls:'lt-editorial', name:'杂志编辑', sub:'EDITORIAL 刊头 · 衬线正文', palette:null,
+    head:()=>`<span style="letter-spacing:.18em">EDITORIAL</span>`
+      + `<span style="letter-spacing:.12em;opacity:.8">COLLECTION // VOL. 2026</span>`,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'swiss', cls:'lt-swiss', name:'瑞士网格', sub:'左侧色条 · REF 编号', palette:null,
+    head:()=>`<span style="letter-spacing:.16em">SWISS STUDIO</span>`
+      + `<span style="letter-spacing:.14em;opacity:.8">REF. CH-8004</span>`,
+    foot:(i,n,o)=>`<span>${o.pn ? String(i).padStart(2,'0') : ''}${o.sign ? ' @'+esc(o.sign) : ''}</span><span></span>` },
+
+  { id:'notion', cls:'lt-notion', name:'效率笔记', sub:'面包屑导航 · 克制的灰',
+    palette:{ paper:'#ffffff', paper2:'#f7f6f3', ink:'#37352f', muted:'#9b9a97',
+      accent:'#0f7b6c', accentText:'#0f7b6c', line:'rgba(55,53,47,.09)' },
+    head:()=>`<span style="letter-spacing:.04em">📖 / Workspace / Notes</span>`,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'book', cls:'lt-book', name:'书籍内页', sub:'装订阴影 · 纸张纹理',
+    palette:{ paper:'#fdfbf7', paper2:'#f5f1e8', ink:'#2b2b2b', muted:'#8a7f70',
+      accent:'#8c3a3a', accentText:'#8c3a3a', line:'rgba(93,64,55,.14)' },
+    head:()=>`<span style="letter-spacing:.2em">§</span>`
+      + `<span style="letter-spacing:.3em;opacity:.85">C L A S S I C   L I T E R A T U R E</span>`,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `P. ${String(i).padStart(2,'0')}` : ''}</span>` },
+
+  { id:'memo', cls:'lt-memo', name:'苹果备忘录', sub:'iOS 顶栏 · 横线纸',
+    palette:{ paper:'#f2f2f7', paper2:'#ffffff', ink:'#1c1c1e', muted:'#8e8e93',
+      accent:'#ff9500', accentText:'#c46f00', line:'rgba(60,60,67,.12)' },
+    head:()=>`<span>‹ 备忘录</span><span style="opacity:.8">完成</span>`,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'polaroid', cls:'lt-polaroid', name:'拍立得', sub:'照片框 · 胶带 · 颗粒',
+    palette:{ paper:'#fafafa', paper2:'#ffffff', ink:'#2b2b2b', muted:'#8a8a8a',
+      accent:'#d9534f', accentText:'#b23f3b', line:'rgba(0,0,0,.10)' },
+    head:()=>``,
+    foot:(i,n,o)=>`<span>${o.sign ? '@'+esc(o.sign) : ''}</span><span>${o.pn ? String(i).padStart(2,'0') : ''}</span>` },
+
+  { id:'aura', cls:'lt-aura', name:'弥散极光', sub:'光晕 · 毛玻璃圆角卡',
+    palette:{ paper:'#ffffff', paper2:'#fafafa', ink:'#2d3436', muted:'#7a8285',
+      accent:'#2d3436', accentText:'#2d3436', line:'rgba(45,52,54,.10)' },
+    head:()=>``,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'night', cls:'lt-night', name:'暗夜深思', sub:'深色渐变 · 终端感',
+    palette:{ paper:'#0d0d0d', paper2:'#161616', ink:'#e5e5e5', muted:'#8a8a8a',
+      accent:'#00f5ff', accentText:'#00e0e8', line:'rgba(255,255,255,.10)' },
+    head:()=>`<span></span><span style="letter-spacing:.16em;opacity:.8">// THOUGHT MODE ON</span>`,
+    foot:(i,n,o)=>`<span>${o.sign ? '@'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'doc', cls:'lt-doc', name:'大厂文档', sub:'网格底 · macOS 窗口',
+    palette:{ paper:'#f8f9fb', paper2:'#ffffff', ink:'#111827', muted:'#6b7280',
+      accent:'#0066ff', accentText:'#0052cc', line:'rgba(17,24,39,.09)' },
+    head:()=>`<span style="letter-spacing:.14em">DOCUMENT VIEWER</span>`
+      + `<span style="letter-spacing:.14em;opacity:.8">CONFIDENTIAL</span>`,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'film', cls:'lt-film', name:'电影胶片', sub:'宽银幕遮幅 · 齿孔',
+    palette:{ paper:'#1a1a18', paper2:'#252320', ink:'#d8d4ce', muted:'#9a938a',
+      accent:'#c8b89a', accentText:'#d8c9ae', line:'rgba(200,184,154,.20)' },
+    head:()=>`<span style="letter-spacing:.16em">▶ 01A</span>`
+      + `<span style="letter-spacing:.14em;opacity:.75">KODAK 5222 DOUBLE-X</span>`,
+    foot:(i,n,o)=>`<span>${o.pn ? `SCENE ${String(i).padStart(2,'0')} / ${String(n).padStart(2,'0')}` : ''}${o.sign ? ' @'+esc(o.sign) : ''}</span><span>PRINT: FINAL</span>` },
+
+  { id:'starry', cls:'lt-starry', name:'星光质感', sub:'深蓝夜空 · 星点光晕',
+    palette:{ paper:'#0c1445', paper2:'#141a3e', ink:'#e8eaf2', muted:'#8f97b8',
+      accent:'#fbbf24', accentText:'#fbbf24', line:'rgba(251,191,36,.25)' },
+    head:()=>`<span style="letter-spacing:.18em">✦ STARRY NIGHT</span>`,
+    foot:(i,n,o)=>`<span>SuperSu${o.sign ? ' @'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+
+  { id:'blank', cls:'lt-blank', name:'极简留白', sub:'只有页码，注意力全给文字', palette:null,
+    head:()=>``,
+    foot:(i,n,o)=>`<span>${o.sign ? '@'+esc(o.sign) : ''}</span><span>${o.pn ? `${i} / ${n}` : ''}</span>` },
+];
+const tplOf = (id) => TPLS.find(t => t.id === id) || TPLS[0];
+/* 模板色：有自己 palette 的锁死，null 的跟随右侧「配色」 */
+const palOfTpl = (t) => (t.palette ? t.palette : palOf(state.pal));
+
+const SIZES_LF = [{ k:40, n:'小' }, { k:44, n:'中' }, { k:48, n:'大' }];
+
+/* 页型中文名：自动排版之后页型有 7 种，标签必须跟着变，
+   否则胶片条上一排全是「正文」，看不出自动排版做了什么。 */
+const ROLE_NAME = {
+  cover:'封面', opening:'开篇', body:'正文', list:'清单',
+  quote:'金句', divider:'章节', closing:'收尾',
+};
+const roleName = (r) => ROLE_NAME[r] || '正文';
+
+/* ══════════ 文本 → 块 ══════════ */
+/* 文本 → 结构化块。**这是自动排版的地基**：
+   公众号排版之所以能「一键排」，是因为它先认出「这是标题 / 这是列表 / 这是引用」，
+   再按类型套版式。只按段落平均切页，只能算「自动分页」，不算「自动排版」。 */
+function parseBlocks(text) {
+  const lines = String(text).split(/\r?\n/);
+  const out = [];
+  let listBuf = null;
+
+  const flushList = () => { if (listBuf && listBuf.items.length) out.push(listBuf); listBuf = null; };
+
+  for (const raw of lines) {
+    const l = raw.trim();
+    if (!l) { flushList(); continue; }
+    if (/^-{3,}$/.test(l)) { flushList(); out.push({ type:'break' }); continue; }
+    if (/^#{1,6}\s/.test(l)) { flushList(); out.push({ type:'h3', text: l.replace(/^#{1,6}\s*/, '') }); continue; }
+    if (/^>\s?/.test(l)) { flushList(); out.push({ type:'quote', text: l.replace(/^>\s?/, '') }); continue; }
+    // 列表：- / * / • / 1. / 1、/ 1)
+    const li = l.match(/^(?:[-*•]|\d+[.、)])\s+(.*)$/);
+    if (li) {
+      if (!listBuf) listBuf = { type:'list', items:[] };
+      listBuf.items.push(li[1]);
+      continue;
+    }
+    flushList();
+    out.push({ type:'p', text: l });
+  }
+  flushList();
+  return out;
+}
+
+/* ══════════ 分页：像素装箱 + 平均分配 ══════════ */
+function paginate(blocks, size) {
+  const PAGE_H = 1010;                       // 1440 − 页眉 190 − 页脚 240
+  const LH = 1.74, PGAP = size * 0.86;
+  const CPL = Math.floor(860 / size);        // 每行字数
+  /* ⚠️ 每种块都要能估高。原来只处理 h3 / p，一旦解析出 list（没有 text 字段）
+     就是 `[...undefined]` → 整个 build 抛错、PAGES 归零、页面全空。 */
+  const blockH = (b) => {
+    if (b.type === 'break') return 0;
+    if (b.type === 'h3') return size * 1.42 * 1.3 + PGAP * 0.8;
+    if (b.type === 'list') {
+      return b.items.reduce((h, x) =>
+        h + Math.max(1, Math.ceil([...x].length / (CPL - 2))) * size * 1.7, 0) + PGAP;
+    }
+    if (b.type === 'quote') {
+      return Math.max(1, Math.ceil([...b.text].length / (CPL - 2))) * size * LH + PGAP;
+    }
+    const lines = Math.max(1, Math.ceil([...b.text].length / CPL));
+    return lines * size * LH + PGAP;
+  };
+
+  const pages = [];
+  let i = 0;
+  /* ① 开篇：首段 ≤ 90 字，单独做「大字引言」页 */
+  if (blocks[0] && blocks[0].type === 'p' && [...blocks[0].text].length <= 90) {
+    pages.push({ role:'opening', blocks:[blocks[0]] });
+    i = 1;
+  }
+  /* ② 按 --- 切大段 */
+  const segs = [[]];
+  for (; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.type === 'break') { if (segs[segs.length - 1].length) segs.push([]); continue; }
+    segs[segs.length - 1].push(b);
+  }
+  /* ③ 段内：先把「独立成页的块」切出来，再对剩余正文做装箱
+     ─────────────────────────────────────────────────────────────
+     公众号排版之所以能「一键排」，核心就是先把结构认出来：
+     一段列表 / 一段引用，本来就该独占一页，硬塞进正文里会被拆成两半。
+     所以这里先按 list / quote 切成小组，每组独立装箱。 */
+  for (const seg of segs) {
+    if (!seg.length) continue;
+
+    const groups = [];
+    let buf = [];
+    for (const b of seg) {
+      if (b.type === 'list' || b.type === 'quote') {
+        if (buf.length) { groups.push(buf); buf = []; }
+        groups.push([b]);
+      } else {
+        buf.push(b);
+      }
+    }
+    if (buf.length) groups.push(buf);
+
+    for (const g of groups) {
+      // 列表 / 引用：独占一页（内容过长时再按高度折）
+      if (g.length === 1 && (g[0].type === 'list' || g[0].type === 'quote')) {
+        const hOne = blockH(g[0]);
+        if (hOne <= PAGE_H) { pages.push({ role:'body', blocks: g.slice() }); continue; }
+      }
+      const total = g.reduce((h, b) => h + blockH(b), 0);
+      const n = Math.max(1, Math.ceil(total / PAGE_H));
+      const target = total / n;
+      let cur = [], h = 0;
+      for (let k = 0; k < g.length; k++) {
+        const b = g[k], bh = blockH(b), isLast = k === g.length - 1;
+        const overflow = h + bh > PAGE_H;
+        const passed = h >= target && cur.length > 0;
+        if ((overflow || (passed && h + bh > target)) && cur.length) {
+          pages.push({ role:'body', blocks: cur }); cur = []; h = 0;
+        }
+        cur.push(b); h += bh;
+        if (isLast) pages.push({ role:'body', blocks: cur });
+      }
+    }
+  }
+  /* ④ 自动定页型（这是「自动排版」，不只是「自动分页」）：
+       · 整页只有列表（≥2 条）→ 清单页
+       · 整页只有引用 → 金句页
+       · 整页只有一个小标题 → 章节页
+       · 其余 → 正文页 */
+  for (const pg of pages) {
+    if (!LF.auto) break;        // 关掉自动排版 → 全部按正文页排（老行为）
+    if (pg.role !== 'body') continue;
+    const kinds = new Set(pg.blocks.map(b => b.type));
+    if (kinds.size === 1 && kinds.has('list') && pg.blocks[0].items.length >= 2) pg.role = 'list';
+    else if (kinds.size === 1 && kinds.has('quote')) pg.role = 'quote';
+    else if (kinds.size === 1 && kinds.has('h3')) pg.role = 'divider';
+  }
+
+  /* ⑤ 末页欠填：先合并，合并不下升格收尾 */
+  const pageH = (pg) => pg.blocks.reduce((h, b) => h + blockH(b), 0);
+  while (pages.length >= 2) {
+    const last = pages[pages.length - 1], prev = pages[pages.length - 2];
+    if (last.role !== 'body' || prev.role !== 'body') break;
+    if (pageH(last) / PAGE_H >= 0.62) break;
+    if (pageH(prev) + pageH(last) > PAGE_H * 1.02) break;
+    prev.blocks = prev.blocks.concat(last.blocks); pages.pop();
+  }
+  const last = pages[pages.length - 1];
+  if (last && last.role === 'body' && pageH(last) / PAGE_H < 0.62) last.role = 'closing';
+
+  return pages.slice(0, 8);
+}
+
+/* ══════════ 单页渲染 ══════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   单页渲染 —— 结构照抄 pwa/src/cover/cards.js: cardInner()
+   ──────────────────────────────────────────────────────────────────────
+   真实结构：<div class="card lt-xxx" style="--paper/--ink/…">
+                <div class="grain"></div>
+                <div class="lh">页眉</div>
+                <div class="body r-xxx">内容</div>
+                <div class="lf">页脚</div>
+              </div>
+   7 种 body 角色：r-cover / r-opening / r-quote / r-points / r-steps / r-closing / r-dense
+   装饰（色条、齿孔、光晕、装订线…）全在 .lt-xxx 的 CSS 里，所以必须用真实 class。
+   ══════════════════════════════════════════════════════════════════════ */
+const ROLE_MAP = {
+  cover:'cover', opening:'opening', body:'dense',
+  list:'points', quote:'quote', divider:'dense', closing:'closing',
+};
+
+/* 把原型的块结构（p / h3 / list / quote）转成卡片管线认的（p / h3 / li / quote） */
+function toCardBlocks(blocks) {
+  const out = [];
+  for (const b of blocks || []) {
+    if (b.type === 'list') { (b.items || []).forEach(t => out.push({ type:'li', text:t })); }
+    else if (b.type === 'p' || b.type === 'h3' || b.type === 'quote') out.push({ type:b.type, text:b.text });
+  }
+  return out;
+}
+
+function cardInnerHtml({ role, blocks, tpl, pal, index, total, title, sub, author, image, pn, sign }) {
+  const st = pal;
+  const vars = '--paper:' + st.paper + ';--paper2:' + (st.paper2 || st.paper) + ';--ink:' + st.ink
+    + ';--muted:' + st.muted + ';--accent:' + st.accent + ';--accentText:' + (st.accentText || st.accent)
+    + ';--line:' + (st.line || 'rgba(128,128,128,.2)') + ';--hl:' + (st.hl || 'rgba(128,128,128,.12)')
+    + ';--grain:' + (st.grain || 'rgba(0,0,0,.04)')
+    + ';--cw:1080px;--ch:1440px;--k:1;--fs:' + LF.size + 'px;--pgap:' + Math.round(LF.size * 0.83) + 'px;';
+
+  const head = tpl.head ? tpl.head(pal) : '';
+  const foot = tpl.foot ? tpl.foot(index, total, { pn, sign }) : '';
+  const ttlBlock = blocks.find(b => /^h[1-4]$/.test(b.type));
+  const ttl = ttlBlock ? ttlBlock.text : '';
+
+  let bodyInner = '';
+
+  if (role === 'cover') {
+    const haveImg = !!image;
+    bodyInner = `<div class="body r-cover${haveImg ? ' has-img' : ''}">`
+      + (haveImg ? `<img class="lt-cover-img" src="${image}" alt="">` : '')
+      + `<div class="lt-cover-inner">`
+      + `<p class="lt-cover-kick">${esc(pal.name || tpl.name)}</p>`
+      + `<h1 class="lt-cover-ttl">${esc(title)}</h1>`
+      + (sub ? `<p class="lt-cover-sub">${esc(sub)}</p>` : '')
+      + `</div></div>`;
+  } else if (role === 'opening') {
+    const all = blocks.filter(b => b.text);
+    const lead = all[0] ? all[0].text : '';
+    const rest = all.slice(1).map(b => b.text).join(' ');
+    bodyInner = `<div class="body r-opening">`
+      + `<div class="rule"></div>`
+      + `<p class="lead">${esc(lead)}</p>`
+      + (rest ? `<p class="sub">${esc(rest)}</p>` : '')
+      + (author ? `<div class="sign">— ${esc(author)}</div>` : '')
+      + `</div>`;
+  } else if (role === 'quote') {
+    const q = blocks.find(b => b.type === 'quote');
+    const rest = blocks.filter(b => b !== q && b.text);
+    const qt = q ? q.text : (blocks[0] ? blocks[0].text : '');
+    const ctxTxt = rest.map(b => b.text).join(' ');
+    bodyInner = `<div class="body r-quote">`
+      + `<div class="qbg">&ldquo;</div><div class="qmark">&ldquo;</div>`
+      + `<p class="qt">${esc(qt)}</p><div class="qrule"></div>`
+      + (ctxTxt ? `<p class="qctx">${esc(ctxTxt)}</p>` : '')
+      + `<div class="qsign">— 摘自正文</div></div>`;
+  } else if (role === 'points') {
+    const items = blocks.filter(b => b.type === 'li');
+    const others = blocks.filter(b => b !== ttlBlock && (b.type === 'p' || b.type === 'quote'));
+    const rows = items.map((b, i) =>
+      `<div class="row"><span class="n">${String(i + 1).padStart(2, '0')}</span>`
+      + `<span class="t">${esc(b.text)}</span></div>`).join('');
+    const intro = others.map(b => `<p class="pintro">${esc(b.text)}</p>`).join('');
+    bodyInner = `<div class="body r-points">`
+      + `<div class="big-num">${String(items.length || 1).padStart(2, '0')}</div>`
+      + (ttl ? `<p class="ttl">${esc(ttl)}</p>` : '')
+      + intro + `<div class="rows">${rows}</div></div>`;
+  } else if (role === 'closing') {
+    const all = blocks.filter(b => b.text);
+    const ct = all.length ? all[all.length - 1].text : '';
+    const cd = all.length > 1 ? all.slice(0, -1).map(b => b.text).join(' ') : '';
+    const cta = author ? `关注 ${esc(author)}` : '收藏 · 下次还能找到';
+    bodyInner = `<div class="body r-closing">`
+      + `<div class="cbg">${String(blocks.length).padStart(2, '0')}</div>`
+      + `<p class="ct">${esc(ct)}</p>`
+      + (cd ? `<p class="cd">${esc(cd)}</p>` : '')
+      + `<div class="ccta">${cta}</div></div>`;
+  } else {
+    const rest = blocks.filter(b => b !== ttlBlock);
+    const withBlocks = rest.map((b, i) => {
+      if (b.type === 'p') return `<p${i === 0 ? ' class="drop"' : ''}>${esc(b.text)}</p>`;
+      if (/^h[12]$/.test(b.type)) return `<p class="h2">${esc(b.text)}</p>`;
+      if (/^h[34]$/.test(b.type)) return `<p class="h3">${esc(b.text)}</p>`;
+      if (b.type === 'quote') return `<p><em>${esc(b.text)}</em></p>`;
+      if (b.type === 'li') return `<p>· ${esc(b.text)}</p>`;
+      return '';
+    }).join('');
+    bodyInner = `<div class="body r-dense">`
+      + (ttl ? `<p class="ttl">${esc(ttl)}</p>` : '') + withBlocks + `</div>`;
+  }
+
+  return `<div class="card ${tpl.cls}" style="${vars}">`
+    + `<div class="grain"></div>`
+    + (head ? `<div class="lh">${head}</div>` : '')
+    + bodyInner
+    + `<div class="lf">${foot}</div>`
+    + `</div>`;
+}
+
+function pageHtml(W, H, page, idx, total) {
+  const t = tplOf(LF.tpl);
+  const pal = palOfTpl(t);
+  const role = ROLE_MAP[page.role] || 'dense';
+  const inner = cardInnerHtml({
+    role,
+    blocks: toCardBlocks(page.blocks),
+    tpl: t, pal,
+    index: idx + 1, total,
+    title: page.title || '', sub: page.sub || '',
+    author: LF.sign,
+    image: page.role === 'cover' && PIC.src && PIC.kind !== 'color' ? PIC.src : '',
+    pn: LF.showPageNo, sign: LF.sign,
+  });
+  const k = W / 1080;
+  return `<div class="cv-art" style="width:${W}px;height:${H}px;overflow:hidden;position:relative">`
+    + `<div class="card-scale" style="width:1080px;height:1440px;transform:scale(${k})">${inner}</div>`
+    + `</div>`;
+}
+
+/* ══════════ 组装整套 ══════════ */
+let PAGES = [];
+
+function build() {
+  const { title, sub } = extract(LF.text);
+  const firstLine = LF.text.split(/\r?\n/).find(l => l.trim()) || '';
+  const rest = LF.text.split(/\r?\n/).filter(l => l.trim()).slice(1).join('\n');
+  const blocks = parseBlocks(rest);
+  const body = paginate(blocks, LF.size);
+
+  PAGES = [{ role:'cover', title: title || '你的标题', sub: sub || '' }];
+  for (const p of body) {
+    const firstP = p.blocks.find(b => b.type === 'p');
+    PAGES.push({ ...p, keyword: firstP ? firstP.text.slice(0, 8) : '正文' });
+  }
+  if (LF.page >= PAGES.length) LF.page = PAGES.length - 1;
+  if (LF.page < 0) LF.page = 0;
+}
+
+/* ══════════ 渲染 ══════════ */
+const SIZES_DIM = { xhs: { w:1080, h:1440 } };
+
+function paint() {
+  const { w, h } = SIZES_DIM.xhs;
+  const page = PAGES[LF.page];
+  if (!page) return;
+  const art = $('cv-art');
+  art.innerHTML = pageHtml(w, h, page, LF.page, PAGES.length);
+  $('dim').textContent = `${w} × ${h}`;
+  $('pgnum').textContent = `第 ${LF.page + 1} / ${PAGES.length} 页`;
+  fit(w, h);
+}
+
+function fit(w, h) {
+  const stage = $('stage'), wrap = $('cv-wrap');
+  const bar = $('cbar'), film = $('film');
+  const availH = stage.clientHeight - 4;
+  const availW = stage.clientWidth - 8;
+  const k = Math.min(availW / w, availH / h);
+  wrap.style.width = Math.round(w * k) + 'px';
+  wrap.style.height = Math.round(h * k) + 'px';
+  const el = wrap.firstElementChild;
+  if (el) {
+    el.style.transformOrigin = 'top left';
+    el.style.transform = `scale(${k})`;
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+  }
+  // 动作条与胶片跟画布同宽
+  const bw = Math.max(360, wrap.offsetWidth);
+  bar.style.width = bw + 'px';
+  film.style.width = bw + 'px';
+}
+
+/* 胶片条：每页一张 54px 缩略图 */
+function renderFilm() {
+  const film = $('film');
+  film.innerHTML = PAGES.map((p, i) => {
+    const role = roleName(p.role);
+    const html = pageHtml(300, 400, p, i, PAGES.length);
+    return `<button class="film-item" data-i="${i}" aria-pressed="${i === LF.page}" title="${role} ${i + 1}">`
+      + `<div class="film-th"><div class="film-art" data-w="300" data-h="400">${html}</div>`
+      + `<span class="film-no">${String(i + 1).padStart(2, '0')}</span></div>`
+      + `<span class="film-role">${role}</span></button>`;
+  }).join('');
+  scaleIn(film);
+  $('pghint').textContent = `${PAGES.length} 页`;
+}
+
+/* 缩略图缩放：面板可见后按容器宽度量（写死比例会在列宽变化时溢出） */
+function scaleIn(root) {
+  root.querySelectorAll('.film-art, .tpl-art').forEach(el => {
+    const box = el.parentElement;
+    const w = box.clientWidth;
+    if (!w) return;
+    const k = w / Number(el.dataset.w || 300);
+    el.style.width = Number(el.dataset.w || 300) + 'px';
+    el.style.height = Number(el.dataset.h || 400) + 'px';
+    el.style.transform = `scale(${k})`;
+  });
+}
+
+function renderSide() {
+  // 模板
+  $('tpls').innerHTML = TPLS.map(t => {
+    /* ⚠️ pageHtml 内部读的是**全局 LF.tpl**，不是传进来的模板。
+       不临时切一下，12 张缩略图全都按「当前选中的模板」渲染 ——
+       和标题图缩略图那个坑一模一样（改数据不改渲染源，产物全一样）。
+       这也是「模板配色各不同」看起来没生效的真正原因。 */
+    const keepTpl = LF.tpl;
+    LF.tpl = t.id;
+    /* 缩略图要能看出「排版」而不只是「颜色」：放一个小标题 + 两段正文，
+       装饰（色条 / 齿孔 / 装订线 / 光晕）才在 54px 宽里露得出来。 */
+    const html = pageHtml(300, 400,
+      { role:'body', blocks:[
+          { type:'h2', text:'这套模板' },
+          { type:'p', text:'正文 44px，行高 1.74。换模板换的是整套气质。' },
+          { type:'p', text:'纸色、字族、页眉、页码，都是模板的一部分。' }],
+        keyword:'正文' }, 1, 5);
+    LF.tpl = keepTpl;
+    return `<button class="tpl" data-t="${t.id}" aria-pressed="${LF.tpl === t.id}">`
+      + `<div class="tpl-th"><div class="tpl-art" data-w="300" data-h="400">${html}</div></div>`
+      + `<div class="tpl-nm">${t.name}</div><div class="tpl-sub">${t.sub}</div></button>`;
+  }).join('');
+  scaleIn($('tpls'));
+
+  // 配色：模板锁定一组推荐色 + 全色板可选
+  const t = tplOf(LF.tpl);
+  const keys = [...new Set([t.pal, 'paper', 'ink', 'peach', 'electric', 'mint', 'citrus', 'grape', 'acid', 'tomato', 'sky', 'neon', 'magenta'])];
+  $('pals').innerHTML = keys.map(k => {
+    const p = palOf(k);
+    return `<button class="pchip" data-pal="${k}" aria-pressed="${state.pal === k}">`
+      + `<i style="--p:${p.paper};--a:${p.accent}"></i><span>${p.name}</span></button>`;
+  }).join('');
+
+  // 字号
+  $('sizes').innerHTML = SIZES_LF.map(s =>
+    `<button class="chip" data-s="${s.k}" aria-pressed="${LF.size === s.k}">${s.n}</button>`).join('');
+
+  // 选项
+  $('opts').innerHTML = `<button class="chip" id="opt-auto">重新排版</button>`;
+}
+
+/* ══════════ 交互 ══════════ */
+$('tpls').onclick = (e) => {
+  const b = e.target.closest('.tpl'); if (!b) return;
+  LF.tpl = b.dataset.t;
+  state.pal = tplOf(LF.tpl).pal;
+  /* ⚠️ 12 套 LONG_TPLS 没有 size 字段（字号是全局的 --fs），
+     这里直接赋值会把 LF.size 变成 undefined → CSS 里 `--fs:undefinedpx` 整条作废，
+     正文掉回浏览器默认 16px（实测：整页只剩顶部一小团字）。 */
+  LF.size = tplOf(LF.tpl).size || LF.size || 44;
+  renderSide(); build(); paint(); renderFilm();
+};
+$('pals').onclick = (e) => {
+  const b = e.target.closest('.pchip'); if (!b) return;
+  state.pal = b.dataset.pal;
+  renderSide(); paint(); renderFilm();
+};
+$('sizes').onclick = (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  LF.size = Number(b.dataset.s);
+  renderSide(); build(); paint(); renderFilm();
+};
+$('opts').onclick = () => {
+  build(); paint(); renderFilm(); renderArticle();
+  toast(`已重排：${PAGES.length} 页（${PAGES.filter(p => p.role === 'list').length} 清单 / `
+    + `${PAGES.filter(p => p.role === 'quote').length} 金句 / `
+    + `${PAGES.filter(p => p.role === 'divider').length} 章节）`);
+};
+$('pgno').onchange = (e) => { LF.showPageNo = e.target.checked; paint(); };
+/* 自动排版开关：开 = 按语义识别清单 / 金句 / 章节页；关 = 全部按正文页（老行为） */
+$('autolf').onchange = (e) => {
+  LF.auto = e.target.checked;
+  build(); paint(); renderFilm(); renderArticle();
+  toast(LF.auto ? '自动排版已开：识别标题 / 列表 / 引用' : '自动排版已关：全部按正文排');
+};
+$('sign').oninput = (e) => { LF.sign = e.target.value.trim(); paint(); renderFilm(); };
+
+$('film').onclick = (e) => {
+  const b = e.target.closest('.film-item'); if (!b) return;
+  LF.page = Number(b.dataset.i);
+  paint();
+  [...$('film').children].forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  [...$('art-pages').children].forEach((x, i) => x.setAttribute('aria-current', String(i === LF.page)));
+};
+
+$('art-pages').onclick = (e) => {
+  const b = e.target.closest('.pg'); if (!b) return;
+  LF.page = Number(b.dataset.i);
+  paint(); renderFilm();
+  [...$('art-pages').children].forEach(x => x.setAttribute('aria-current', String(x === b)));
+};
+
+/* 文章条 */
+function renderArticle() {
+  const { title } = extract(LF.text);
+  const t = $('art-title');
+  t.textContent = title || '把文章粘进来';
+  t.classList.toggle('empty', !title);
+  $('wcnt').textContent = `${LF.text.length} 字`;
+  $('art-meta').textContent = `自动分 ${PAGES.length} 页 · 第一行作封面标题`;
+  $('art-pages').innerHTML = PAGES.map((p, i) => {
+    const role = roleName(p.role);
+    /* list 块没有 text 字段（只有 items），直接取 .text 会显示 undefined */
+    const b0 = p.blocks && p.blocks[0];
+    const first = b0 ? (b0.text || (b0.items ? b0.items[0] : '') || '') : (p.title || '');
+    return `<button class="pg" data-i="${i}" aria-current="${i === LF.page}">`
+      + `<em>${String(i + 1).padStart(2, '0')}</em><span>${role} · ${esc(String(first).slice(0, 10))}</span></button>`;
+  }).join('');
+}
+
+/* 配图三态 */
+const PHOTO0 = PHOTOS && PHOTOS[0] ? PHOTOS[0] : { src:'', name:'示例底图' };
+const PIC = { src: PHOTO0.src, name: PHOTO0.name, kind:'sample' };
+
+function syncPic() {
+  $('pic-img').src = PIC.src || '';
+  $('pic-img').style.display = PIC.src ? 'block' : 'none';
+  $('pic-name').textContent = PIC.kind === 'color' ? '不要图' : PIC.name;
+  $('pic-src').textContent = PIC.kind === 'color' ? '封面走纯文字版式'
+    : PIC.kind === 'sample' ? '示例底图 · 点「换一张」用自己的'
+    : PIC.kind === 'upload' ? '本地图片 · 不上传' : '图库图片';
+  $('pic-hint').textContent = PIC.kind === 'color' ? '纯文字' : PIC.kind === 'sample' ? '示例底图' : '已选';
+}
+$('pic-change').onclick = () => {
+  // 循环换下一张示例图（原型里不接真实搜索，落地时接 search.js）
+  const i = Math.max(0, PHOTOS.findIndex(p => p.src === PIC.src));
+  const n = PHOTOS[(i + 1) % PHOTOS.length];
+  PIC.src = n.src; PIC.name = n.name; PIC.kind = 'stock';
+  syncPic();
+  analyze(n.src).then(a => { analysisCache.set(n.src, a); paint(); renderFilm(); }).catch(() => paint());
+};
+$('pic-upload').onclick = () => {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    const url = URL.createObjectURL(f);
+    PIC.src = url; PIC.name = f.name.slice(0, 12); PIC.kind = 'upload';
+    syncPic(); paint(); renderFilm();
+  };
+  inp.click();
+};
+$('pic-none').onclick = () => { PIC.src = ''; PIC.kind = 'color'; syncPic(); paint(); renderFilm(); };
+
+/* 文章编辑层 */
+function openEditor() {
+  $('art-full').value = LF.text;
+  $('art-full-count').textContent = `${LF.text.length} 字`;
+  $('mask').classList.add('on');
+  $('sheet').classList.add('on');
+  setTimeout(() => $('art-full').focus(), 200);
+}
+function closeEditor() { $('mask').classList.remove('on'); $('sheet').classList.remove('on'); }
+$('art-edit').onclick = openEditor;
+$('sheet-x').onclick = closeEditor;
+$('art-cancel').onclick = closeEditor;
+$('mask').onclick = closeEditor;
+$('art-full').oninput = (e) => { $('art-full-count').textContent = `${e.target.value.length} 字`; };
+$('art-done').onclick = () => {
+  LF.text = $('art-full').value;
+  LF.page = 0;
+  closeEditor();
+  build(); paint(); renderFilm(); renderArticle();
+};
+
+/* 导出整套 → 出片托盘 */
+$('btn-export').onclick = () => {
+  const inner = PAGES.length - 1;
+  $('tray-t').textContent = '整套已生成';
+  $('tray-s').textContent = `封面 + ${inner} 张内页 · 1080 × 1440 · ${PAGES.length} 张`;
+  const thumb = document.querySelector('#cv-art .cv-art img');
+  $('tray-img').src = PIC.src || (thumb ? thumb.src : '');
+  $('tray').classList.add('on');
+  clearTimeout($('btn-export')._t);
+  $('btn-export')._t = setTimeout(() => $('tray').classList.remove('on'), 12000);
+};
+$('tray-x').onclick = () => $('tray').classList.remove('on');
+$('tray-dl').onclick = () => toast(`原型未接导出：落地时生成 ${PAGES.length} 张 PNG 并打包`);
+$('tray-zip').onclick = () => toast('原型未接 ZIP：落地时用 fflate 打包整套');
+$('btn-copy').onclick = async () => {
+  const el = document.querySelector('#cv-art .cv-art');
+  if (!el) return;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([el.outerHTML], { type:'text/html' }),
+      'text/plain': new Blob([PAGES[LF.page].blocks ? PAGES[LF.page].blocks.map(b => b.text).join('\n') : LF.text], { type:'text/plain' }),
+    })]);
+    toast('已复制（富文本）');
+  } catch { toast('复制失败：浏览器不允许，请用下载'); }
+};
+$('btn-nine').onclick = () => toast('九宫格：落地时按 1→9 切成 9 张，发的时候拼回整张');
+
+/* 通用 */
+let toastT = 0;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* ══════════ 启动 ══════════ */
+function boot() {
+  state.pal = tplOf(LF.tpl).pal;
+  /* ⚠️ 12 套 LONG_TPLS 没有 size 字段（字号是全局的 --fs），
+     这里直接赋值会把 LF.size 变成 undefined → CSS 里 `--fs:undefinedpx` 整条作废，
+     正文掉回浏览器默认 16px（实测：整页只剩顶部一小团字）。 */
+  LF.size = tplOf(LF.tpl).size || LF.size || 44;
+  build();
+  renderSide();
+  renderArticle();
+  syncPic();
+  paint();
+  renderFilm();
+
+  // 字体就绪后重画一次（否则缩略图里的中文会用回退字体，和主画布不一致）
+  if (document.fonts) document.fonts.ready.then(() => { paint(); renderFilm(); });
+
+  // 预分析示例底图（封面有图时要用它算可读性）
+  if (PIC.src) analyze(PIC.src).then(a => { analysisCache.set(PIC.src, a); paint(); }).catch(() => {});
+
+  window.addEventListener('resize', () => {
+    const { w, h } = SIZES_DIM.xhs;
+    fit(w, h);
+    filmScale();
+  });
+  function filmScale() {
+    const { w, h } = SIZES_DIM.xhs;
+    const k = Math.min(1, $('stage').clientWidth / w);
+    $('film').style.width = Math.max(360, Math.round(w * k)) + 'px';
+  }
+}
+
+function extract(text) {
+  const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const title = (lines[0] || '').replace(/^#{1,6}\s*/, '').slice(0, 64);
+  const first = (lines[1] || '').split(/[。！？!?；;]/)[0] || '';
+  return { title, sub: first.slice(0, 44) };
+}
+
+boot();
+</script>
+</body>
+</html>
