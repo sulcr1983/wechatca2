@@ -278,6 +278,39 @@ body.browsing .pane-edit { display: none; }
 }
 .seg-tab[aria-pressed="true"] em { color: var(--accent); }
 
+/* ── 二级切换：配色主题 / 整篇设计 ────────────────────────────
+   与一级 tab 在视觉上必须能区分：一级是「下划线 tab」，二级是「填充胶囊」。
+   两级长得一样会让人以为是同一层，点错。 */
+.sub-tabs {
+  flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  padding: 7px 14px 9px; background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+.sub-tab {
+  height: 30px; border-radius: 99px; border: 1px solid var(--border);
+  background: var(--bg-surface); color: var(--text-soft);
+  font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+}
+.sub-tab:hover { border-color: var(--border-hi); color: var(--text); }
+.sub-tab[aria-pressed="true"] {
+  background: var(--text); border-color: var(--text); color: #fff;
+}
+/* 数量徽标：一眼知道各有几套，不用点进去数 */
+.sub-tab em {
+  font-style: normal; font-weight: 500; font-size: 10.5px;
+  background: rgba(0,0,0,.07); border-radius: 99px; padding: 1px 6px;
+}
+.sub-tab[aria-pressed="true"] em { background: rgba(255,255,255,.22); }
+/* 搜索时二级切换失效（跨两段搜），给个视觉提示 */
+.sub-tabs.is-search .sub-tab { opacity: .45; pointer-events: none; }
+
+/* 整篇设计段顶部的说明条：解释这一段和上一段有什么不同 */
+.kit-strip {
+  padding: 9px 14px 3px; font-size: 11px; line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* pane：一个 pane 占满标签栏以下的全部高度 */
 .pane-sec { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 .pane-sec[hidden] { display: none; }
@@ -493,28 +526,40 @@ body.browsing .pane-edit { display: none; }
 
   <!-- ══ pane 1：风格（主题卡，占满剩余高度）════════════════════ -->
   <div class="pane-sec" id="pane-style">
-    <!-- 调色条：单行，不占高度 -->
-    <div class="pal-sec">
-      <div class="pal-row">
-        <div class="pal-dots" id="pal-dots"></div>
-        <span class="pal-name" id="pal-name"></span>
-      </div>
-      <div class="pal-row" style="margin-top:5px" id="pal-fams"></div>
+    <!-- 二级：配色主题 / 整篇设计。两者是不同的东西，不是同一类的子集：
+         前者「选配色，版式自由组合」，后者「整套固定，不可组合」。 -->
+    <div class="sub-tabs" id="sub-tabs" role="tablist" aria-label="风格类型">
+      <button class="sub-tab" data-style-tab="palette" role="tab" aria-pressed="true">
+        配色主题 <em id="sub-palette-n"></em>
+      </button>
+      <button class="sub-tab" data-style-tab="kit" role="tab" aria-pressed="false">
+        整篇设计 <em id="sub-kit-n"></em>
+      </button>
     </div>
 
-    <!-- 两段：配色主题 / 整篇设计（共用一个滚动区） -->
     <div class="style-scroll-body">
-      <div class="sig-head">
-        <span>配色主题 · <span id="sig-count"></span></span>
-        <span class="sig-hint">可自由组合版式</span>
+      <!-- ① 配色主题：带调色条，可自由组合版式 -->
+      <div id="sec-palette">
+        <div class="pal-sec">
+          <div class="pal-row">
+            <div class="pal-dots" id="pal-dots"></div>
+            <span class="pal-name" id="pal-name"></span>
+          </div>
+          <div class="pal-row" style="margin-top:5px" id="pal-fams"></div>
+        </div>
+        <div class="drawer-grid" id="drawer-grid"></div>
       </div>
-      <div class="drawer-grid" id="drawer-grid"></div>
 
-      <div class="sig-head sig-head--kit">
-        <span>整篇设计 · <span id="kit-count"></span></span>
-        <span class="sig-hint">版式与配色已固定</span>
+      <!-- ② 整篇设计：不带调色条（配色已固定，留着是噪音） -->
+      <div id="sec-kit" hidden>
+        <div class="kit-strip">
+          <span>版式与配色已固定，选中后版式区会锁住</span>
+        </div>
+        <div class="drawer-grid drawer-grid--kit" id="kit-grid"></div>
       </div>
-      <div class="drawer-grid drawer-grid--kit" id="kit-grid"></div>
+
+      <!-- 两段都 0 命中时的统一空态（预置，不用 JS 创建） -->
+      <div class="grid-empty" id="search-empty" hidden>没匹配的风格，换个词试试</div>
     </div>
   </div>
 
@@ -701,6 +746,9 @@ const state = {
   kitReturn: localStorage.getItem('proto.kitReturn') || 'ink',
   // 抽屉当前分区：style（主题卡）/ layout（版式）/ more（装饰与段落样式）
   pane: localStorage.getItem('proto.pane') || 'style',
+  // 风格页的二级：palette（配色主题，可组合）/ kit（整篇设计，已固定）
+  styleTab: localStorage.getItem('proto.styleTab')
+    || (isKit(localStorage.getItem('proto.skin') || 'ink') ? 'kit' : 'palette'),
 };
 
 const $ = s => document.querySelector(s);
@@ -1270,12 +1318,14 @@ function renderPals(){
 
 function renderGrid(){
   const q = ($('#drawer-search').value || '').trim().toLowerCase();
-  const hit = (m) => !q || (m.name + ' ' + m.id + ' ' + (m.fam || '')).toLowerCase().includes(q);
+  const searching = !!q;
+  const hit = (m) => !q || (m.name + ' ' + m.id + ' ' + (m.fam || '') + ' ' + (m.desc || ''))
+    .toLowerCase().includes(q);
 
   /* ── 段 1：配色主题（49 张设计签名代表卡）── */
   const reps = GROUPS.map(g => ({ ...ALL.find(x => x.id === g.rep.id), count: g.members.length }));
   const paletteList = reps.filter(hit);
-  $('#sig-count').textContent = paletteList.length + ' / ' + NGROUPS + ' 张';
+  $('#sub-palette-n').textContent = paletteList.length;
   $('#drawer-grid').innerHTML = paletteList.map(m => {
     const t = themeById(m.id);
     return `<button class="d-card" data-skin="${m.id}" aria-pressed="${m.id===state.theme}">
@@ -1287,7 +1337,7 @@ function renderGrid(){
 
   /* ── 段 2：整篇设计（15 套 kit，固定配色）── */
   const kitList = KITS.filter(hit);
-  $('#kit-count').textContent = kitList.length + ' / ' + KITS.length + ' 套';
+  $('#sub-kit-n').textContent = kitList.length;
   $('#kit-grid').innerHTML = kitList.map(k => {
     const on = k.id === state.theme;
     return `<button class="d-card d-card--kit" data-skin="${k.id}" aria-pressed="${on}" title="${k.note}">
@@ -1297,6 +1347,30 @@ function renderGrid(){
       </div>
       <div class="nm">${k.name}<span class="kit-lock">锁定</span></div></button>`;
   }).join('') || '<div class="grid-empty">没匹配的整篇设计</div>';
+
+  renderSubTabs(searching);
+}
+
+/* 二级切换：配色主题 / 整篇设计。
+   ⚠️ 搜索时两段都显示（跨段搜）—— 否则在「配色主题」段搜「时代」得 0 命中，
+      用户会以为整篇设计不存在。 */
+function renderSubTabs(searching){
+  const cur = state.styleTab;
+  document.querySelectorAll('.sub-tab').forEach(t =>
+    t.setAttribute('aria-pressed', String(!searching && t.dataset.styleTab === cur)));
+  $('#sub-tabs').classList.toggle('is-search', !!searching);
+
+  const showPalette = searching || cur === 'palette';
+  const showKit = searching || cur === 'kit';
+  // 搜索时：某段 0 命中就整段收起（连标题一起）。
+  // 否则会出现「配色主题 0 / 整篇设计 1」，上面那一大块空网格把唯一结果挤到屏幕外。
+  const palHit = $('#drawer-grid').querySelector('.d-card') !== null;
+  const kitHit = $('#kit-grid').querySelector('.d-card') !== null;
+  $('#sec-palette').hidden = searching ? !palHit : !showPalette;
+  $('#sec-kit').hidden = searching ? !kitHit : !showKit;
+  // 两段都没命中时给一条统一空态，别让抽屉全空
+  const empty = $('#search-empty');
+  if (empty) empty.hidden = !(searching && !palHit && !kitHit);
 }
 
 /* 分区切换：一次只显示一类，避免把主题卡挤没 */
@@ -1323,6 +1397,14 @@ function render(){
 
 /* ══ 事件 ═══════════════════════════════════════════════ */
 document.addEventListener('click', (e) => {
+  // 风格页二级：配色主题 / 整篇设计
+  const sub = e.target.closest('[data-style-tab]');
+  if (sub) {
+    state.styleTab = sub.dataset.styleTab;
+    localStorage.setItem('proto.styleTab', state.styleTab);
+    renderSubTabs(false);
+    return;
+  }
   // 分区标签
   const tab = e.target.closest('[data-pane]');
   if (tab) {
@@ -1369,6 +1451,9 @@ document.addEventListener('click', (e) => {
     }
     state.theme = next;
     localStorage.setItem('proto.skin', next);
+    // 选中什么就落在对应的二级标签上：选 kit 却不切过去，用户会以为界面没反应
+    state.styleTab = isKit(next) ? 'kit' : 'palette';
+    localStorage.setItem('proto.styleTab', state.styleTab);
     render();
     const m = KIT_BY_ID[next] || ALL.find(x => x.id === next);
     if (m) toast((isKit(next) ? '整篇设计：' : '配色：') + m.name);
