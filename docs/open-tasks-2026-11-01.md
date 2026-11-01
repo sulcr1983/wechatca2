@@ -24,12 +24,12 @@
 | # | 任务 | 状态 | 证据 |
 |---|---|---|---|
 | **I-1** | ✅ **前提已验证**：公众号接受 `data:` URI 内嵌图 | **已完成** | 用户实测「成功」；见 [`design-paste-image-and-typography.md`](design-paste-image-and-typography.md) §3.3 |
-| **I-2** | 编辑器 `Ctrl+V` 粘贴截图 + 「插图」按钮上传 | **待做** | 实现可从 `git show cd0668d^:pwa/src/editor-images.js` 取回（压缩/插入/批量三函数齐全） |
-| **I-3** | 复制时自动内嵌外链图 + 压缩 | **待做** | 方案见 `design-paste-image-and-typography.md` §3；句方便实测 40KB/张 |
-| **I-4** | 编辑器内「搜图」入口（复用 Pexels，Key 共用 `supersu.cover.stock.v1`） | **待做** | `pwa/src/cover/search.js` 已有 `searchBackground()` / `fetchImageDataUrl()` |
-| **I-5** | 搜图 + AI 自动生成英文关键词 | **待做** | 用户要求；`ai.js` 已有 `AI_PLATFORMS` 与 BYOK 配置 |
-| **I-6** | **修 placeholder 假文案** | **待做（P0）** | `pwa/index.html:158` 仍承诺「截图也可以直接 Ctrl+V 粘贴，或点上方『插图』上传」，但功能已被删 → **界面在说做不到的事** |
-| **I-7** | 修 3 处错误注释（写着「公众号拒绝 data URI」） | **待做** | `pwa/src/images.js:5-8`、`pwa/src/app.js:350`、`pwa/src/app.js:986` |
+| **I-2** | 编辑器 `Ctrl+V` 粘贴截图 + 「插图」按钮上传 | ✅ **已完成**（2026-11-02） | `pwa/src/editor-images.js` 恢复 + `app.js` 的 `handleImageFiles`；实测粘贴与上传两条路径都插入成功 |
+| **I-3** | 复制时自动内嵌外链图 + 压缩 | ✅ **已完成**（2026-11-02） | `copyRich()` 先 `localizeImages({compress:true})`；实测 2 张图 → 149KB、外链 0 |
+| **I-4** | 编辑器内「搜图」入口（复用 Pexels，Key 共用 `supersu.cover.stock.v1`） | ✅ **已完成**（2026-11-02） | `app.js` 的 `bindPicDialog()`；实测真实发出 pexels 请求 |
+| **I-5** | 搜图 + AI 自动生成英文关键词 | ✅ **已完成**（2026-11-02） | `ai.js` 的 `suggestImageKeywords()`；mock 实测清洗与降级都对 |
+| **I-6** | **修 placeholder 假文案** | ✅ **已完成**（2026-11-02） | `pwa/index.html` 已改为「截图可以直接 Ctrl+V 粘贴，或点上方「插图」上传」——功能真的回来了 |
+| **I-7** | 修 3 处错误注释（写着「公众号拒绝 data URI」） | ✅ **已完成**（2026-11-02） | `images.js:5-8`、`app.js:350`、`app.js:1012` 全部改为实测结论 |
 | I-8 | 图片用 `<section style="line-height:0">` 包裹 | **待做（P2）** | 句方便做法，消除底部 3–5px 空隙 |
 | I-9 | （否决）恢复公众号推送 | **已否决** | 用户 2026-11-01 明确：推送不做 |
 
@@ -79,8 +79,23 @@
 
 | # | 任务 | 状态 | 证据 |
 |---|---|---|---|
-| **P-1** | 原型有 26 个版式（现 18），但 `pwa/src/app.js` 的 `LAYOUT_OPTIONS` **只有 8 项** | **待确认以哪个为准** | 子 agent 事实核对任务 3 的结论 |
-| P-2 | 15 套 kit 的 `mg-*.json` **一个都还没建** | 待做（同 K-1） | 实测 `ls public/themes/mg-*.json` = 0 |
+| **P-1** | **版式段入口缺失（真实缺口）**：引擎 `LAYOUT_REGISTRY` 已有 **19 个**版式，但 `pwa/src/app.js` 的 `LAYOUT_OPTIONS` **只有 8 项** —— 15 个杂志风版式（time/guardian/vogue…）**没有单独入口**，只能通过选 kit 用上 | **待做** | 实测 `grep -c` 两边；方案 [`design-kit-themes.md`](design-kit-themes.md) §1 的目标是「版式段 18 项 = 11 通用 + 7 真可组合」 |
+| **P-2** | 15 套 kit 的 `mg-*.json` | ✅ **已完成**（2026-11-02） | `ls public/themes/mg-*.json` = 15，全部带 `kind:"kit"` + `locked_layout` |
+
+### P-1 展开说清楚（接手必读）
+
+引擎侧 15 个版式**已经能用**（`core/magazine_layouts.py` 注册进 `LAYOUT_REGISTRY`，
+`inject_inline_styles(html, {**theme, layout: 'time'})` 直接生效，已实测 15/15）。
+缺的只是**前端入口**：
+
+- 现在：用户只能「选 kit 主题」→ 得到固定配色 + 固定版式
+- 缺的：用户想「用时代周刊的版式，但配我自己的配色」时，**没有地方可点**
+
+补法很直接：把 `LAYOUT_OPTIONS` 从 8 项扩到方案说的 18 项（11 通用 + 7 真可组合），
+按 [`design-kit-themes.md`](design-kit-themes.md) §1 的判据筛：
+**函数里写死品牌色的 8 个不进版式段**（muji/mori/ukiyoe/note/ikea/starbucks/brutal/deepread），
+纯 accent 派生的 7 个（time/guardian/economist/natgeo/vogue/forbes/adidas）才进。
+这条判据可 grep、可进 CI。
 
 ---
 
