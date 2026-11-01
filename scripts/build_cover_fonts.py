@@ -45,6 +45,69 @@ FAMILIES = {
 }
 WEIGHTS = (400, 700)
 
+# ── 可选字体（按需加载，不写进 cover-fonts.css）──────────────────────────
+# 挑款原则：**风格必须真的不一样**。同是黑体、只差字重的不要——用户看不出区别，
+# 只会觉得列表很长。每款都要能一句话说清「什么时候该用它」。
+#
+# key 即前端 TEXT_FONTS 的 id，产物 = <key>.woff2。
+# 授权均为 SIL OFL 1.1；OFL 义务要求随包分发授权全文。
+#
+# 得意黑 smiley-sans-oblique.woff2 是 2026-10-25 手动放的（1.1MB，源站已换路径），
+# 这里登记只为「清单完整」，构建时跳过（ttf 为 None）。
+OPTIONAL = {
+    "wenkai": {
+        "family": "LXGW WenKai",
+        "ttf": "https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai-Lite@1.530/fonts/TTF/LXGWWenKaiLite-Regular.ttf",
+        "license": ("OFL-lxgw-wenkai.txt",
+                    "https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai-Lite@1.530/OFL.txt"),
+        "note": "手写楷体，温润有书卷气",
+    },
+    "zcool-kuaile": {
+        "family": "ZCOOL KuaiLe",
+        "ttf": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zcoolkuaile/ZCOOLKuaiLe-Regular.ttf",
+        "license": ("OFL-zcool-kuaile.txt",
+                    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zcoolkuaile/OFL.txt"),
+        "note": "圆润活泼，日常/美食/萌宠",
+    },
+    "zcool-xiaowei": {
+        "family": "ZCOOL XiaoWei",
+        "ttf": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zcoolxiaowei/ZCOOLXiaoWei-Regular.ttf",
+        "license": ("OFL-zcool-xiaowei.txt",
+                    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zcoolxiaowei/OFL.txt"),
+        "note": "清秀细宋，文艺/书评/穿搭",
+    },
+    "mashanzheng": {
+        "family": "Ma Shan Zheng",
+        "ttf": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/mashanzheng/MaShanZheng-Regular.ttf",
+        "license": ("OFL-mashanzheng.txt",
+                    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/mashanzheng/OFL.txt"),
+        "note": "毛笔书法，国风/节气/茶",
+    },
+    "longcang": {
+        "family": "Long Cang",
+        "ttf": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/longcang/LongCang-Regular.ttf",
+        "license": ("OFL-longcang.txt",
+                    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/longcang/OFL.txt"),
+        "note": "手写随性，日记/vlog 字幕感",
+    },
+    "zhimangxing": {
+        "family": "Zhi Mang Xing",
+        "ttf": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zhimangxing/ZhiMangXing-Regular.ttf",
+        "license": ("OFL-zhimangxing.txt",
+                    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zhimangxing/OFL.txt"),
+        "note": "行草连笔，书法/诗句",
+    },
+    "smiley": {
+        "family": "Smiley Sans",
+        "ttf": None,
+        "license": None,
+        "note": "窄斜胶囊，小红书封面常用",
+    },
+}
+
+# TTF 缓存：14MB 的霞鹜文楷重复下载太浪费，本地有就复用
+SRC_CACHE = ROOT / "output" / "fonts-src"
+
 
 def build_charset() -> str:
     """GB2312 一级汉字 + ASCII 可打印字符 + 常用中文/排版符号。"""
@@ -95,10 +158,53 @@ def make_subset(src: Path, dst: Path, text: str) -> None:
         font.close()
 
 
+def build_optional(force: bool, only: set) -> None:
+    """构建可选字体子集。产物 <key>.woff2，由 textmode.js 选中时注入。"""
+    text = build_charset()
+    SRC_CACHE.mkdir(parents=True, exist_ok=True)
+    built = 0
+    for key, meta in OPTIONAL.items():
+        if only and key not in only:
+            continue
+        if not meta["ttf"]:
+            print(f"  跳过 {key}（产物已入库，无固定源地址）")
+            continue
+        dst = OUT_DIR / f"{key}.woff2"
+        if dst.exists() and not force:
+            print(f"  跳过 {key}.woff2（已存在，--force 可重建）")
+            continue
+
+        lic = meta.get("license")
+        if lic:
+            name, url = lic
+            target = OUT_DIR / name
+            if not target.exists():
+                try:
+                    target.write_bytes(fetch(url))
+                    print(f"  许可 → {name}")
+                except Exception as e:      # 授权地址偶尔会改，别为它中断字体构建
+                    print(f"  ⚠ 许可下载失败（{name}）：{e}")
+
+        src = SRC_CACHE / Path(meta["ttf"]).name
+        if not src.exists():
+            print(f"  下载 {key} …", end=" ", flush=True)
+            src.write_bytes(fetch(meta["ttf"], timeout=180))
+        make_subset(src, dst, text)
+        print(f"  {key:<15} → {dst.stat().st_size / 1024:7.1f} KB  ({meta['note']})")
+        built += 1
+    if built:
+        total = sum(f.stat().st_size for f in OUT_DIR.glob("*.woff2"))
+        print(f"可选字体 {built} 款完成；cover 目录 woff2 合计 {total / 1024 / 1024:.2f}MB")
+
+
 def main() -> None:
     import sys
 
     force = "--force" in sys.argv
+    only: set = set()
+    for arg in sys.argv[1:]:
+        if arg.startswith("--only="):
+            only = {x.strip() for x in arg.split("=", 1)[1].split(",") if x.strip()}
     text = build_charset()
     print(f"字符集：{len(text)} 个字符")
 
@@ -151,6 +257,10 @@ def main() -> None:
     print("CSS → pwa/public/fonts/cover-fonts.css")
     total = sum(p.stat().st_size for p in OUT_DIR.glob("*.woff2"))
     print(f"完成：{total / 1024 / 1024:.2f}MB / 4 个字重")
+
+    if "--skip-optional" not in sys.argv:
+        print("\n可选字体（按需加载，不进 cover-fonts.css）：")
+        build_optional(force, only)
 
 
 if __name__ == "__main__":
