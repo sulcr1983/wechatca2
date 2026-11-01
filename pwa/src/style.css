@@ -386,6 +386,15 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 .d-card:hover { border-color: var(--border-hi); box-shadow: var(--shadow); }
 .d-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 
+/* 整篇设计卡（2026-11-02）：与「配色主题」区分 —— 它自带固定版式，不能组合 */
+.d-card-kit .d-prev { position: relative; }
+.d-kit-tag {
+  position: absolute; left: 6px; top: 6px;
+  padding: 1px 6px; border-radius: 3px;
+  background: rgba(20, 18, 14, .72); color: #fff;
+  font-size: 10px; line-height: 1.6; letter-spacing: .04em;
+}
+
 .d-prev { height: 104px; background: var(--bg-hover); overflow: hidden; position: relative; }
 /* 图片必须在占位层之上：占位层是 absolute，晚于 img 渲染会盖住真实缩略图 */
 .d-thumb { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; position: relative; z-index: 1; }
@@ -457,6 +466,27 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 }
 .dl-chip:hover { border-color: var(--border-hi); }
 .dl-chip.on { background: var(--text-soft); color: var(--bg-surface); border-color: var(--text-soft); }
+/* 锁定态：kit 选中时版式不可改，胶囊要看起来真的不能点 */
+.dl-chip:disabled { opacity: .38; cursor: not-allowed; }
+.dl-chip:disabled:hover { border-color: var(--border); }
+
+/* ── 整篇设计锁定说明条（2026-11-02）─────────────────────────────
+   选了 kit 后：版式固定、配色固定，这里给一行说明 + 唯一出口。
+   放在版式区上方，因为用户最先想问的是「为什么版式点不动了」。 */
+.kit-note {
+  flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 16px; border-bottom: 1px solid var(--border);
+  background: rgba(175, 62, 43, .06);
+  font-size: 12px; color: var(--text-soft);
+}
+.kit-note[hidden] { display: none; }
+.kit-note-text { flex: 1; min-width: 0; line-height: 1.6; }
+.kit-note-text b { color: var(--text); font-weight: 600; }
+.kit-note-back { flex: none; font-size: 11.5px; padding: 4px 11px; }
+
+/* 色卡区在 kit 下置灰（配色锁死，不是只写文案） */
+.style-bar.locked .style-caps { opacity: .4; pointer-events: none; }
+.drawer-custom.locked { opacity: .45; pointer-events: none; }
 
 /* 段落样式开关（C 方案） */
 .drawer-blocks {

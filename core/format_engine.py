@@ -20,6 +20,19 @@ from pathlib import Path
 
 import markdown
 
+#  Magazine 版式（2026-11-02）：15 套「整篇设计」的渲染实现放在独立模块，
+# 避免 format_engine 继续膨胀。两种运行环境导入路径不同：
+#   · 本地测试：core.magazine_layouts（包内）
+#   · PWA/Pyodide：magazine_layouts（core/*.py 被平铺拷进 dist/py/）
+# 两层 try 都失败时降级为空表 —— 版式功能不可用，但排版主体照常工作，不阻断。
+try:
+    from core.magazine_layouts import MAGAZINE_LAYOUTS
+except ImportError:  # pragma: no cover - 取决于导入上下文
+    try:
+        from magazine_layouts import MAGAZINE_LAYOUTS
+    except ImportError:
+        MAGAZINE_LAYOUTS = {}
+
 # ── 脚注占位符（UUID 防冲突）──────────────────────────────────────────
 _FN_PREFIX = f"__FN_{uuid.uuid4().hex[:8]}_"
 FOOTNOTE_PLACEHOLDERS = {
@@ -3178,6 +3191,9 @@ LAYOUT_REGISTRY = {
     "cardflow": _layout_cardflow,
     "outline": _layout_outline,
 }
+# 15 个杂志风版式（2026-11-02）：time/guardian/vogue… 定义在 magazine_layouts.py。
+# 用 update 而不是字面量合并，导入失败时只是少这 15 个键，原有 4 个照常工作。
+LAYOUT_REGISTRY.update(MAGAZINE_LAYOUTS)
 
 
 def format_for_output(content: str, input_path: Path, theme: dict,

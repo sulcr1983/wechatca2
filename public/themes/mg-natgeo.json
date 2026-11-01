@@ -1,0 +1,205 @@
+{
+  "name": "国家地理",
+  "description": "招牌黄只画线不铺底，分隔线只画 52px 暗示换话题。适合旅行、人文、自然与科普",
+  "kind": "kit",
+  "locked_layout": "natgeo",
+  "colors": {
+    "primary": "#1A1A1A",
+    "accent": "#F5B800",
+    "background": "#FFFFFF",
+    "blockquote_bg": "transparent",
+    "code_bg": "#F5F5F5",
+    "hr_color": "#F5B800",
+    "footnote_bg": "#FFFFFF"
+  },
+  "styles": {
+    "wrapper": {
+      "background_color": "#FFFFFF",
+      "padding": "16px"
+    },
+    "h1": {
+      "font_size": "26px",
+      "font_weight": "800",
+      "color": "#1A1A1A",
+      "margin_top": "0",
+      "margin_bottom": "20px",
+      "line_height": "1.3",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "h2": {
+      "font_size": "20px",
+      "font_weight": "700",
+      "color": "#1A1A1A",
+      "line_height": "1.45",
+      "margin_top": "28px",
+      "margin_bottom": "14px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "h3": {
+      "font_size": "18px",
+      "font_weight": "700",
+      "color": "#1A1A1A",
+      "line_height": "1.5",
+      "margin_top": "22px",
+      "margin_bottom": "12px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "p": {
+      "font_size": "16px",
+      "color": "#1A1A1A",
+      "line_height": "1.8",
+      "margin_top": "0",
+      "margin_bottom": "16px",
+      "text_align": "left",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "blockquote": {
+      "margin_top": "20px",
+      "margin_bottom": "20px",
+      "padding": "14px 16px",
+      "color": "#1A1A1A",
+      "font_size": "15px",
+      "line_height": "1.8",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "blockquote_p": {
+      "font_size": "15px",
+      "color": "#1A1A1A",
+      "line_height": "1.8"
+    },
+    "strong": {
+      "font_weight": "700",
+      "color": "#F5B800"
+    },
+    "em": {
+      "font_style": "italic"
+    },
+    "a": {
+      "color": "#F5B800",
+      "text_decoration": "none",
+      "border_bottom": "1px solid #F5B800"
+    },
+    "img": {
+      "border_radius": "0",
+      "max_width": "100%"
+    },
+    "img_wrapper": {
+      "text_align": "center",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "hr": {
+      "border_top": "1px solid #F5B800",
+      "margin_top": "26px",
+      "margin_bottom": "26px"
+    },
+    "code": {
+      "background": "#F5F5F5",
+      "color": "#1A1A1A",
+      "padding": "1px 5px",
+      "border_radius": "3px",
+      "font_size": "14px"
+    },
+    "code_block": {
+      "background": "#F8F8F8",
+      "color": "#333333",
+      "padding": "14px 16px",
+      "border_radius": "4px",
+      "font_size": "13px",
+      "line_height": "1.7"
+    },
+    "code_header": {
+      "background": "#EEEEEE",
+      "color": "#666666",
+      "font_size": "12px",
+      "padding": "6px 12px"
+    },
+    "pre": {
+      "background": "#F8F8F8",
+      "padding": "0",
+      "border_radius": "4px",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "pre_code": {
+      "color": "#333333",
+      "font_size": "13px",
+      "line_height": "1.7"
+    },
+    "table": {
+      "border_collapse": "collapse",
+      "width": "100%",
+      "margin_top": "18px",
+      "margin_bottom": "18px",
+      "font_size": "14px"
+    },
+    "th": {
+      "background": "#F5F5F5",
+      "color": "#1A1A1A",
+      "padding": "8px 10px",
+      "border": "1px solid #E0E0E0",
+      "font_weight": "700"
+    },
+    "td": {
+      "padding": "8px 10px",
+      "border": "1px solid #E0E0E0",
+      "color": "#1A1A1A"
+    },
+    "list_item_bullet": {
+      "color": "#F5B800",
+      "font_size": "16px"
+    },
+    "ol_item_bullet": {
+      "color": "#F5B800",
+      "font_size": "16px"
+    },
+    "list_item_text": {
+      "font_size": "16px",
+      "color": "#1A1A1A",
+      "line_height": "1.8"
+    },
+    "list_wrapper": {
+      "margin_top": "14px",
+      "margin_bottom": "14px"
+    },
+    "list_item_row": {
+      "margin_bottom": "8px"
+    },
+    "footnote_section": {
+      "border_top": "1px solid #E0E0E0",
+      "margin_top": "26px",
+      "padding_top": "14px"
+    },
+    "footnote_title": {
+      "font_size": "13px",
+      "color": "#F5B800",
+      "font_weight": "700"
+    },
+    "footnote_item": {
+      "font_size": "12.5px",
+      "color": "#1A1A1A",
+      "line_height": "1.7"
+    },
+    "footnote_sup": {
+      "font_size": "12px",
+      "color": "#F5B800"
+    },
+    "callout": {
+      "background": "#F7F7F7",
+      "border_left": "3px solid #F5B800",
+      "padding": "14px 16px",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "callout_title": {
+      "color": "#F5B800",
+      "font_weight": "700",
+      "font_size": "14px"
+    },
+    "callout_content": {
+      "color": "#1A1A1A",
+      "font_size": "14px",
+      "line_height": "1.75"
+    }
+  }
+}

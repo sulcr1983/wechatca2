@@ -21,6 +21,7 @@ const LS = {
   blocks: 'supersu.pwa.blocks',   // 段落样式本机覆盖（不改仓库主题文件）
   layout: 'supersu.pwa.layout',   // 版式本机覆盖
   pp: 'supersu.pwa.ppmode',       // 预处理模式 auto/conservative/longform/tutorial（2026-10-31 接线）
+  kitReturn: 'supersu.pwa.kit.return',  // 进整篇设计前用的那套配色主题（退出时回这里）
 };
 
 const DEFAULT_THEME = 'su-biz-azure';
@@ -485,6 +486,16 @@ function themeMeta(id) {
   }
   const t = byId.get(id);
   if (!t) return t;
+
+  // kit（整篇设计）：版式由主题锁死，**不查 layoutOv**。
+  // 否则用户以前在某套配色上调过的版式会串进来，kit 就不再是那个设计。
+  if (t.kind === 'kit') {
+    return { ...t,
+             layout: t.lockedLayout || '',
+             blocks: effectiveBlocks(id),
+             locked: true };
+  }
+
   // 版式 / 段落样式可能被本机覆盖（抽屉里改的），这里返回生效值供 UI 显示
   const layoutOv = lsGet(LS.layout, {});
   return { ...t,
@@ -535,16 +546,74 @@ function pushRecent(id) {
 
 function setActive(id, announce = false) {
   if (id !== CUSTOM_ID && !byId.has(id)) return;
+
+  /* 进 kit 前记住当前那套「配色主题」（2026-11-02）。
+     为什么要记：kit 的版式和配色都锁死，用户退出时必须回到**他原来那套**，
+     而不是回「默认」—— 否则他挑了很久的主题就白挑了。
+     只在「从 palette 进入 kit」时记录，避免 kit → kit 时把记录覆盖成另一套 kit。 */
+  const prev = byId.get(activeId);
+  const next = byId.get(id);
+  if (next && next.kind === 'kit' && (!prev || prev.kind !== 'kit')) {
+    lsSet(LS.kitReturn, activeId);
+  }
+
   activeId = id;
   localStorage.setItem(LS.theme, id);
   renderCaps();
   if (!$('drawer').hidden) renderDrawer();
+  applyKitLock();
   scheduleRender();
   // 同族 12 色只改强调色：纯文字文章里预览看不出差别，必须给一条明确反馈
   if (announce) {
     const t = themeMeta(id);
     toast(`已切换：${t ? t.name : id}`, 'ok');
   }
+}
+
+/* ── 整篇设计锁定态（2026-11-02）────────────────────────────────
+ * kit 选中时同步做四件事，缺一条用户就会以为「界面坏了」：
+ *   ① 版式胶囊全部 disabled（真 disabled，不是只变灰）
+ *   ② 顶部出现一行说明 + 「改回可组合版式」
+ *   ③ 底部色卡区置灰且不可点（配色锁死）
+ *   ④ 自定义配色区同样锁住
+ * 段落样式三开关**不禁用** —— 它们只加色块强调，不改配色和版式。 */
+function applyKitLock() {
+  const t = themeMeta(activeId);
+  const isKit = !!(t && t.kind === 'kit');
+
+  // ① 版式胶囊
+  const chips = document.querySelectorAll('#drawer-layouts .dl-chip');
+  chips.forEach((c) => {
+    c.disabled = isKit;
+    c.setAttribute('aria-disabled', isKit ? 'true' : 'false');
+  });
+
+  // ② 说明条
+  const note = $('kit-note');
+  const noteText = $('kit-note-text');
+  if (note) note.hidden = !isKit;
+  if (isKit && noteText) {
+    const layLabel = (LAYOUT_OPTIONS.find(([id]) => id === t.layout) || ['', t.layout])[1];
+    noteText.innerHTML = `正在使用整篇设计<b>「${escapeHtml(t.name)}」</b>`
+      + `，版式（${escapeHtml(layLabel)}）与配色已固定，不能再单独改。`;
+  }
+
+  // ③ 底部色卡区
+  const bar = $('style-bar');
+  if (bar) bar.classList.toggle('locked', isKit);
+
+  // ④ 自定义配色
+  const custom = $('drawer-custom');
+  if (custom) custom.classList.toggle('locked', isKit);
+}
+
+/** 退出整篇设计：回到进 kit 前那套配色主题。 */
+function exitKit() {
+  const back = lsGet(LS.kitReturn, '') || DEFAULT_THEME;
+  const target = byId.has(back) ? back : DEFAULT_THEME;
+  setActive(target);
+  const t = themeMeta(target);
+  toast(`已改回可组合版式：${t ? t.name : target}`, 'ok');
 }
 
 /* ── 抽屉 ───────────────────────────────────────────────────── */
@@ -620,12 +689,16 @@ function layoutOf(t) {
 }
 
 function renderLayouts() {
-  const cur = layoutOf(themeMeta(activeId));
+  const meta = themeMeta(activeId);
+  const cur = layoutOf(meta);
+  // kit 状态下版式锁死：渲染时就要带 disabled，不能靠事后补（重建 innerHTML 会丢）
+  const locked = !!(meta && meta.kind === 'kit');
   $('drawer-layouts').innerHTML =
     '<span class="dl-label">版式</span>' +
     LAYOUT_OPTIONS.map(([id, label]) => `
       <button class="dl-chip${id === cur ? ' on' : ''}" data-layout="${id}"
-              type="button" aria-pressed="${id === cur}">${label}</button>`).join('');
+              type="button" aria-pressed="${id === cur}"
+              ${locked ? 'disabled aria-disabled="true"' : 'aria-disabled="false"'}>${label}</button>`).join('');
 }
 
 /* ── 段落样式开关（C 方案）────────────────────────────────────
@@ -695,14 +768,16 @@ function toneName(t) {
 function drawerCard(t, fav) {
   const inUse = t.id === activeId;
   const isFav = fav.has(t.id);
+  const isKit = t.kind === 'kit';
   return `
-    <button class="d-card" data-id="${t.id}" aria-pressed="${inUse}">
+    <button class="d-card${isKit ? ' d-card-kit' : ''}" data-id="${t.id}" aria-pressed="${inUse}">
       <span class="d-prev">
         <img class="d-thumb" loading="lazy" alt="" src="./theme-thumbs/${t.id}.jpg"
              data-thumb="${t.id}">
         <span class="d-fallback" style="background:${t.background};color:${t.primary}">
           <i></i><i></i><i></i><i></i>
         </span>
+        ${isKit ? '<span class="d-kit-tag">整篇</span>' : ''}
       </span>
       <span class="d-body">
         <span class="d-name">${escapeHtml(t.name)}</span>
@@ -821,6 +896,7 @@ function renderFamilyFold(fam, fav) {
 function renderDrawer() {
   renderLayouts();
   renderBlockToggles();
+  applyKitLock();   // 每次重渲染后重新上锁（innerHTML 重建会丢 disabled / 置灰）
   const fav = new Set(favList());
   const q = drawerQ.trim().toLowerCase();
   // 搜索优先：全量扁平（跨所有主题，不折叠）
@@ -1512,6 +1588,10 @@ function bindUI() {
   $('btn-drawer-close').addEventListener('click', closeDrawer);
   $('drawer-mask').addEventListener('click', closeDrawer);
   $('drawer-search').addEventListener('input', (e) => { drawerQ = e.target.value; renderDrawer(); });
+
+  // 整篇设计：退出回「进 kit 前那套配色主题」
+  const kitBack = $('btn-kit-back');
+  if (kitBack) kitBack.addEventListener('click', exitKit);
 
   /* 版式层（B 方案）：换结构不改颜色；写本机覆盖，不动仓库主题文件 */
   $('drawer-layouts').addEventListener('click', (e) => {
