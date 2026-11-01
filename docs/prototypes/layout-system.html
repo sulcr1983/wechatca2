@@ -252,6 +252,36 @@ body.browsing .pane-edit { display: none; }
 /* 自定义配色：kit 下直接收起（不是变灰——它本来就不该出现） */
 .drawer-blocks.is-locked .swatch-row { display: none; }
 
+/* ── 三段标签：让抽屉「一次只显示一件事」 ──────────────────────
+   背景：抽屉里堆 6 段时，500px 宽一屏高的空间被版式 26 格 + 配色 + 装饰抢光，
+   主题卡只剩 2 行可见（用户反馈「下面几十个可选的没了」）。
+   改成按需切页后，风格页能把整块高度都给主题卡。 */
+.seg-tabs {
+  flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+  padding: 6px 10px 0; border-bottom: 1px solid var(--border); background: var(--bg-raised);
+}
+.seg-tab {
+  position: relative; height: 30px; border-radius: 7px 7px 0 0;
+  font-size: 12.5px; color: var(--text-soft); font-weight: 500;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+}
+.seg-tab:hover { background: var(--bg-hover); color: var(--text); }
+.seg-tab[aria-pressed="true"] {
+  background: var(--bg-canvas); color: var(--text); font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+/* 版式标签上挂当前版式名，切到别的页也知道现在是哪套 */
+.seg-tab em {
+  font-style: normal; font-weight: 400; font-size: 10.5px;
+  color: var(--text-muted); max-width: 72px; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
+}
+.seg-tab[aria-pressed="true"] em { color: var(--accent); }
+
+/* pane：一个 pane 占满标签栏以下的全部高度 */
+.pane-sec { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.pane-sec[hidden] { display: none; }
+
 
 /* ── 配色区：单行横滑 ── */
 .pal-sec { flex: none; padding: 9px 14px; border-bottom: 1px solid var(--border); }
@@ -294,15 +324,24 @@ body.browsing .pane-edit { display: none; }
 .sig-hint { color: var(--text-muted); opacity: .8; white-space: nowrap; }
 /* 两段之间一条分隔线，避免 49 张卡和 15 张卡糊成一片 */
 .sig-head--kit { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
+/* 风格页：配色条固定，下面两块卡共用一个滚动区 ——
+   分两段各自滚动会在 500px 宽里出现两条滚动条、互相挤（实测踩过）。 */
+#pane-style { gap: 0; }
+#pane-style .drawer-grid {
+  flex: 0 0 auto; min-height: 0; overflow: visible;
+  padding: 8px 14px 6px; grid-auto-rows: 88px;
+}
+#pane-style .drawer-grid--kit {
+  max-height: none; padding-bottom: 22px; grid-auto-rows: 96px;
+}
+/* 外层统一滚动，两块卡在同一条视线里 */
+.style-scroll-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+}
 .drawer-grid {
   flex: 1 1 auto; min-height: 100px; overflow-y: auto; padding: 8px 14px 22px;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   grid-auto-rows: 88px; gap: 8px; align-content: start;
-}
-/* kit 段：卡片略高（要放「锁定」标记 + 说明），且单独滚动 */
-.drawer-grid--kit {
-  flex: 0 1 auto; min-height: 96px; max-height: 42vh;
-  grid-auto-rows: 96px; padding-bottom: 14px;
 }
 /* kit 卡片的「锁定」小标：告诉用户这张卡不能自由组合 */
 .kit-lock {
@@ -439,58 +478,73 @@ body.browsing .pane-edit { display: none; }
     <button id="btn-drawer-close" aria-label="关闭">×</button>
   </div>
 
-  <!-- ① 版式：紧凑型图标块 -->
-  <div class="lay-sec" id="lay-sec">
-    <div class="sec-ttl">版式 <em id="lay-count"></em></div>
-    <!-- kit 锁定说明行：只有选中整篇设计时出现 -->
-    <div class="kit-note" id="kit-note" hidden>
-      <span class="kit-note-txt">这是<strong>整篇设计</strong>，版式与配色已固定</span>
-      <button class="kit-exit" id="kit-exit" type="button">改回可组合版式</button>
+  <!-- ── 三段标签：一次只显示一类，避免把主题卡挤没 ──────────── -->
+  <div class="seg-tabs" role="tablist" aria-label="风格库分区">
+    <button class="seg-tab" data-pane="style" role="tab" aria-pressed="true">风格</button>
+    <button class="seg-tab" data-pane="layout" role="tab" aria-pressed="false">版式<em id="tab-layout-cur"></em></button>
+    <button class="seg-tab" data-pane="more" role="tab" aria-pressed="false">更多</button>
+  </div>
+
+  <!-- kit 锁定说明行：跨 pane 常驻（锁定是全局状态，不该藏起来） -->
+  <div class="kit-note" id="kit-note" hidden>
+    <span class="kit-note-txt">这是<strong>整篇设计</strong>，版式与配色已固定</span>
+    <button class="kit-exit" id="kit-exit" type="button">改回可组合版式</button>
+  </div>
+
+  <!-- ══ pane 1：风格（主题卡，占满剩余高度）════════════════════ -->
+  <div class="pane-sec" id="pane-style">
+    <!-- 调色条：单行，不占高度 -->
+    <div class="pal-sec">
+      <div class="pal-row">
+        <div class="pal-dots" id="pal-dots"></div>
+        <span class="pal-name" id="pal-name"></span>
+      </div>
+      <div class="pal-row" style="margin-top:5px" id="pal-fams"></div>
     </div>
-    <div class="lay-grid" id="lay-grid"></div>
-  </div>
 
-  <!-- ② 配色：单行横滑 -->
-  <div class="pal-sec">
-    <div class="sec-ttl">配色 <em id="pal-count"></em></div>
-    <div class="pal-row">
-      <div class="pal-dots" id="pal-dots"></div>
-      <span class="pal-name" id="pal-name"></span>
+    <!-- 两段：配色主题 / 整篇设计（共用一个滚动区） -->
+    <div class="style-scroll-body">
+      <div class="sig-head">
+        <span>配色主题 · <span id="sig-count"></span></span>
+        <span class="sig-hint">可自由组合版式</span>
+      </div>
+      <div class="drawer-grid" id="drawer-grid"></div>
+
+      <div class="sig-head sig-head--kit">
+        <span>整篇设计 · <span id="kit-count"></span></span>
+        <span class="sig-hint">版式与配色已固定</span>
+      </div>
+      <div class="drawer-grid drawer-grid--kit" id="kit-grid"></div>
     </div>
-    <div class="pal-row" style="margin-top:6px" id="pal-fams"></div>
   </div>
 
-  <!-- ③ 装饰（新增能力演示） -->
-  <div class="lay-sec" id="deco-sec">
-    <div class="sec-ttl">标题装饰 <em>主题不声明就不生效</em></div>
-    <div class="lay-grid" id="deco-grid" style="grid-template-columns:repeat(4,1fr)"></div>
+  <!-- ══ pane 2：版式（26 个图标，独立一页）═════════════════════ -->
+  <div class="pane-sec" id="pane-layout" hidden>
+    <div class="lay-sec" id="lay-sec">
+      <div class="sec-ttl">版式 <em id="lay-count"></em></div>
+      <div class="lay-grid" id="lay-grid"></div>
+    </div>
   </div>
 
-  <!-- ④ 段落样式 + 自定义配色（现有，不动） -->
-  <div class="drawer-blocks">
-    <span class="db-label">段落样式</span>
-    <label class="db-item"><input type="checkbox" id="db-quote" checked><span>金句<em class="db-hint">含引号</em></span></label>
-    <label class="db-item"><input type="checkbox" id="db-data" checked><span>数据<em class="db-hint">数字+单位</em></span></label>
-    <label class="db-item"><input type="checkbox" id="db-tip" checked><span>提示<em class="db-hint">提示：</em></span></label>
-    <span class="swatch-row"><span>自定义</span>
-      <button class="swatch" id="sw-bg" style="background:#ffffff"></button>
-      <button class="swatch" id="sw-ink" style="background:#111111"></button>
-      <button class="swatch" id="sw-ac" style="background:#AF3E2B"></button>
-    </span>
+  <!-- ══ pane 3：更多（装饰 / 段落样式 / 自定义配色）════════════ -->
+  <div class="pane-sec" id="pane-more" hidden>
+    <div class="lay-sec" id="deco-sec">
+      <div class="sec-ttl">标题装饰 <em>主题不声明就不生效</em></div>
+      <div class="lay-grid" id="deco-grid" style="grid-template-columns:repeat(4,1fr)"></div>
+    </div>
+    <div class="drawer-blocks">
+      <span class="db-label">段落样式</span>
+      <label class="db-item"><input type="checkbox" id="db-quote" checked><span>金句<em class="db-hint">含引号</em></span></label>
+      <label class="db-item"><input type="checkbox" id="db-data" checked><span>数据<em class="db-hint">数字+单位</em></span></label>
+      <label class="db-item"><input type="checkbox" id="db-tip" checked><span>提示<em class="db-hint">提示：</em></span></label>
+      <span class="swatch-row"><span>自定义</span>
+        <button class="swatch" id="sw-bg" style="background:#ffffff"></button>
+        <button class="swatch" id="sw-ink" style="background:#111111"></button>
+        <button class="swatch" id="sw-ac" style="background:#AF3E2B"></button>
+      </span>
+    </div>
   </div>
 
-  <!-- ⑤ 两段式：配色主题（可自由组合版式） / 整篇设计（版式配色已固定） -->
-  <div class="sig-head">
-    <span>配色主题 · <span id="sig-count"></span></span>
-    <span class="sig-hint">可自由组合版式</span>
-  </div>
-  <div class="drawer-grid" id="drawer-grid"></div>
-
-  <div class="sig-head sig-head--kit">
-    <span>整篇设计 · <span id="kit-count"></span></span>
-    <span class="sig-hint">版式与配色已固定</span>
-  </div>
-  <div class="drawer-grid drawer-grid--kit" id="kit-grid"></div>
 </aside>
 
 <div class="toast" id="toast"></div>
@@ -645,6 +699,8 @@ const state = {
   palFam: '全部',
   // 进 kit 前记住的 palette 主题：退出时回去这里，而不是回「默认」
   kitReturn: localStorage.getItem('proto.kitReturn') || 'ink',
+  // 抽屉当前分区：style（主题卡）/ layout（版式）/ more（装饰与段落样式）
+  pane: localStorage.getItem('proto.pane') || 'style',
 };
 
 const $ = s => document.querySelector(s);
@@ -1196,11 +1252,15 @@ function renderPals(){
   // 164 个色点 dotsDisabledCount 为 0），用户换色发现样式没变会判定「坏了」。
   const locked = isKit(state.theme);
   const dis = locked ? 'disabled aria-disabled="true"' : '';
-  $('#pal-count').textContent = NGROUPS + ' 设计 / ' + NTHEMES + ' 套' + (locked ? ' · 已锁定' : '');
+  // 分段后「配色 N 设计 / M 套」并到了色点名后面，不再单独占一行标题
+  const cur0 = ALL.find(m => m.id === state.theme);
+  $('#pal-name').textContent = locked
+    ? ((cur0 ? cur0.name : '') + ' · 已锁定')
+    : (cur0 ? cur0.name : '');
   $('#pal-dots').innerHTML = list.map(m =>
     `<button class="pdot" data-skin="${m.id}" aria-pressed="${m.id===state.theme}" ${dis}
        style="background:${m.accent}" title="${m.name}"></button>`).join('');
-  const cur = ALL.find(m => m.id === state.theme);
+  const cur = cur0;
   $('#pal-name').textContent = cur ? cur.name : '';
   $('#pal-fams').innerHTML = fams.map(f =>
     `<button class="pal-fam" data-fam="${f}" aria-pressed="${f===state.palFam}" ${dis}>${f}</button>`).join('');
@@ -1239,13 +1299,38 @@ function renderGrid(){
   }).join('') || '<div class="grid-empty">没匹配的整篇设计</div>';
 }
 
+/* 分区切换：一次只显示一类，避免把主题卡挤没 */
+function renderPanes(){
+  const cur = state.pane;
+  document.querySelectorAll('.seg-tab').forEach(t =>
+    t.setAttribute('aria-pressed', String(t.dataset.pane === cur)));
+  for (const p of ['style', 'layout', 'more']) {
+    const el = document.getElementById('pane-' + p);
+    if (el) el.hidden = (p !== cur);
+  }
+  // 版式标签上挂当前版式名，切到别的页也知道现在是哪套
+  const k = KIT_BY_ID[state.theme];
+  const curLay = k ? k.layout : state.layout;
+  const nm = (LAYOUTS.find(l => l.id === curLay) || {}).nm || '默认';
+  const tag = $('#tab-layout-cur');
+  if (tag) tag.textContent = k ? '· 锁定' : '· ' + nm;
+}
+
 function render(){
   document.querySelectorAll('.cover-btn').forEach(b => b.setAttribute('aria-pressed', String(b.id === (state.view==='wechat'?'btn-editor':'btn-longform'))));
-  renderLayouts(); renderDecos(); renderPals(); renderGrid(); renderPreview();
+  renderPanes(); renderLayouts(); renderDecos(); renderPals(); renderGrid(); renderPreview();
 }
 
 /* ══ 事件 ═══════════════════════════════════════════════ */
 document.addEventListener('click', (e) => {
+  // 分区标签
+  const tab = e.target.closest('[data-pane]');
+  if (tab) {
+    state.pane = tab.dataset.pane;
+    localStorage.setItem('proto.pane', state.pane);
+    renderPanes();
+    return;
+  }
   // 退出 kit：回到进 kit 前记住的那套 palette 主题
   if (e.target.closest('#kit-exit')) {
     const back = state.kitReturn && !isKit(state.kitReturn) ? state.kitReturn : 'ink';
