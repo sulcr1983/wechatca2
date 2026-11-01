@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperSu · 排版骨架系统原型（结构差异，不是颜色差异）</title>
+<style>
+:root{
+  --ink:#14120e; --ink-2:#4a463f; --ink-3:#8b857b; --ink-4:#b7b1a7;
+  --line:#e6e2da; --line-2:#d5cfc4;
+  --bg:#f6f4f0; --card:#fff; --hover:#efebe4;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --serif:Georgia,"Times New Roman","Songti SC","Noto Serif SC",serif;
+  --mono:"SF Mono",Consolas,"Roboto Mono",monospace;
+  --shadow:0 16px 44px -16px rgba(28,24,18,.30), 0 2px 6px rgba(28,24,18,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--sans);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer}
+
+/* ── 顶栏 ── */
+.top{height:52px;display:flex;align-items:center;gap:16px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.logo i{width:22px;height:22px;border-radius:7px;background:var(--ink);color:#fff;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800}
+.seg{display:flex;gap:2px;background:#f2f0eb;padding:3px;border-radius:9px}
+.seg button{padding:5px 14px;border-radius:6px;font-size:12.5px;color:var(--ink-3)}
+.seg button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.top .sp{flex:1}
+.hint{font-size:11.5px;color:var(--ink-3)}
+
+/* ── 三栏 ── */
+.stage{display:grid;grid-template-columns:280px 1fr 320px;height:calc(100% - 52px)}
+.col{min-width:0;overflow:auto}
+.col.left{border-right:1px solid var(--line);background:#fbfaf7;padding:18px}
+.col.right{border-left:1px solid var(--line);background:#fbfaf7;padding:16px 14px}
+.col.mid{display:flex;flex-direction:column;align-items:center;padding:22px;overflow:auto;background:
+  radial-gradient(circle at 50% 0%, #ffffff 0%, var(--bg) 60%)}
+
+h5{margin:0 0 9px;font-size:10.5px;letter-spacing:.1em;color:var(--ink-4);font-weight:700}
+.field{margin-bottom:18px}
+.field .box{border:1px solid var(--line-2);border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;line-height:1.65;color:var(--ink-2)}
+.note{font-size:11.5px;line-height:1.7;color:var(--ink-3)}
+.note b{color:var(--ink-2);font-weight:600}
+
+/* 皮肤切换 */
+.skins{display:flex;gap:6px;flex-wrap:wrap}
+.skin{width:34px;height:34px;border-radius:9px;border:1px solid var(--line-2);position:relative;overflow:hidden}
+.skin.on{box-shadow:0 0 0 2px var(--ink)}
+.skin span{position:absolute;left:0;right:0;height:50%}
+.skin span:first-child{top:0}
+.skin span:last-child{bottom:0}
+
+/* 画布：手机 390 宽 */
+.phone{width:390px;background:#fff;border-radius:6px;box-shadow:var(--shadow);overflow:hidden;flex:none}
+.phone-bar{height:26px;background:#faf9f6;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;color:var(--ink-4)}
+.phone-bar b{font-weight:600;color:var(--ink-3)}
+.paper{padding:0;background:var(--p-bg,#fff);color:var(--p-ink,#111);font-family:var(--p-font,var(--serif))}
+.paper .pmeta{padding:13px 18px 0;font-size:10.5px;color:var(--p-muted,#999);font-family:var(--sans)}
+.paper .pmeta b{color:var(--p-accent,#666);font-weight:600}
+
+/* ============ 版式 A：刊头版 ============ */
+.L-masthead{padding:0 18px 24px}
+.L-masthead .mast{
+  margin:0 -18px 0;padding:16px 18px 12px;
+  border-bottom:2px solid var(--p-ink,#111);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
+}
+.L-masthead .mast .vol{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--p-accent,#666);line-height:1.6}
+.L-masthead .mast .cat{font-size:9px;letter-spacing:.2em;color:var(--p-muted,#999);font-family:var(--mono)}
+.L-masthead h1{margin:20px 0 12px;font-size:27px;line-height:1.28;font-weight:400;letter-spacing:-.01em}
+.L-masthead .deck{font-size:13px;line-height:1.85;color:var(--p-muted,#777);margin:0 0 18px;font-style:italic}
+.L-masthead .byline{font-size:9.5px;font-family:var(--mono);letter-spacing:.1em;color:var(--p-accent,#666);padding-bottom:14px;border-bottom:1px solid var(--p-line,rgba(0,0,0,.12));margin-bottom:22px;display:flex;gap:14px}
+.L-masthead h2{font-size:15px;font-weight:700;margin:26px 0 10px;letter-spacing:.02em;display:flex;align-items:baseline;gap:9px}
+.L-masthead h2 .n{font-family:var(--mono);font-size:9px;color:var(--p-accent,#666);letter-spacing:.1em;flex:none}
+.L-masthead p{font-size:13.5px;line-height:1.95;margin:0 0 15px;text-align:justify}
+.L-masthead .pull{
+  margin:22px 0;padding:18px 0;border-top:1px solid var(--p-line,rgba(0,0,0,.15));
+  border-bottom:1px solid var(--p-line,rgba(0,0,0,.15));
+  font-size:17px;line-height:1.65;text-align:center;font-style:italic;
+}
+.L-masthead .pull::before{content:"“";display:block;font-size:34px;line-height:.6;color:var(--p-accent,#666);margin-bottom:2px;font-family:Georgia}
+
+/* ============ 版式 B：侧边栏（marginalia） ============ */
+.L-marginal{padding:0 18px 24px}
+.L-marginal .hdr{padding:24px 0 16px;border-bottom:3px solid var(--p-ink,#111)}
+.L-marginal .hdr .kick{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--p-accent,#666);margin-bottom:10px}
+.L-marginal .hdr h1{margin:0;font-size:26px;line-height:1.26;font-weight:600;letter-spacing:-.015em}
+.L-marginal .row{display:flex;gap:12px;margin-top:20px;align-items:flex-start}
+.L-marginal .row .marg{flex:none;width:64px;padding-top:3px}
+.L-marginal .row .marg .mnum{font-family:var(--mono);font-size:20px;line-height:1;color:var(--p-accent,#666);letter-spacing:-.04em}
+.L-marginal .row .marg .mlab{font-size:8.5px;letter-spacing:.14em;color:var(--p-muted,#999);font-family:var(--mono);margin-top:5px;line-height:1.5}
+.L-marginal .row .main{flex:1;min-width:0;border-left:1px solid var(--p-line,rgba(0,0,0,.14));padding-left:12px}
+.L-marginal .row .main h2{font-size:14px;font-weight:700;margin:0 0 8px;line-height:1.4}
+.L-marginal .row .main p{font-size:13px;line-height:1.92;margin:0 0 12px;text-align:justify}
+.L-marginal .bq{margin:12px 0 0;font-size:12.5px;line-height:1.8;color:var(--p-muted,#777);border-left:2px solid var(--p-accent,#666);padding-left:10px}
+.L-marginal .lead{font-size:14px;line-height:1.9;margin:16px 0 0;padding-left:76px;color:var(--p-muted,#666)}
+
+/* ============ 版式 C：大编号 ============ */
+.L-bignum{padding:0 18px 24px}
+.L-bignum .cover{padding:26px 0 10px}
+.L-bignum .cover .tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;padding:3px 8px;border:1px solid var(--p-accent,#666);color:var(--p-accent,#666);margin-bottom:14px}
+.L-bignum h1{margin:0 0 14px;font-size:29px;line-height:1.22;font-weight:800;letter-spacing:-.02em}
+.L-bignum .sub{font-size:13px;line-height:1.9;color:var(--p-muted,#777);margin:0 0 8px}
+.L-bignum .sec{padding:22px 0 0;border-top:1px solid var(--p-ink,#111);margin-top:24px}
+.L-bignum .sec .big{font-family:var(--mono);font-size:44px;line-height:.9;letter-spacing:-.05em;color:var(--p-accent,#666);font-weight:700}
+.L-bignum .sec h2{font-size:16px;font-weight:800;margin:6px 0 10px;line-height:1.35;letter-spacing:-.01em}
+.L-bignum .sec p{font-size:13px;line-height:1.92;margin:0 0 12px;text-align:justify}
+.L-bignum .li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.75;margin:0 0 9px}
+.L-bignum .li .b{flex:none;width:16px;height:16px;border-radius:3px;background:var(--p-accent,#666);color:#fff;font-size:9.5px;display:grid;place-items:center;margin-top:3px;font-family:var(--mono);font-weight:700}
+
+/* ============ 版式 D：双栏对照 ============ */
+.L-split{padding:0 18px 24px}
+.L-split .hd{padding:24px 0 14px}
+.L-split .hd .kick{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--p-accent,#666);margin-bottom:8px}
+.L-split .hd h1{margin:0 0 10px;font-size:25px;line-height:1.28;font-weight:700}
+.L-split .hd p{font-size:13px;line-height:1.88;color:var(--p-muted,#777);margin:0}
+.L-split .grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:18px;border-top:2px solid var(--p-ink,#111)}
+.L-split .grid .cell{padding:14px 10px 14px 0}
+.L-split .grid .cell+.cell{border-left:1px solid var(--p-line,rgba(0,0,0,.14));padding-left:12px;padding-right:0}
+.L-split .grid .cell .ch{font-size:10px;letter-spacing:.12em;font-family:var(--mono);color:var(--p-accent,#666);margin-bottom:8px}
+.L-split .grid .cell p{font-size:11.5px;line-height:1.82;margin:0;color:var(--p-ink,#222)}
+.L-split .band{margin:18px -18px;background:var(--p-band,#f3f0e9);padding:16px 18px;font-size:13.5px;line-height:1.85;font-style:italic;color:var(--p-ink,#222)}
+.L-split h2{font-size:15px;font-weight:800;margin:22px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--p-ink,#111)}
+.L-split p{font-size:13px;line-height:1.92;margin:0 0 12px;text-align:justify}
+
+/* ============ 旧版（对照）：现在的默认 ============ */
+.L-plain{padding:0 18px 24px}
+.L-plain h1{margin:22px 0 10px;font-size:22px;font-weight:700;color:var(--p-ink,#111);padding:0 0 10px;border-bottom:2px solid var(--p-ink,#111)}
+.L-plain h2{margin:24px 0 10px;font-size:18px;font-weight:700;color:var(--p-ink,#111);padding-left:12px;border-left:3px solid var(--p-ink,#111)}
+.L-plain p{font-size:15px;line-height:1.8;margin:0 0 15px;color:var(--p-ink,#222);text-align:justify}
+.L-plain .bq{margin:16px 0;padding:14px 16px;background:var(--p-band,#f7f6f3);border-left:3px solid var(--p-ink,#111);font-size:14.5px;line-height:1.8;color:var(--p-muted,#555)}
+.L-plain .li{display:flex;gap:8px;font-size:15px;line-height:1.8;margin:0 0 8px;color:var(--p-ink,#222)}
+
+/* ── 右栏：版式卡（结构示意图） ── */
+.lay{
+  width:100%;display:flex;gap:11px;padding:10px;border-radius:10px;border:1px solid var(--line-2);
+  background:#fff;margin-bottom:9px;text-align:left;transition:.15s;
+}
+.lay:hover{border-color:#b8b2a7;box-shadow:0 4px 14px -8px rgba(0,0,0,.3)}
+.lay.on{border-color:var(--ink);box-shadow:0 0 0 1.5px var(--ink)}
+.lay .dgm{flex:none;width:46px;height:60px;border:1px solid var(--line);border-radius:4px;background:#fcfbf9;padding:5px 6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.lay .dgm i{display:block;background:#cfc9be;border-radius:1px;height:3px}
+.lay .dgm i.k{background:var(--ink);height:5px}
+.lay .dgm i.a{background:#d8a05a}
+.lay .dgm i.w{width:60%}
+.lay .dgm i.h{height:14px;background:#e8e3d9}
+.lay .txt b{display:block;font-size:12.5px;font-weight:700;margin-bottom:2px}
+.lay .txt .tagline{display:inline-block;font-size:9.5px;color:#fff;background:var(--ink);border-radius:3px;padding:1px 5px;margin-bottom:4px;letter-spacing:.03em}
+.lay .txt .tagline.old{background:#b7b1a7}
+.lay .txt small{display:block;font-size:10.5px;line-height:1.5;color:var(--ink-3)}
+
+.divider{margin:18px 0 12px;font-size:10px;letter-spacing:.14em;color:var(--ink-4);font-weight:700}
+
+/* ── 长图文预览 ── */
+.deck{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;align-items:start;width:100%;max-width:780px}
+.lf{width:100%;border-radius:5px;overflow:hidden;box-shadow:0 10px 28px -12px rgba(30,26,20,.4);background:var(--p-bg,#fff)}
+.lf .page{width:100%;aspect-ratio:3/4;position:relative;overflow:hidden;background:var(--p-bg,#fff);color:var(--p-ink,#111);font-family:var(--p-font,var(--serif))}
+.lf .cap{font-size:9.5px;color:var(--ink-3);padding:6px 2px 0;display:flex;justify-content:space-between;font-family:var(--sans)}
+
+/* 长图：图文页 */
+.pf-photo .im{position:absolute;left:0;right:0;top:0;height:52%;background:
+  linear-gradient(150deg,#8b9a86 0%,#5e6d5b 45%,#2f3a2f 100%)}
+.pf-photo .im::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 25%, rgba(255,255,255,.35), transparent 55%)}
+.pf-photo .tx{position:absolute;left:0;right:0;bottom:0;top:52%;padding:12px 14px 0;overflow:hidden}
+.pf-photo .tx .k{font-family:var(--mono);font-size:6.5px;letter-spacing:.2em;color:var(--p-accent,#666);margin-bottom:5px}
+.pf-photo .tx h3{margin:0 0 5px;font-size:14px;line-height:1.28;font-weight:600}
+.pf-photo .tx p{margin:0;font-size:8.5px;line-height:1.6;color:var(--p-muted,#777)}
+.pf-photo .pn{position:absolute;right:12px;bottom:8px;font-family:var(--mono);font-size:6.5px;color:var(--p-muted,#aaa)}
+
+/* 长图：双栏论证页 */
+.pf-split{padding:18px 16px}
+.pf-split .mf{font-family:var(--mono);font-size:7px;letter-spacing:.2em;color:var(--p-accent,#666);border-bottom:1px solid var(--p-ink,#111);padding-bottom:6px;margin-bottom:13px;display:flex;justify-content:space-between}
+.pf-split h3{font-size:17px;line-height:1.3;margin:0 0 12px;font-weight:600}
+.pf-split .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pf-split .two .c .n{font-family:var(--mono);font-size:13px;color:var(--p-accent,#666);margin-bottom:4px}
+.pf-split .two .c p{font-size:8.5px;line-height:1.75;margin:0;color:var(--p-ink,#222)}
+.pf-split .two .c+.c{border-left:1px solid var(--p-line,rgba(0,0,0,.15));padding-left:10px}
+
+/* 长图：编号塔 */
+.pf-ledger{padding:20px 16px 0;display:flex;flex-direction:column}
+.pf-ledger .lg-t{font-size:8px;letter-spacing:.18em;font-family:var(--mono);color:var(--p-accent,#666);margin-bottom:14px}
+.pf-ledger .lg-row{display:flex;gap:11px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--p-line,rgba(0,0,0,.12))}
+.pf-ledger .lg-row .n{font-family:var(--mono);font-size:16px;color:var(--p-accent,#666);flex:none;letter-spacing:-.04em}
+.pf-ledger .lg-row .t{font-size:10px;line-height:1.6}
+
+/* 长图：数据页 */
+.pf-stat{padding:0;display:flex;flex-direction:column;justify-content:center;height:100%}
+.pf-stat .big{font-family:var(--mono);font-size:72px;line-height:.85;letter-spacing:-.06em;color:var(--p-accent,#666);padding:0 16px}
+.pf-stat .unit{font-family:var(--mono);font-size:13px;color:var(--p-muted,#888);padding:0 16px;margin-top:4px}
+.pf-stat .txt{padding:16px 16px 0;font-size:9.5px;line-height:1.75;color:var(--p-ink,#333)}
+.pf-stat .bar{margin:14px 16px 0;height:3px;background:var(--p-line,rgba(0,0,0,.12));position:relative}
+.pf-stat .bar b{position:absolute;left:0;top:0;bottom:0;width:68%;background:var(--p-accent,#666)}
+
+/* 长图：目录页 */
+.pf-toc{padding:22px 16px}
+.pf-toc .tt{font-family:var(--mono);font-size:8px;letter-spacing:.24em;color:var(--p-accent,#666);margin-bottom:18px}
+.pf-toc .it{display:flex;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px dotted var(--p-line,rgba(0,0,0,.2))}
+.pf-toc .it .n{font-family:var(--mono);font-size:9px;color:var(--p-muted,#999);flex:none}
+.pf-toc .it .t{flex:1;font-size:11px}
+.pf-toc .it .g{font-family:var(--mono);font-size:9px;color:var(--p-accent,#666)}
+
+/* 长图：现有的 dense（对照） */
+.pf-dense{padding:20px 16px}
+.pf-dense .ttl{font-size:14px;font-weight:600;margin:0 0 4px}
+.pf-dense .drop::before{content:"";display:block;width:26px;height:2px;background:var(--p-accent,#666);margin-bottom:10px}
+.pf-dense p{font-size:9px;line-height:1.8;margin:0 0 9px;color:var(--p-ink,#333);text-align:justify}
+.pf-dense .fn{position:absolute;left:16px;right:16px;bottom:10px;font-family:var(--mono);font-size:7px;color:var(--p-muted,#999);display:flex;justify-content:space-between}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);background:rgba(20,18,14,.92);color:#fff;font-size:12px;padding:8px 15px;border-radius:99px;opacity:0;pointer-events:none;transition:.2s;z-index:99}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media (max-width:1180px){
+  .stage{grid-template-columns:1fr}
+  .col.left,.col.right{display:none}
+  body{overflow:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="logo"><i>素</i>SuperSu<span style="font-weight:400;color:#b7b1a7;font-size:11.5px;margin-left:4px">· 排版骨架原型</span></div>
+  <div class="seg" id="seg">
+    <button class="on" data-view="wechat">公众号排版</button>
+    <button data-view="long">小红书长图文</button>
+  </div>
+  <div class="sp"></div>
+  <div class="hint">同一篇文案 · 同一种皮肤 · <b>只换结构</b></div>
+</div>
+
+<div class="stage">
+  <!-- 左：文案与皮肤 -->
+  <aside class="col left">
+    <div class="field">
+      <h5>文案（所有版式共用同一份）</h5>
+      <div class="box">
+        <b>《一个人也可以把公众号做得很好》</b><br>
+        3 个小节 · 1 处引用 · 1 组清单<br>
+        约 620 字
+      </div>
+    </div>
+    <div class="field">
+      <h5>皮肤（只决定颜色 / 字体）</h5>
+      <div class="skins" id="skins"></div>
+      <div class="note" style="margin-top:9px">
+        换皮肤时<b>结构完全不动</b>。今天 164 套主题的差别基本就停在这一步。
+      </div>
+    </div>
+    <div class="field">
+      <h5>为什么现在「只换了颜色」</h5>
+      <div class="note">
+        主题 JSON 只能控制单词级属性：<br>
+        <code style="font-size:10.5px;color:#8b6b3d">font-size / color / border / background</code><br><br>
+        它改不了「章节之间怎么分隔」「首屏放什么」「引用是大字还是卡片」。<br><br>
+        <b>结构改不了，长相就只能靠换色。</b>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 中：预览 -->
+  <main class="col mid" id="mid"></main>
+
+  <!-- 右：版式选择 -->
+  <aside class="col right" id="right"></aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── 皮肤：从真实主题 JSON 提炼（只取颜色/字体，不含结构） ── */
+const SKINS = [
+  { id:'letter', name:'信笺·湖蓝', bg:'#f7f3e9', ink:'#1f2a36', muted:'#6c7a86', accent:'#256F9D', line:'rgba(31,42,54,.16)', band:'#efe8d8', font:"Georgia,'Songti SC','Noto Serif SC',serif" },
+  { id:'biz',    name:'公文·湖蓝', bg:'#ffffff', ink:'#1E2A38', muted:'#7b8794', accent:'#256F9D', line:'rgba(30,42,56,.14)', band:'#eef3f7', font:"-apple-system,'PingFang SC',sans-serif" },
+  { id:'night',  name:'夜航·湖蓝', bg:'#0d141c', ink:'#e8eef5', muted:'#8ea3b8', accent:'#4da3e0', line:'rgba(232,238,245,.16)', band:'#152030', font:"-apple-system,'PingFang SC',sans-serif" },
+  { id:'ink',    name:'墨韵',     bg:'#ffffff', ink:'#111111', muted:'#777777', accent:'#000000', line:'rgba(0,0,0,.16)', band:'#f5f5f3', font:"'Songti SC','Noto Serif SC',serif" },
+  { id:'feast',  name:'节庆·麦金', bg:'#fffaf0', ink:'#3a2f22', muted:'#8a7a62', accent:'#b8892f', line:'rgba(58,47,34,.14)', band:'#f8efdc', font:"Georgia,'Songti SC',serif" },
+];
+
+/* ── 公众号版式（结构级） ── */
+const WECHAT_LAYOUTS = [
+  { id:'plain', name:'默认（现状）', tag:'现状', old:true,
+    desc:'h1 下划线 + h2 左竖条。164 套主题里 113 套的 h1 就是这个样子。',
+    dgm:['k','','','','','a','','','','',''] },
+  { id:'masthead', name:'刊头版', tag:'新增',
+    desc:'期号栏 + 栏目名 + 衬线大标题 + 斜体导语 + 署名行；引用升级成整宽斜体大字。',
+    dgm:['w','','k','','','','h','a','','',''] },
+  { id:'marginal', name:'侧边栏', tag:'新增',
+    desc:'左侧 64px 窄栏放章节编号与标签，右侧正文用竖线隔开。杂志边注的读法。',
+    dgm:['k','','','a','','','a','','','a',''] },
+  { id:'bignum',  name:'大编号', tag:'新增',
+    desc:'每节以 44px 等宽大编号开篇，横贯整条分隔线。适合「5 个方法」这类结构化内容。',
+    dgm:['k','','','','a','','a','','','a',''] },
+  { id:'split',   name:'双栏对照', tag:'新增',
+    desc:'正文段落成对并排（微信兼容用 table 模拟），中间一条发丝竖线；金句走整宽色带。',
+    dgm:['k','','h','','','','a','','',''] },
+];
+
+/* ── 长图文版式（页面角色） ── */
+const LONG_LAYOUTS = [
+  { id:'dense', name:'正文页（现状）', tag:'现状', old:true,
+    desc:'12 套模板共用同一套正文排版。翻页时只有页眉页脚在变。',
+    dgm:['k','w','','','','','','','',''] },
+  { id:'photo', name:'图文页', tag:'新增',
+    desc:'上半屏真图当证据，下半屏短标题 + 一句说明。图片终于能进内页。',
+    dgm:['h','h','h','k','w','','','','',''] },
+  { id:'split', name:'双栏论证页', tag:'新增',
+    desc:'标题压顶，下面两栏对照（正反 / 前后 / 优劣），中间一条发丝线。',
+    dgm:['k','','','a','a','','a','a','',''] },
+  { id:'ledger', name:'编号塔', tag:'新增',
+    desc:'大编号 + 短条目逐行排布，行间细线。清单型内容一页装得下 4–5 条。',
+    dgm:['w','','a','','','a','','','a',''] },
+  { id:'stat', name:'数据页', tag:'新增',
+    desc:'超大数字当主视觉，配一行说明和一条进度线。数字类内容不再挤在正文里。',
+    dgm:['','','a','','','','w','','',''] },
+  { id:'toc', name:'目录页', tag:'新增',
+    desc:'章节导航 + 页码，长文第二页常见。让读者知道还剩多少。',
+    dgm:['w','','','','','','','','',''] },
+];
+
+let state = { view:'wechat', skin:'letter', layout:'plain' };
+
+const $ = (s) => document.querySelector(s);
+const toast = (m) => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),1600); };
+const skinOf = (id) => SKINS.find(s=>s.id===id) || SKINS[0];
+
+/* ── 文章内容（公众号） ── */
+const ART = {
+  kick:'FIELD NOTES',
+  vol:'NO. 12 — 2026',
+  cat:'WORKFLOW',
+  title:'一个人也可以把公众号做得很好',
+  deck:'写作这件事，难的从来不是没有想法，而是想法被排版、配图、格式这些琐事一点点磨掉。',
+  sections:[
+    { n:'01', lab:'AUDIENCE', h:'先想清楚写给谁',
+      p:['动笔之前先回答一个问题：这篇是写给自己看的，还是写给某个具体的人看的？前者的读者只有你，后者才需要排版。',
+         '我见过太多账号，内容扎实却倒在阅读体验上——标题挤成一坨、段落没有呼吸、重点全靠感叹号。读者的耐心只有三秒。'] },
+    { n:'02', lab:'FORM', h:'好内容也需要好皮相',
+      p:['排版不是装饰，是把结构说清楚。读者扫一眼就该知道哪里是重点、哪里可以跳过。'] },
+    { n:'03', lab:'TOOLS', h:'把重复劳动交给工具',
+      p:['剩下的交给机器。'] },
+  ],
+  quote:'好的设计，是尽可能少的设计。',
+  list:['用清晰的标题组织观点','用舒展的行距留出呼吸感','用适量的强调突出重点'],
+};
+
+function paperStyle(s){
+  return `--p-bg:${s.bg};--p-ink:${s.ink};--p-muted:${s.muted};--p-accent:${s.accent};--p-line:${s.line};--p-band:${s.band};--p-font:${s.font}`;
+}
+
+function renderWechat(s, lay){
+  const a = ART;
+  if (lay === 'plain') {
+    return `<div class="paper L-plain" style="${paperStyle(s)}">
+      <div class="pmeta"><b>原创</b> · SuperSu · 2026年11月1日</div>
+      <h1>${a.title}</h1>
+      <p>${a.deck}</p>
+      ${a.sections.map((x,i)=>`
+        <h2>${x.h}</h2>
+        ${x.p.map(t=>`<p>${t}</p>`).join('')}
+        ${i===0?`<div class="bq">${a.quote}</div>`:''}
+        ${i===2?a.list.map(t=>`<div class="li"><span>•</span><span>${t}</span></div>`).join(''):''}
+      `).join('')}
+    </div>`;
+  }
+  if (lay === 'masthead') {
+    return `<div class="paper L-masthead" style="${paperStyle(s)}">
+      <div class="mast">
+        <div class="vol">${a.vol}</div>
+        <div class="cat">${a.cat}</div>
+      </div>
+      <h1>${a.title}</h1>
+      <p class="deck">${a.deck}</p>
+      <div class="byline"><span>SUPERSU</span><span>6 MIN READ</span></div>
+      ${a.sections.map((x,i)=>`
+        <h2><span class="n">${x.n}</span>${x.h}</h2>
+        ${x.p.map(t=>`<p>${t}</p>`).join('')}
+        ${i===0?`<div class="pull">${a.quote}</div>`:''}
+        ${i===2?a.list.map(t=>`<p style="margin:0 0 6px">· ${t}</p>`).join(''):''}
+      `).join('')}
+    </div>`;
+  }
+  if (lay === 'marginal') {
+    return `<div class="paper L-marginal" style="${paperStyle(s)}">
+      <div class="hdr">
+        <div class="kick">${a.kick}</div>
+        <h1>${a.title}</h1>
+      </div>
+      <p class="lead">${a.deck}</p>
+      ${a.sections.map((x,i)=>`
+        <div class="row">
+          <div class="marg"><div class="mnum">${x.n}</div><div class="mlab">${x.lab}</div></div>
+          <div class="main">
+            <h2>${x.h}</h2>
+            ${x.p.map(t=>`<p>${t}</p>`).join('')}
+            ${i===0?`<div class="bq">${a.quote}</div>`:''}
+            ${i===2?a.list.map(t=>`<p style="margin:0 0 5px;font-size:12.5px">· ${t}</p>`).join(''):''}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+  if (lay === 'bignum') {
+    return `<div class="paper L-bignum" style="${paperStyle(s)}">
+      <div class="cover">
+        <div class="tag">${a.cat} · ${a.vol}</div>
+        <h1>${a.title}</h1>
+        <p class="sub">${a.deck}</p>
+      </div>
+      ${a.sections.map((x,i)=>`
+        <div class="sec">
+          <div class="big">${x.n}</div>
+          <h2>${x.h}</h2>
+          ${x.p.map(t=>`<p>${t}</p>`).join('')}
+          ${i===0?`<p style="font-size:15px;line-height:1.7;font-style:italic;padding:12px 0">${a.quote}</p>`:''}
+          ${i===2?a.list.map((t,k)=>`<div class="li"><span class="b">${k+1}</span><span>${t}</span></div>`).join(''):''}
+        </div>
+      `).join('')}
+    </div>`;
+  }
+  if (lay === 'split') {
+    const sec = a.sections[0];
+    const sec2 = a.sections[1];
+    return `<div class="paper L-split" style="${paperStyle(s)}">
+      <div class="hd">
+        <div class="kick">${a.kick}</div>
+        <h1>${a.title}</h1>
+        <p>${a.deck}</p>
+      </div>
+      <div class="grid">
+        <div class="cell"><div class="ch">写给自己</div><p>${sec.p[0]}</p></div>
+        <div class="cell"><div class="ch">写给读者</div><p>前者的读者只有你，后者才需要排版。排版是把结构说清楚，不是装饰。</p></div>
+      </div>
+      <div class="band">${a.quote}</div>
+      <h2>${sec2.h}</h2>
+      <p>${sec2.p[0]}</p>
+      <h2>${a.sections[2].h}</h2>
+      ${a.list.map((t,k)=>`<p style="margin:0 0 6px;font-size:13px">· ${t}</p>`).join('')}
+    </div>`;
+  }
+  return '';
+}
+
+/* ── 长图文页面 ── */
+function lfPage(kind, s){
+  const st = paperStyle(s);
+  const cap = (t,n)=>`<div class="cap"><span>${t}</span><span>${n}</span></div>`;
+  if (kind==='dense') return `<div class="lf" style="${st}"><div class="page pf-dense">
+      <p class="ttl">先想清楚写给谁</p>
+      <div class="drop"></div>
+      <p>动笔之前先回答一个问题：这篇是写给自己看的，还是写给某个具体的人看的？</p>
+      <p>我见过太多账号，内容扎实却倒在阅读体验上——标题挤成一坨、段落没有呼吸。</p>
+      <div class="fn"><span>SuperSu</span><span>02 / 06</span></div>
+    </div>${cap('正文页 · 现状','P02')}</div>`;
+  if (kind==='photo') return `<div class="lf" style="${st}"><div class="page pf-photo">
+      <div class="im"></div>
+      <div class="tx"><div class="k">CHAPTER 01</div><h3>写给谁，决定怎么排</h3>
+        <p>读者的耐心只有三秒。段落之间留白，比任何装饰都管用。</p></div>
+      <div class="pn">03 / 06</div>
+    </div>${cap('图文页 · 新增','P03')}</div>`;
+  if (kind==='split') return `<div class="lf" style="${st}"><div class="page pf-split">
+      <div class="mf"><span>FORM</span><span>CONCEPT</span></div>
+      <h3>好内容也需要好皮相</h3>
+      <div class="two">
+        <div class="c"><div class="n">01</div><p>排版不是装饰，是把结构说清楚。读者扫一眼就该知道哪里是重点。</p></div>
+        <div class="c"><div class="n">02</div><p>清晰的标题、舒展的行距、适量的强调——这三件事比配色重要十倍。</p></div>
+      </div>
+    </div>${cap('双栏论证页 · 新增','P04')}</div>`;
+  if (kind==='ledger') return `<div class="lf" style="${st}"><div class="page pf-ledger">
+      <div class="lg-t">WHAT CHANGED</div>
+      ${['标题不再是一条下划线','引用升级成整宽大字','清单有自己的编号塔','结尾有署名与 CTA'].map((t,i)=>
+        `<div class="lg-row"><div class="n">0${i+1}</div><div class="t">${t}</div></div>`).join('')}
+    </div>${cap('编号塔 · 新增','P05')}</div>`;
+  if (kind==='stat') return `<div class="lf" style="${st}"><div class="page pf-stat">
+      <div class="big">164</div>
+      <div class="unit">套主题 / 49 种设计</div>
+      <div class="bar"><b></b></div>
+      <div class="txt">按设计手法归一后，164 套主题只落成 49 种不同的样子。最大的同构组有 17 套。</div>
+    </div>${cap('数据页 · 新增','P06')}</div>`;
+  if (kind==='toc') return `<div class="lf" style="${st}"><div class="page pf-toc">
+      <div class="tt">CONTENTS</div>
+      ${[['先想清楚写给谁','P02'],['好内容也需要好皮相','P04'],['把重复劳动交给工具','P05']].map(([t,p])=>
+        `<div class="it"><span class="n">—</span><span class="t">${t}</span><span class="g">${p}</span></div>`).join('')}
+    </div>${cap('目录页 · 新增','P01')}</div>`;
+  return '';
+}
+
+/* ── 渲染 ── */
+function renderSkins(){
+  $('#skins').innerHTML = SKINS.map(s=>`
+    <button class="skin ${s.id===state.skin?'on':''}" data-skin="${s.id}" title="${s.name}">
+      <span style="background:${s.bg}"></span><span style="background:${s.accent}"></span>
+    </button>`).join('');
+  $('#skins').querySelectorAll('.skin').forEach(b=>{
+    b.onclick = ()=>{ state.skin=b.dataset.skin; render(); };
+  });
+}
+
+function dgm(clsList){
+  const map = { k:'k', w:'w', h:'h', a:'a', '':' ' };
+  return `<div class="dgm">${clsList.map(c=>`<i class="${map[c]||''}"></i>`).join('')}</div>`;
+}
+
+function renderRight(){
+  const s = skinOf(state.skin);
+  if (state.view==='wechat') {
+    const list = WECHAT_LAYOUTS;
+    $('#right').innerHTML = `
+      <h5>版式 · ${list.length} 种结构</h5>
+      ${list.map(l=>`
+        <button class="lay ${l.id===state.layout?'on':''}" data-lay="${l.id}">
+          ${dgm(l.dgm)}
+          <div class="txt"><b>${l.name}</b>
+            <span class="tagline ${l.old?'old':''}">${l.tag}</span>
+            <small>${l.desc}</small></div>
+        </button>`).join('')}
+      <div class="divider">同一套皮肤的对照</div>
+      <div class="note">
+        上面 4 个「新增」用的皮肤和你现在选的<b>一模一样</b>（${s.name}）。
+        换版式后你感受到的差别，全部来自结构，不是颜色。
+      </div>`;
+    $('#right').querySelectorAll('.lay').forEach(b=>{
+      b.onclick = ()=>{ state.layout=b.dataset.lay; render(); toast('切换到「'+WECHAT_LAYOUTS.find(x=>x.id===b.dataset.lay).name+'」'); };
+    });
+  } else {
+    const list = LONG_LAYOUTS;
+    $('#right').innerHTML = `
+      <h5>页面角色 · 现在 5 种，建议 ${list.length} 种</h5>
+      ${list.map(l=>`
+        <button class="lay ${l.id===state.layout?'on':''}" data-lay="${l.id}">
+          ${dgm(l.dgm)}
+          <div class="txt"><b>${l.name}</b>
+            <span class="tagline ${l.old?'old':''}">${l.tag}</span>
+            <small>${l.desc}</small></div>
+        </button>`).join('')}
+      <div class="divider">为什么长图文更单调</div>
+      <div class="note">
+        12 套模板的差异集中在<b>页眉页脚和纸纹</b>；
+        正文区 12 套共用同一套 <code style="font-size:10.5px;color:#8b6b3d">.body p</code>。
+        翻页的时候，读者看不到模板在变。
+      </div>`;
+    $('#right').querySelectorAll('.lay').forEach(b=>{
+      b.onclick = ()=>{ state.layout=b.dataset.lay; render(); };
+    });
+  }
+}
+
+function renderMid(){
+  const s = skinOf(state.skin);
+  if (state.view==='wechat') {
+    $('#mid').innerHTML = `
+      <div class="phone">
+        <div class="phone-bar"><b>公众号预览</b><span>·</span><span>390 × 844</span></div>
+        ${renderWechat(s, state.layout)}
+      </div>
+      <div class="hint" style="margin-top:14px">版式：<b>${WECHAT_LAYOUTS.find(l=>l.id===state.layout).name}</b> ｜ 皮肤：${s.name}</div>`;
+  } else {
+    $('#mid').innerHTML = `
+      <div class="deck">
+        ${lfPage('toc', s)}${lfPage('dense', s)}${lfPage('photo', s)}${lfPage('split', s)}${lfPage('ledger', s)}${lfPage('stat', s)}
+      </div>
+      <div class="hint" style="margin-top:10px">一套完整的小红书长图文（P01 → P06）：目录 → 正文 → 图文 → 双栏 → 编号塔 → 数据</div>`;
+  }
+}
+
+function render(){ renderSkins(); renderRight(); renderMid(); }
+
+$('#seg').addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if(!b) return;
+  state.view = b.dataset.view;
+  state.layout = state.view==='wechat' ? 'plain' : 'dense';
+  $('#seg').querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
