@@ -152,6 +152,15 @@ def static_checks(theme_id: str, theme: dict, html: str) -> list[dict]:
     if "<p " in html and "word-break:break-word" not in html:
         add("M8 长串断行", "FAIL", "正文缺 overflow-wrap/word-break，长 URL 会撑破版面")
 
+    # balance 只允许出现在居中标题上：左对齐 + balance = 右半行整块留白
+    # （2026-11-01 用户实拍反馈；全量实测首行填充率 55.5% → 摘掉后 92.4%）
+    for m in re.finditer(r"<(h[1-6])\s[^>]*style=\"([^\"]*)\"", html):
+        st = m.group(2)
+        if "text-wrap:balance" in st and "text-align:center" not in st:
+            add("M10 左对齐标题 balance", "FAIL",
+                f"{m.group(1)} 左对齐却带 text-wrap:balance，折行后右侧会整块留白")
+            break
+
     # 表格单元格横向内边距（看渲染结果：引擎会把 >16px 压回 16px）
     for tag in ("td", "th"):
         m = re.search(rf"<{tag}\s[^>]*style=\"([^\"]*)\"", html)
@@ -194,7 +203,8 @@ def browser_issues(theme_id: str, r: dict) -> list[dict]:
     wrapped = [h for h in r["heads"] if h["lines"] >= 2 and h["align"] == "center"]
     if wrapped:
         # 刊头类（纯文字居中，如 vogue/社论/信笺）是刻意保留的设计语言，
-        # 长标题折行只提示不判死；引擎已加 text-wrap:balance 让两行等长。
+        # 长标题折行只提示不判死；引擎只给「仍居中」的标题加 text-wrap:balance，
+        # 左对齐标题一律默认换行（否则右半行会整块留白，见 docs/mobile-typography.md §5）。
         issues.append({"id": "B3 居中标题折行", "level": "WARN",
                        "detail": f"{len(wrapped)} 个居中标题折成多行（刊头类设计取舍）"})
     return issues

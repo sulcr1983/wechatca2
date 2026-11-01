@@ -840,9 +840,10 @@ def build_style_string(props: dict) -> str:
 # 实测 164/164 套主题在遇到长 URL / 长英文串时会横向撑破版面（正文被裁）。
 # 这里统一给文字容器补断行规则，只影响「放不下时才断」，正常中文断行不变。
 _WRAP_CSS = "overflow-wrap:break-word;word-break:break-word"
-# 标题额外加 text-wrap:balance：居中刊头（vogue/社论/信笺等 84 套）在长标题下会折成两行，
-# 浏览器默认的换行会让上下两行长度悬殊、看着像没排过；balance 让两行长度尽量相等。
-# iOS Safari 17.5+ / Chrome 114+ 生效，旧内核直接忽略（无副作用）。
+# 标题的 text-wrap:balance 只给「最终仍居中」的标题（见 normalize_heading_align 的 R4）。
+# 原因（2026-11-01 用户截图反馈）：balance 的作用是把多行文字拉成等长，
+# 但一旦标题是左对齐，等长两行就贴在左边、右半行整块空出来 —— 13 字标题实测
+# 首行只占 55%、右侧空 126px，看着像没排完。左对齐标题必须用默认换行让首行填满。
 _BALANCE_CSS = "text-wrap:balance"
 _WRAP_TAGS = ("h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote_p",
               "list_item_text", "callout_content", "td", "th")
@@ -911,6 +912,30 @@ def _style_dict(style: str) -> dict:
 
 def _style_str(d: dict) -> str:
     return ";".join(f"{k}:{v}" for k, v in d.items())
+
+
+def _drop_balance_on_left(html: str) -> str:
+    """摘掉「左对齐标题」上的 text-wrap:balance（幂等）
+
+    balance 的唯一效果是把多行文字拉成等长。居中时等长 = 左右对称，好看；
+    左对齐时等长 = 文字贴左边、右半行整块空着。实拍：13 字标题在节庆族色块里
+    首行只占 55%、右侧空 126px —— 用户一眼看出「像没排完」。
+    全量实测 164 套：balance 让首行填充率中位 55.5% → 默认换行 92.4%。
+    """
+    def _fix(match):
+        tag, attrs = match.group(1), match.group(2)
+        sm = re.search(r'style="([^"]*)"', attrs)
+        if not sm:
+            return match.group(0)
+        d = _style_dict(sm.group(1))
+        if d.get("text-align", "").lower() == "center":
+            return match.group(0)
+        if "text-wrap" not in d:
+            return match.group(0)
+        d.pop("text-wrap")
+        return f"<{tag}{attrs.replace(sm.group(0), f'style=\"{_style_str(d)}\"')}>"
+
+    return _HEADING_OPEN_RE.sub(_fix, html)
 
 
 def _px(v) -> float | None:
@@ -1017,14 +1042,16 @@ def _content_width(theme: dict) -> float:
 def normalize_heading_align(html: str, theme: dict) -> str:
     """标题对齐归一（详见上方注释）。幂等，可重复调用
 
-    两条规则：
+    三条规则：
       R1 色块（banner）标题：h1–h6 一律左对齐，左右内边距补到 16px；
       R2 纯文字居中标题：只有当它「能放下一行」时才保留居中，估算会折行就改左。
          —— 依据业内通用判断：居中只适合 1–2 行的短标题，长标题居中两侧参差、
             视线每行都要重新找起点（《写给大家看的设计书》/ 135 编辑器排版规范）。
+      R4 text-wrap:balance 只给「最终仍居中」的标题（见下方 _fix 末尾）。
     """
     if str(theme.get("heading_align") or "left").lower() == "design":
-        return html
+        # 逃生口只关 R1/R2（对齐与内边距），R4 属于可读性修正，仍生效
+        return _drop_balance_on_left(html)
     styles = theme.get("styles") or {}
     banner_theme = _is_banner_heading(styles.get("h1") or {})
     content_w = _content_width(theme)
@@ -1069,11 +1096,14 @@ def normalize_heading_align(html: str, theme: dict) -> str:
                 d["text-align"] = "left"
                 changed = True
 
+        # R4：balance 只对「居中」标题有意义（等长两行 = 左右对称）。
+        # 左对齐标题上的 balance 会把字贴到左边、右半行整块空出来（2026-11-01 实拍反馈），
+        # 统一在返回前由 _drop_balance_on_left 摘掉。
         if not changed:
             return match.group(0)
         return f"<{tag}{attrs.replace(sm.group(0), f'style=\"{_style_str(d)}\"')}>"
 
-    return _HEADING_OPEN_RE.sub(_fix, html)
+    return _drop_balance_on_left(_HEADING_OPEN_RE.sub(_fix, html))
 
 
 def _auto_dark_mode(theme: dict) -> dict:

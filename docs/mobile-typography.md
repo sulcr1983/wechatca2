@@ -16,7 +16,7 @@
 | R1 | 色块（banner）标题 h1–h6 一律左对齐 | `normalize_heading_align` | 18 套（庙会 12 + 赤陶 + 字节蓝 + 杂志 + 暗夜 + 樱花 + 运动） |
 | R2 | 色块标题左右内边距补到 16px（与正文左缘对齐） | `_bump_horizontal_padding` | 13 套（庙会 12 + 包豪斯） |
 | R3 | 纯文字居中标题：估算「放不下一行」时自动左对齐 | `normalize_heading_align` + `_estimate_text_width` | 84 套刊头类里，遇到长标题时生效 |
-| R4 | 标题加 `text-wrap:balance`，两行长度尽量相等 | `_ensure_text_wrap` | 全部 164 套 |
+| R4 | 标题加 `text-wrap:balance`，两行长度尽量相等 —— **只加给最终仍居中的标题** | `_ensure_text_wrap` + `normalize_heading_align`（`_drop_balance_on_left`） | 全部 164 套；实际保留 balance 的仅 9 套居中标题 |
 | R5 | 正文/单元格加 `overflow-wrap/word-break`，长 URL 不再撑破版面 | `_ensure_text_wrap` | 164/164 全部（改前每套都会撑破） |
 | R6 | 表格单元格左右内边距压到 ≤16px | `_clamp_horizontal_padding` | 3 套（原 20px 28px，5 列表格必溢出） |
 | R6b | 单元格 `word-break:keep-all` + `overflow-wrap:break-word`，列宽按整词分配 | `_ensure_text_wrap` | 164/164（改前「国产化率」会被拆成「国产化 / 率」） |
@@ -41,7 +41,7 @@
 ## 3. 怎么覆盖（主题作者）
 
 - `public/themes/*.json` 顶层加 `"heading_align": "design"` → 该主题**完全不做** R1/R2/R3，
-  保留设计师写的原样（R4–R7 仍生效，它们只是防崩，不改观感）。
+  保留设计师写的原样（R4–R7 仍生效，它们只是防崩，不改观感；R4 的 balance 仍按最终对齐决定去留）。
 - 想给某套主题单独留居中色块标题：同上，用 `heading_align: "design"` 即可，不需要改引擎。
 
 ## 4. 怎么验证
@@ -58,7 +58,15 @@ python scripts/theme_stress_audit.py --only render   # 164 套渲染审计（已
 
 - **刊头类（vogue / 社论报 / 信笺 / 素页…）保留居中**：这是设计语言，短标题居中才有「刊头」感。
   只有放不下时才自动左对齐；中间态（两行但估算说放得下）用 `text-wrap:balance` 兜。
-- R3 是**估算**：984 个样本里 981 个判断正确（3 个「居中但仍折行」出现在卡片类主题）。
+- **`balance` 必须与「居中」绑死**（2026-11-01 修正）：balance 的唯一效果是把多行拉成等长。
+  居中时等长 = 左右对称，是加分；**左对齐时等长 = 文字贴左边、右半行整块空着**，
+  实拍 13 字标题首行只占 55%、右侧空 126px，看着像没排完。
+  全量实测 164 套（标题「秋天，是一场盛大的告别与重逢」）：balance 下首行填充率中位 **55.5%**，
+  去掉后中位 **92.4%**；折成多行的 127 套里，首行填充 <70% 从 **124 套降到 3 套**。
+  实现：`_drop_balance_on_left` 在 `normalize_heading_align` 末尾按最终对齐结果摘除
+  （必须在 R1/R2 改完对齐之后，否则判断依据是旧值）。
+- R3 是**估算**：984 个样本里 981 个判断正确（3 个「居中但仍折行」出现在卡片类主题：
+  fresh-card / ocean-card / warm-card）。这 3 套保持居中 + balance，两行等长对称，可接受。
   实现取舍是「宁可提前左对齐，也不让长标题居中折行」，因为前者只是风格变化，后者是阅读障碍。
 - 表格 5 列以上时，即使内边距压到 16px 仍可能拥挤；这是微信正文宽度的物理限制，
   建议内容侧把表格压到 4 列以内（或拆成两张表）。
