@@ -71,7 +71,8 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 2, mobile: true });
   await send('Page.navigate', { url });
   await new Promise((r) => setTimeout(r, 3500));
-  const r = await send('Runtime.evaluate', { expression: `(function(){ ${snippet} })()`, awaitPromise: true, returnByValue: true });
+  // 包成 async：snippet 里可以直接 await（交互类测量常需要等待）
+  const r = await send('Runtime.evaluate', { expression: `(async function(){ ${snippet} })()`, awaitPromise: true, returnByValue: true });
   const ex = r.result?.exceptionDetails;
   console.log(ex ? 'EXCEPTION: ' + (ex.exception?.description || JSON.stringify(ex)) : (r.result?.result?.value ?? '(no value)'));
   ws.close();
