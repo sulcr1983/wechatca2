@@ -3,7 +3,8 @@
 
 范围（与产品承诺严格对齐）：
 - 导出链路：外链图被抓取并内嵌成 data URI（HTML 文件里可校验）。
-- 复制链路：公众号只认自家图床，**不承诺 data URI 可直贴**；UI 必须如实提示。
+- 复制链路：公众号**接受 data URI 直贴**（2026-11-01 实测确认）；提示条要如实
+  说明「复制时会自动抓取内嵌」，且失败必须给原因。
 - 失败不静默：抓不到（404 / 跨域 / 超时）必须写原因，且保留原 URL。
 
 确定性：
@@ -99,7 +100,7 @@ def main() -> int:
             page.wait_for_selector("#img-tip:not([hidden])", timeout=60000)
             tip = page.inner_text("#img-tip-text")
             check("渲染后出现外链图提示条", "2 张外链图" in tip, tip[:120])
-            check("提示条如实说明公众号直贴不显示", "公众号直贴不会显示" in tip, tip[:120])
+            check("提示条如实说明复制会自动内嵌", "复制到公众号时会自动抓取内嵌" in tip, tip[:120])
 
             # ① 直接导出 HTML：应自动抓图并内嵌（导出链路真可用）
             with page.expect_download(timeout=120000) as di:

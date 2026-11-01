@@ -149,13 +149,16 @@
     <div class="pane-head">
       <span class="pane-title">内容</span>
       <div class="pane-actions">
+        <button class="ghost-btn" id="btn-image" title="插入本地图片（也可直接 Ctrl+V 粘贴截图）">插图</button>
+        <button class="ghost-btn" id="btn-pic" title="搜图配图（Pexels，与小红书封面共用同一个 Key）">搜图</button>
         <button class="ghost-btn" id="btn-demo">看示例</button>
         <button class="ghost-btn" id="btn-clear">清空</button>
         <span class="pane-meta" id="char-count">0 字</span>
       </div>
     </div>
+    <input type="file" id="file-image" accept="image/*" multiple hidden>
     <textarea id="input" class="input" spellcheck="false"
-      placeholder="把文章粘进来。截图也可以直接 Ctrl+V 粘贴，或点上方「插图」上传。
+      placeholder="把文章粘进来。截图可以直接 Ctrl+V 粘贴，或点上方「插图」上传。
 
 第一行会自动当作标题，前后空行的短行会变成小标题，
 「-」开头变列表，「>」开头变引用，Git 命令会自动变代码块。
@@ -332,6 +335,26 @@
       <div class="bk-preview" id="bk-preview" hidden></div>
       <button class="ghost-btn" id="btn-bk-restore" disabled>恢复</button>
     </div>
+  </div>
+</div>
+
+<!-- 配图搜索（2026-11-02）：编辑器内搜图，复用封面页的 Pexels 源与同一个 Key。
+     Key 存在 supersu.cover.stock.v1，两个页面共用，不用重复填写。 -->
+<div class="dialog-mask" id="pic-mask" hidden></div>
+<div class="dialog" id="pic-dialog" hidden role="dialog" aria-modal="true">
+  <div class="dialog-head">
+    <div class="dialog-title"><b>找配图</b></div>
+    <button class="icon-btn" id="btn-pic-close" aria-label="关闭">×</button>
+  </div>
+  <div class="dialog-body">
+    <div class="pic-search">
+      <input type="text" id="pic-q" class="pic-input"
+             placeholder="输入关键词，或点「按正文推荐」自动生成">
+      <button class="ghost-btn" id="btn-pic-ai" title="让 AI 读正文生成英文关键词（需先配置 AI）">按正文推荐</button>
+      <button class="ghost-btn" id="btn-pic-go">搜索</button>
+    </div>
+    <div class="pic-hint" id="pic-hint"></div>
+    <div class="pic-grid" id="pic-grid"></div>
   </div>
 </div>
 

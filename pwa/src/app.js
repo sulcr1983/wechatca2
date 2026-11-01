@@ -8,6 +8,7 @@
 import { createEngine } from './bridge.js';
 import { renderLight } from './light.js';
 import { scanExternalImages, localizeImages, failureSummary } from './images.js';
+import { insertImageFiles } from './editor-images.js';
 import { buildBackup, backupSummary, downloadBackup, parseBackup, applyBackup } from './backup.js';
 
 /* ── 存储键 ─────────────────────────────────────────────────── */
@@ -347,8 +348,10 @@ function showEmpty() {
 }
 
 /* ── 外链图（方案 B2 · #6）─────────────────────────────────────
- * 事实：公众号编辑器粘贴富文本只认公众号图床，**拒绝 data: URI**。
- * 因此这里只承诺「导出 HTML / 长图 / 留档可用」，复制链路如实提示需手动上传。 */
+ * ⚠️ 平台事实（2026-11-01 实测修正）：旧注释说「公众号拒绝 data: URI」，**是错的**。
+ * data URI 内嵌图可以随富文本粘进公众号（实测图片正常显示）。
+ * 所以这里不再把复制当成「注定缺图」的路径 —— copyRich() 会先把外链图
+ * 抓下来压缩再转 data URI，提示条只负责告诉用户「还剩几张没本地化」。 */
 function updateImageTip() {
   const el = $('img-tip');
   const txt = $('img-tip-text');
@@ -360,13 +363,13 @@ function updateImageTip() {
     el.hidden = false;
     txt.textContent = lastImgFailed.length
       ? `仍有 ${left} 张外链图未内嵌：${failureSummary(lastImgFailed)}`
-      : `发现 ${left} 张外链图：公众号直贴不会显示；本地化后可用于导出 / 留档`;
+      : `发现 ${left} 张外链图：复制到公众号时会自动抓取内嵌，也可先点「本地化图片」处理`;
     btn.hidden = false;
     btn.disabled = imgBusy;
     btn.textContent = imgBusy ? '正在抓取…' : (lastImgFailed.length ? '重试剩余' : '本地化图片');
   } else if (lastImgLocalized) {
     el.hidden = false;
-    txt.textContent = `已内嵌 ${lastImgLocalized} 张图片（导出 HTML / 长图可用；公众号仍需在素材库手动上传）`;
+    txt.textContent = `已内嵌 ${lastImgLocalized} 张图片（导出 HTML / 长图 / 复制到公众号均可用）`;
     btn.hidden = true;
     btn.disabled = false;
   } else {
@@ -845,7 +848,32 @@ function toggleFav(id) {
 async function copyRich() {
   if (!lastHtml) return;
   const theme = byId.get(activeId) || {};
-  const wrapped = `<div style="background:${theme.background || '#fff'}">${lastHtml}</div>`;
+
+  /* 复制前把外链图本地化 + 压缩（2026-11-02）。
+   * 为什么必须有这步：2026-11-01 实测确认 data URI 内嵌图能粘进公众号，
+   * 而外链图会被公众号过滤掉。句方便就是这么做的（19/19 张全转 data URI）。
+   * 压缩是因为剪贴板装的是图片字节，原图直转能到几十 MB，粘贴会卡。
+   * 证据：docs/design-paste-image-and-typography.md §3.3 / §4.1 */
+  let body = lastHtml;
+  let localized = 0;
+  let copyFailed = [];
+  let totalBytes = 0;
+  const extCount = scanExternalImages(body).length;
+  if (extCount) {
+    toast(`正在处理 ${extCount} 张图片…`);
+    try {
+      const r = await localizeImages(body, { compress: true });
+      body = r.html;
+      localized = r.localized;
+      copyFailed = r.failed;
+      totalBytes = r.bytes || 0;
+    } catch (e) {
+      toast(`图片处理失败：${(e && e.message) || e}`, 'err');
+      return;
+    }
+  }
+
+  const wrapped = `<div style="background:${theme.background || '#fff'}">${body}</div>`;
   const plain = $('input').value;
 
   // 一级：ClipboardItem 写 text/html
@@ -855,7 +883,7 @@ async function copyRich() {
         'text/html': new Blob([wrapped], { type: 'text/html' }),
         'text/plain': new Blob([plain], { type: 'text/plain' }),
       })]);
-      toastAfterCopy();
+      toastAfterCopy({ localized, copyFailed, totalBytes });
       return;
     }
   } catch { /* 落到下一级 */ }
@@ -875,7 +903,7 @@ async function copyRich() {
     const ok = document.execCommand('copy');
     sel.removeAllRanges();
     holder.remove();
-    if (ok) { toastAfterCopy(); return; }
+    if (ok) { toastAfterCopy({ localized, copyFailed, totalBytes }); return; }
   } catch { /* 落到下一级 */ }
 
   // 三级：明确告诉用户怎么办
@@ -983,13 +1011,28 @@ function bindBackupDialog() {
   });
 }
 
-/* 复制后的如实反馈：公众号只认图床 URL，data URI 与外链都不算「已完成」 */
-function toastAfterCopy() {
+/* 复制后的如实反馈（2026-11-02 改写）。
+ * 旧版说「公众号只认图床 URL，data URI 与外链都不算已完成」——已实测推翻：
+ * data URI 可以粘进公众号。现在改成报告「这次复制带过去了几张图、几张失败」，
+ * 失败必定给可读原因（防盗链/跨域/超限），不静默。 */
+function toastAfterCopy({ localized = 0, copyFailed = [], totalBytes = 0 } = {}) {
   const left = scanExternalImages(lastHtml).length;
-  const embedded = /data:image\//i.test(lastHtml);
-  if (left) toast(`已复制，但还有 ${left} 张外链图，公众号里不会显示`, 'err');
-  else if (embedded) toast('已复制。公众号不识别内嵌图，正文图请在素材库上传，或用长图导出', 'err');
-  else toast('已复制，去公众号后台粘贴', 'ok');
+
+  // 先报失败：外链图转不进来（防盗链/跨域/超限）时，公众号里就是缺图，必须让人知道
+  if (copyFailed.length) {
+    toast(`已复制，${copyFailed.length} 张图没能内嵌：${failureSummary(copyFailed)}`, 'err');
+    return;
+  }
+  if (left && !localized) {
+    toast(`已复制，但还有 ${left} 张外链图，公众号里不会显示`, 'err');
+    return;
+  }
+  if (localized) {
+    const size = totalBytes ? `（${fmtKb(totalBytes)}）` : '';
+    toast(`已复制，含 ${localized} 张图${size}，去公众号后台粘贴`, 'ok');
+    return;
+  }
+  toast('已复制，去公众号后台粘贴', 'ok');
 }
 
 /* ── AI 工具（纯前端 BYOK：Key 只存本机，不上传） ─────────────── */
@@ -1368,6 +1411,54 @@ function bindUI() {
   // 粘贴后立刻排版，不等打字防抖
   input.addEventListener('paste', () => { setTimeout(scheduleRender, 30); });
 
+  /* ── 编辑器图片：粘贴截图 / 「插图」上传（2026-11-02 恢复）─────────
+     背景：cd0668d 曾把贴图和推送一起删掉（理由「推送太复杂」）。
+     现按用户决定只恢复图片能力。粘进来的图以 data URI 存进 Markdown，
+     复制到公众号时能直接带过去（2026-11-01 实测确认 data URI 可粘贴）。
+     见 docs/design-paste-image-and-typography.md §3.3。 */
+  const handleImageFiles = async (files) => {
+    if (!files || !files.length) return;
+    const imgs = [...files].filter((f) => f.type.startsWith('image/'));
+    if (!imgs.length) return;
+    toast(imgs.length > 1 ? `正在处理 ${imgs.length} 张图片…` : '正在处理图片…');
+    const r = await insertImageFiles(imgs, input);
+    updateCharCount();
+    saveDraft(input.value);
+    scheduleRender();
+    if (r.fail) {
+      toast(`已插入 ${r.ok} 张，${r.fail} 张失败（可能是格式不支持或过大）`, 'err');
+    } else {
+      toast(`已插入 ${r.ok} 张图片`, 'ok');
+    }
+  };
+
+  // Ctrl+V 粘贴图片：只在剪贴板里真有图片文件时接管，纯文本粘贴保持原行为
+  input.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    const files = [];
+    for (const it of items) {
+      if (it.kind === 'file' && it.type.startsWith('image/')) {
+        const f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (!files.length) return;      // 纯文本 → 走上面的默认处理
+    e.preventDefault();             // 有图 → 不走 textarea 默认粘贴
+    handleImageFiles(files);
+  });
+
+  // 「插图」按钮 → 本地文件选择
+  const btnImage = $('btn-image');
+  const fileImage = $('file-image');
+  if (btnImage && fileImage) {
+    btnImage.addEventListener('click', () => fileImage.click());
+    fileImage.addEventListener('change', () => {
+      handleImageFiles([...fileImage.files]);
+      fileImage.value = '';         // 允许连续选同一张
+    });
+  }
+
   $('btn-copy').addEventListener('click', copyRich);
   const emptyDemo = $('btn-empty-demo');
   if (emptyDemo) emptyDemo.addEventListener('click', () => $('btn-demo').click());
@@ -1666,6 +1757,150 @@ function bindUI() {
 
   // 备份 / 恢复本机数据对话框
   bindBackupDialog();
+
+  // 配图搜索（2026-11-02）
+  bindPicDialog();
+}
+
+/* ── 配图搜索（2026-11-02）─────────────────────────────────────
+ * 复用小红书封面那套 Pexels 源，Key 同存 supersu.cover.stock.v1，
+ * 用户填过一次两个页面都能用。
+ * 搜到的图直接以 Markdown 图片插入编辑器（data URI 会由 copyRich 处理）。 */
+function bindPicDialog() {
+  const dlg = $('pic-dialog');
+  const mask = $('pic-mask');
+  const grid = $('pic-grid');
+  const hint = $('pic-hint');
+  const q = $('pic-q');
+  if (!dlg || !mask || !grid) return;
+
+  let search = null;   // 动态加载的 search.js
+
+  const close = () => { dlg.hidden = true; mask.hidden = true; };
+
+  const setHint = (html) => { if (hint) hint.innerHTML = html; };
+
+  const loadSearch = async () => {
+    if (search) return search;
+    try {
+      search = await import('./cover/search.js');
+    } catch {
+      throw new Error('搜图模块加载失败');
+    }
+    return search;
+  };
+
+  const renderItems = (items) => {
+    grid.innerHTML = '';
+    if (!items || !items.length) {
+      grid.innerHTML = '<div class="pic-empty">没有找到图片，换个关键词试试</div>';
+      return;
+    }
+    for (const it of items) {
+      const cell = document.createElement('div');
+      cell.className = 'pic-item';
+      cell.title = it.author ? `摄影：${it.author}` : '点击插入';
+      const img = document.createElement('img');
+      img.src = it.thumb || it.url;
+      img.loading = 'lazy';
+      img.alt = '';
+      cell.appendChild(img);
+      if (it.author) {
+        const by = document.createElement('span');
+        by.className = 'pic-by';
+        by.textContent = it.author;
+        cell.appendChild(by);
+      }
+      cell.addEventListener('click', () => {
+        // 直接插 Markdown 外链图：copyRich 复制时会自动转 data URI + 压缩
+        const piece = `\n![](${it.url})\n`;
+        const ta = $('input');
+        const pos = ta.selectionStart ?? ta.value.length;
+        ta.setRangeText(piece, pos, ta.selectionEnd ?? pos, 'end');
+        ta.focus();
+        updateCharCount();
+        saveDraft(ta.value);
+        scheduleRender();
+        toast('已插入配图', 'ok');
+        close();
+      });
+      grid.appendChild(cell);
+    }
+  };
+
+  const doSearch = async (term) => {
+    const kw = String(term || q.value || '').trim();
+    if (!kw) { setHint('先输入关键词，或点「按正文推荐」'); return; }
+    let mod;
+    try {
+      mod = await loadSearch();
+    } catch (e) {
+      setHint(e.message);
+      return;
+    }
+    const keys = mod.getStockKeys();
+    if (!keys.pexels) {
+      setHint('还没配置 Pexels Key。到「小红书标题图」页填一次即可，两处共用。');
+      return;
+    }
+    setHint('搜索中…');
+    grid.innerHTML = '<div class="pic-empty">加载中…</div>';
+    try {
+      const r = await mod.searchBackground(kw, { limit: 12 });
+      const items = r.items || [];
+      setHint(items.length
+        ? `关键词「${r.query || kw}」共 ${items.length} 张${r.translated ? '（已译成英文）' : ''}`
+        : `没搜到，试试别的词`);
+      renderItems(items);
+    } catch (e) {
+      setHint(`搜索失败：${(e && e.message) || e}`);
+      grid.innerHTML = '<div class="pic-empty">搜索失败</div>';
+    }
+  };
+
+  const open = () => {
+    dlg.hidden = false;
+    mask.hidden = false;
+    const mod = loadSearch();
+    mod.then((m) => {
+      if (!m.getStockKeys().pexels) {
+        setHint('还没配置 Pexels Key。到「小红书标题图」页填一次即可，两处共用。');
+      } else if (!grid.children.length) {
+        setHint('输入关键词搜索，或点「按正文推荐」让 AI 读正文生成关键词');
+      }
+    }).catch(() => {});
+    q.focus();
+  };
+
+  $('btn-pic').addEventListener('click', open);
+  $('btn-pic-close').addEventListener('click', close);
+  mask.addEventListener('click', close);
+  $('btn-pic-go').addEventListener('click', () => doSearch());
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+  // 按正文推荐关键词（AI 可用时才有意义；不可用给明确指引）
+  $('btn-pic-ai').addEventListener('click', async () => {
+    let ai;
+    try {
+      ai = await import('./ai.js');
+    } catch { setHint('AI 模块加载失败'); return; }
+    if (!ai.isReady()) {
+      setHint('AI 还没配置：点右上「AI」，选平台、填 Key 后再用「按正文推荐」。也可以直接手输关键词。');
+      return;
+    }
+    const body = $('input').value.trim();
+    if (!body) { setHint('正文还是空的，先写点内容'); return; }
+    setHint('AI 正在读正文生成关键词…');
+    try {
+      const kw = await ai.suggestImageKeywords(body);
+      if (!kw) { setHint('AI 没给出关键词，手动输一个吧'); return; }
+      q.value = kw;
+      setHint(`AI 建议关键词：<b>${kw}</b>`);
+      doSearch(kw);
+    } catch (e) {
+      setHint(`AI 生成失败：${(e && e.message) || e}。也可以直接手输关键词。`);
+    }
+  });
 }
 
 function applyMode() {

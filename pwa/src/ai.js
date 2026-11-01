@@ -108,6 +108,17 @@ const POLISH_SYS =
 const SUMMARY_SYS =
   '你是中文编辑。用 60-110 字概括用户给的文章，突出结论与关键信息，不要分点、不要加标题。';
 
+/* 配图关键词（2026-11-02）：输出给 Pexels 用，所以必须是英文词。
+ *
+ * 为什么不让 AI 直接出中文：Pexels 原生偏英文，中文命中率差；
+ * 本项目已有的 guessQuery 只做词表映射（beach→beach 这类），
+ * 覆盖不到具体文章主题。让 AI 读正文抽象出 2-4 个英文意象词更准。
+ * 只输出关键词，不解释、不加引号，方便直接丢进搜索框。 */
+const IMGKW_SYS =
+  '你是配图编辑。读用户给的公众号文章，提炼 2-4 个适合做配图的英文搜索关键词（Pexels 图库用）。'
+  + '要具体、可拍（如山、咖啡馆、城市夜景），不要抽象概念（如成功、未来）。'
+  + '只输出关键词本身，用空格分隔，不要引号、不要解释、不要序号。';
+
 /* ── 内容分析路由器（规则，不交给 LLM）─────────────────────────────
  *
  * 依据（2026-10-25 调研）：
@@ -241,6 +252,33 @@ export async function summarize(text) {
     { temperature: 0.3, maxTokens: 400 }
   );
   return out.trim();
+}
+
+/** 读正文生成 2-4 个英文配图关键词（给 Pexels 搜图用）。
+ *
+ * 返回纯关键词串（如 "mountain cafe morning"），失败抛错由调用方提示。
+ * 只取正文前 3000 字：关键词是全局意象，不需要读完整篇长文。
+ */
+export async function suggestImageKeywords(text) {
+  const body = String(text || '').slice(0, 3000);
+  if (!body.trim()) throw new Error('正文为空');
+  const out = await chat(
+    [{ role: 'system', content: IMGKW_SYS }, { role: 'user', content: body }],
+    { temperature: 0.5, maxTokens: 60 }
+  );
+  // 清掉模型可能多给的引号/换行/中文标点，只留可用作搜索的字符。
+  // 注意：除了真实换行，还要清掉**字面的** `\n` / `\t`（模型偶尔会原样输出转义符，
+  // 实测 mock「misty forest\\nrain」就会漏过一个反斜杠+n）。
+  const kw = out
+    .replace(/["'“”‘’]/g, ' ')
+    .replace(/\\[nrt]/g, ' ')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[，。、；：]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // 兜底：模型偶尔会回中文，那种词丢给 Pexels 命中率低，直接判失败让用户手输
+  if (!kw || !/[a-zA-Z]/.test(kw)) throw new Error('AI 没给出英文关键词');
+  return kw.slice(0, 80);
 }
 
 /** 只让 AI 出结构决策（段号 → 标题/小节/列表/加粗），正文由引擎原样套用 */
