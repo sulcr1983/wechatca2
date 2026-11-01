@@ -1,7 +1,7 @@
 {
   "version": "1.14.0",
-  "generatedAt": "2026-11-01T01:32:13+08:00",
-  "totalCommits": 299,
+  "generatedAt": "2026-11-01T10:47:51+08:00",
+  "totalCommits": 303,
   "releases": [
     {
       "version": "1.14.0",
@@ -15,8 +15,8 @@
       ],
       "counts": {
         "added": 2,
-        "fixed": 1,
-        "other": 6
+        "fixed": 2,
+        "other": 9
       },
       "groups": [
         {
@@ -46,6 +46,14 @@
           "label": "修复",
           "items": [
             {
+              "text": "左对齐标题不再强制两行等长（右侧整块留白）",
+              "scope": "engine",
+              "hash": "3afd2f1",
+              "date": "2026-11-01T10:15:44+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
               "text": "upgrade-insecure-requests 只在强制模式下追加",
               "scope": "csp",
               "hash": "8341e32",
@@ -59,6 +67,30 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "cdp_measure 的 snippet 包成 async，支持直接 await",
+              "scope": "tools",
+              "hash": "de0c2bf",
+              "date": "2026-11-01T10:35:45+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "同步部署状态（CSP 修复已上线）",
+              "scope": "state",
+              "hash": "9f85b62",
+              "date": "2026-11-01T01:34:56+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "重建 dist（CSP 修复后）",
+              "scope": "build",
+              "hash": "37cecda",
+              "date": "2026-11-01T01:32:16+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "重建 dist（含安全响应头）",
               "scope": "build",

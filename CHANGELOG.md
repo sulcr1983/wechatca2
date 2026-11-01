@@ -19,9 +19,13 @@
 - 一键推送公众号草稿箱（高级功能，默认隐藏） (2116b5f)
 
 ### 修复
+- 左对齐标题不再强制两行等长（右侧整块留白） (3afd2f1)
 - upgrade-insecure-requests 只在强制模式下追加 (8341e32)
 
 ### 其他
+- cdp_measure 的 snippet 包成 async，支持直接 await (de0c2bf)
+- 同步部署状态（CSP 修复已上线） (9f85b62)
+- 重建 dist（CSP 修复后） (37cecda)
 - 重建 dist（含安全响应头） (5337a12)
 - 同步构建产物（STATE / changelog） (656a7ab)
 - 导出菜单断言对齐门控（5 项 DOM / 4 项可见 / 推送项未配置必须隐藏） (291e881)
