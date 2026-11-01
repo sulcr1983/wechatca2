@@ -1,3 +1,7 @@
+> ⚠️ **本文件已被 [`design-layout-system-v3.md`](design-layout-system-v3.md) 取代（2026-11-01 晚）。**
+> V2 的「钩子清单」低估了句方便的装饰手法（它用 kicker/titleMark/h2Badge 四类，不是 2 类），
+> 且版式选择项设计得过高。读 V3，本文仅留作追溯。
+
 # 排版主题体系 · 方案 V2（三层模型：皮肤 / 钩子 / 版式）
 
 > 状态：**方案 + 原型**，`pwa/src` 与 `core/` 零改动
