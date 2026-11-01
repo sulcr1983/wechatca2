@@ -685,15 +685,15 @@ const LAYOUTS = [
   { id:'natgeo',    nm:'国家地理', dgm:['k','a','','',''], tip:'黄线夹编号；分隔线只画 52px；引用浅灰底（国家地理）' },
   { id:'vogue',     nm:'Vogue',   dgm:['k','','','',''], tip:'纯黑白；大标题下压一粗一细两根线；52px 斜体编号（Vogue）' },
   { id:'forbes',    nm:'福布斯',  dgm:['','a','','k',''], tip:'大数字当视觉重点放大到 30px；短一号加粗标题（福布斯）' },
-  { id:'muji',      nm:'无印',    dgm:['w','k','','',''], tip:'米白底；酒红只用于序号；小标题下一条极浅细线（无印良品）' },
-  { id:'mori',      nm:'森系',    dgm:['k','h','','',''], tip:'暖米底；白字压豆绿圆角块像书签；金句圈绿细虚线框（森系）' },
-  { id:'ukiyoe',    nm:'浮世绘',  dgm:['k','h','a','',''], tip:'宣纸底；靛青底标题 + 赭红硬阴影印章感（浮世绘）' },
-  { id:'note',      nm:'笔记',    dgm:['w','w','k','a',''], tip:'细网格底；深蓝数字标牌；便签条（干货长文）' },
-  { id:'ikea',      nm:'宜家',    dgm:['k','a','','',''], tip:'两色分工：主色写字、第二色只画线垫底；编号黄底块（宜家）' },
-  { id:'starbucks', nm:'星巴克',  dgm:['k','','a','',''], tip:'白底；深绿只做强调；米白做分区卡片（星巴克）' },
+  { id:'muji',      nm:'无印',    dgm:['w','k','','',''], tip:'米白底；酒红只用于序号；小标题下一条极浅细线（无印良品）', kitOnly:true },
+  { id:'mori',      nm:'森系',    dgm:['k','h','','',''], tip:'暖米底；白字压豆绿圆角块像书签；金句圈绿细虚线框（森系）', kitOnly:true },
+  { id:'ukiyoe',    nm:'浮世绘',  dgm:['k','h','a','',''], tip:'宣纸底；靛青底标题 + 赭红硬阴影印章感（浮世绘）', kitOnly:true },
+  { id:'note',      nm:'笔记',    dgm:['w','w','k','a',''], tip:'细网格底；深蓝数字标牌；便签条（干货长文）', kitOnly:true },
+  { id:'ikea',      nm:'宜家',    dgm:['k','a','','',''], tip:'两色分工：主色写字、第二色只画线垫底；编号黄底块（宜家）', kitOnly:true },
+  { id:'starbucks', nm:'星巴克',  dgm:['k','','a','',''], tip:'白底；深绿只做强调；米白做分区卡片（星巴克）', kitOnly:true },
   { id:'adidas',    nm:'阿迪',    dgm:['k','a','','',''], tip:'黑白高对比；标题旁三条纹；少量斜线取速度感（阿迪达斯）' },
-  { id:'brutal',    nm:'新粗野',  dgm:['h','h','k','',''], tip:'大色块 + 粗黑框 + 无模糊硬阴影 8px 偏移（新粗野主义）' },
-  { id:'deepread',  nm:'深读',    dgm:['w','k','','',''], tip:'26px 深褐主标题 + 深度阅读微标 + 赤陶点缀（温润长文）' },
+  { id:'brutal',    nm:'新粗野',  dgm:['h','h','k','',''], tip:'大色块 + 粗黑框 + 无模糊硬阴影 8px 偏移（新粗野主义）', kitOnly:true },
+  { id:'deepread',  nm:'深读',    dgm:['w','k','','',''], tip:'26px 深褐主标题 + 深度阅读微标 + 赤陶点缀（温润长文）', kitOnly:true },
 ];
 
 /* ══ 标题装饰：四个钩子（本轮新增能力的演示） ════════════ */
@@ -1275,8 +1275,13 @@ function renderPreview(){
 function renderLayouts(){
   const locked = isKit(state.theme);
   const cur = locked ? (KIT_BY_ID[state.theme].layout) : state.layout;
-  $('#lay-count').textContent = LAYOUTS.length + ' 种' + (locked ? ' · 已锁定' : ' · 新增 4');
-  $('#lay-grid').innerHTML = LAYOUTS.map(l =>
+  /* 只列「可自由组合」的版式。
+     8 个 kitOnly 的版式（muji/mori/ukiyoe/note/ikea/starbucks/brutal/deepread）
+     函数里写死了品牌色，套到别的配色上会变成四不像 —— 它们只属于对应的整篇设计。
+     这条判据可 grep、可进 CI，不像「我觉得它算结构还是配色」那样靠印象。 */
+  const freeLayouts = LAYOUTS.filter(l => !l.kitOnly);
+  $('#lay-count').textContent = freeLayouts.length + ' 种' + (locked ? ' · 已锁定' : '');
+  $('#lay-grid').innerHTML = freeLayouts.map(l =>
     `<button class="lay-item" data-lay="${l.id}" aria-pressed="${l.id===cur}" title="${l.tip}"
        ${locked ? 'disabled aria-disabled="true"' : ''}>
       <span class="lay-ic">${l.dgm.map(c=>`<i class="${c}"></i>`).join('')}</span>
