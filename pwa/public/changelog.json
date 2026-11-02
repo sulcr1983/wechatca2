@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-03T01:57:21+08:00",
-  "totalCommits": 332,
+  "generatedAt": "2026-11-03T03:06:55+08:00",
+  "totalCommits": 345,
   "releases": [
     {
       "version": "1.17.0",
@@ -15,16 +15,56 @@
       ],
       "autoCut": false,
       "counts": {
-        "added": 6,
-        "changed": 16,
+        "added": 11,
+        "changed": 23,
         "fixed": 3,
-        "other": 14
+        "other": 15
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "字号调节接线（引擎参数贯通 + 抽屉滑块）",
+              "scope": "pwa",
+              "hash": "d1322bd",
+              "date": "2026-11-03T03:04:45+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "字号等比缩放 apply_font_scale + 产物实测基准",
+              "scope": "engine",
+              "hash": "9f97260",
+              "date": "2026-11-03T03:02:44+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "对齐契约白名单归一化 + 禁写属性常量",
+              "scope": "engine",
+              "hash": "8231add",
+              "date": "2026-11-03T02:56:58+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "推送凭证统一走 .env 的 GITHUB_TOKEN",
+              "scope": "release",
+              "hash": "1bd2c9a",
+              "date": "2026-11-03T02:34:34+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "19 套整篇设计对齐夹具 + 反向验证（证明不是摆设）",
+              "scope": "gate",
+              "hash": "160cc88",
+              "date": "2026-11-03T02:21:44+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "整篇设计缩略图目录分离 + kit 缩略图生成脚本",
               "scope": "pwa",
@@ -79,6 +119,62 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "浮世绘两端对齐真源收拢到 JSON（等价迁移）",
+              "scope": "theme",
+              "hash": "9c739ed",
+              "date": "2026-11-03T02:56:26+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "修正 P0 断言口径（12 条×19=228）与已定案状态，消除文档内部矛盾",
+              "scope": "plan",
+              "hash": "dbc588b",
+              "date": "2026-11-03T02:47:09+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "落进 2026-11-03 三项拍板（状态文字位置 / 段落样式 / 抽屉 520px）",
+              "scope": "plan",
+              "hash": "a9c1154",
+              "date": "2026-11-03T02:42:40+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "P4 拆分方案 v2 —— 按对抗性审查 14 条逐条修订",
+              "scope": "plan",
+              "hash": "0cdeb15",
+              "date": "2026-11-03T02:39:16+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "P4 抽屉两 tab 方案的对抗性审查（14 条）",
+              "scope": "review",
+              "hash": "b756e65",
+              "date": "2026-11-03T02:38:39+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "P4 抽屉两 tab 拆分方案（不写代码）",
+              "scope": "plan",
+              "hash": "12ab679",
+              "date": "2026-11-03T02:29:19+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "整体页面设计对抗性审查 + 三条新决策落进计划",
+              "scope": "review",
+              "hash": "5ba4fac",
+              "date": "2026-11-03T02:21:57+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "微信排版改版方案文档全套 + README/AGENTS 口径同步（183 套风格）",
               "scope": "",
@@ -243,6 +339,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "重新构建 dist 并同步生成物（b385 / BUILD_ID ef6d7de8）",
+              "scope": "build",
+              "hash": "b72e90e",
+              "date": "2026-11-03T01:57:31+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "清账后重生成 STATE.md（b379 本地 / b358 线上，线上落后 21 提交）",
               "scope": "state",
