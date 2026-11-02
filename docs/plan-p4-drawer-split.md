@@ -1,9 +1,10 @@
-# P4 · 抽屉两 tab 拆分方案（2026-11-03）
+# P4 · 抽屉两 tab 拆分方案（2026-11-03，v2 已按对抗性审查修订）
 
-> **状态**：方案稿，**不写代码**。用户 2026-11-03 定：先出 P4 独立拆分方案。
-> **关联**：`docs/review-wechat-v6-adversarial.md` E-5～E-8 与决策 4/5/6；
+> **状态**：方案稿，**不写代码**。
+> **v2 修订**：已按 `docs/review-p4-drawer-split.md`（14 条）逐条修正。
+> **关联**：`docs/review-wechat-v6-adversarial.md` E-5～E-8；
 > `docs/plan-wechat-v6-implementation.md` §四 P4。
-> **本文只回答一件事**：P4 这块最大改动怎么切成可独立验证、可独立回滚的若干步。
+> **基准**：`docs/prototypes/wechat-v7.html`（原型定稿）+ `pwa/src/app.js`（线上真源）。
 
 ---
 
@@ -11,7 +12,7 @@
 
 用户判断：**19 套整篇设计单独做函数，和第一个 tab 的内容不冲突。**
 
-**方向对，但不能落在数据层，只能落在渲染层。** 原因有代码证据：
+**方向对，但不能落在数据层，只能落在渲染层。**
 
 ### 为什么不能拆成两个数组
 
@@ -28,18 +29,18 @@
 | `applyBackup()` 恢复 | — | 恢复的 id 可能属于任一数组 |
 
 把 `themes` 拆成 `palettes` + `kits`，等于把 **1 个问题**换成 **16 个判断点**。
-这正是 `docs/review-wechat-v6-adversarial.md` §五之二指出的元问题：
-`kind:'kit'` 应该**按 kind 分派**，不是**按数组分家**。
 
 ### 正确切法：三层分开
 
 | 层 | 做法 | 理由 |
 |---|---|---|
-| **数据** | `themes` 保持单数组；另加两个**只读派生常量** `PALETTES` / `KITS` | id 空间必须唯一，否则 16 处消费方全要改 |
-| **渲染** | 新增 `renderKitPane()`，与 `renderAllFolded` / `renderFamilyFold` **并列、互不调用** | 用户说的「单独做函数」落在这里 —— 改名/重写/删掉都不碰 palette 分支 |
-| **状态** | 新增 `drawerMode: 'palette' \| 'kit'`，与 `drawerFam` **正交** | `drawerFam`（all/fav/族名）只在 palette 模式有意义，kit 模式无「族」概念 |
+| **数据** | `themes` 保持单数组；另加两个**只读派生** `PALETTES()` / `KITS()` | id 空间必须唯一，否则 16 处消费方全要改 |
+| **渲染** | 新增 `renderKitPane()`，与 `renderAllFolded` / `renderFamilyFold` **并列、互不调用** | 用户说的「单独做函数」落在这里 |
+| **状态** | 新增 `drawerMode: 'palette' \| 'kit'`，与 `drawerFam` **正交** | `drawerFam` 只在 palette 模式有意义，kit 无「族」概念 |
 
-这才是真正的「不冲突」：**渲染函数隔离 + 状态变量正交**，而不是把数据劈成两半。
+> ⚠️ **v1 的错误已修正**：v1 说「两 tab 共用同一个 `#drawer-grid`」。
+> 这与原型的两 pane 结构冲突（`wechat-v7.html:974` `#pane-theme` / `:1046` `#pane-kit` 各自一个网格），
+> 也让「决策 4 的版式状态文字」无处安放。**v2 改为两个容器，见 §2.1。**
 
 ---
 
@@ -52,29 +53,31 @@ openDrawer()            :624   → renderFilters() + renderDrawer()
 renderDrawer()          :901   → renderLayouts()      :902
                                  renderBlockToggles() :903
                                  applyKitLock()       :904
-                                 分支：q      → renderFlat        :910
-                                       fav    → renderFlat        :914
+                                 分支：q      → renderFlat  :910
+                                       fav    → renderFlat  :914
                                        all    → renderAllFolded   :915
                                        族名   → renderFamilyFold  :916
 renderAllFolded()       :854   → 精选12 + 族代表卡7 + 「其他风格」平铺  ← 19 套落这里（E-5）
 drawerCard()            :768   → 共用；按 kind 切 kit-thumbs/theme-thumbs
-familyRepCard()         :795   → 写死 theme-thumbs/
-renderCaps()            :528   → orderedThemes().slice(0,40)  ← 19 套会混进来（见 §五）
+familyRepCard()         :795   → 写死 theme-thumbs/（**不改**，只在 palette 出现）
+renderCaps()            :528   → orderedThemes().slice(0,40)  ← 19 套会混进来（E-9）
+renderFilters()         :744   → `全部 ${themes.length}`      ← 多算 19（E-10）
 ```
 
 ### 目标
 
 ```
 openDrawer()  → renderModeTabs()   ← 新增：两 tab 胶囊 + 计数（现算）
-                renderFilters()    ← palette 模式才渲染族 chip；kit 模式隐藏
+                renderFilters()    ← palette 模式才渲染族 chip
                 renderDrawer()
 
 renderDrawer()
-  ├─ drawerMode === 'kit'      → renderKitPane(fav)          ← 新增，独立文件级函数
-  └─ drawerMode === 'palette'  → renderLayouts()
-                                 renderBlockToggles()
-                                 （原三分支保持不变：q / fav / all / 族）
-  applyKitLock()  保留，但删掉「版式胶囊 disabled」那段（决策 4 已改为整块替换）
+  ├─ drawerMode === 'kit'  → renderLayouts()        // 决策4：8胶囊 → 一行状态文字
+  │                          renderBlockToggles()    // 段落样式保留（A-4）
+  │                          applyKitLock()          // 说明条
+  │                          renderKitPane(fav, q)   // 自带搜索、自带空态
+  │                          return
+  └─ drawerMode === 'palette' → （原三分支与 renderAllFolded 完全不变）
 ```
 
 **关键约束**：`renderKitPane()` 内部**不引用** `drawerFam`、`drawerTone`、`LAYOUT_OPTIONS`、`FAMS`。
@@ -88,177 +91,216 @@ renderDrawer()
 
 | 位置 | 改什么 |
 |---|---|
-| `:239` 之后（`.drawer-head` 与 `#drawer-filters` 之间） | 新增 `.mode-tabs`：两个按钮 `data-mode="palette"` / `data-mode="kit"`，**计数留空由 JS 填**（禁止写死 164/19 —— 定稿 §2.3 教训：曾写死 179 实际 183） |
-| `:248` `#kit-note` | 保留（说明条 + 退出按钮）。文案改为不含括注版式名（决策 4 附带修 E-7） |
-| `:255` `#drawer-layouts` | 保留容器；kit 模式由 JS 整体替换成一行状态文字（决策 4） |
-| `:256` `#drawer-grid` | 保留单一网格容器 —— **两 tab 共用同一个 `#drawer-grid`**，不新建第二个，避免双份滚动状态与双份事件委托 |
-| `:257` `#drawer-blocks` / `:269` `#drawer-custom` | 保留；`drawerMode==='kit'` 时隐藏（kit 的配色锁死，这两个区 100% 不可操作） |
+| `.drawer-head` 之后 | 新增 `.mode-tabs`：两个按钮 `data-mode="palette"` / `data-mode="kit"`，**计数留空由 JS 填**（禁止写死 —— 曾写死 179 实际 183） |
+| `#drawer-filters` | 保留，palette 模式才渲染 |
+| `#kit-note` | 保留（说明条 + 退出按钮）。**文案去掉「版式（默认）」**（A-3） |
+| `#drawer-layouts` | 保留容器；kit 模式整体替换成一行状态文字（决策 4） |
+| **`#drawer-grid`** | **palette 专用**，`renderAllFolded` / `renderFamilyFold` / `renderFlat` 照旧写它 —— **一行都不用改** |
+| **`#kit-grid`（新增）** | **kit 专用**，只由 `renderKitPane` 写 |
+| **`.drawer-body`（新增包裹）** | 见下方实现陷阱 |
+| `#drawer-blocks` | **kit 下保留**（段落样式与版式无关，`applyKitLock` 也只锁 `#drawer-custom`） |
+| `#drawer-custom` | kit 下加 `.locked`（既有样式 `style.css:489`） |
 
-> **为什么只用一个 `#drawer-grid`**：事件委托挂在 `$('drawer-grid')`（`:1673`），
-> 五类点击（空态/d-fav/d-axis/d-tone/d-card）都在这一处。新建第二个网格 =
-> 复制一遍委托 + 两处状态同步。切换 tab 时只需重渲染同一个容器。
+#### ⚠️ 实现陷阱：两个网格不能同时 `flex:1` 滚动
+
+现在 `#drawer-grid` 是 `flex:1; min-height:0; overflow-y:auto`（`style.css:371`）。
+直接并列加第二个网格，**两个都会是 `flex:1`，各占一半高**。
+
+正确结构：
+
+```html
+<div class="drawer-body">        <!-- flex:1; min-height:0; overflow-y:auto -->
+  <div class="drawer-grid" id="drawer-grid"></div>
+  <div class="drawer-grid" id="kit-grid" hidden></div>
+</div>
+```
+
+两个网格自己**不再滚动**，滚动交给 `.drawer-body`。切 tab 时切 `hidden`。
+
+#### ⚠️ 事件委托必须上提一层
+
+现在委托挂在 `$('drawer-grid')`（`app.js:1673`），五类点击都在这一处。
+新增 `#kit-grid` 后，若委托不动，kit 卡点了没反应。
+
+**修法**：委托改挂到 `.drawer-body`（或 `.drawer`），一次覆盖两个网格。
+**不要复制第二份委托** —— 两份必然漂移。
 
 ### 2.2 `pwa/src/app.js`
 
 | 函数 | 行号 | 改动 |
 |---|---|---|
-| 新增 `PALETTES` / `KITS` | ~85 | `const PALETTES = () => themes.filter(t => t.kind !== 'kit')` 形式的只读派生（用函数而非常量，因为 `themes` 在 `:111` 异步赋值） |
-| 新增 `drawerMode` | ~621 | `let drawerMode = 'palette';`（默认 palette） |
-| 新增 `renderModeTabs()` | ~624 前 | 两个胶囊 + 现算计数；`aria-pressed` 跟随 `drawerMode` |
-| **新增** `renderKitPane(fav)` | ~917 后 | **独立函数**：只渲染 19 套，按 `theme-curation.json` 给定顺序；卡片用 `drawerCard` 但外层加 `d-card-kit`；**不碰 `drawerFam` / `LAYOUT_OPTIONS`** |
-| `renderDrawer()` | :901 | 开头加 `if (drawerMode === 'kit') { renderKitPane(fav); return; }` —— **唯一插入点，一行** |
-| `renderLayouts()` | :691 | kit 态不再渲染 8 个胶囊，改为一行状态文字「版式：整篇设计已锁定」（决策 4）；顺带删掉 `:596` 的 `LAYOUT_OPTIONS.find(...)` 查 `lockedLayout` 的写法（E-7） |
-| `applyKitLock()` | :580 | 删掉 ① 版式胶囊段（`renderLayouts` 已接管）；保留 ②③④（说明条 / 色卡区 / 自定义配色） |
-| `renderAllFolded()` | :854 | **加一行过滤**：`const list = PALETTES()` 替代 `themes`，确保 19 套不再落进「其他风格」 |
-| `renderFilters()` | :744 | `drawerMode==='kit'` 时**不渲染**族 chip（返回空串或隐藏容器） |
-| `renderCaps()` | :528 | **修一个新缺陷**（见 §五）：色卡条只取 palette；当前 `activeId` 是 kit 时，额外把该 kit 作为第一颗「正在使用」指示 |
-| `orderedThemes()` | :506 | 保持不动（它服务色卡条与胶囊条，语义由 `renderCaps` 侧收窄） |
-| `toggleFav()` | :919 | 保持不动（kit 可收藏，属正常需求；只是不再进色卡条） |
-| 事件委托 | :1664 / :1673 | `#drawer-filters` 点击加 `if (drawerMode!=='palette') return`；`#drawer-grid` 委托保持（`.d-card` 分支已按 `dataset.id` 走 `setActive`，kit 天然可用） |
-| 新增 mode tab 委托 | ~1664 前 | `data-mode` 点击 → 设 `drawerMode` → `renderFilters()` + `renderDrawer()` |
+| 新增 `PALETTES()` / `KITS()` | ~85 | 只读派生（用函数而非常量：`themes` 在 `:111` 异步赋值） |
+| 新增 `drawerMode` | ~621 | `let drawerMode = 'palette';` |
+| 新增 `renderModeTabs()` | ~624 前 | 两胶囊 + **现算**计数；`aria-pressed` 跟随 `drawerMode` |
+| **新增** `renderKitPane(fav, q)` | ~917 后 | 独立函数：`KITS()` 按 `q` 过滤 → 渲染进 `#kit-grid`；**两种空态分开**；**不带 `.d-kit-tag`** |
+| `renderDrawer()` | :901 | kit 分支要跑 **4 件事**（见 §一目标），不是「一行 return」 |
+| `renderLayouts()` | :691 | kit 态渲染一行状态文字，不渲染 8 胶囊（决策 4） |
+| `applyKitLock()` | :580 | ① 版式胶囊段删除（`renderLayouts` 已接管）；② 文案去掉「版式（默认）」（A-3）；③④ 保留 |
+| `renderAllFolded()` | :854 | `themes` → `PALETTES()`（19 套不再落进「其他风格」，E-5） |
+| `renderFilters()` | :744 | ① kit 模式不渲染；② `themes.length` → `PALETTES().length`（E-10） |
+| `renderCaps()` | :528 | 只取 `PALETTES()`；`activeId` 是 kit 时置顶显示（E-9） |
+| `familyRepCard()` | :795 | **不改**（只在 palette 出现，缩略图本就在 `theme-thumbs/`） |
+| `toggleFav()` | :919 | **不改**（kit 可收藏，只是不进色卡条） |
+| 事件委托 | :1673 | **从 `#drawer-grid` 上提到 `.drawer-body`** |
+| 新增 mode tab 委托 | ~1664 前 | `data-mode` → 设 `drawerMode` → `renderFilters()` + `renderDrawer()` |
+
+#### `renderKitPane` 要点（A-2 / B-1 / B-2）
+
+```js
+function renderKitPane(fav, q) {
+  const list = KITS().filter((t) => !q ||
+    (t.name + ' ' + t.id + ' ' + (t.desc || '')).toLowerCase().includes(q));
+  const box = $('kit-grid');
+  if (!list.length) {
+    // 两种空态必须分开（原型 wechat-v7.html:1393 记过真实事故：
+    // 搜「夜航」明明 19 张缩略图都在，却提示「未生成」）
+    box.innerHTML = KITS().length === 0
+      ? '<div ...>缩略图未生成，先跑 scripts/gen_kit_thumbs.py</div>'
+      : '<div ...>没匹配的整篇设计 · <b data-empty-act="clear">清除搜索</b></div>';
+    return;
+  }
+  box.innerHTML = list.map((t) => drawerCard(t, fav)).join('');
+  // ⚠️ 不追加 .d-kit-tag：整个 tab 都是整篇设计，角标零信息量
+}
+```
 
 ### 2.3 `pwa/src/style.css`
 
-| 选择器 | 行号 | 改动 |
-|---|---|---|
-| `.mode-tabs` | 新增 ~352 | 两 tab 胶囊，复用 `.fchip` 的视觉语言 |
-| `.drawer-grid` | :371 | 保持 `repeat(auto-fill, minmax(142px,1fr))` |
-| **`.d-card-kit`** | :390 | **单独尺寸预算**（决策 6 / E-6）：`aspect-ratio:4/3`；`min-height` 独立计算，**不继承 `.d-card{min-height:140px}`** |
-| `.d-prev` | :398 | 保持 `height:104px`（palette 2:1 用）；**.d-card-kit .d-prev 覆盖为 aspect-ratio** |
-| `body.browsing .stage` | :322 | `padding-right:500px` → `var(--drawer-w)`，与 `.drawer` 联动（审查 B-4） |
-| 新增 `--drawer-w` | :300 附近 | 三态：展开 `min(560px,94vw)` / browsing `500px` / 折叠 `248px` |
+| 选择器 | 改动 |
+|---|---|
+| `.mode-tabs` | 新增，复用 `.fchip` 视觉语言 |
+| `.drawer-body`（新增） | `flex:1; min-height:0; overflow-y:auto` —— 承接原 `.drawer-grid` 的滚动职责 |
+| `.drawer-grid` | **删掉** `flex:1; min-height:0; overflow-y:auto`（改由 `.drawer-body` 承担），其余（`padding` / `grid-template-columns` / `gap`）保留 |
+| **`.d-card-kit .d-prev`** | `aspect-ratio:4/3; height:auto` —— **只需这两条**（A-5） |
+| `#kit-grid .d-kit-tag` | `display:none`（B-2，原型 `:713`） |
+| **`.d-card { min-height:140px }`** | **不动**（A-5：4:3 下内容高已 144px，覆盖反而制造歧义） |
+| `body.browsing .stage` | `padding-right:500px` → `var(--drawer-w)`（审查 B-4） |
+| 新增 `--drawer-w` | **单值**，与 `.drawer` 宽度联动。**无「折叠态」** —— v1 写的 248px 不存在（C-1） |
+
+> **v1 的 C-1 错误已删**：`grep "248px\|collapsed" pwa/src/style.css` 零命中；
+> 原型 `wechat-v7.html:61` 也只有一个 `--drawer-w: 520px`。线上抽屉**没有折叠态**。
 
 ### 2.4 `pwa/theme-curation.json`
 
-新增 `kits` 段（决策 5 / E-5 必做项）：
+新增 `kits` 段（决策 5 / E-5）：
 
 ```json
-{ "featured": [...], "order": [...],
-  "kits": ["mg-time", "mg-guardian", "..."] }
+{ "featured": [...], "order": [...], "kits": ["mg-time", "mg-guardian", "..."] }
 ```
 
-`build.mjs` 读它给 19 套排序并写入 index。**不写这段，`renderKitPane` 只能按 id 兜底排序**，
-与「编辑策展顺序」不一致。
+`build.mjs` 读它给 19 套排序。不写这段，`renderKitPane` 只能按 id 兜底排序。
 
 ### 2.5 `pwa/scripts/build.mjs`
 
 | 位置 | 改动 |
 |---|---|
-| `loadCuration()` :279 | 增加读 `kits` 字段 |
-| `buildThemeIndex` :324 | kit 项单独排序：按 `kits` 数组顺序，不在表内按 id 兜底 |
-| `:836` need 清单 | 若新增 `src/kit-pane.js` 才需要加；**本方案不新建文件**，故不动 |
+| `loadCuration()` :279 | 增加读 `kits`（已 `|| []` 兜底，先改 json 也不会炸 —— C-3） |
+| `buildThemeIndex` :324 | kit 项按 `kits` 数组顺序，不在表内按 id 兜底 |
 
-> **为什么不新建 `pwa/src/kit-pane.js`**：`sw.js` 的 `SHELL_CRITICAL`（`:55`）与
-> `build.mjs` 的 `need` 清单（`:836`）都是**手工白名单**，新增模块要两处登记（漏了就是
-> 「更新后该文件仍是旧的」，2026-10-29 踩过 `src/cover/textmode.js`）。
-> 本方案只加约 40 行函数，留在 `app.js` 内收益大于拆文件。**若后续要独立，再走登记流程。**
+> **不新建 `src/kit-pane.js`**：`sw.js` 的 `SHELL_CRITICAL`（`:55`）与 `build.mjs` 的
+> `need` 清单（`:836`）都是手工白名单，新增模块要两处登记（漏了就是「更新后该文件仍是旧的」，
+> 2026-10-29 踩过 `src/cover/textmode.js`）。本方案只加约 50 行，留在 `app.js` 内。
 
-### 2.6 `scripts/pwa_theme_drawer_test.py`（59 项，必改）
+### 2.6 `scripts/pwa_theme_drawer_test.py`（必改，B-4）
 
-实测依赖的选择器：`.d-tone`×9 `.d-axis`×7 `.fchip`×6 `#drawer-filters`×6
-`.dl-chip`×5 `.d-card`×5 `#drawer-search`×5 `.d-family-card`×2 `#drawer-custom`×2 `#drawer-blocks`×2
+**先纠正一个既有事实**：`:104` `all_ids = [t["id"] for t in index]` 取的是 **183 个**，
+而断言文案 `:281` 写「全部 164 套」。**这个数字今天就是假的**，改两 tab 时必须一并修正。
 
-改动：
-
-| 受影响项 | 原因 | 改法 |
-|---|---|---|
-| `.dl-chip` 5 处 | 改两 tab 后默认 palette 模式仍在，但需确认抽屉打开时默认落 palette | 打开抽屉后先断言 `drawerMode==='palette'` |
-| `#drawer-blocks` / `#drawer-custom` | kit 模式隐藏 | 这些断言都发生在 palette 模式，加前置断言即可 |
-| **新增 8–10 项** | 两 tab 切换 / kit 模式无族 chip / kit 卡 4:3 比例 / 说明条无英文 id / 版式区状态文字 / 19 套计数现算 | 新增用例 |
+| 改动 | 内容 |
+|---|---|
+| `all_ids` 拆成 `pal_ids` / `kit_ids` | 按 `kind` 分 |
+| 「逐个应用」循环 | palette tab 遍历 `pal_ids`；切 kit tab 遍历 `kit_ids` |
+| 断言文案 | 改成实际数量，不再写死 164 |
+| 新增 10 项 | 见 §四 |
 
 ---
 
 ## 三、编排顺序（5 步，每步可独立验证、可独立回滚）
 
-切分原则：**先做不依赖结构的，后做动结构的**；每步结束工作区都能跑通门禁。
-
 ### 步骤 1｜数据与策展先行（无 UI 变化）
 
-- 改 `theme-curation.json` 加 `kits`；`build.mjs` 读它排序
-- **验证**：`node pwa/scripts/build.mjs` 后，检查 `dist/themes/index.json` 里 19 套顺序 = `kits` 数组顺序；`node pwa/scripts/build.mjs` 自带断言全过
-- **回滚**：`git revert` 单个提交，UI 完全无变化
+- `theme-curation.json` 加 `kits`；`build.mjs` 读它排序
+- **验证**：`node pwa/scripts/build.mjs` 后，`dist/themes/index.json` 里 19 套顺序 == `kits` 顺序；build 自带断言全过
+- **回滚**：单提交 revert，UI 零变化
 
-### 步骤 2｜修 E-6/E-7/E-8（不动两 tab，纯修 bug）
+### 步骤 2｜修 E-6 / E-7 / E-10（不动 tab 结构，纯修 bug）
 
-- `.d-card-kit` 单独尺寸预算（4:3）
-- `renderLayouts()` kit 态替换为状态文字；删 `:596` 的 `LAYOUT_OPTIONS` 查询
-- `renderAllFolded()` 改用 `PALETTES()`
-- **验证**：`python scripts/pwa_theme_drawer_test.py --local`（59 项仍全过，因为此步不动结构）；
-  加跑 1440px 与 500px 两档宽度实测 `.d-card-kit .d-prev` 高 ≥ 宽×3/4
-- **回滚**：单独提交，可 revert
+- `.d-card-kit .d-prev { aspect-ratio:4/3; height:auto }`，**不动 min-height**
+- `applyKitLock()` ②：说明条文案去掉「版式（默认）」
+- `renderFilters()`：「全部」改用 `PALETTES().length`
+- **验证**：59 项抽屉测试仍全过（此步不动结构）；实测 `.d-card-kit .d-prev` 高/宽 ≥ 0.73
+- **回滚**：单提交
 
-### 步骤 3｜加两 tab 骨架（最大的一步）
+### 步骤 3｜加两 tab 骨架（最大一步，单独 PR）
 
-- `index.html` 加 `.mode-tabs`；`app.js` 加 `drawerMode` / `renderModeTabs()` / `renderKitPane()`
-- `renderDrawer()` 加一行分派；`renderFilters()` kit 态隐藏族 chip
-- `style.css` 加 `.mode-tabs`
-- **验证**：`--local` 抽屉测试（含新增用例）；手动切两 tab 各点 3 套
-- **回滚**：这一步单独一个 PR，revert 即回旧结构
+- `index.html`：`.mode-tabs` + `.drawer-body` 包裹 + `#kit-grid`
+- `app.js`：`drawerMode` / `renderModeTabs()` / `renderKitPane()`；`renderDrawer()` kit 分支 4 件事；
+  **事件委托上提到 `.drawer-body`**
+- `style.css`：`.mode-tabs` / `.drawer-body` / `.drawer-grid` 去掉 flex 滚动 / `#kit-grid .d-kit-tag{display:none}`
+- **验证**：抽屉测试（含新增 10 项）；手动切两 tab 各点 3 套
+- **回滚**：revert 即回旧结构
 
-### 步骤 4｜色卡条缺陷（可放这步，因为依赖 KITS）
+### 步骤 4｜色卡条缺陷 E-9
 
-- `renderCaps()` 只取 palette；activeId 是 kit 时置顶显示
-- **验证**：收藏一套 kit → 打开色卡条 → 断言 40 颗里无 `d-card-kit`（实际是 `.cap`），
-  且当前 kit 以「正在使用」形态出现在第一位
-- **回滚**：独立提交
+- `renderCaps()` 只取 `PALETTES()`；`activeId` 是 kit 时置顶显示 + 标注
+- **验证**：收藏一套 kit → 色卡条 40 颗内无 kit 混入；当前 kit 以「正在使用」出现在第一位
+- **回滚**：单提交
 
 ### 步骤 5｜抽屉宽度归一（审查 B-4）
 
-- `--drawer-w` 三态 + `padding-right` 联动
-- **验证**：桌面 1440px 开抽屉 → 主区右推 = 抽屉宽；折叠态无 252px 空白
-- **回滚**：独立提交
+- `--drawer-w` 单值 + `padding-right` 联动
+- **验证**：桌面 1440px 开抽屉 → 主区右推 == 抽屉宽
+- **回滚**：单提交
 
 ---
 
-## 四、每步的统一验证口径
+## 四、验证口径与新增断言
 
 ```bash
-# 每步都跑（按改动面自动选套件）
-.venv/Scripts/python.exe scripts/run_gates.py
-
-# 步骤 2/3 必跑（抽屉结构改动）
-.venv/Scripts/python.exe scripts/pwa_theme_drawer_test.py --local
-
-# 19 套对齐夹具（改 mg-* 或 magazine_layouts 时自动触发，也可手跑）
-.venv/Scripts/python.exe scripts/kit_alignment_fixture.py --browser
-
-# 反向验证：证明夹具不是摆设（不需要每步跑，改夹具时跑）
-.venv/Scripts/python.exe scripts/kit_alignment_canred.py --browser
-
-# 文档同步
-.venv/Scripts/python.exe scripts/doc_sync_check.py
+.venv/Scripts/python.exe scripts/run_gates.py                       # 每步
+.venv/Scripts/python.exe scripts/pwa_theme_drawer_test.py --local   # 步骤 2/3 必跑
+.venv/Scripts/python.exe scripts/kit_alignment_fixture.py --browser # 19 套对齐
+.venv/Scripts/python.exe scripts/kit_alignment_canred.py --browser  # 反向验证
+.venv/Scripts/python.exe scripts/doc_sync_check.py                  # 文档同步
 ```
 
-**新增断言（必须写进 `pwa_theme_drawer_test.py`）**：
+**新增断言（10 条，已按审查修订）**：
 
-1. 切到「整篇设计」tab → 网格里卡片数 == `KITS.length`（现算，不写死 19）
-2. kit 模式下 `#drawer-filters .fchip` 数量 == 0（无族 chip）
-3. kit 模式下 `#drawer-blocks` / `#drawer-custom` 不可见
-4. kit 卡 `.d-prev` 高/宽 ≥ 0.73（4:3 允许 2px 误差）
-5. `#kit-note-text` 文本**不含** `[a-z]{4,}` 形式的英文内部 id（E-7 回归）
-6. kit 模式下 `#drawer-layouts` 内无 `.dl-chip`，只有一行状态文字（E-8 回归）
-7. 切回 palette → 族 chip 恢复、8 个 `.dl-chip` 恢复
+1. 切 kit tab → `#kit-grid .d-card` 数 == `KITS().length`（现算）
+2. 切 palette tab → `#kit-grid` 隐藏、`#drawer-grid` 非空
+3. kit 模式下 `#drawer-filters .fchip` 数 == 0
+4. kit 模式下 `#drawer-custom` 有 `.locked`，**`#drawer-blocks` 没有**（A-4 回归）
+5. kit 卡 `.d-prev` 高/宽 ≥ 0.73（4:3）
+6. `#kit-note-text` **不含「默认」二字**（A-3 回归）
+7. kit 模式下 `#drawer-layouts` 内无 `.dl-chip`，有状态文字（决策 4）
+8. kit tab 搜有命中 → 有卡；搜无命中 → 文案含「没匹配」；`KITS` 为空 → 文案含「未生成」（B-1）
+9. palette tab 的「全部」chip 数字 == `PALETTES().length`，**不等于** `THEMES.length`（B-3 / E-10）
+10. kit 卡内不存在 `.d-kit-tag`（B-2）
 
 ---
 
-## 五、本轮新发现的一个缺陷（原审查 E-5～E-8 未覆盖）
+## 五、本轮发现的三条新缺陷（原审查 E-5～E-8 未覆盖）
 
-### E-9 【中等】收藏的整篇设计会混进底部色卡条
+### E-9【中等】收藏的整篇设计会混进底部色卡条
 
-**代码事实**：
+`toggleFav()`（`:919`）不区分 kind → kit 可收藏；`orderedThemes()`（`:506`）把收藏排前面；
+`renderCaps()`（`:528`）`slice(0,40)` **未按 kind 过滤**。
 
-- `toggleFav()`（`:919`）不区分 kind，kit 可被收藏
-- `orderedThemes()`（`:506`）把「收藏」排在「其余」之前
-- `renderCaps()`（`:528`）取 `orderedThemes().slice(0, 40)`，**未按 kind 过滤**
+后果：色卡条语义是「换配色」（点了只换颜色），但点中 kit = **整套版式被替换**，且色卡条**不显示**它是整篇设计。
 
-**后果**：用户收藏一套整篇设计后，底部色卡条前 40 颗里会出现它。
-色卡条的语义是「换配色」——点一颗胶囊 = 只换颜色、版式不变。
-但点中那套 kit = **整套版式被替换**，与用户的预期完全不符。
-更糟的是色卡条**不显示**「这是整篇设计」，用户无从分辨。
+**修法**：并入步骤 4。
 
-**修法**（并入步骤 4）：`renderCaps()` 只从 `PALETTES()` 取；
-若当前 `activeId` 是 kit，则把该 kit 作为第一颗、加 `data-kind="kit"` 并显示「整篇」小标，
-其余 39 颗全为 palette。
+### E-10【中等】「全部」chip 的数字多算 19
+
+`renderFilters()`（`:747`）用 `themes.length` = 183，但 palette tab 只展示 164 套。
+用户在 palette tab 看到「全部 183」，点进去只数出 164 套。
+
+**修法**：并入步骤 2。
+
+### E-11【低】测试名与实跑数量不符（既有问题）
+
+`pwa_theme_drawer_test.py:281` 断言文案「全部 164 套」，实际 `all_ids` 是 183 个。
+**不是本次改动引入**，但改两 tab 时必须一并修正，否则数字继续漂。
 
 ---
 
@@ -266,15 +308,18 @@ renderDrawer()
 
 | 风险 | 说明 | 阻断方式 |
 |---|---|---|
-| 59 项抽屉测试大面积挂 | 依赖 `.fchip` / `.dl-chip` / `#drawer-blocks` | 步骤 3 后立即跑，逐项修；**不放宽断言凑绿** |
-| kit 卡 4:3 与 palette 卡 2:1 高度不齐 | 已分 tab，两种卡不混排 → 无视觉问题 | 步骤 3 完成后才生效；步骤 2 期间若仍混排，先只改比例不改高度 |
-| `theme-curation.json` 加 `kits` 后旧 build 报错 | `loadCuration()` 有 `|| []` 兜底 | 步骤 1 先改 build 再改 json，或同提交 |
-| 窄屏 900px 以下两 tab 挤 | `.mode-tabs` 用横向胶囊，与 `.fchip` 同语言 | 加 `@media (max-width:900px)` 缩小 padding |
-| SW 缓存旧 `app.js` | `SHELL_CRITICAL` 含 `src/app.js`，`?h=` 内容哈希 | 无需处理；构建自动变哈希 |
+| 抽屉测试挂 19 项 | kit id 在 palette tab 搜不到 | 步骤 3 同时改测试；**不放宽断言凑绿** |
+| 两个网格各占一半高 | 都写 `flex:1` | `.drawer-body` 承接滚动（§2.1 陷阱） |
+| kit 卡点击无反应 | 委托仍挂 `#drawer-grid` | 委托上提 `.drawer-body` |
+| `aspect-ratio` 被 `height` 压制 | `.d-prev` 写死 `height:104px` | 必须同时 `height:auto` |
+| 窄屏两 tab 挤 | 胶囊横排 | `@media (max-width:900px)` 缩 padding |
+| SW 缓存旧 `app.js` | `SHELL_CRITICAL` 含它，`?v=` 内容哈希 | 无需处理，构建自动变哈希 |
 
 **明确不做**：
 
-- 不新建 `src/kit-pane.js`（避免 `sw.js` + `build.mjs` 两处白名单登记）
+- 不新建 `src/kit-pane.js`（避免两处白名单登记）
 - 不拆 `themes` 数组（见 §零）
-- 不给 19 套补 `family`（那是「可组合版式」的概念，19 套不该有族）
-- 不在抽屉新增任何「对齐」控件（方案 §七 决策 1 已定，A 案零 UI）
+- 不给 19 套补 `family`（族是「可组合版式」的概念）
+- 不改 `familyRepCard()`（只在 palette 出现）
+- 不改 `.d-card{min-height}`（A-5）
+- 不虚构「抽屉折叠态」（C-1）
