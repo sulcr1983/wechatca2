@@ -2655,6 +2655,72 @@ def convert_image_captions(html: str, theme: dict | None = None) -> str:
     return html
 
 
+# ── 字号缩放（2026-11-03，P3）────────────────────────────────────────
+# 用户可在抽屉里把正文调到 14–18px（kit 下也允许，见 plan §7.2）。
+#
+# ⚠️ 基准必须从**产物**实测，不能读主题 JSON，也不能写死 15px：
+#   ① 19 套 kit 的 p.font-size 真源是 layout_* 函数（magazine_layouts.py 里
+#      19 处 style_all(out,"p")），JSON 里的值会被版式覆盖；
+#   ② 实测 JSON 写 16px 的套，产物可能是 15.5px（m2w-*）或 14px（guardian）。
+# 所以流程是：渲染完整产物 → 实测基准 → ratio = target / base → 全量等比缩放。
+#
+# 等比缩放（而非拉平到同一绝对值）是刻意的：19 套各自的 p/span/h1 比例不同
+# （实测 span/p 从 0.750 到 1.417），拉平会破坏各套既定的字号梯度。
+_FS_RE = re.compile(r"font-size:\s*([0-9.]+)px")
+# 标题永远缩放（brutal h1 是 36px，不能按「大于 22px 就是装饰」误排除）
+_SCALE_HEADING_TAGS = ("h1", "h2", "h3", "h4", "h5", "h6")
+# 正文一组：只缩放「正文量级」的字号，>= 22px 视为装饰不动
+# （实测装饰：guardian 44px 大引号 / natgeo 28px / vogue 52px / 大序号 30px）
+_SCALE_BODY_TAGS = ("p", "span", "blockquote", "td", "th", "li")
+_BODY_MAX_SCALE_PX = 22.0
+
+
+def _scale_attrs_font(attrs: str, ratio: float, always: bool) -> str:
+    """按 ratio 缩放一段属性串里的 font-size。"""
+    def repl(m):
+        px = float(m.group(1))
+        if not always and px >= _BODY_MAX_SCALE_PX:
+            return m.group(0)
+        return f"font-size:{round(px * ratio, 1):g}px"
+    return _FS_RE.sub(repl, attrs)
+
+
+def measure_base_font_size(html: str) -> float | None:
+    """从产物里实测正文字号基准 = 所有 <p> 中出现次数最多的 font-size。
+
+    取众数而非首个：部分套首个 <p> 是眉标（deepread 12px / guardian 14px）。
+    """
+    sizes = []
+    for m in re.finditer(r"<p\b([^>]*)>", html):
+        fs = _FS_RE.search(m.group(1))
+        if fs:
+            sizes.append(float(fs.group(1)))
+    if not sizes:
+        return None
+    return max(set(sizes), key=sizes.count)
+
+
+def apply_font_scale(html: str, ratio: float) -> str:
+    """按 ratio 等比缩放产物字号（标题 + 正文一组 + 列表文字 span）。
+
+    ratio == 1.0 时**原样返回**，保证「不改字号 = 产物逐字节不变」。
+    """
+    if not ratio or abs(ratio - 1.0) < 1e-9:
+        return html
+
+    def repl(m):
+        name = m.group(1)
+        attrs = m.group(2)
+        low = name.lower()
+        if low in _SCALE_HEADING_TAGS:
+            return f"<{name}{_scale_attrs_font(attrs, ratio, True)}>"
+        if low in _SCALE_BODY_TAGS:
+            return f"<{name}{_scale_attrs_font(attrs, ratio, False)}>"
+        return m.group(0)
+
+    return re.sub(r"<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>", repl, html)
+
+
 def truncate_html_preview(html: str, max_p_tags: int = 12) -> str:
     """截取 HTML 前 N 个 </p> 之前的内容作为预览"""
     count = 0
@@ -3466,12 +3532,15 @@ def main():
     print("\n完成! 在浏览器中点击「复制到微信」按钮，然后粘贴到公众号后台即可。")
 
 
-def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str) -> str:
+def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str,
+                                    font_size: float | None = None) -> str:
     """将 Markdown 文本转为微信公众号兼容的内联样式 HTML
 
     Args:
         markdown_text: Markdown 格式文本
         theme_path: 主题 JSON 文件的完整路径
+        font_size: 目标正文字号 px（可选）。None = 不改字号，产物与旧版逐字节一致；
+                   给了值则按「产物实测基准」等比缩放全篇（见 apply_font_scale）。
 
     Returns:
         带内联样式的 HTML 字符串（微信兼容格式）
@@ -3500,6 +3569,13 @@ def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str) -> str:
     html = md_to_html(text)
     html = inject_inline_styles(html, theme)
     html = convert_image_captions(html, theme)
+
+    # 字号缩放必须在**所有**版式与注入之后（版式函数会写死 font-size，
+    # 提前缩放会被它们覆盖）。font_size=None 时整段跳过 → 产物零变化。
+    if font_size:
+        base = measure_base_font_size(html)
+        if base:
+            html = apply_font_scale(html, float(font_size) / base)
 
     return html
 
