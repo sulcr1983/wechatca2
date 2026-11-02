@@ -139,6 +139,74 @@ def git(*args: str) -> str:
     return (r.stdout or "").strip()
 
 
+# ── 推送凭证（2026-11-03）──────────────────────────────────────────────
+# 背景：remote.origin 是 SSH（git@github.com:...），但本机**没有对应密钥**
+# （~/.ssh/id_ed25519_wechatca2 不存在），所以 `git push origin main` 必失败。
+# 之前靠 ~/.git-credentials 里一条来历不明的旧凭证 + 手敲 https 全 URL 推，
+# 既不可复现，也会让 deploy.sh 的铁律预检误判（见下方 fetch 同步 ref 的注释）。
+# 现改为统一走 .env 的 GITHUB_TOKEN（该文件已 gitignore，不进仓库、不进产物）。
+GITHUB_URL = "https://github.com/sulcr1983/wechatca2.git"
+GITHUB_USER = "sulcr1983"
+
+
+def _github_token() -> str:
+    """从项目根 .env 读 GITHUB_TOKEN；没有则返回空串（调用方回落 SSH）。"""
+    envf = ROOT / ".env"
+    if not envf.exists():
+        return ""
+    for line in envf.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        if k.strip() == "GITHUB_TOKEN":
+            return v.strip().strip('"').strip("'")
+    return ""
+
+
+def _git_auth_env() -> dict:
+    """把 token 编成 git 的 extraheader，经**环境变量**传给子进程。
+
+    ⚠️ 为什么不写进 .git/config 或 ~/.git-credentials：
+        落盘即长期明文留存，任何 `git config -l` / 文件读取都会搬到屏幕上。
+    ⚠️ 为什么不放在命令行（git -c ...）：
+        run() 会把整条命令打印出来（见 run() 里的 `say(f"  $ {shown}")`），
+        token 会直接出现在发版日志里。走 GIT_CONFIG_* 环境变量则命令行干净。
+    """
+    tok = _github_token()
+    if not tok:
+        return {}
+    import base64
+    auth = base64.b64encode(f"{GITHUB_USER}:{tok}".encode()).decode()
+    return {
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+        "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {auth}",
+    }
+
+
+def _push_main() -> None:
+    """推送 HEAD 到 origin/main —— 优先走 .env 的 GITHUB_TOKEN，无 token 才回落 SSH。
+
+    ⚠️ 两个必须一起做的动作（2026-11-03 实测踩过）：
+      1. **推 https 全 URL 而不是 `origin`**：origin 是 SSH，本机没密钥。
+      2. **推完必须同步 `refs/remotes/origin/main`**：用全 URL 推送时 git 不会
+         更新这个远程跟踪 ref（因为 URL 没跟任何 remote 绑定）。而 deploy.sh 的
+         铁律预检判据是 `git merge-base --is-ancestor HEAD refs/remotes/origin/main`
+         —— ref 不更新，它就会误报「HEAD 未推送」而拒绝部署。
+    """
+    auth = _git_auth_env()
+    if auth:
+        say("\n▶ 7/8 推送 origin/main（凭证：.env 的 GITHUB_TOKEN）")
+        run(["git", "push", GITHUB_URL, "HEAD:main"], "  推送到 GitHub",
+            extra_env=auth)
+        run(["git", "fetch", GITHUB_URL, "main:refs/remotes/origin/main"],
+            "  同步 refs/remotes/origin/main（供 deploy.sh 预检）", extra_env=auth)
+    else:
+        say("\n▶ 7/8 推送 origin/main（.env 无 GITHUB_TOKEN，回落 SSH）")
+        run(["git", "push", "origin", "main"], "  推送到 GitHub（SSH）")
+
+
 def read_version() -> str:
     try:
         return json.loads(VERSION_FILE.read_text(encoding="utf-8")).get("version", "0.0.0")
@@ -341,7 +409,7 @@ def main() -> int:
     steps_done.append("preflight-deploy")
 
     # ── 8 推送 ──
-    run(["git", "push", "origin", "main"], "7/8 推送 origin/main")
+    _push_main()
     steps_done.append("push")
 
     if args.no_deploy:

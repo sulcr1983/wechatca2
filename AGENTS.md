@@ -296,6 +296,20 @@ Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 #    「找不到凭证文件 /e/test/opendoor/.env」。必须显式用 Git Bash：
 #      & "C:\Program Files\Git\bin\bash.exe" pwa/scripts/deploy.sh
 #    凭证从 E:/test/opendoor/.env 读取（不落盘副本、不回显）。
+#
+# ── 推送凭证（2026-11-03 起，取代 SSH）────────────────────────────────────
+# ⚠️ 本机 `remote.origin` 仍是 SSH（git@github.com:...），但**没有对应密钥**
+#    （~/.ssh/id_ed25519_wechatca2 不存在）→ `git push origin main` 必失败。
+# ✅ 统一走项目根 `.env` 的 `GITHUB_TOKEN`（该文件已 gitignore，不进仓库/产物）：
+#      git push https://github.com/sulcr1983/wechatca2.git HEAD:main
+#    手工推送时用上面的 https 全 URL；`scripts/release.py` 已自动接线
+#    （`_push_main()` / `_git_auth_env()`），**不需要**手敲 token。
+# ⛔ token 绝不写进 `.git/config` / `~/.git-credentials` / 仓库文件 / shell 历史；
+#    release.py 经 GIT_CONFIG_* **环境变量**传给子进程，命令行与日志都不出现 token。
+# ⚠️ 用 https 全 URL 推送后**必须同步远程跟踪 ref**，否则 deploy.sh 铁律预检会误判
+#    「HEAD 未推送」而拒绝部署（全 URL 推送不更新 refs/remotes/origin/main）：
+#      git fetch https://github.com/sulcr1983/wechatca2.git main:refs/remotes/origin/main
+#    release.py 的 `_push_main()` 已把这两步绑在一起，别只做前一半。
 ```
 
 ## 5. 路由速查
