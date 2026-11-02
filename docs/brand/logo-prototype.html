@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperSu 品牌 logo 接入原型（对比稿）</title>
+<style>
+:root{
+  --bg-canvas:#F7F4EE; --bg-surface:#FAF9F5; --bg-raised:#FFFFFF; --bg-hover:#F0EDE8;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --text-soft:#6E6759; --text-muted:#9B9484;
+  --accent:#AF3E2B; --accent-dim:#96331F; --accent-soft:rgba(175,62,43,.08);
+  --brand-1:#2E8CF6; --brand-2:#4A6BF8; --brand-3:#8A34EA;
+  --radius:8px; --radius-lg:12px;
+  --logo:url('./logo.png');
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-canvas);color:var(--text);font:14px/1.65 "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 24px 80px}
+h1{font-size:22px;letter-spacing:-.01em}
+.sub{color:var(--text-soft);font-size:13px;margin-top:6px}
+.note{background:#FFF7E8;border:1px solid #F0E0BE;color:#7A5B14;font-size:12.5px;padding:10px 14px;border-radius:var(--radius-lg);margin:16px 0 28px;line-height:1.7}
+h2{font-size:15px;margin:34px 0 12px;padding-left:10px;border-left:3px solid var(--accent);line-height:1.2}
+h2:first-of-type{margin-top:20px}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--bg-hover);color:var(--text-soft);vertical-align:2px;margin-left:6px}
+.tag.now{background:rgba(155,148,132,.18);color:#6E6759}
+.tag.new{background:var(--accent-soft);color:var(--accent)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 16px 18px}
+.card h4{font-size:12.5px;color:var(--text-muted);font-weight:600;letter-spacing:.02em;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+/* ── 顶栏复刻（.topbar / .top 真实样式） ── */
+.topbar{display:flex;align-items:center;gap:8px;height:56px;padding:0 20px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.tb-logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px;letter-spacing:-.01em;margin-right:8px}
+.seal{width:28px;height:28px;flex:none;background:var(--accent);border-radius:8px;color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;user-select:none}
+.seal.pwa{width:24px;height:24px;border-radius:6px;font-size:13px}
+/* 新徽标：直接把上传的整块圆角图标当 mark 用 */
+.mark{width:28px;height:28px;flex:none;border-radius:8px;background-image:var(--logo);background-size:cover;background-position:center}
+.mark.pwa{width:24px;height:24px;border-radius:6px}
+.mark.ring{box-shadow:0 0 0 1px rgba(20,18,14,.10),0 1px 2px rgba(20,18,14,.06)}
+.mark.big{width:40px;height:40px;border-radius:10px}
+.mark.xs{width:16px;height:16px;border-radius:4px}
+.tb-tab{height:56px;padding:0 14px;font-size:13px;font-weight:500;color:var(--text-soft);display:flex;align-items:center;position:relative}
+.tb-tab.active{color:var(--text);font-weight:600}
+.tb-tab.active::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--accent);border-radius:1px}
+.tb-sp{flex:1}
+.tb-btn{padding:7px 12px;border-radius:var(--radius);height:32px;font-size:13px;color:var(--text-soft);border:1px solid transparent;display:flex;align-items:center;gap:5px}
+.brand-sub{font-size:12px;color:var(--text-muted);white-space:nowrap}
+
+/* ── 启动条复刻（.boot） ── */
+.boot{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:var(--bg-raised);border:1px solid var(--border);box-shadow:0 8px 24px rgba(20,18,14,.10);font-size:12.5px;color:var(--text)}
+.boot-mark{width:22px;height:22px;border-radius:7px;background:var(--accent);display:grid;place-items:center;flex:none}
+.boot-dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.92}
+.boot-mark.new{border-radius:7px;background-image:var(--logo);background-size:cover}
+.engine{padding:5px 10px;border-radius:99px;font-size:12px;color:var(--text-soft);background:var(--bg-surface);border:1px solid var(--border)}
+
+/* ── 更新区复刻 ── */
+.upd-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:99px;background:var(--bg-raised);border:1px solid var(--border);box-shadow:0 1px 3px rgba(20,18,14,.06);color:var(--text-soft);font-size:12px}
+.upd-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.upd-card{width:min(320px,100%);padding:14px 16px 12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 12px 32px rgba(20,18,14,.12)}
+.upd-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.upd-badge{font:600 12px/1 ui-monospace,monospace;padding:4px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.upd-date{font-size:11.5px;color:var(--text-muted)}
+.upd-title{margin:0 0 8px;font-size:12.5px;color:var(--text-soft)}
+.upd-list{margin:0 0 12px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.upd-list li{display:flex;gap:6px;align-items:flex-start;font-size:12.5px;line-height:1.55}
+.upd-tag{flex:none;margin-top:1px;padding:1px 6px;border-radius:4px;font-size:10.5px;font-weight:600;background:rgba(37,111,157,.12);color:#256f9d}
+.upd-tag.fix{background:var(--accent-soft);color:var(--accent)}
+.upd-tag.opt{background:rgba(26,127,55,.12);color:#1a7f37}
+.upd-actions{display:flex;justify-content:flex-end;gap:8px}
+.ghost-btn{padding:6px 12px;font-size:12.5px;color:var(--text-soft);border:1px solid var(--border);border-radius:var(--radius)}
+.primary-btn{padding:6px 12px;font-size:12.5px;color:#fff;background:var(--accent);border-radius:var(--radius)}
+
+/* 更新记录面板头部（#cl-head） */
+.cl-head{height:56px;padding:0 10px 0 20px;display:flex;align-items:center;gap:10px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.cl-title{font-size:15px;font-weight:600}
+.cl-pill{height:22px;padding:0 9px;display:inline-flex;align-items:center;border-radius:99px;background:var(--accent-soft);border:1px solid rgba(175,62,43,.16);color:var(--accent);font:500 11.5px ui-monospace,monospace}
+.cl-close{margin-left:auto;width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;color:var(--text-soft)}
+
+/* ── 图标墙 ── */
+.icon-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+.icon-cell span{font-size:11.5px;color:var(--text-muted)}
+.icon{background-image:var(--logo);background-size:contain;background-position:center;background-repeat:no-repeat}
+.icon.sq{border-radius:22%}
+.icon.round{border-radius:50%}
+.icon-clip{position:relative}
+.icon-clip::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px dashed rgba(175,62,43,.55);clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.safe{position:relative}
+.safe::before{content:"";position:absolute;left:50%;top:50%;width:80%;height:80%;transform:translate(-50%,-50%);border-radius:50%;border:1.5px dashed rgba(175,62,43,.5)}
+
+/* 图标对比：现状（朱砂版） */
+.icon-old{background:var(--accent);border-radius:22%;color:#fff;display:grid;place-items:center;font-weight:600}
+.icon-old.rnd{border-radius:50%}
+
+/* ── 配色对照 ── */
+.sw{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sw i{width:34px;height:34px;border-radius:8px;display:block;border:1px solid rgba(20,18,14,.08)}
+.sw b{font-size:11px;color:var(--text-muted);display:block;text-align:center;font-weight:500}
+.variant{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.variant .lbl{padding:8px 14px;font-size:11.5px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--bg-surface)}
+ol.dec{padding-left:22px;font-size:13.5px;line-height:2}
+ol.dec b{color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{color:var(--text-muted);font-weight:600;font-size:11.5px}
+.legend{font-size:11.5px;color:var(--text-muted);margin-top:10px}
+</style>
+</head>
+<body>
+
+<h1>SuperSu 品牌 logo 接入原型</h1>
+<p class="sub">用真实 CSS 变量 + 真实组件尺寸复刻的对比稿。每块左侧是「现状」，右侧是「建议」。图片素材是您上传的 PNG 裁切版本（1536×1024 → 裁圆角方块 → 512×512）。</p>
+<div class="note">
+  <b>这只是原型，不是最终实现。</b>目的是让您一眼看出「logo 放在各处的观感」和「蓝紫 logo 与朱砂 UI 冲不冲突」。看完请回第六节的 5 个决策。
+</div>
+
+<h2>原始素材：小尺寸下看得清吗<span class="tag">关键风险</span></h2>
+<div class="card">
+  <div style="display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap">
+    <div style="text-align:center"><img src="./logo.png" width="128" height="128" style="border-radius:20px"><div class="legend">源图 128px</div></div>
+    <div style="text-align:center"><img src="./logo-64.png" width="64" height="64" style="border-radius:14px"><div class="legend">64px</div></div>
+    <div style="text-align:center"><img src="./logo-64.png" width="32" height="32" style="border-radius:8px"><div class="legend">32px</div></div>
+    <div style="text-align:center"><img src="./logo-64.png" width="24" height="24" style="border-radius:6px"><div class="legend">24px（顶栏尺寸）</div></div>
+    <div style="text-align:center"><img src="./logo-64.png" width="16" height="16" style="border-radius:4px"><div class="legend">16px（更新区）</div></div>
+  </div>
+  <p class="legend">⚠️ 观察点：源图自带浅色底 + 柔和投影，缩到 24px 以下时「图标边界」几乎消失，在白顶栏上会显灰、发糊。所以建议 UI 徽标统一加 1px 描边（下面每个方案都给了带描边版本）。</p>
+</div>
+
+<h2>① 顶栏：系统名称左侧徽标</h2>
+<div class="grid g2">
+  <div class="card">
+    <h4><span class="tag now">现状</span>朱砂「版」方章</h4>
+    <div class="topbar">
+      <div class="tb-logo"><span class="seal">版</span>SuperSu</div>
+      <div class="tb-tab active">公众号排版</div>
+      <div class="tb-tab">小红书封面</div>
+      <div class="tb-sp"></div>
+      <div class="tb-btn">教程</div><div class="tb-btn">设置</div>
+    </div>
+    <p class="legend">本地版尺寸 28px（PWA 版为 24px）。朱砂与 UI 主色完全一致。</p>
+  </div>
+
+  <div class="card">
+    <h4><span class="tag new">建议 A</span>换成 logo，保留朱砂配色</h4>
+    <div class="topbar">
+      <div class="tb-logo"><span class="mark ring"></span>SuperSu</div>
+      <div class="tb-tab active">公众号排版</div>
+      <div class="tb-tab">小红书封面</div>
+      <div class="tb-sp"></div>
+      <div class="tb-btn">教程</div><div class="tb-btn">设置</div>
+    </div>
+    <p class="legend">带 1px 描边版：图标边界清晰。顶栏其余部分（选中下划线、按钮色）仍是朱砂 → 就是「彩色图标 + 暖色 UI」的组合。</p>
+  </div>
+
+  <div class="card">
+    <h4>PWA 顶栏（24px）· 现状 / 建议</h4>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="topbar" style="height:56px">
+        <div class="tb-logo" style="font-size:15px;gap:9px"><span class="seal pwa">版</span><span style="font-weight:700">SuperSu</span><span class="brand-sub">本地排版 · 数据不出浏览器</span></div>
+      </div>
+      <div class="topbar" style="height:56px">
+        <div class="tb-logo" style="font-size:15px;gap:9px"><span class="mark pwa ring"></span><span style="font-weight:700">SuperSu</span><span class="brand-sub">本地排版 · 数据不出浏览器</span></div>
+      </div>
+    </div>
+    <p class="legend">上＝现状，下＝建议。PWA 顶栏还有一行副标题，换图标后观感差异更明显。</p>
+  </div>
+
+  <div class="card">
+    <h4>不带描边 / 带描边 对比</h4>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="topbar" style="height:48px;padding:0 12px">
+        <div class="tb-logo" style="font-size:15px"><span class="mark pwa"></span>不带描边（边界发灰）</div>
+      </div>
+      <div class="topbar" style="height:48px;padding:0 12px">
+        <div class="tb-logo" style="font-size:15px"><span class="mark pwa ring"></span>带描边（推荐）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>② PWA 启动条（首屏唯一品牌位）</h2>
+<div class="grid g2">
+  <div class="card">
+    <h4><span class="tag now">现状</span>朱砂方块 + 白点</h4>
+    <div class="boot"><span class="boot-mark"><i class="boot-dot"></i></span>正在加载排版引擎…<span class="engine">引擎加载中</span></div>
+  </div>
+  <div class="card">
+    <h4><span class="tag new">建议</span>换成 logo</h4>
+    <div class="boot"><span class="boot-mark new"></span>正在加载排版引擎…<span class="engine">引擎加载中</span></div>
+  </div>
+</div>
+<p class="legend">小屏时启动条的文字会被隐藏，只剩左边这个 22px 方块 —— 它是首屏唯一的品牌露出，换成 logo 收益最大。</p>
+
+<h2>③ 系统更新相关（仅 PWA 有）</h2>
+<div class="grid g3">
+  <div class="card">
+    <h4>右下角「更新记录」入口</h4>
+    <div class="upd-btn" style="margin-bottom:10px"><span class="upd-dot"></span>更新记录</div>
+    <div class="upd-btn"><span class="mark xs"></span>更新记录</div>
+    <p class="legend">上＝现状（只有小圆点），下＝建议（16px 小徽标，替换圆点）。</p>
+  </div>
+
+  <div class="card">
+    <h4>发布小票（更新提示卡）</h4>
+    <div class="upd-card" style="margin-bottom:10px">
+      <div class="upd-head"><span class="upd-badge">v1.2.0</span><span class="upd-date">2026-10-18</span></div>
+      <p class="upd-title">有新版本可用</p>
+    </div>
+    <div class="upd-card">
+      <div class="upd-head"><span class="mark pwa ring" style="width:22px;height:22px"></span><span class="upd-badge">v1.2.0</span><span class="upd-date">2026-10-18</span></div>
+      <p class="upd-title">有新版本可用</p>
+    </div>
+    <p class="legend">上＝现状，下＝建议。也可选择不加（卡内已有版本徽标）。</p>
+  </div>
+
+  <div class="card">
+    <h4>更新记录面板头部</h4>
+    <div class="cl-head" style="margin-bottom:10px">
+      <span class="cl-title">更新记录</span><span class="cl-pill">v1.2.0</span><span class="cl-close">✕</span>
+    </div>
+    <div class="cl-head">
+      <span class="mark pwa ring"></span><span class="cl-title">更新记录</span><span class="cl-pill">v1.2.0</span><span class="cl-close">✕</span>
+    </div>
+    <p class="legend">上＝现状，下＝建议。这里是「系统更新」的主场景，加 logo 最自然。</p>
+  </div>
+
+  <div class="card">
+    <h4>「关于 SuperSu」弹窗</h4>
+    <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="mark big ring"></span><b style="font-size:14px">关于 SuperSu</b></div>
+      <p class="legend" style="margin:0">公众号排版 + 小红书封面，纯本地运行…</p>
+    </div>
+    <p class="legend">建议加：关于页放 40px 大徽标，是品牌落位的收尾处。</p>
+  </div>
+</div>
+
+<h2>④ PWA 系统图标（装到手机/桌面上的样子）</h2>
+<div class="grid g2">
+  <div class="card">
+    <h4><span class="tag now">现状</span>朱砂「版」</h4>
+    <div style="display:flex;gap:22px;align-items:flex-end">
+      <div class="icon-cell"><div class="icon-old" style="width:88px;height:88px;font-size:40px">版</div><span>192 / 512 方形</span></div>
+      <div class="icon-cell"><div class="icon-old rnd" style="width:88px;height:88px;font-size:40px">版</div><span>圆形裁切后</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4><span class="tag new">建议</span>换成新 logo</h4>
+    <div style="display:flex;gap:22px;align-items:flex-end">
+      <div class="icon-cell"><div class="icon sq" style="width:88px;height:88px"></div><span>192 / 512 方形</span></div>
+      <div class="icon-cell"><div class="icon round safe" style="width:88px;height:88px"></div><span>圆形裁切 · 虚线＝安全区</span></div>
+    </div>
+    <p class="legend">maskable 图标要求「内容落在中心 80% 圆内」，否则安卓会裁掉边缘。左侧源图已自带留白，稍加内边距即可达标。</p>
+  </div>
+</div>
+<div class="card" style="margin-top:16px">
+  <h4>需要生成的 5 张图（我都会从您的源图自动导出）</h4>
+  <table>
+    <tr><th>文件</th><th>尺寸</th><th>用途</th><th>现状</th></tr>
+    <tr><td>icon-192.png</td><td>192</td><td>安卓桌面图标 / 快捷方式</td><td>朱砂「版」</td></tr>
+    <tr><td>icon-512.png</td><td>512</td><td>高分屏桌面图标</td><td>朱砂「版」</td></tr>
+    <tr><td>icon-512-maskable.png</td><td>512</td><td>安卓圆形/异形裁切</td><td>朱砂「版」</td></tr>
+    <tr><td>apple-touch-icon.png</td><td>180</td><td>iOS 添加到主屏</td><td>朱砂「版」</td></tr>
+    <tr><td>favicon-32.png</td><td>32</td><td>浏览器标签页（两版共用）</td><td>朱砂「版」/ 内联 SVG</td></tr>
+  </table>
+</div>
+
+<h2>⑤ 配色冲突：蓝紫 logo 遇上朱砂 UI<span class="tag">最需要您拍板</span></h2>
+<div class="card">
+  <div class="grid g2">
+    <div>
+      <div class="legend" style="margin-bottom:6px">现有 UI 主色（朱砂系）</div>
+      <div class="sw">
+        <div><i style="background:#AF3E2B"></i><b>#AF3E2B</b></div>
+        <div><i style="background:#96331F"></i><b>#96331F</b></div>
+        <div><i style="background:rgba(175,62,43,.08)"></i><b>浅朱砂</b></div>
+        <div><i style="background:#F7F4EE"></i><b>#F7F4EE</b></div>
+      </div>
+    </div>
+    <div>
+      <div class="legend" style="margin-bottom:6px">logo 主色（蓝紫系，从您的图里取的）</div>
+      <div class="sw">
+        <div><i style="background:#2E8CF6"></i><b>#2E8CF6</b></div>
+        <div><i style="background:#4A6BF8"></i><b>#4A6BF8</b></div>
+        <div><i style="background:#8A34EA"></i><b>#8A34EA</b></div>
+      </div>
+    </div>
+  </div>
+  <p class="legend">这两个色系不同调：朱砂＝暖、纸感、中式；蓝紫＝冷、科技、数字。同屏出现时如果处理不好，会像「贴了一张别人的 logo」。</p>
+</div>
+
+<div class="grid g3" style="margin-top:16px">
+  <div class="variant">
+    <div class="lbl">方案 A（推荐）· UI 全保留朱砂，只有徽标是彩色</div>
+    <div class="topbar" style="border:0;border-radius:0">
+      <div class="tb-logo"><span class="mark ring"></span>SuperSu</div>
+      <div class="tb-tab active">公众号排版</div>
+      <div class="tb-sp"></div><div class="tb-btn">设置</div>
+    </div>
+  </div>
+  <div class="variant">
+    <div class="lbl">方案 B · 顶栏按钮改中性灰，弱化色冲突</div>
+    <div class="topbar" style="border:0;border-radius:0">
+      <div class="tb-logo"><span class="mark ring"></span>SuperSu</div>
+      <div class="tb-tab" style="color:var(--text);font-weight:600;position:relative">公众号排版<i style="position:absolute;left:14px;right:14px;bottom:-20px;height:2px;background:var(--text-muted);border-radius:1px"></i></div>
+      <div class="tb-sp"></div><div class="tb-btn">设置</div>
+    </div>
+  </div>
+  <div class="variant">
+    <div class="lbl">方案 C · 全站主色改成 logo 蓝紫（改动最大，不建议）</div>
+    <div class="topbar" style="border:0;border-radius:0">
+      <div class="tb-logo"><span class="mark ring"></span>SuperSu</div>
+      <div class="tb-tab" style="color:var(--text);font-weight:600;position:relative">公众号排版<i style="position:absolute;left:14px;right:14px;bottom:-20px;height:2px;background:#4A6BF8;border-radius:1px"></i></div>
+      <div class="tb-sp"></div>
+      <div class="tb-btn" style="background:#4A6BF8;color:#fff">设置</div>
+    </div>
+    <div class="legend" style="padding:10px 14px 14px">主按钮、胶囊、下划线、进度条全靠这一个变量，改它牵动全站。</div>
+  </div>
+</div>
+
+<h2>⑥ 系统名称写法</h2>
+<div class="card">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="topbar" style="height:52px"><div class="tb-logo" style="font-size:16px"><span class="mark ring"></span>SuperSu</div><span class="brand-sub">现在线上就这么写</span></div>
+    <div class="topbar" style="height:52px"><div class="tb-logo" style="font-size:16px"><span class="mark ring"></span>SuperSu<span style="font-weight:400;font-size:13px;color:var(--text-soft)">公众号编辑器</span></div><span class="brand-sub">您说的全名</span></div>
+    <div class="topbar" style="height:52px"><div class="tb-logo" style="font-size:16px"><span class="mark ring"></span>SuperSu 公众号编辑器<span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:2px">· 排版 + 封面</span></div><span class="brand-sub">全名 + 副标</span></div>
+  </div>
+  <p class="legend">改了名称要同步三处：页面标题、PWA manifest 的 name、关于弹窗文案。</p>
+</div>
+
+<h2>⑦ 看完请回我这 5 个决策</h2>
+<ol class="dec">
+  <li><b>配色</b>：A 保留朱砂（推荐，改动最小）／ B 顶栏局部中性 ／ C 全站改蓝紫？</li>
+  <li><b>系统名称</b>：沿用 SuperSu ／ 改成「SuperSu 公众号编辑器」（页面标题 + manifest + 关于）？</li>
+  <li><b>徽标形态</b>：A 整块圆角图标 + 1px 描边（推荐，直接用您的图）／ B 抠出渐变 S 做透明底（原图白 S 难抠干净，不推荐）？</li>
+  <li><b>maskable 底色</b>：浅色底（跟源图一致）／ 蓝紫渐变实底？</li>
+  <li><b>更新区加 logo 范围</b>：A 只在「更新入口 + 记录面板头部 + 关于弹窗」加（推荐，小票卡不加）／ B 全都加？</li>
+</ol>
+<p class="legend">回一句「按推荐来」我就开工；也可以逐条改。开工后我会导出 5 张图标 + 两版接入，并跑本地有头套件（33/33）与 PWA 构建断言验证。</p>
+
+</body>
+</html>
