@@ -3426,6 +3426,17 @@ def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str) -> str:
     with open(theme_path, encoding="utf-8") as f:
         theme = json.load(f)
 
+    # === 整篇设计（kit）版式归一化 ===
+    # mg-*.json 只声明 locked_layout（设计意图），而第 8 步布局分发读的是 theme["layout"]。
+    # 不归一化的话 `_layout = None` → 15 个已注册的版式函数一次都不会被调用，
+    # 用户选了「时代周刊」只得到配色、得不到版式（2026-11-02 实测：
+    # mg-time 渲染 h1 不居中、无红细线）。
+    # 这里做「运行时视图」转换，不改数据真源（design-kit-themes.md §7 要求
+    # locked_layout 不复用 layout，避免被本机 layoutOv 覆盖）。
+    # 164 套 su-* 没有 locked_layout → 不进该分支 → 产物字节不变。
+    if not theme.get("layout") and theme.get("locked_layout"):
+        theme = {**theme, "layout": theme["locked_layout"]}
+
     text = fix_cjk_spacing(markdown_text)
     text = fix_cjk_bold_punctuation(text)
     text = process_callouts(text)

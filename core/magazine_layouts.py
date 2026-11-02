@@ -1095,6 +1095,222 @@ def layout_deepread(html: str, theme: dict) -> str:
     return _guard(html, out)
 
 
+# ══════════════════════════════════════════════════════════════════
+# 2026-11-02 新增 4 套（来源：md2wechat 的四套排版风格，按本项目原语重写）
+#   ⚠️ 只借「设计意图」，未复制其 CSS 数值 / HTML 结构 / 文案。
+#   归类规则（用户定）：整套设计（配色+版式配套）一律进 mg-* 体系，
+#   与 164 套可自由组合的配色主题 su-* 物理隔离。
+# ══════════════════════════════════════════════════════════════════
+
+
+def layout_tech(html: str, theme: dict) -> str:
+    """技术编辑：清晰层级 · 克制留白。
+
+    设计意图：技术文最怕花。这里把装饰压到最低 ——
+    只靠字号阶梯、字重和留白区分层级，强调色只出现在 h2 左侧一小段标记上。
+    """
+    accent, ink, _ = _colors(theme)
+    out = html
+
+    out = caption_style(out, mix(ink, "#ffffff", 0.5))
+
+    # 正文 16/1.8/段后 16 —— 比时代更松，技术文要能久读
+    out = style_all(out, "p", {
+        "font-size": "16px", "line-height": "1.8", "margin-bottom": "16px",
+        "color": ink,
+    })
+
+    # h1：不加任何装饰，靠字重和留白
+    out = style_all(out, "h1", {
+        "font-size": "23px", "font-weight": "700", "line-height": "1.4",
+        "margin": "8px 0 22px", "letter-spacing": ".01em",
+        "background": "transparent",
+    })
+
+    # h2：一个短的强调色竖条，位置在文字左侧但很短（8px）
+    out = decorate_sections(
+        out,
+        h2_props={
+            "font-size": "18px", "font-weight": "700", "line-height": "1.5",
+            "margin": "30px 0 14px", "padding-left": "10px",
+            "border-left": f"3px solid {accent}", "background": "transparent",
+        },
+    )
+
+    out = style_all(out, "h3", {
+        "font-size": "16px", "font-weight": "600", "line-height": "1.6",
+        "margin": "22px 0 10px", "color": accent, "background": "transparent",
+    })
+
+    # 引用：不加边框，只用浅底 + 左内边距
+    out = style_quotes(out, {
+        "margin": "20px 0", "padding": "14px 18px", "border": "none",
+        "background": rgba(ink, 0.035), "border-radius": "4px",
+        "font-size": "15px", "line-height": "1.85", "color": mix(ink, "#ffffff", 0.15),
+    })
+
+    out = style_all(out, "strong", {"color": accent, "font-weight": "600"})
+    return _guard(html, out)
+
+
+def layout_rational(html: str, theme: dict) -> str:
+    """理性技术：强对比 · 非对称秩序。
+
+    设计意图：标题压重量（大字号 + 粗字重 + 上方一道实心条），正文保持轻盈，
+    形成明显的体量对比。对齐是左对齐到底，不居中。
+    """
+    accent, ink, _ = _colors(theme)
+    out = html
+
+    out = caption_style(out, mix(ink, "#ffffff", 0.5))
+
+    out = style_all(out, "p", {
+        "font-size": "15.5px", "line-height": "1.8", "margin-bottom": "15px",
+        "color": ink,
+    })
+
+    # h1：大字号 + 上方实心色条（非对称：条短于标题宽度）
+    out = style_all(out, "h1", {
+        "font-size": "27px", "font-weight": "800", "line-height": "1.3",
+        "margin": "0 0 24px", "letter-spacing": "-.01em",
+        "padding-top": "14px", "border-top": f"4px solid {accent}",
+        "background": "transparent",
+    })
+
+    # h2：编号 + 粗字重，无竖条（与 h1 的横条形成对比，不重复装饰语言）
+    out = decorate_sections(
+        out,
+        h2_props={
+            "font-size": "19px", "font-weight": "700", "line-height": "1.45",
+            "margin": "30px 0 13px", "background": "transparent",
+        },
+        h2_prefix=lambda n, _t: (
+            f'<span style="color:{accent};font-weight:800;'
+            f'font-variant-numeric:tabular-nums;margin-right:10px">{n:02d}</span>'
+        ),
+    )
+
+    out = style_all(out, "h3", {
+        "font-size": "16px", "font-weight": "700", "line-height": "1.55",
+        "margin": "22px 0 10px", "background": "transparent",
+    })
+
+    # 引用：粗左条 + 大字号，靠体量而不是底色
+    out = style_quotes(out, {
+        "margin": "22px 0", "padding": "4px 0 4px 18px", "border": "none",
+        "border-left": f"5px solid {accent}", "background": "transparent",
+        "font-size": "17px", "line-height": "1.75", "color": ink,
+        "font-weight": "500",
+    })
+
+    out = style_all(out, "strong", {"color": accent, "font-weight": "700"})
+    return _guard(html, out)
+
+
+def layout_swiss(html: str, theme: dict) -> str:
+    """国际瑞士：统一对齐轴 · 非对称构图。
+
+    设计意图：所有元素咬死同一条左轴线；分隔用等宽细线（不居中、不加装饰）；
+    标题区留白拉开，形成「网格感」。
+    """
+    accent, ink, _ = _colors(theme)
+    out = html
+    line = mix(ink, "#ffffff", 0.72)
+
+    out = caption_style(out, mix(ink, "#ffffff", 0.5))
+
+    out = style_all(out, "p", {
+        "font-size": "15.5px", "line-height": "1.85", "margin-bottom": "15px",
+        "color": ink,
+    })
+
+    # h1：左对齐、紧字距、下方一道长细线（统一对齐轴的核心道具）
+    out = style_all(out, "h1", {
+        "font-size": "26px", "font-weight": "700", "line-height": "1.32",
+        "margin": "0 0 20px", "letter-spacing": "-.015em",
+        "padding-bottom": "14px", "border-bottom": f"1px solid {line}",
+        "background": "transparent",
+    })
+
+    # h2：小号大写感 + 上方细线，等宽对齐
+    out = decorate_sections(
+        out,
+        h2_props={
+            "font-size": "15px", "font-weight": "700", "line-height": "1.5",
+            "margin": "34px 0 14px", "letter-spacing": ".1em",
+            "padding-top": "14px", "border-top": f"1px solid {line}",
+            "background": "transparent",
+        },
+    )
+
+    out = style_all(out, "h3", {
+        "font-size": "15px", "font-weight": "700", "line-height": "1.6",
+        "margin": "20px 0 8px", "color": accent, "background": "transparent",
+    })
+
+    # 引用：左侧一条细线到底，不加底色（瑞士派不做色块）
+    out = style_quotes(out, {
+        "margin": "22px 0", "padding": "2px 0 2px 16px", "border": "none",
+        "border-left": f"1px solid {ink}", "background": "transparent",
+        "font-size": "16px", "line-height": "1.8", "color": mix(ink, "#ffffff", 0.12),
+    })
+
+    out = style_all(out, "strong", {"color": accent, "font-weight": "700"})
+    return _guard(html, out)
+
+
+def layout_light(html: str, theme: dict) -> str:
+    """轻刊阅读：暖橙标题 · 松弛图文节奏。
+
+    设计意图：像周末副刊。标题带暖色、正文行距放松、段落之间留白比别人大，
+    引用做成「圆角小卡」而不是线条。
+    """
+    accent, ink, bg = _colors(theme)
+    out = html
+    soft = mix(accent, bg, 0.88)
+
+    out = caption_style(out, mix(ink, bg, 0.46))
+
+    # 正文：行距 1.9，段后 18 —— 全族最松
+    out = style_all(out, "p", {
+        "font-size": "16px", "line-height": "1.9", "margin-bottom": "18px",
+        "color": ink,
+    })
+
+    # h1：暖色字 + 下方一段短粗线（松而不散）
+    out = style_all(out, "h1", {
+        "font-size": "24px", "font-weight": "700", "line-height": "1.4",
+        "margin": "6px 0 20px", "color": accent,
+        "padding-bottom": "12px", "border-bottom": f"3px solid {soft}",
+        "background": "transparent",
+    })
+
+    # h2：暖色 + 无装饰，只靠颜色和留白
+    out = decorate_sections(
+        out,
+        h2_props={
+            "font-size": "19px", "font-weight": "700", "line-height": "1.5",
+            "margin": "32px 0 15px", "color": accent, "background": "transparent",
+        },
+    )
+
+    out = style_all(out, "h3", {
+        "font-size": "16.5px", "font-weight": "600", "line-height": "1.6",
+        "margin": "24px 0 10px", "color": mix(accent, ink, 0.35),
+        "background": "transparent",
+    })
+
+    # 引用：圆角小卡 + 浅暖底（与时代的「细红框」、瑞士的「细线」都不同）
+    out = style_quotes(out, {
+        "margin": "24px 0", "padding": "16px 18px", "border": "none",
+        "background": rgba(accent, 0.07), "border-radius": "10px",
+        "font-size": "16px", "line-height": "1.85", "color": ink,
+    })
+
+    out = style_all(out, "strong", {"color": accent, "font-weight": "700"})
+    return _guard(html, out)
+
+
 # 版式注册表：format_engine 用它更新 LAYOUT_REGISTRY
 MAGAZINE_LAYOUTS = {
     "time": layout_time,
@@ -1112,4 +1328,9 @@ MAGAZINE_LAYOUTS = {
     "adidas": layout_adidas,
     "brutal": layout_brutal,
     "deepread": layout_deepread,
+    # 2026-11-02 新增 4 套（md2wechat 风格意图，本项自主实现）
+    "tech": layout_tech,
+    "rational": layout_rational,
+    "swiss": layout_swiss,
+    "light": layout_light,
 }
