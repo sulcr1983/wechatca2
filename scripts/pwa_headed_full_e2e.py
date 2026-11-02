@@ -561,7 +561,12 @@ def main() -> int:
             check("点示例选中风格",
                   page.locator(".cv-style[data-layout='magazine']").get_attribute("aria-pressed") == "true",
                   "", "")
-            page.click("#btn-cover")
+            # ⚠️ 2026-10-31（8fe2e5a）三模块拆分后，#btn-cover 是**常驻 tab**
+            # （公众号排版 / 小红书标题图 / 小红书长图文），点它永远切到标题图页，
+            # 不再是原来的「两态按钮」——再点一次回不到排版页。
+            # 回排版页的入口是 #btn-editor。此处旧写法「再点 #btn-cover」会让
+            # #stage 一直 hidden，后续 page.click("#btn-themes") 必然超时（2026-11-03 实测）。
+            page.click("#btn-editor")
             page.wait_for_timeout(800)
             check("切回排版页", page.is_visible("#stage"), "", "排版页可见")
 
