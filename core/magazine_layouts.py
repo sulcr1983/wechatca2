@@ -754,7 +754,7 @@ def layout_ukiyoe(html: str, theme: dict) -> str:
 
     out = style_all(out, "p", {
         "font-size": "17px", "line-height": "1.8", "margin-bottom": "20px",
-        "color": body, "text-align": "justify",
+        "color": body,
         "font-family": "Songti SC, SimSun, serif",
     })
 

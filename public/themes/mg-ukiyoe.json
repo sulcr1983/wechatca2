@@ -50,7 +50,7 @@
       "line_height": "1.8",
       "margin_top": "0",
       "margin_bottom": "20px",
-      "text_align": "left",
+      "text_align": "justify",
       "font_family": "'Songti SC', SimSun, Georgia, serif"
     },
     "blockquote": {
@@ -65,7 +65,8 @@
     "blockquote_p": {
       "font_size": "16px",
       "color": "#1B3A5C",
-      "line_height": "1.8"
+      "line_height": "1.8",
+      "text_align": "justify"
     },
     "strong": {
       "font_weight": "700",
