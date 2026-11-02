@@ -54,7 +54,7 @@
 **因此实现原则是：对齐方式 = 每套设计自己的属性，不是全局开关。**
 这一条直接决定了数据模型（§4.1）和门禁断言（§5）的写法。
 
-> ⚠️ 这里有一个**需要用户拍板**的产品分歧，见 §7：是"严格按规范逐套固定"，还是"按规范给默认值 + 允许用户覆盖"。
+> ✅ **已定案（用户 2026-11-03）：方案 A —— 严格按规范逐套固定，不提供用户覆盖入口。** 见 §7.1。
 
 ### 2.2 中文两端对齐：真实有效，且不会把字撑散
 
@@ -288,7 +288,7 @@ P6 文档同步与交付：doc_sync_check + 真机粘贴验收
 
 | 文件 | 改什么 |
 |---|---|
-| **新增** `scripts/kit_alignment_fixture.py` | 19 套 × **11 条**断言的对齐夹具（原 8 条，经对抗性审查修正为 11 条，见 §5.1）。静态层（秒级，可当 `run_gates` 用）+ `--browser` 层（Playwright 375px 实测） |
+| **新增** `scripts/kit_alignment_fixture.py` | 19 套 × **12 条**断言的对齐夹具（原 8 条，经对抗性审查修正为 12 条：A1a/A1b/A1c/A2–A10，见 §5.1）。静态层（秒级，可当 `run_gates` 用）+ `--browser` 层（Playwright 375px 实测） |
 | **新增** `scripts/kit_alignment_canred.py` | 反向验证：向引擎输出注入故障，断言必须变红。它是"夹具不是摆设"的证明 |
 
 > ⚠️ **审查修正（`docs/review-wechat-v6-adversarial.md` D-1/D-2/D-3）**：
@@ -568,7 +568,7 @@ PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe scripts/kit_alignment_canred.py
 
 | 阶段 | 验证命令 | 通过标准 |
 |---|---|---|
-| **P0** | `kit_alignment_fixture.py` + `kit_alignment_canred.py` | 目标 **209/209**（11 条 × 19 套）；反向 6/6 红。⚠️ **A1c / A7 / A10 三条要先实现才有 209**——现在只有 6 条是已验证的（114 条）。**A1a「18 套仍为 left」在 P0 就是绿的，这不算成绩**，有分辨力的是 A1c |
+| **P0** | `kit_alignment_fixture.py` + `kit_alignment_canred.py` | ✅ **已达成（2026-11-03 实测）**：`--browser` **228/228** 通过（12 条 × 19 套）；静态层单独 152/152；反向验证 **11/11 全部变红**。⚠️ **A1a「18 套仍为 left」是恒真的，不算成绩**，有分辨力的是 A1c（能力断言）与 A10（改造必须真的发生） |
 | **P1** | `kit_alignment_fixture.py`；`core/magazine_layouts.py` 删硬编码后同上 | 仍全绿。**若删硬编码后 `mg-ukiyoe` 变红，说明 JSON 没写对，回退** |
 | **P2** | `kit_alignment_fixture.py --browser`；`scripts/theme_render_dump.py --diff` | 19 套全绿（含 **A1c 能力断言**）；**164 套 palette 产物逐字节不变** |
 | **P3** | `kit_alignment_fixture.py`（`ratio=1` 时须零变化）；字号断言：17 套列表 span 与 p 差 ≤ 0.6px，`mg-deepread`/`mg-guardian` 用「相对差值不变」 | 19/19 列表不掉队；**`ratio=1` 时与 P2 产物逐字节相同**；装饰 span（52/30/22px）**未被缩放** |
