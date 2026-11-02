@@ -513,6 +513,28 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
   opacity: .7; margin-top: 2px; white-space: nowrap;
 }
 
+/* 字号条（2026-11-03）：滑块 + −/+ + 原样。
+   范围 14–18px，缺省「原样」= 用该套自己的字号，产物零变化。 */
+.drawer-font {
+  flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px;
+}
+.drawer-font .df-label { color: var(--text-muted); font-size: 11.5px; flex: none; }
+.drawer-font .df-step {
+  flex: none; width: 24px; height: 24px; padding: 0; line-height: 1;
+  font-size: 14px; border-radius: 6px;
+}
+.drawer-font #df-range { flex: 1 1 90px; min-width: 80px; accent-color: var(--accent); }
+.drawer-font .df-val {
+  flex: none; min-width: 44px; text-align: center; font-variant-numeric: tabular-nums;
+  color: var(--text-soft); font-size: 11.5px;
+}
+.drawer-font .df-reset { flex: none; padding: 3px 10px; font-size: 11.5px; }
+.drawer-font .df-note {
+  flex-basis: 100%; font-size: 11px; color: var(--text-muted);
+  opacity: .7; margin-top: 2px;
+}
+
 /* 自定义配色条（最小版）：三个原生取色器 */
 .drawer-custom {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;

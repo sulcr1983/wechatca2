@@ -265,6 +265,16 @@
     </label>
     <span class="db-note">按段落内容自动识别，不是每篇都会触发</span>
   </div>
+  <!-- 字号（2026-11-03）：整篇等比缩放，14–18px；缺省用该套原值 -->
+  <div class="drawer-font" id="drawer-font">
+    <span class="df-label">正文字号</span>
+    <button class="ghost-btn df-step" id="df-minus" type="button" aria-label="减小字号">−</button>
+    <input type="range" id="df-range" min="14" max="18" step="1" value="16" aria-label="正文字号">
+    <button class="ghost-btn df-step" id="df-plus" type="button" aria-label="增大字号">+</button>
+    <output class="df-val" id="df-val">原样</output>
+    <button class="ghost-btn df-reset" id="df-reset" type="button">原样</button>
+    <span class="df-note" id="df-note">按各套设计等比缩放，标题一起缩放</span>
+  </div>
   <!-- 自定义配色（最小版）：三个原生取色器，改完立即生效并存本机 -->
   <div class="drawer-custom" id="drawer-custom">
     <span class="dc-label">自定义配色</span>

@@ -22,6 +22,7 @@ const LS = {
   layout: 'supersu.pwa.layout',   // 版式本机覆盖
   pp: 'supersu.pwa.ppmode',       // 预处理模式 auto/conservative/longform/tutorial（2026-10-31 接线）
   kitReturn: 'supersu.pwa.kit.return',  // 进整篇设计前用的那套配色主题（退出时回这里）
+  fontSize: 'supersu.pwa.fontsize',     // 正文字号 px（2026-11-03 接线；null/缺省 = 用该套原值）
 };
 
 const DEFAULT_THEME = 'su-biz-azure';
@@ -181,6 +182,17 @@ function ppMode() {
   return ['auto', 'conservative', 'longform', 'tutorial'].includes(v) ? v : 'auto';
 }
 
+/* 正文字号（2026-11-03）：null = 用该套主题自己的原值（产物零变化）；
+   给了值则由引擎按「产物实测基准」等比缩放全篇（见 format_engine.apply_font_scale）。
+   范围 14–18，与已定案的 §7.2 一致。 */
+const FONT_MIN = 14;
+const FONT_MAX = 18;
+function fontSizePx() {
+  const v = parseInt(lsGet(LS.fontSize, null), 10);
+  if (!v) return null;
+  return Math.min(FONT_MAX, Math.max(FONT_MIN, v));
+}
+
 /* ── 渲染 ───────────────────────────────────────────────────── */
 function scheduleRender() {
   clearTimeout(renderTimer);
@@ -226,7 +238,7 @@ async function doRender() {
   try {
     const json = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
     await engine.setTheme(activeId, json);
-    const out = await engine.render(text, ppMode());
+    const out = await engine.render(text, ppMode(), fontSizePx());
     if (mySeq !== renderSeq) return;          // 有更新的请求，丢弃本次结果
     lastHtml = out.html;
     lastRawHtml = out.html;
@@ -1357,7 +1369,7 @@ async function initAi() {
       }
     }
 
-    const local = await engine.render(text, ppMode());
+    const local = await engine.render(text, ppMode(), fontSizePx());
     if (!local || !local.markdown) throw new Error('本地排版也失败了，请刷新重试');
     aiUndoText = text;
     syncUndo();
@@ -1661,6 +1673,57 @@ function bindUI() {
     });
   }
   syncCustomInputs();
+
+  /* 正文字号（2026-11-03）：写 localStorage 后重渲染。
+     「原样」= 清掉存储 → fontSizePx() 返回 null → 产物零变化。 */
+  function syncFontUi() {
+    const cur = fontSizePx();
+    const range = $('df-range');
+    const val = $('df-val');
+    if (range) {
+      // 没设过时滑块停在 16（多数套的正文原值），但显示「原样」
+      range.value = String(cur == null ? 16 : cur);
+      range.disabled = false;
+    }
+    if (val) val.textContent = cur == null ? '原样' : cur + 'px';
+    const note = $('df-note');
+    if (note) {
+      note.textContent = cur == null
+        ? '按各套设计等比缩放，标题一起缩放'
+        : `已按该套原比例放大/缩小到 ${cur}px`;
+    }
+  }
+  function setFont(next) {
+    if (next == null) {
+      localStorage.removeItem(LS.fontSize);
+    } else {
+      const v = Math.min(FONT_MAX, Math.max(FONT_MIN, next));
+      localStorage.setItem(LS.fontSize, String(v));
+    }
+    syncFontUi();
+    themeJsonCache.delete(activeId);   // 字号变了，渲染结果要重算（setTheme 指纹不含字号）
+    scheduleRender();
+  }
+  if ($('df-range')) {
+    $('df-range').addEventListener('input', (e) => setFont(parseInt(e.target.value, 10)));
+  }
+  if ($('df-minus')) {
+    $('df-minus').addEventListener('click', () => {
+      const cur = fontSizePx() == null ? 16 : fontSizePx();
+      setFont(cur - 1);
+    });
+  }
+  if ($('df-plus')) {
+    $('df-plus').addEventListener('click', () => {
+      const cur = fontSizePx() == null ? 16 : fontSizePx();
+      setFont(cur + 1);
+    });
+  }
+  if ($('df-reset')) {
+    $('df-reset').addEventListener('click', () => setFont(null));
+  }
+  syncFontUi();
+
   $('drawer-filters').addEventListener('click', (e) => {
     const chip = e.target.closest('.fchip');
     if (!chip) return;

@@ -91,7 +91,8 @@ export function createEngine({ onProgress } = {}) {
 
   /** 渲染；返回 { html, markdown, ms } */
   /** mode：预处理模式 auto/conservative/longform/tutorial（缺省 auto，2026-10-31 UI 接线） */
-  function render(text, mode) {
+  /** fontSize：正文字号 px（缺省 null = 不改字号，2026-11-03 UI 接线） */
+  function render(text, mode, fontSize) {
     return new Promise((resolve, reject) => {
       const myId = ++seq;
       const timer = setTimeout(() => {
@@ -99,7 +100,7 @@ export function createEngine({ onProgress } = {}) {
         reject(new Error('渲染超时（30 秒），请刷新重试'));
       }, DEFAULT_TIMEOUT);
       pending.set(myId, { resolve, reject, timer });
-      send({ type: 'render', payload: { id: myId, text, mode: mode || 'auto' } });
+      send({ type: 'render', payload: { id: myId, text, mode: mode || 'auto', fontSize: fontSize || null } });
     });
   }
 
