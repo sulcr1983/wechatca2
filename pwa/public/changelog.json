@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-02T23:31:01+08:00",
-  "totalCommits": 326,
+  "generatedAt": "2026-11-03T01:57:21+08:00",
+  "totalCommits": 332,
   "releases": [
     {
       "version": "1.17.0",
@@ -15,16 +15,40 @@
       ],
       "autoCut": false,
       "counts": {
-        "added": 3,
-        "changed": 14,
+        "added": 6,
+        "changed": 16,
         "fixed": 3,
-        "other": 13
+        "other": 14
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "整篇设计缩略图目录分离 + kit 缩略图生成脚本",
+              "scope": "pwa",
+              "hash": "a8270c0",
+              "date": "2026-11-03T01:56:52+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "4 个杂志风版式 + kit 主题 locked_layout 运行时归一化",
+              "scope": "engine",
+              "hash": "dcd6f91",
+              "date": "2026-11-03T01:55:34+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "补交 4 套 mg-m2w 整篇设计 + 19 张 kit 缩略图（此前漏入库）",
+              "scope": "kit",
+              "hash": "e281df3",
+              "date": "2026-11-03T01:55:11+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "15 个杂志风版式 + 15 套整篇设计（kit 主题）",
               "scope": "layout",
@@ -55,6 +79,22 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "微信排版改版方案文档全套 + README/AGENTS 口径同步（183 套风格）",
+              "scope": "",
+              "hash": "4891464",
+              "date": "2026-11-03T01:56:37+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "微信排版改版原型 v3–v7 + 配色对比 + v2 封面原型修正",
+              "scope": "prototype",
+              "hash": "b768308",
+              "date": "2026-11-03T01:56:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "未完成台账更新（图片 7 项完成 + 记录一个真实缺口）",
               "scope": "tasks",
@@ -203,6 +243,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "清账后重生成 STATE.md（b379 本地 / b358 线上，线上落后 21 提交）",
+              "scope": "state",
+              "hash": "ff4df80",
+              "date": "2026-11-03T01:57:03+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "补提交封面 UX 重做 V2 的产出（原型 / 方案 / 复核 / 字体）",
               "scope": "xhs",
