@@ -102,6 +102,14 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("theme_spec",     [PY, "scripts/audit_theme_spec.py"],       "模板配色审计（对照归藏规范）", "in-process"),
     ("theme_contrast", [PY, "scripts/theme_contrast_audit.py"],   "标题/正文对比度 164 套", "in-process"),
     ("layout_compat",  [PY, "scripts/pwa_layout_compat_test.py"], "版式兼容矩阵 100", "in-process"),
+    # 2026-11-03 接入：19 套整篇设计的对齐夹具（静态层 8 条 × 19 = 152）。
+    # 为什么必须有这道：19 套 themes JSON 的 styles.p.text_align 全是 "left"，
+    # 而引擎默认也是 left —— 「其余 18 套不得 justify」这条断言删光代码依然全绿。
+    # 真正有分辨力的是浏览器层 A1c（强制注入 justify 后测非末行右缘），
+    # 那条要 Playwright，故不进默认门禁，用 --browser 手动跑或改动时单独跑。
+    # 反向验证配套：scripts/kit_alignment_canred.py（11 个故障注入，全部必须变红）。
+    ("kit_align",      [PY, "scripts/kit_alignment_fixture.py"],
+                       "19 套整篇设计对齐夹具 152（静态 8 条）", "in-process"),
     ("update_panel",   [PY, "scripts/pwa_update_panel_test.py"],
                        "更新面板（检查更新 / 一键更新 / 本次更新条数 / 反馈入口）11", "local"),
     # 2026-10-30 接入：产物级断言（剪贴板真实内容 / 下载文件真实字节 / 清除后无残留）。
@@ -210,6 +218,10 @@ CHANGE_RULES = [
     ("pwa/src/longform",      {"longform"}),
     ("pwa/src/cover.css",     {"cover_smoke"}),
     ("core/preprocessor.py",  {"ppmode", "longform", "ai_format", "layout_compat"}),
+    # 2026-11-03：动 19 套整篇设计 / 杂志版式时，对齐夹具必须跟上。
+    # （core/ 前缀已覆盖 magazine_layouts.py，但 public/themes/mg-* 不在 CORE_ALWAYS 内）
+    ("public/themes/mg-",     {"kit_align"}),
+    ("core/magazine_layouts.py", {"kit_align", "layout_compat"}),
     ("pwa/scripts/changelog_milestones.json", {"update_panel", "doc_sync"}),
     ("pwa/public/changelog.json", {"update_panel"}),
     ("pwa/version.json",      {"update_panel"}),
