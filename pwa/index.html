@@ -241,6 +241,17 @@
     <input class="drawer-search" id="drawer-search" type="search" placeholder="搜名字或 id…" aria-label="搜索风格">
     <button class="icon-btn" id="btn-drawer-close" aria-label="关闭">×</button>
   </div>
+  <!-- 两个 tab（2026-11-03，P4）：配色主题（164 套，可自由组合版式）
+       与整篇设计（19 套，版式配色一起锁死）是**两类互不相干的内容**，
+       不是父子关系 —— 19 套独立于 164 套之外，所以并列成两个入口。 -->
+  <div class="mode-tabs" id="drawer-mode-tabs" role="tablist">
+    <button class="mode-tab" data-mode="palette" role="tab" aria-selected="true">
+      配色主题<em id="tab-count-palette"></em>
+    </button>
+    <button class="mode-tab" data-mode="kit" role="tab" aria-selected="false">
+      整篇设计<em id="tab-count-kit"></em>
+    </button>
+  </div>
   <div class="drawer-filters" id="drawer-filters"></div>
   <!-- 整篇设计锁定态（2026-11-02）：选了 kit 后这里出现一行说明 + 退出按钮。
        kit 的版式和配色都是固定的，所以版式区与色卡区同时置灰。 -->

@@ -631,6 +631,43 @@ function exitKit() {
 /* ── 抽屉 ───────────────────────────────────────────────────── */
 let drawerFam = 'all';
 let drawerQ = '';
+// 抽屉两个 tab（2026-11-03，P4）：'palette' = 164 套配色主题（可组合版式）；
+// 'kit' = 19 套整篇设计（版式+配色锁死）。两者**互不相干、不是父子关系**。
+// 与 drawerFam 正交：切 tab 不改族视图，切族不影响 tab。
+let drawerMode = 'palette';
+
+/** 当前 tab 该显示哪些主题。`kind:'kit'` 必须在任何遍历 UI 的代码里先分流。 */
+function poolThemes() {
+  return themes.filter((t) => ((t.kind === 'kit') === (drawerMode === 'kit')));
+}
+
+/** 两个 tab 的计数与选中态（每次重渲染都要刷新，innerHTML 会重建）。 */
+function renderModeTabs() {
+  const pal = themes.filter((t) => t.kind !== 'kit').length;
+  const kit = themes.filter((t) => t.kind === 'kit').length;
+  const cp = $('tab-count-palette');
+  const ck = $('tab-count-kit');
+  if (cp) cp.textContent = String(pal);
+  if (ck) ck.textContent = String(kit);
+  document.querySelectorAll('#drawer-mode-tabs .mode-tab').forEach((b) => {
+    const on = b.dataset.mode === drawerMode;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  // 整篇设计 tab 下没有可组合的「版式」选项（已锁死），整行隐藏；
+  // 但段落样式（金句/数据/提示）**保留可用**（已定案 2026-11-03，kit 下仍可加色块强调）
+  const lay = $('drawer-layouts');
+  if (lay) lay.hidden = drawerMode === 'kit';
+}
+
+/** 整篇设计 tab 的网格：19 套平铺，每张卡都自带版式+配色。 */
+function renderKitPane(fav) {
+  const list = themes.filter((t) => t.kind === 'kit');
+  $('drawer-grid').innerHTML = `
+    <div class="d-sec"><b>整篇设计 ${list.length} 套</b>
+      <span>版式与配色一起套用，选中即整篇生效</span></div>
+    <div class="d-grid d-grid-kit">${list.map((t) => drawerCard(t, fav)).join('')}</div>`;
+}
 let drawerTone = '';   // 二维选择器：记住当前色调，跨版式迁移（素页·竹青 → 公文·竹青）
 
 function openDrawer() {
@@ -640,6 +677,26 @@ function openDrawer() {
   renderFilters();
   renderDrawer();
   $('drawer-search').focus();
+}
+
+/* 两个 tab 的切换（2026-11-03，P4）：切 tab 时重置族视图到「全部」，
+   否则在整篇设计 tab 会残留一个配色族名、渲染出空网格。 */
+function bindModeTabs() {
+  const box = $('drawer-mode-tabs');
+  if (!box) return;
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('.mode-tab');
+    if (!b) return;
+    const next = b.dataset.mode === 'kit' ? 'kit' : 'palette';
+    if (next === drawerMode) return;
+    drawerMode = next;
+    drawerFam = 'all';      // 跨 tab 不保留族选择（两边的候选集不相交）
+    drawerQ = '';           // 搜索词也清掉，避免「切过来什么都没有」
+    const s = $('drawer-search');
+    if (s) s.value = '';
+    renderFilters();
+    renderDrawer();
+  });
 }
 
 /** 窄屏：切到指定页签（桌面端此函数无副作用）。 */
@@ -754,13 +811,21 @@ function effectiveBlocks(id) {
 }
 
 function renderFilters() {
-  const fams = [...new Set(themes.map((t) => t.family).filter(Boolean))];
+  const pool = poolThemes();
+  // 整篇设计 tab：没有族与色调的二维结构（19 套各自独立），只留「全部 / 收藏」
+  if (drawerMode === 'kit') {
+    $('drawer-filters').innerHTML = [['all', `全部 ${pool.length}`], ['fav', `收藏 ${favList().length}`]]
+      .map(([k, label]) => `<button class="fchip" data-fam="${k}" aria-pressed="${drawerFam === k}">${label}</button>`)
+      .join('');
+    return;
+  }
+  const fams = [...new Set(pool.map((t) => t.family).filter(Boolean))];
   // 族视图里家族 chip 与上方「版式」条重复，只保留「全部 / 收藏」；切族交给版式条
   const inFamily = drawerFam !== 'all' && drawerFam !== 'fav';
   // chip 上直接写总数：「全部」视图只渲染精选 + 族代表卡，不给数字会被误以为模板变少了
-  const chips = [['all', `全部 ${themes.length}`], ['fav', `收藏 ${favList().length}`]]
+  const chips = [['all', `全部 ${pool.length}`], ['fav', `收藏 ${favList().length}`]]
     .concat(inFamily ? [] : fams.map((f) => {
-      const n = themes.filter((t) => t.family === f).length;
+      const n = pool.filter((t) => t.family === f).length;
       return [f, `${FAMS[f] || f} ${n}`];
     }));
   $('drawer-filters').innerHTML = chips.map(([k, label]) => `
@@ -864,13 +929,16 @@ function showRecent() {
 }
 // 「全部」视图：编辑精选 → 按族折叠（每族 1 张代表卡）→ 其余平铺
 function renderAllFolded(fav) {
-  const fams = [...new Set(themes.map((t) => t.family).filter(Boolean))];
+  // ⚠️ 必须用 poolThemes()：19 套整篇设计（kind:'kit'）不属于配色 tab 的候选集，
+  // 混进来会让「按族浏览」的套数虚高、且点进去版式被锁死（2026-11-03 P4）
+  const pool = poolThemes();
+  const fams = [...new Set(pool.map((t) => t.family).filter(Boolean))];
   const byFam = {}; fams.forEach((f) => { byFam[f] = []; });
   const classic = [];
-  themes.forEach((t) => { (t.family && byFam[t.family] ? byFam[t.family] : classic).push(t); });
+  pool.forEach((t) => { (t.family && byFam[t.family] ? byFam[t.family] : classic).push(t); });
   const reps = fams.filter((f) => byFam[f].length).map((f) => familyRepCard(f, byFam[f], fav)).join('');
   // 精选：把「最好看、最常用」的 12 套提到第一屏（顺序由 theme-curation.json 定）
-  const featured = themes.filter((t) => t.featured);
+  const featured = pool.filter((t) => t.featured);
   const featIds = new Set(featured.map((t) => t.id));
   const head = featured.length
     ? `<div class="d-sec"><b>编辑精选</b><span>先看这 ${featured.length} 套 · 覆盖商务 / 随笔 / 行业 / 技术 / 节庆</span></div>`
@@ -889,10 +957,11 @@ function renderAllFolded(fav) {
 // 族视图：版式 × 色调二维选择（2026-10-24）
 // 版式条只列有色调可选的族；换版式时**保留同名色调**（素页·竹青 → 公文·竹青）。
 function renderFamilyFold(fam, fav) {
-  const list = themes.filter((t) => t.family === fam);
+  const pool = poolThemes();
+  const list = pool.filter((t) => t.family === fam);
   const grid = $('drawer-grid');
   if (!list.length) { grid.innerHTML = '<div class="drawer-empty">没匹配的风格，换个词试试</div>'; return; }
-  const famKeys = [...new Set(themes.map((t) => t.family).filter(Boolean))];
+  const famKeys = [...new Set(pool.map((t) => t.family).filter(Boolean))];
   const axis = famKeys.map((f) => `<button class="d-axis${f === fam ? ' active' : ''}"
       data-fam="${f}" type="button" aria-pressed="${f === fam}">${escapeHtml(famLabel(f))}</button>`).join('');
   const tones = list.map((t) => {
@@ -911,19 +980,24 @@ function renderFamilyFold(fam, fav) {
   </div>`;
 }
 function renderDrawer() {
+  renderModeTabs();
   renderLayouts();
   renderBlockToggles();
   applyKitLock();   // 每次重渲染后重新上锁（innerHTML 重建会丢 disabled / 置灰）
   const fav = new Set(favList());
   const q = drawerQ.trim().toLowerCase();
-  // 搜索优先：全量扁平（跨所有主题，不折叠）
+  // 搜索优先：全量扁平（跨所有主题，不折叠）——但只在当前 tab 的池子里搜，
+  // 否则在「整篇设计」里搜出一个配色主题、点了却和 view 对不上
   // tags 由构建期生成（颜色 + 用途），让「绿 / 商务 / 节庆」这类词也能命中
+  const pool = poolThemes();
   if (q) {
-    renderFlat(themes.filter((t) => (t.name + ' ' + t.id + ' ' + (t.desc || '') + ' '
+    renderFlat(pool.filter((t) => (t.name + ' ' + t.id + ' ' + (t.desc || '') + ' '
       + (t.tags || []).join(' ')).toLowerCase().includes(q)), fav);
     return;
   }
-  if (drawerFam === 'fav') { renderFlat(themes.filter((t) => fav.has(t.id)), fav); return; }
+  if (drawerFam === 'fav') { renderFlat(pool.filter((t) => fav.has(t.id)), fav); return; }
+  // 整篇设计 tab：19 套平铺，不分族、不折叠
+  if (drawerMode === 'kit') { renderKitPane(fav); return; }
   if (drawerFam === 'all') { renderAllFolded(fav); return; }
   renderFamilyFold(drawerFam, fav);
 }
@@ -1588,6 +1662,7 @@ function bindUI() {
     });
   }
   $('btn-themes').addEventListener('click', openDrawer);
+  bindModeTabs();
 
   // 缩略图加载失败就移除 img，露出底下的配色占位（捕获阶段才能拿到 error）
   $('drawer-grid').addEventListener('error', (e) => {

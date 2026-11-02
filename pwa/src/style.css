@@ -351,6 +351,31 @@ body.browsing .drawer-mask { display: none; }
 
 .drawer-filters { flex: none; padding: 12px 16px 4px; display: flex; gap: 6px; flex-wrap: wrap; }
 
+/* 抽屉两个 tab（2026-11-03，P4）：配色主题 / 整篇设计。
+   两者是并列的两类内容，不是父子关系，所以用等高分段而不是下拉。 */
+.mode-tabs {
+  flex: none; display: flex; gap: 4px; margin: 0 16px 2px;
+  padding: 3px; border-radius: 9px; background: var(--bg-hover);
+}
+.mode-tabs .mode-tab {
+  flex: 1 1 0; min-width: 0; padding: 7px 8px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .12s, color .12s;
+}
+.mode-tabs .mode-tab em {
+  font-style: normal; font-size: 11px; font-weight: 500;
+  padding: 1px 6px; border-radius: 99px; background: rgba(0, 0, 0, .06);
+}
+.mode-tabs .mode-tab.on {
+  background: var(--card, #fff); color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .07);
+}
+.mode-tabs .mode-tab.on em { background: var(--accent-soft, rgba(0, 0, 0, .06)); color: var(--accent); }
+/* 整篇设计网格：19 套按 4:3 缩略图排，比配色主题的 2 列更宽一档 */
+.d-grid-kit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .parse-body { display: contents; }
 
 /* ── AI 能力门控（2026-10-24）：只有「测试连接通过」才显形 ── */
