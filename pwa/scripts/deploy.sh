@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 # PWA 部署到 Cloudflare Pages（supersu-pwa）
-# 凭证从 E:/test/opendoor/.env 读取 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN
+# 凭证从项目根 .env 读取 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN
 # 规则：不落盘副本、不打印凭证、不提交本仓库
 set -euo pipefail
 cd "$(dirname "$0")/../.."   # 仓库根 E:/test/wechatca2
 
-ENV_FILE="${CLOUDFLARE_ENV_FILE:-/e/test/opendoor/.env}"
+ENV_FILE="${CLOUDFLARE_ENV_FILE:-.env}"
 PROJECT="supersu-pwa"
 
 # 凭证来源（2026-10-25 改）：两种方式任选其一，不再强制 .env
-#   ① 显式凭证文件（CLOUDFLARE_ENV_FILE 指定，或默认 /e/test/opendoor/.env）
+#   ① 显式凭证文件（CLOUDFLARE_ENV_FILE 指定，或默认仓库根 .env）
 #   ② wrangler 登录态（npx wrangler whoami 能看到账号即可）
 # 原实现强制要求 ①，但 opendoor/.env 已不存在，而 wrangler 明明已登录，
 # 导致「明明有登录态却部署不了」。现在 ① 存在就用 ①，否则走 ②。
+# ⚠️ 2026-11-03：默认值由 /e/test/opendoor/.env 改为仓库根 .env。
+#    旧默认指向**另一个项目**的凭证文件，既跨项目又已不存在，
+#    每次不带变量运行都会落到那里报错，并诱导人去别处找凭证。
 if [[ -f "$ENV_FILE" ]]; then
   # 只把两个变量导出到本进程环境，不回显
   set -a
