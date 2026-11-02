@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>公众号排版页 · A/B/C 三方案对比</title>
+<style>
+:root{
+  --bg-canvas:#F7F4EE; --bg-surface:#FAF9F5; --bg-raised:#FFFFFF; --bg-hover:#F1EEE6;
+  --border:#EAE6DD; --border-hi:#D8D1C2;
+  --text:#191713; --text-soft:#5C5548; --text-muted:#9A9285;
+  --accent:#AF3E2B; --accent-soft:rgba(175,62,43,.08);
+  --ok:#2E7D5B; --warn:#8A6100; --warn-bg:#FFF6DC;
+  --r:7px; --r-lg:11px;
+  --sh:0 1px 2px rgba(30,25,15,.05), 0 4px 14px rgba(30,25,15,.06);
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{
+  background:#EFEBE3; color:var(--text); overflow:hidden;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+/* ══ 外壳 ══ */
+.top{
+  height:52px; display:flex; align-items:center; gap:14px; padding:0 18px;
+  background:var(--bg-raised); border-bottom:1px solid var(--border);
+}
+.top h1{font-size:14px;margin:0;font-weight:700}
+.top .sub{font-size:11.5px;color:var(--text-muted)}
+.tabs-nav{display:flex;gap:4px;margin-left:auto;background:var(--bg-canvas);padding:3px;border-radius:9px}
+.tabs-nav button{
+  height:28px;padding:0 15px;border-radius:6px;font-size:12.5px;font-weight:600;
+  color:var(--text-soft);
+}
+.tabs-nav button[aria-pressed="true"]{background:var(--bg-raised);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+.workspace{display:flex;height:calc(100% - 52px)}
+
+/* 左：抽屉展示（按真实 560px 宽等比缩放 0.82） */
+.showcase{
+  flex:1; min-width:0; display:flex; align-items:flex-start; justify-content:center;
+  padding:22px 20px; overflow:auto;
+}
+.scale-wrap{transform-origin:top center}
+.drawer{
+  width:560px; height:calc((100vh - 96px) / .82); max-height:900px;
+  background:var(--bg-canvas); border:1px solid var(--border); border-radius:12px;
+  box-shadow:0 12px 40px rgba(30,25,15,.14);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+/* 右：说明 */
+.notes{
+  width:340px; flex:none; background:var(--bg-raised); border-left:1px solid var(--border);
+  padding:20px 18px; overflow-y:auto;
+}
+.notes h2{font-size:14px;margin:0 0 4px}
+.notes .tagline{font-size:11.5px;color:var(--text-muted);margin:0 0 16px}
+.note-block{margin-bottom:18px}
+.note-block h3{
+  font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);
+  margin:0 0 7px;text-transform:uppercase;
+}
+.note-block ul{margin:0;padding-left:0;list-style:none}
+.note-block li{
+  font-size:12px;line-height:1.6;padding:5px 0 5px 18px;position:relative;color:var(--text-soft);
+}
+.note-block li::before{
+  content:'';position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;
+  background:var(--text-muted);
+}
+.note-block.bad li::before{background:#C0392B}
+.note-block.good li::before{background:var(--ok)}
+.note-block.good li{color:var(--text)}
+.effort{
+  display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;
+  background:var(--accent-soft);color:var(--accent);margin-bottom:14px;
+}
+.effort.low{background:#EAF4EF;color:var(--ok)}
+.effort.mid{background:var(--warn-bg);color:var(--warn)}
+
+/* ══ 抽屉内部（真实复刻）══ */
+.d-head{
+  flex:none;height:46px;padding:0 12px 0 18px;display:flex;align-items:center;gap:9px;
+  border-bottom:1px solid var(--border);background:var(--bg-raised);
+}
+.d-head b{font-size:13.5px;flex:none}
+.d-search{
+  flex:1;min-width:0;height:29px;padding:0 10px;border:1px solid var(--border);
+  border-radius:var(--r);background:var(--bg-surface);font-size:12.5px;color:var(--text);
+}
+.d-search::placeholder{color:var(--text-muted)}
+.d-x{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--text-muted);font-size:15px}
+
+.d-filters{flex:none;padding:10px 14px 3px;display:flex;gap:5px;flex-wrap:wrap}
+.fchip{
+  height:24px;padding:0 10px;border-radius:99px;border:1px solid var(--border);
+  background:var(--bg-raised);font-size:11.5px;color:var(--text-soft);
+}
+.fchip[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:#fff;font-weight:600}
+
+.d-lays{flex:none;padding:9px 14px 4px;display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.dl-label{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;margin-right:3px}
+.dl-chip{
+  height:25px;padding:0 10px;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg-raised);font-size:11.5px;color:var(--text-soft);white-space:nowrap;
+}
+.dl-chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.dl-chip:disabled{opacity:.42;cursor:not-allowed}
+
+.d-grid{
+  flex:1;min-height:0;overflow-y:auto;padding:10px 14px 22px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(142px,1fr));gap:9px;align-content:start;
+}
+.d-card{
+  display:flex;flex-direction:column;min-height:140px;border-radius:var(--r-lg);
+  border:1px solid var(--border);background:var(--bg-raised);overflow:hidden;text-align:left;
+}
+.d-card[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.d-prev{height:104px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:12px 11px;gap:5px}
+.d-prev i{display:block;border-radius:2px;background:currentColor;opacity:.16}
+.d-prev i.t{height:8px;width:70%;opacity:.62}
+.d-prev i.s{height:4px;width:90%}
+.d-prev i.m{height:4px;width:82%}
+.d-kit{
+  position:absolute;left:6px;top:6px;padding:1px 6px;border-radius:3px;
+  background:rgba(20,18,14,.72);color:#fff;font-size:10px;line-height:1.6;
+}
+.d-body{padding:6px 9px 7px;display:flex;align-items:center;gap:6px}
+.d-name{flex:1;min-width:0;font-size:11.5px;color:var(--text-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-fav{width:19px;height:19px;display:grid;place-items:center;color:var(--text-muted);font-size:12px}
+
+.d-blocks{flex:none;border-top:1px solid var(--border);padding:9px 14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--bg-surface)}
+.db-label{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.05em}
+.db-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-soft);cursor:pointer}
+.db-item input{accent-color:var(--accent);width:13px;height:13px}
+
+.d-custom{flex:none;border-top:1px solid var(--border);padding:9px 14px;display:flex;gap:12px;align-items:center;background:var(--bg-surface)}
+.dc-label{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.05em}
+.dc-item{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--text-soft)}
+.dc-item input{width:20px;height:20px;padding:0;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer}
+
+/* kit 说明条 */
+.kit-note{
+  flex:none;margin:0 14px 6px;padding:8px 10px;border-radius:7px;
+  background:var(--warn-bg);border:1px solid #EBD9A8;
+  font-size:11.5px;color:#6B4E00;display:flex;align-items:center;gap:8px;
+}
+.kit-note button{margin-left:auto;padding:2px 8px;border-radius:5px;background:#fff;border:1px solid #E3CE93;font-size:11px;font-weight:600;white-space:nowrap}
+
+/* ══ B 方案：四段式 ══ */
+.sec{
+  flex:none;padding:10px 14px 8px;border-bottom:1px solid var(--border);
+}
+.sec-h{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.sec-n{
+  width:16px;height:16px;border-radius:50%;background:var(--text);color:#fff;
+  font-size:9.5px;font-weight:700;display:grid;place-items:center;flex:none;
+}
+.sec-t{font-size:11.5px;font-weight:700;color:var(--text)}
+.sec-hint{font-size:10.5px;color:var(--text-muted);margin-left:auto}
+.group-lab{font-size:10px;color:var(--text-muted);margin:5px 0 4px;font-weight:600;letter-spacing:.04em}
+
+/* ══ C 方案：主界面 ══ */
+.main-demo{
+  width:100%;max-width:1100px;background:var(--bg-canvas);border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column;
+  height:calc(100vh - 96px);
+}
+.m-top{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--bg-raised);border-bottom:1px solid var(--border);font-size:12px}
+.m-top .brand{font-weight:700;font-size:13px}
+.m-top .sep{width:1px;height:16px;background:var(--border)}
+.m-top .t{font-weight:600;color:var(--accent);font-size:12px}
+.m-top .r{margin-left:auto;display:flex;gap:6px;align-items:center;color:var(--text-muted);font-size:11.5px}
+.m-body{flex:1;display:flex;min-height:0}
+.m-pane{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.m-pane:last-child{border-right:0}
+.m-pane-h{height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--text-soft)}
+.m-pane-h .acts{margin-left:auto;display:flex;gap:5px;align-items:center;font-weight:400}
+.m-btn{height:24px;padding:0 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg-raised);font-size:11px;color:var(--text-soft)}
+.m-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.m-text{flex:1;padding:12px 14px;font-size:12.5px;line-height:1.75;color:var(--text-soft);overflow:auto;white-space:pre-wrap}
+/* 新的：可点结构条 */
+.m-struct{
+  flex:none;border-top:1px solid var(--border);padding:7px 12px;display:flex;gap:5px;flex-wrap:wrap;
+  align-items:center;background:var(--bg-surface);
+}
+.m-struct .lab{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.04em}
+.st-chip{
+  height:21px;padding:0 8px;border-radius:5px;background:var(--bg-raised);
+  border:1px solid var(--border);font-size:10.5px;color:var(--text-soft);
+  display:flex;align-items:center;gap:4px;cursor:pointer;
+}
+.st-chip b{color:var(--accent);font-weight:700}
+.st-chip:hover{border-color:var(--border-hi);background:#fff}
+.m-preview{flex:1;padding:12px;overflow:auto;background:var(--bg-canvas)}
+.pv-doc{
+  background:#fff;border:1px solid var(--border);border-radius:8px;padding:22px 20px;
+  font-size:12px;line-height:1.9;color:#222;
+}
+.pv-doc h2{font-size:15px;margin:0 0 4px;border-left:3px solid var(--accent);padding-left:8px}
+.pv-doc .h2s{font-size:12px;font-weight:700;margin:14px 0 5px;color:#111}
+.pv-doc p{margin:0 0 8px;color:#444}
+.pv-doc .quote{background:var(--accent-soft);border-left:2px solid var(--accent);padding:7px 10px;margin:9px 0;font-size:11.5px;color:#6b2c1f}
+.pv-doc ul{margin:0 0 8px;padding-left:16px;color:#444}
+/* C 的版式条提到主界面 */
+.m-laybar{
+  flex:none;border-top:1px solid var(--border);padding:8px 12px;background:var(--bg-raised);
+  display:flex;gap:5px;align-items:center;overflow-x:auto;
+}
+.m-laybar .lab{font-size:10px;font-weight:700;color:var(--text-muted);flex:none;letter-spacing:.04em;margin-right:3px}
+.m-laybar .dl-chip{flex:none;height:23px;font-size:11px;padding:0 9px}
+.m-stylebar{
+  flex:none;height:56px;border-top:1px solid var(--border);background:var(--bg-raised);
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+}
+.caps{display:flex;gap:6px;overflow-x:auto;flex:1;padding:4px 0}
+.cap{
+  flex:none;display:flex;align-items:center;gap:5px;height:26px;padding:0 9px;border-radius:99px;
+  border:1px solid var(--border);background:var(--bg-surface);font-size:11px;color:var(--text-soft);
+}
+.cap[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.cap-sw{width:12px;height:12px;border-radius:50%;position:relative;overflow:hidden;flex:none;border:1px solid rgba(0,0,0,.08)}
+.cap-sw::after{content:'';position:absolute;right:0;top:0;width:6px;height:12px;background:var(--sw2)}
+.m-more{flex:none;height:28px;padding:0 11px;border-radius:6px;background:var(--text);color:#fff;font-size:11.5px;font-weight:600}
+
+/* 标注气泡 */
+.pin{
+  display:inline-block;width:15px;height:15px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:9.5px;font-weight:700;line-height:15px;text-align:center;vertical-align:middle;
+  margin-left:5px;flex:none;
+}
+.pin.n{background:#2E7D5B}
+
+/* 对比表 */
+.cmp{border-collapse:collapse;width:100%;font-size:12px}
+.cmp th,.cmp td{border-bottom:1px solid var(--border);padding:7px 6px;text-align:left;vertical-align:top}
+.cmp th{font-size:10.5px;color:var(--text-muted);font-weight:700;letter-spacing:.04em}
+.cmp td:first-child{color:var(--text-soft);width:34%}
+.cmp .yes{color:var(--ok);font-weight:700}
+.cmp .no{color:#C0392B;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>公众号排版页 · 三个方案</h1>
+  <span class="sub">点上面切换看差别 · 抽屉都是真实尺寸等比缩放</span>
+  <nav class="tabs-nav" id="nav">
+    <button data-p="a" aria-pressed="false">A · 最小修补</button>
+    <button data-p="b" aria-pressed="true">B · 四段式</button>
+    <button data-p="c" aria-pressed="false">C · B + 主界面</button>
+  </nav>
+</div>
+
+<div class="workspace">
+  <div class="showcase" id="showcase"></div>
+  <aside class="notes" id="notes"></aside>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   真实数据（取自 pwa/src/app.js 与 public/themes/）
+   ══════════════════════════════════════════════════════════════ */
+const FAMS = [
+  ['biz','公文',24],['feast','节庆',12],['letter','信笺',24],
+  ['minimal','素页',24],['night','夜航',12],['stamp','钢印',12],['dusk','暮色',12],
+];
+
+/* 现有 8 项（pwa/src/app.js:663 实测） */
+const LAYOUTS_NOW = [
+  ['', '默认'], ['rhythm','图文节奏'], ['cardflow','卡片流'], ['outline','目录导航'],
+  ['magazine','杂志分栏'], ['hero','首屏'], ['card','卡片组'], ['timeline','时间线'],
+];
+/* 新增 7 个：引擎已有、UI 没有。纯 accent 派生，换配色成立 */
+const LAYOUTS_NEW = [
+  ['time','报刊头条'], ['guardian','栅格'], ['economist','专栏'],
+  ['natgeo','纪实'], ['vogue','时装'], ['forbes','榜单'], ['adidas','条纹'],
+];
+
+/* 主题卡：7 族 × 代表色，模拟真实模板库 */
+const THEMES = [
+  {n:'公文·湖蓝', c:'#FFFFFF', a:'#256F9D'},
+  {n:'公文·朱砂', c:'#FFFFFF', a:'#AF3E2B'},
+  {n:'信笺·竹青', c:'#F5F1E8', a:'#2E6B4F'},
+  {n:'信笺·栗棕', c:'#F5F1E8', a:'#7A4B2A'},
+  {n:'素页·墨黑', c:'#FAFAF8', a:'#111111'},
+  {n:'素页·青莲', c:'#FAFAF8', a:'#5B3FA0'},
+  {n:'钢印·铁灰', c:'#F2F2F0', a:'#333333'},
+  {n:'钢印·朱砂', c:'#F2F2F0', a:'#C0392B'},
+  {n:'夜航·藏蓝', c:'#0B1220', a:'#F5C542'},
+  {n:'夜航·湖蓝', c:'#0E1620', a:'#22D3EE'},
+  {n:'节庆·柿橙', c:'#FFF8F0', a:'#E8632C'},
+  {n:'节庆·品红', c:'#FFF0F6', a:'#D6247A'},
+  {n:'暮色·暗金', c:'#141210', a:'#D4A04A'},
+  {n:'暮色·紫藤', c:'#1A1420', a:'#A78BFA'},
+];
+const KIT = [
+  {n:'报刊头条', c:'#FAF8F4', a:'#111111', lay:'time'},
+  {n:'栅格', c:'#FFFFFF', a:'#E3120B', lay:'guardian'},
+  {n:'专栏', c:'#FFF1E8', a:'#E3120B', lay:'economist'},
+];
+
+const withAlpha = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+};
+
+/* ══ 抽屉零件 ══ */
+const head = () => `
+  <div class="d-head">
+    <b>风格库</b>
+    <input class="d-search" placeholder="搜名字或 id…">
+    <button class="d-x">×</button>
+  </div>`;
+
+const filters = () => `
+  <div class="d-filters">
+    <button class="fchip" aria-pressed="true">全部 179</button>
+    <button class="fchip">收藏 12</button>
+    ${FAMS.map(([k,label,n]) => `<button class="fchip">${label} ${n}</button>`).join('')}
+  </div>`;
+
+const layChip = ([id,label], cur='', locked=false) =>
+  `<button class="dl-chip" aria-pressed="${id===cur}" ${locked?'disabled':''}>${label}</button>`;
+
+/* 主题卡（缩略图用色块+假文字条模拟） */
+const themeCard = (t, on=false, kit=false) => `
+  <button class="d-card" aria-pressed="${on}" style="background:${t.c}">
+    <div class="d-prev" style="color:${t.a}">
+      ${kit ? `<span class="d-kit">整篇设计</span>` : ''}
+      <i class="t" style="background:${t.a}"></i>
+      <i class="s"></i><i class="m"></i>
+      <i class="s" style="width:64%"></i>
+    </div>
+    <div class="d-body" style="background:var(--bg-raised)">
+      <span class="d-name">${t.n}</span>
+      <span class="d-fav">☆</span>
+    </div>
+  </button>`;
+
+/* ══ A：最小修补 ══ */
+function renderA(){
+  return `<div class="scale-wrap"><div class="drawer">
+    ${head()}
+    ${filters()}
+    <div class="d-lays">
+      <span class="dl-label">版式</span>
+      ${[...LAYOUTS_NOW, ...LAYOUTS_NEW].map(l => layChip(l, '')).join('')}
+      <span class="pin">1</span>
+    </div>
+    <div class="d-grid">
+      ${[...KIT, ...THEMES].map((t,i) => themeCard(t, i===3, i<3)).join('')}
+    </div>
+    <div class="d-blocks">
+      <span class="db-label">段落样式</span>
+      <label class="db-item"><input type="checkbox" checked>金句</label>
+      <label class="db-item"><input type="checkbox">数据</label>
+      <label class="db-item"><input type="checkbox" checked>提示</label>
+      <span class="pin">2</span>
+    </div>
+    <div class="d-custom">
+      <span class="dc-label">自定义配色</span>
+      <label class="dc-item">底色<input type="color" value="#ffffff"></label>
+      <label class="dc-item">正文<input type="color" value="#191713"></label>
+      <label class="dc-item">强调<input type="color" value="#af3e2b"></label>
+      <button class="m-btn">恢复</button>
+    </div>
+  </div></div>`;
+}
+
+/* ══ B：四段式 ══ */
+function renderB(){
+  return `<div class="scale-wrap"><div class="drawer">
+    ${head()}
+    <div class="sec">
+      <div class="sec-h"><span class="sec-n">1</span><span class="sec-t">我要什么风格</span><span class="sec-hint">179 套 · 按族浏览</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="fchip" aria-pressed="true">全部</button>
+        <button class="fchip">收藏 12</button>
+        ${FAMS.map(([k,label]) => `<button class="fchip">${label}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-n">2</span><span class="sec-t">文章结构怎么排</span><span class="sec-hint">15 种</span></div>
+      <div class="group-lab">通用</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${LAYOUTS_NOW.map(l => layChip(l, '')).join('')}</div>
+      <div class="group-lab">报刊风 · 换任何配色都成立</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${LAYOUTS_NEW.map(l => layChip(l, '')).join('')}</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-n">3</span><span class="sec-t">段落怎么强调</span><span class="sec-hint">按内容自动识别</span></div>
+      <div style="display:flex;gap:16px">
+        <label class="db-item"><input type="checkbox" checked>金句 <span style="color:var(--text-muted)">含引号</span></label>
+        <label class="db-item"><input type="checkbox">数据 <span style="color:var(--text-muted)">含数字</span></label>
+        <label class="db-item"><input type="checkbox" checked>提示 <span style="color:var(--text-muted)">「提示：」开头</span></label>
+      </div>
+    </div>
+
+    <div class="d-grid">
+      ${[...KIT, ...THEMES].map((t,i) => themeCard(t, i===3, i<3)).join('')}
+    </div>
+  </div></div>`;
+}
+
+/* ══ C：B + 主界面 ══ */
+function renderC(){
+  return `<div class="main-demo">
+    <div class="m-top">
+      <span class="brand">SuperSu</span>
+      <span class="sep"></span>
+      <span class="t">公众号排版</span>
+      <span style="color:var(--text-muted);font-size:11.5px">小红书标题图</span>
+      <span style="color:var(--text-muted);font-size:11.5px">小红书长图文</span>
+      <div class="r"><span>引擎就绪</span><span>导出 ▾</span><span>AI</span><span>⋯</span></div>
+    </div>
+
+    <div class="m-body">
+      <section class="m-pane">
+        <div class="m-pane-h">内容
+          <div class="acts">
+            <button class="m-btn">插图</button><button class="m-btn">搜图</button>
+            <button class="m-btn">看示例</button><button class="m-btn">清空</button>
+          </div>
+        </div>
+        <div class="m-text">周末去了趟海边
+
+第一天：什么也没做
+
+两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。
+
+「后来我才发现，那天唯一拍下的照片，是手机彻底没电之前随手按的一张。」
+
+第二天：五点起床看日出
+· 五点起床，裹着被子坐在阳台上
+· 六点零七分，太阳从海平面出来
+· 六点半回去睡回笼觉，睡到九点</div>
+        <div class="m-struct">
+          <span class="lab">识别结构</span>
+          <span class="st-chip">大标题 <b>1</b></span>
+          <span class="st-chip">小标题 <b>3</b></span>
+          <span class="st-chip">段落 <b>3</b></span>
+          <span class="st-chip">金句 <b>1</b></span>
+          <span class="st-chip">列表 <b>3</b></span>
+          <span class="pin">1</span>
+        </div>
+      </section>
+
+      <section class="m-pane">
+        <div class="m-pane-h">预览
+          <div class="acts">
+            <button class="m-btn">手机</button>
+            <button class="m-btn pri">复制到公众号</button>
+          </div>
+        </div>
+        <div class="m-preview">
+          <div class="pv-doc">
+            <h2>周末去了趟海边</h2>
+            <div class="h2s">第一天：什么也没做</div>
+            <p>两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</p>
+            <div class="quote">「后来我才发现，那天唯一拍下的照片，是手机彻底没电之前随手按的一张。」</div>
+            <div class="h2s">第二天：五点起床看日出</div>
+            <ul><li>五点起床，裹着被子坐在阳台上</li><li>六点零七分，太阳从海平面出来</li></ul>
+          </div>
+        </div>
+        <div class="m-laybar">
+          <span class="lab">版式</span>
+          ${LAYOUTS_NOW.map(l => layChip(l, '')).join('')}
+          ${LAYOUTS_NEW.map(l => layChip(l, '')).join('')}
+          <span class="pin">2</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="m-stylebar">
+      <div class="caps">
+        ${[...KIT, ...THEMES].slice(0,9).map((t,i)=>`
+          <button class="cap" aria-pressed="${i===3}">
+            <span class="cap-sw" style="background:${t.c};--sw2:${t.a}"></span>${t.n}
+          </button>`).join('')}
+      </div>
+      <span class="pin">3</span>
+      <button class="m-more">全部风格</button>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════ */
+const NOTES = {
+  a: {
+    title: 'A · 最小修补',
+    tagline: '只补缺口，不动结构。版式从 8 项补到 15 项。',
+    effort: ['low','改动约 1 天 · 风险最低'],
+    problem: [
+      '版式胶囊 15 个挤成 3 行，和新加的「段落样式」混在一起',
+      '用户依然分不清「主题 / 整篇设计 / 版式」三个概念',
+      '段落开关还在最底下，不滚到底看不见',
+    ],
+    fixed: [
+      '版式入口 8 → 15（补 7 个报刊风）',
+      '色卡条不再截断在 40 个',
+      '修 clearAll() 漏删 API Key（隐私）',
+    ],
+    cmp: [['版式入口', '8', '15','15'],
+          ['三段概念分得清', '否','否','否'],
+          ['段落开关可见', '否','否','是'],
+          ['版式在一步内', '否','否','是'],
+          ['改动量', '1 天','3-5 天','5-7 天']],
+  },
+  b: {
+    title: 'B · 四段式抽屉',
+    tagline: '抽屉改成「问四个问题」，每一段回答一件事。',
+    effort: ['mid','改动约 3-5 天 · 需重跑模板库 59 项'],
+    problem: [
+      '版式依然在抽屉里，换版式要点开抽屉',
+      '主题网格被压到下方，可视区变小（约少 2 行）',
+    ],
+    fixed: [
+      '① 风格 ② 结构 ③ 段落 ④ 配色 —— 四段一问一答',
+      '版式分组：「通用 8」+「报刊风 7（换任何配色都成立）」',
+      '段落开关从底部提到第 3 段，和版式同一层',
+      '每段带一句人话说明（如「按内容自动识别」）',
+    ],
+    cmp: [['版式入口', '8', '15','15'],
+          ['三段概念分得清', '否','是','是'],
+          ['段落开关可见', '否','是','是'],
+          ['版式在一步内', '否','否','是'],
+          ['改动量', '1 天','3-5 天','5-7 天']],
+  },
+  c: {
+    title: 'C · B + 主界面重排',
+    tagline: '抽屉照 B 改，同时把高频操作提到主界面：版式常驻在预览下方。',
+    effort: ['mid','改动约 5-7 天 · 要重跑有头全量 51 项'],
+    problem: [
+      '主界面又改一次，和刚做完的封面三栏风格不统一',
+      '预览区被版式条吃掉 40px 高度（手机上更明显）',
+      '版式其实不是最高频操作 —— 换主题才是',
+    ],
+    fixed: [
+      '全部 B 的改进',
+      '版式条常驻预览下方，换版式零点击成本',
+      '识别结构变成可点击的 chips（点了能跳到原文位置）',
+      '手机端顶栏已经挤满，这次要重新分配空间',
+    ],
+    cmp: [['版式入口', '8', '15','15'],
+          ['三段概念分得清', '否','是','是'],
+          ['段落开关可见', '否','是','是'],
+          ['版式在一步内', '否','否','是'],
+          ['改动量', '1 天','3-5 天','5-7 天']],
+  },
+};
+
+function renderNotes(key){
+  const n = NOTES[key];
+  return `
+    <h2>${n.title}</h2>
+    <p class="tagline">${n.tagline}</p>
+    <span class="effort ${n.effort[0]}">${n.effort[1]}</span>
+
+    <div class="note-block good">
+      <h3>它解决了什么</h3>
+      <ul>${n.fixed.map(x=>`<li>${x}</li>`).join('')}</ul>
+    </div>
+
+    <div class="note-block bad">
+      <h3>它没解决 / 新问题</h3>
+      <ul>${n.problem.map(x=>`<li>${x}</li>`).join('')}</ul>
+    </div>
+
+    <div class="note-block">
+      <h3>三个方案对比</h3>
+      <table class="cmp">
+        <tr><th></th><th>A</th><th>B</th><th>C</th></tr>
+        <tr><td>版式入口</td><td>15</td><td>15</td><td>15</td></tr>
+        <tr><td>概念分得清</td><td class="no">否</td><td class="yes">是</td><td class="yes">是</td></tr>
+        <tr><td>段落开关可见</td><td class="no">否</td><td class="yes">是</td><td class="yes">是</td></tr>
+        <tr><td>版式一步内</td><td class="no">否</td><td class="no">否</td><td class="yes">是</td></tr>
+        <tr><td>改动量</td><td>1 天</td><td>3-5 天</td><td>5-7 天</td></tr>
+        <tr><td>回归风险</td><td class="yes">低</td><td>中</td><td class="no">高</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+const RENDER = { a: renderA, b: renderB, c: renderC };
+
+function show(key){
+  document.getElementById('showcase').innerHTML = RENDER[key]();
+  document.getElementById('notes').innerHTML = renderNotes(key);
+  document.querySelectorAll('#nav button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.p === key));
+  });
+}
+document.getElementById('nav').onclick = (e) => {
+  const b = e.target.closest('button');
+  if (b) show(b.dataset.p);
+};
+show('b');
+</script>
+</body>
+</html>

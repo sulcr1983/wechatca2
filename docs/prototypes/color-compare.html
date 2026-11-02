@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>配色对比 · 冷调 vs 暖调 vs 原版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   三套配色并排对比
+   所有方案都来自 ui-ux-pro-max Skill 的 colors.csv，不是我自己编的。
+   ──────────────────────────────────────────────────────────────
+   A  冷调 Teal   → Minimalism & Swiss Style（design-system MASTER.md）
+   B  暖调 Amber  → Book & Reading Tracker
+   C  原版 朱砂   → 项目现有的暖纸朱砂（对照基线）
+   ══════════════════════════════════════════════════════════════ */
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font:14px/1.6 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background:#15191B; color:#E8ECEF; -webkit-font-smoothing:antialiased;
+}
+.page{padding:26px 24px 80px;max-width:1720px;margin:0 auto}
+
+h1{font-size:22px;margin:0 0 6px;font-weight:700;letter-spacing:-.02em}
+.lede{color:#8C9BA3;font-size:13.5px;margin:0 0 8px;max-width:900px}
+.lede b{color:#D7E0E5}
+.src{
+  display:inline-block;margin-top:4px;padding:4px 10px;border-radius:6px;
+  background:rgba(255,255,255,.06);font-size:11.5px;color:#93A5AE;
+}
+
+/* 三栏 */
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:22px}
+@media(max-width:1200px){.cols{grid-template-columns:1fr}}
+
+.col{border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:#1B2023}
+.col-head{padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.col-head .tag{
+  display:inline-block;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;
+}
+.col-head h2{font-size:15px;margin:0 0 3px;font-weight:600}
+.col-head p{margin:0;font-size:11.5px;color:#8C9BA3}
+
+/* 色板条 */
+.swatches{display:flex;gap:0;height:34px}
+.swatches div{flex:1;position:relative}
+.swatches div span{
+  position:absolute;left:5px;bottom:3px;font-size:8.5px;
+  font-family:ui-monospace,'JetBrains Mono',monospace;
+  color:rgba(0,0,0,.55);font-weight:600;
+}
+.swatches div[data-dark="1"] span{color:rgba(255,255,255,.7)}
+
+/* 模拟界面 */
+.sim{background:var(--bg);color:var(--fg);min-height:560px}
+.sim-top{
+  height:48px;display:flex;align-items:center;gap:12px;padding:0 16px;
+  background:var(--card);border-bottom:1px solid var(--border);
+}
+.sim-brand{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13px}
+.sim-mark{
+  width:24px;height:24px;border-radius:6px;background:var(--primary);
+  color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;
+}
+.sim-tab{
+  height:28px;padding:0 11px;border-radius:6px;font-size:12px;font-weight:500;
+  color:var(--muted-fg);
+}
+.sim-tab.on{background:var(--primary);color:#fff;font-weight:600}
+.sim-r{margin-left:auto;display:flex;gap:7px;align-items:center}
+.sim-badge{
+  display:flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:99px;
+  background:var(--badge-bg);color:var(--badge-fg);font-size:10.5px;font-weight:600;
+}
+.sim-badge i{width:5px;height:5px;border-radius:50%;background:currentColor}
+.sim-btn{
+  height:28px;padding:0 11px;border-radius:6px;border:1px solid var(--border);
+  background:var(--card);font-size:11.5px;color:var(--fg);font-weight:500;
+}
+.sim-btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+
+.sim-body{display:flex;min-height:400px}
+.sim-pane{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.sim-pane:last-child{border-right:0}
+.sim-ph{
+  height:38px;display:flex;align-items:center;gap:7px;padding:0 14px;
+  border-bottom:1px solid var(--border);background:var(--card);
+  font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg);
+}
+.sim-ph .a{margin-left:auto;display:flex;gap:6px}
+.sim-text{
+  flex:1;padding:14px 16px;font-size:13px;line-height:1.75;color:var(--fg);
+  background:var(--card);white-space:pre-wrap;
+}
+.sim-pv{
+  flex:1;padding:16px;background:var(--bg);display:flex;justify-content:center;
+  overflow:hidden;
+}
+.sim-doc{
+  width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:20px 18px;box-shadow:var(--shadow);
+  font-size:12.5px;line-height:1.8;color:var(--doc-fg);align-self:flex-start;
+}
+.sim-doc h3{font-size:16px;margin:0 0 5px;color:var(--primary);font-weight:700;line-height:1.35}
+.sim-doc .s{font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--doc-fg)}
+.sim-doc p{margin:0 0 9px}
+.sim-doc .q{
+  margin:11px 0;padding:10px 12px;border-left:3px solid var(--primary);
+  background:var(--quote-bg);border-radius:0 6px 6px 0;font-size:11.5px;color:var(--muted-fg);
+}
+.sim-doc ul{margin:0 0 9px;padding-left:18px}
+.sim-doc li{margin-bottom:3px}
+
+/* 底部条 */
+.sim-bars{border-top:1px solid var(--border);background:var(--card)}
+.sim-lay{
+  height:34px;display:flex;align-items:center;gap:8px;padding:0 14px;
+  border-bottom:1px solid var(--border);font-size:11px;
+}
+.sim-lay .ll{font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-fg);font-size:10px}
+.sim-lay .lv{font-weight:600;color:var(--fg)}
+.sim-lay .lc{
+  height:22px;padding:0 8px;border-radius:5px;border:1px solid var(--border);
+  background:var(--card);font-size:10.5px;color:var(--muted-fg);
+}
+.sim-lay .lc.on{border-color:var(--primary);background:var(--sel-bg);color:var(--sel-fg);font-weight:600}
+.sim-caps{
+  height:52px;display:flex;align-items:center;gap:7px;padding:0 14px;overflow:hidden;
+  mask-image:linear-gradient(to right,#000 88%,transparent);
+  -webkit-mask-image:linear-gradient(to right,#000 88%,transparent);
+}
+.sim-caps .cap{
+  flex:none;display:flex;align-items:center;gap:6px;height:27px;padding:0 10px;
+  border-radius:99px;border:1px solid var(--border);background:var(--card);
+  font-size:11px;color:var(--fg);white-space:nowrap;
+}
+.sim-caps .cap.on{border-color:var(--primary);background:var(--sel-bg);color:var(--sel-fg);font-weight:600}
+.sim-caps .sw{width:12px;height:12px;border-radius:50%;position:relative;overflow:hidden;flex:none;border:1px solid rgba(0,0,0,.1)}
+.sim-caps .sw::after{content:'';position:absolute;right:0;top:0;width:6px;height:12px;background:var(--sw2)}
+.sim-caps .more{
+  flex:none;height:29px;padding:0 12px;border-radius:99px;
+  background:var(--fg);color:var(--bg);font-size:11.5px;font-weight:600;
+}
+
+/* 说明区 */
+.notes{margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:1200px){.notes{grid-template-columns:1fr}}
+.note{
+  background:#1B2023;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:15px 16px;
+  font-size:12.5px;line-height:1.65;
+}
+.note h3{font-size:12px;margin:0 0 8px;letter-spacing:.06em;text-transform:uppercase;color:#8C9BA3}
+.note ul{margin:0;padding-left:0;list-style:none}
+.note li{padding:4px 0 4px 16px;position:relative;color:#B9C6CD}
+.note li::before{content:'';position:absolute;left:2px;top:10px;width:4px;height:4px;border-radius:50%;background:#5E7A85}
+.note.good li::before{background:#22C55E}
+.note.bad li::before{background:#EF4444}
+.note.good li,.note.bad li{color:#D7E0E5}
+
+.verdict{margin-top:24px;background:#1B2023;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px 20px}
+.verdict h2{font-size:15px;margin:0 0 10px}
+.verdict table{border-collapse:collapse;width:100%;font-size:12.5px}
+.verdict th,.verdict td{border-bottom:1px solid rgba(255,255,255,.07);padding:8px 6px;text-align:left}
+.verdict th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#8C9BA3;font-weight:700}
+.verdict td:first-child{color:#93A5AE;width:26%}
+.verdict .yes{color:#22C55E;font-weight:700}
+.verdict .no{color:#EF4444;font-weight:700}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>配色对比 · 冷调 / 暖调 / 原版</h1>
+<p class="lede">
+三套配色<b>都来自 ui-ux-pro-max Skill 的 colors.csv</b>（第三套是项目现有），
+布局、间距、字号<b>完全一致</b>，只换色板 —— 这样比出来的差异才是配色本身的差异。
+</p>
+<span class="src">数据源：.claude/skills/ui-ux-pro-max/data/colors.csv</span>
+
+<div class="cols">
+
+  <!-- ══ A 冷调 ══ -->
+  <div class="col"
+    style="--primary:#0D9488;--fg:#134E4A;--bg:#F0FDFA;--card:#FFFFFF;
+           --border:#99F6E4;--muted-fg:#475569;--accent:#EA580C;--on-accent:#fff;
+           --badge-bg:#D9F4EF;--badge-fg:#0B6B62;--quote-bg:#F7FEFD;
+           --doc-fg:#1F2937;--sel-bg:#D9F4EF;--sel-fg:#0B6B62;
+           --shadow:0 4px 6px rgba(0,0,0,.08)">
+    <div class="col-head">
+      <span class="tag" style="background:#0D9488;color:#fff">A · 冷调</span>
+      <h2>Teal + Orange</h2>
+      <p>Minimalism &amp; Swiss Style · Skill 推荐给 Productivity Tool</p>
+    </div>
+    <div class="swatches">
+      <div style="background:#0D9488"><span>#0D9488</span></div>
+      <div style="background:#EA580C"><span>#EA580C</span></div>
+      <div style="background:#F0FDFA"><span>#F0FDFA</span></div>
+      <div style="background:#134E4A" data-dark="1"><span>#134E4A</span></div>
+      <div style="background:#99F6E4"><span>#99F6E4</span></div>
+    </div>
+    <div class="sim">
+      <div class="sim-top">
+        <div class="sim-brand"><span class="sim-mark">S</span>SuperSu</div>
+        <span class="sim-tab on">公众号排版</span>
+        <span class="sim-tab">标题图</span>
+        <span class="sim-tab">长图文</span>
+        <div class="sim-r">
+          <span class="sim-badge"><i></i>就绪</span>
+          <span class="sim-btn pri">复制</span>
+        </div>
+      </div>
+      <div class="sim-body">
+        <div class="sim-pane">
+          <div class="sim-ph">内容<span class="a"><span class="sim-btn">插图</span></span></div>
+          <div class="sim-text">周末去了趟海边
+
+第一天：什么也没做
+
+两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</div>
+        </div>
+        <div class="sim-pane">
+          <div class="sim-ph">预览<span class="a"><span class="sim-btn">手机</span></span></div>
+          <div class="sim-pv">
+            <div class="sim-doc">
+              <h3>周末去了趟海边</h3>
+              <div class="s">第一天：什么也没做</div>
+              <p>两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</p>
+              <div class="q">「后来我才发现，那天唯一拍下的照片…」</div>
+              <ul><li>五点起床</li><li>六点零七分看日出</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sim-bars">
+        <div class="sim-lay">
+          <span class="ll">版式</span><span class="lv">默认</span>
+          <span class="lc on">默认</span><span class="lc">图文节奏</span><span class="lc">卡片流</span>
+        </div>
+        <div class="sim-caps">
+          <span class="cap on"><span class="sw" style="background:#fff;--sw2:#0D9488"></span>公文·湖蓝</span>
+          <span class="cap"><span class="sw" style="background:#fff;--sw2:#AF3E2B"></span>公文·朱砂</span>
+          <span class="cap"><span class="sw" style="background:#F5F1E8;--sw2:#2E6B4F"></span>信笺·竹青</span>
+          <span class="more">全部风格</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ B 暖调 ══ -->
+  <div class="col"
+    style="--primary:#78716C;--fg:#0F172A;--bg:#FFFBEB;--card:#FFFFFF;
+           --border:#EEEDED;--muted-fg:#475569;--accent:#D97706;--on-accent:#000;
+           --badge-bg:#FEF3C7;--badge-fg:#92400E;--quote-bg:#FFFBEB;
+           --doc-fg:#1F2937;--sel-bg:#FEF3C7;--sel-fg:#92400E;
+           --shadow:0 4px 6px rgba(0,0,0,.08)">
+    <div class="col-head">
+      <span class="tag" style="background:#D97706;color:#000">B · 暖调</span>
+      <h2>Warm Amber + Stone</h2>
+      <p>Book &amp; Reading Tracker · 暖米底 + 琥珀强调</p>
+    </div>
+    <div class="swatches">
+      <div style="background:#78716C" data-dark="1"><span>#78716C</span></div>
+      <div style="background:#D97706"><span>#D97706</span></div>
+      <div style="background:#FFFBEB"><span>#FFFBEB</span></div>
+      <div style="background:#0F172A" data-dark="1"><span>#0F172A</span></div>
+      <div style="background:#EEEDED"><span>#EEEDED</span></div>
+    </div>
+    <div class="sim">
+      <div class="sim-top">
+        <div class="sim-brand"><span class="sim-mark">S</span>SuperSu</div>
+        <span class="sim-tab on">公众号排版</span>
+        <span class="sim-tab">标题图</span>
+        <span class="sim-tab">长图文</span>
+        <div class="sim-r">
+          <span class="sim-badge"><i></i>就绪</span>
+          <span class="sim-btn pri">复制</span>
+        </div>
+      </div>
+      <div class="sim-body">
+        <div class="sim-pane">
+          <div class="sim-ph">内容<span class="a"><span class="sim-btn">插图</span></span></div>
+          <div class="sim-text">周末去了趟海边
+
+第一天：什么也没做
+
+两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</div>
+        </div>
+        <div class="sim-pane">
+          <div class="sim-ph">预览<span class="a"><span class="sim-btn">手机</span></span></div>
+          <div class="sim-pv">
+            <div class="sim-doc">
+              <h3>周末去了趟海边</h3>
+              <div class="s">第一天：什么也没做</div>
+              <p>两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</p>
+              <div class="q">「后来我才发现，那天唯一拍下的照片…」</div>
+              <ul><li>五点起床</li><li>六点零七分看日出</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sim-bars">
+        <div class="sim-lay">
+          <span class="ll">版式</span><span class="lv">默认</span>
+          <span class="lc on">默认</span><span class="lc">图文节奏</span><span class="lc">卡片流</span>
+        </div>
+        <div class="sim-caps">
+          <span class="cap on"><span class="sw" style="background:#fff;--sw2:#0D9488"></span>公文·湖蓝</span>
+          <span class="cap"><span class="sw" style="background:#fff;--sw2:#AF3E2B"></span>公文·朱砂</span>
+          <span class="cap"><span class="sw" style="background:#F5F1E8;--sw2:#2E6B4F"></span>信笺·竹青</span>
+          <span class="more">全部风格</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ C 原版 ══ -->
+  <div class="col"
+    style="--primary:#AF3E2B;--fg:#191713;--bg:#F7F4EE;--card:#FFFFFF;
+           --border:#EAE6DD;--muted-fg:#9A9285;--accent:#AF3E2B;--on-accent:#fff;
+           --badge-bg:#EAF4EF;--badge-fg:#2E7D5B;--quote-bg:rgba(175,62,43,.06);
+           --doc-fg:#222;--sel-bg:rgba(175,62,43,.08);--sel-fg:#AF3E2B;
+           --shadow:0 4px 14px rgba(30,25,15,.06)">
+    <div class="col-head">
+      <span class="tag" style="background:#AF3E2B;color:#fff">C · 原版</span>
+      <h2>暖纸朱砂</h2>
+      <p>项目现有配色（对照基线）</p>
+    </div>
+    <div class="swatches">
+      <div style="background:#AF3E2B"><span>#AF3E2B</span></div>
+      <div style="background:#6B6555" data-dark="1"><span>#6B6555</span></div>
+      <div style="background:#F7F4EE"><span>#F7F4EE</span></div>
+      <div style="background:#191713" data-dark="1"><span>#191713</span></div>
+      <div style="background:#EAE6DD"><span>#EAE6DD</span></div>
+    </div>
+    <div class="sim">
+      <div class="sim-top">
+        <div class="sim-brand"><span class="sim-mark">S</span>SuperSu</div>
+        <span class="sim-tab on">公众号排版</span>
+        <span class="sim-tab">标题图</span>
+        <span class="sim-tab">长图文</span>
+        <div class="sim-r">
+          <span class="sim-badge"><i></i>就绪</span>
+          <span class="sim-btn pri">复制</span>
+        </div>
+      </div>
+      <div class="sim-body">
+        <div class="sim-pane">
+          <div class="sim-ph">内容<span class="a"><span class="sim-btn">插图</span></span></div>
+          <div class="sim-text">周末去了趟海边
+
+第一天：什么也没做
+
+两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</div>
+        </div>
+        <div class="sim-pane">
+          <div class="sim-ph">预览<span class="a"><span class="sim-btn">手机</span></span></div>
+          <div class="sim-pv">
+            <div class="sim-doc">
+              <h3>周末去了趟海边</h3>
+              <div class="s">第一天：什么也没做</div>
+              <p>两天里我没看手机，也没带相机。风把头发吹得乱七八糟，我坐在礁石上看了很久的海。</p>
+              <div class="q">「后来我才发现，那天唯一拍下的照片…」</div>
+              <ul><li>五点起床</li><li>六点零七分看日出</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sim-bars">
+        <div class="sim-lay">
+          <span class="ll">版式</span><span class="lv">默认</span>
+          <span class="lc on">默认</span><span class="lc">图文节奏</span><span class="lc">卡片流</span>
+        </div>
+        <div class="sim-caps">
+          <span class="cap on"><span class="sw" style="background:#fff;--sw2:#0D9488"></span>公文·湖蓝</span>
+          <span class="cap"><span class="sw" style="background:#fff;--sw2:#AF3E2B"></span>公文·朱砂</span>
+          <span class="cap"><span class="sw" style="background:#F5F1E8;--sw2:#2E6B4F"></span>信笺·竹青</span>
+          <span class="more">全部风格</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 说明 -->
+<div class="notes">
+  <div class="note">
+    <h3>A · Teal + Orange</h3>
+    <ul>
+      <li><b>来源</b>：Skill 的 design-system 输出（Productivity Tool）</li>
+      <li>青绿 = 专注/冷静，适合长时间写作</li>
+      <li>橙色只做 CTA，主次分明</li>
+      <li>极浅青底（#F0FDFA）比纯白柔和</li>
+    </ul>
+  </div>
+  <div class="note">
+    <h3>B · Amber + Stone</h3>
+    <ul>
+      <li><b>来源</b>：Skill 的 Book &amp; Reading Tracker</li>
+      <li>暖米底（#FFFBEB）像纸，贴合「写作工具」</li>
+      <li>琥珀（#D97706）比朱砂亮，更现代</li>
+      <li>主色是石灰（#78716C），克制</li>
+    </ul>
+  </div>
+  <div class="note">
+    <h3>C · 暖纸朱砂（现状）</h3>
+    <ul>
+      <li>朱砂（#AF3E2B）偏暗、偏旧</li>
+      <li>米黄底（#F7F4EE）饱和度低，容易显脏</li>
+      <li>主色同时当 CTA，主次不分</li>
+      <li>但中文书卷气最足</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 对比表 -->
+<div class="verdict">
+  <h2>怎么选</h2>
+  <table>
+    <tr>
+      <th></th><th>A 冷调</th><th>B 暖调</th><th>C 原版</th>
+    </tr>
+    <tr>
+      <td>气质</td><td>现代工具 / 冷静</td><td>纸感书卷 / 温润</td><td>旧纸 / 朱砂印</td>
+    </tr>
+    <tr>
+      <td>长时间写作舒适度</td><td class="yes">高（青绿降疲劳）</td><td class="yes">高（暖米护眼）</td><td>中（米黄偏低饱和）</td>
+    </tr>
+    <tr>
+      <td>主色与 CTA 是否分开</td><td class="yes">分开（teal / orange）</td><td class="yes">分开（stone / amber）</td><td class="no">同一个朱砂</td>
+    </tr>
+    <tr>
+      <td>和「整篇设计」的 15 套是否冲突</td><td>不冲突（中性底）</td><td>可能冲突（都是暖调）</td><td>可能冲突</td>
+    </tr>
+    <tr>
+      <td>改动量</td><td>全量换色板</td><td>全量换色板</td><td>零</td>
+    </tr>
+  </table>
+
+  <h2 style="margin-top:20px">我的判断</h2>
+  <p style="color:#B9C6CD;font-size:13px;line-height:1.75;margin:0">
+    如果目标是「像专业写作工具」→ <b style="color:#5EEAD4">A 冷调</b>。<br>
+    如果目标是「保住中文书卷气」→ <b style="color:#FCD34D">B 暖调</b>，它比现在的朱砂更亮、更干净。<br>
+    <b style="color:#FCA5A5">C 不建议保留</b>：主色同时当 CTA 是最明显的问题，而且在浅色底上朱砂偏暗，对比度不如 B 的琥珀。
+    <br><br>
+    ⚠️ 但有个隐藏风险：<b>「整篇设计」那 15 套里有 8 套是暖调</b>（无印良品、森系、浮世绘、笔记纸底…）。
+    界面底色如果也是暖的，选这些设计时层级会糊在一起。冷调界面反而能衬托它们。
+  </p>
+</div>
+
+</div>
+</body>
+</html>

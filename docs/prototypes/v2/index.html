@@ -68,7 +68,7 @@ code{background:var(--sunken);padding:1px 5px;border-radius:4px;font-size:11.5px
       <div class="k">模块一</div>
       <div class="t">标题图 <i>→</i></div>
       <p class="d">左写文案与配图，中间画布，右边 26 套版式常驻。有图才有图文版式，没图就只给纯文字。</p>
-      <div class="m"><span>版式 <b>26</b></span><span>配色 <b>20</b></span><span>字体 <b>10</b></span><span>一屏全见 <b>16 套</b></span></div>
+      <div class="m"><span>版式 <b>26</b></span><span>配色 <b>20</b></span><span>字体 <b>10</b></span><span>一屏全见 <b>26 套</b></span></div>
     </a>
     <a class="card" href="./longform.html">
       <div class="k">模块二</div>
@@ -84,7 +84,7 @@ code{background:var(--sunken);padding:1px 5px;border-radius:4px;font-size:11.5px
     <tr>
       <td><b>版式看不见</b><br><span class="q">几何按 9 套设计，版式已 26 套</span></td>
       <td class="bad">右栏 360px / 3 列 107px<br>16 套里同屏只见 10 张，第 4 行切一半</td>
-      <td class="good">右栏 520px / 5 列 94px<br>16 套<b>全部一屏可见</b>（632/632 不滚）</td>
+      <td class="good">右栏 520px / <b>5 列 94px</b>（有图自动 6 列 78px）<br>16 套与 26 套<b>都一屏可见</b>（610 / 636px，均 &lt; 661 可用高度）</td>
     </tr>
     <tr>
       <td><b>有图不解锁图文版式</b><br><span class="q">可见性绑在 Key 上</span></td>
@@ -105,6 +105,11 @@ code{background:var(--sunken);padding:1px 5px;border-radius:4px;font-size:11.5px
       <td><b>颜色单调没解决</b><br><span class="q">多巴胺只改了 accent</span></td>
       <td class="bad">纸色一律近白，16 张缩略图<b>只有 7 种底色</b><br>「淡黄」变成「淡粉」</td>
       <td class="good">三族 20 套：纸感 9 / <b>浓郁 6</b> / 暗夜 5<br>16 张缩略图 <b>11 种底色</b></td>
+    </tr>
+    <tr>
+      <td><b>多巴胺当默认太花</b><br><span class="q">本轮复核新增（用户原话：<br>「不是说不行，但作为默认界面不好看」）</span></td>
+      <td class="bad">缩略图按固定数组 <code>ROT</code> 轮转<br>16 张里 <b>6 张铺满荧光色</b>，第 1 行连出 3 张</td>
+      <td class="good">改为<b>按版式 id 显式指定</b>视觉角色<br>10 纸感 + 4 暗夜 + <b>2 浓郁</b>（金句紫 / 警示橙）</td>
     </tr>
   </table>
 
@@ -128,13 +133,32 @@ code{background:var(--sunken);padding:1px 5px;border-radius:4px;font-size:11.5px
        玩法与位置两行是工具字，用 12px 才排得下一行，把 31px 让给版式区。</p>
   </div>
 
-  <h2>还没定的 4 件事（要你拍板）</h2>
+  <h2>已拍板（2026-11-02）</h2>
   <div class="box">
     <ul>
-      <li><b>26 套要不要一屏全看？</b>现在 16 全见、26 滚 1.2 行。要全看得 5 列 74px，我认为不值得。备选：全屏总览（已有入口）。</li>
-      <li><b>「有图才出图文版式」这个修订落不落？</b>我按「有图」判断，偏离了原话「没 API 只出纯文字」。</li>
-      <li><b>九宫格要不要配一套专用版式？</b>现在是「预警 + 一键铺满」，复用已有能力。</li>
-      <li><b>长图文那 13 套配色还是老表</b>（部分不达 AA）。两套色板来源不同，合并要先定口径。</li>
+      <li><b>26 套要不要一屏全看？</b>✅ <b>要</b>。已实现：<b>按可用高度自动算列数</b>
+        （16 套落 5 列 94px、26 套落 6 列 78px），960 高的笔记本上两者都一屏放下、
+        不滚动，且不需要压到 74px。手动点密度按钮可临时覆盖，再点同键恢复自动。</li>
+      <li><b>「有图才出图文版式」这个修订落不落？</b>✅ <b>落</b>。可见性绑「有没有一张图」，
+        不绑 Key —— 上传自己的照片同样解锁 26 套。这条代码里已实现（<code>layVisible</code>），
+        原注释里那句「必须和用户确认」可以删了。</li>
+      <li><b>九宫格要不要配一套专用版式？</b>✅ <b>要</b>。当前是「预警 + 一键铺满」，
+        专用版式属新功能，排在原型定稿之后做，不在本轮范围内。</li>
+      <li><b>长图文那 13 套配色要不要并入标题图那 20 套？</b>✅ <b>不合并</b>，两者是不同的东西。
+        长图文配色来自模板本身（<code>palette:null</code>），强行合并会让色卡大面积回落。</li>
+    </ul>
+  </div>
+
+  <h2>本轮还修的三处</h2>
+  <div class="box">
+    <ul>
+      <li><b>左栏 500px 空白</b>：文案框改 <code>flex:1</code> 吃掉剩余高度（960 高下 88px → 466px），
+        留白落在输入框内部而不是页面底部。</li>
+      <li><b>「三个小贴士」常驻</b>：AGENTS §12 条 1 写着「个人工具不加常驻新手引导」，
+        改为 <code>&lt;details&gt;</code> 折叠、默认收起（120px → 39px）。</li>
+      <li><b>两处死链</b>：<code>longform.html</code> 的导航指向不存在的
+        <code>ux-a-three-col.html</code> / <code>ux-longform.html</code>；索引页也说「旧版仍在」。
+        全部改为 <code>title.html</code> / <code>longform.html</code>。</li>
     </ul>
   </div>
 
@@ -143,7 +167,8 @@ code{background:var(--sunken);padding:1px 5px;border-radius:4px;font-size:11.5px
     <code>scripts/cdp_shot.mjs</code>（1:1 像素）·
     <code>scripts/cdp_measure.mjs</code>（DOM 量取）·
     <code>scripts/gen_v2_palettes.mjs</code>（配色对比度反解与校验）<br>
-    旧版仍在：<code>../ux-a-three-col.html</code> / <code>../ux-longform.html</code>，可对着看差异。
+    两页原型：<a href="title.html">标题图</a> / <a href="longform.html">长图文</a>
+    （V1 那两份 <code>ux-*.html</code> 已删除，不再保留对照）。
   </div>
 </div>
 </body>

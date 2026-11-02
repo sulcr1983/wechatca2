@@ -45,33 +45,73 @@ const V2_PALS = [
 PALS.length = 0;
 V2_PALS.forEach((p) => PALS.push(p));
 
-/* ── 3. 版式：编号修正 + 每套都配齐「纸感 / 暗夜」 ────────────────────
+/* ── 3. 版式：编号修正 + 缩略图默认色按「视觉角色」显式指定 ──────────
    修的三件事：
    a) `number`(编号大字) 原来标 S09，与 `kpi-tower`(数字塔) 撞号 —— 配方 S09 是 KPI Tower，
       编号大字是产品原有的，没有配方出处，编号应该是「—」。
-   b) 每套版式的配色原来被「按索引轮转追加 2 套多巴胺」洗成 4–6 个近白纸色，
-      `bigtype` 甚至只剩 番茄红/亮橙/酸性黄/柑橘橙 —— 想做一个安静封面无路可走。
-      现在每套固定包含：1 纸感 + 1 暗夜 + 自己的主色。
-   c) 默认色（pals[0]）按 20 套调色板轮转，保证相邻卡片「明度不同」，
-      一屏扫过去是彩色的，不是一堵米黄墙。 */
+   b) 【本轮修正·对抗性复核结论】缩略图默认色原按固定数组 `ROT` 轮转，而 `palFor()`
+      永远取 `pals[0]` —— 实测 16 张卡里 **6 张是铺满整块的荧光色**，且第 1 行连出 3 张。
+      用户原话：「多巴胺这种样式不是说不行，但是不够好看，作为默认的界面不好看」。
+      根因不是配色表（20 套本身没问题），是「把高饱和色均匀塞进缩略图第一位」这条抽样规则。
+      数学轮转还有个隐患：版式**显示顺序**是 orderedLays() 重排后的（现有 → 图文 → 纯文字），
+      与 LAYS 数组顺序不同，所以按数组索引算的节奏在墙上必然错位。
+      改为**按版式 id 显式指定**，一个版式一个颜色 —— 可读、可控、跟显示顺序解耦。
+   c) 三个视觉角色（这才是「好看」的定义，不是「消灭饱和色」）：
+      ① 纸感为主：浅暖底，墙面绝大部分是可以久看的底
+      ② 暗夜配重：结构型版式（清单/章节/对比/数据）给深底，语义上就该压场，同时给墙明暗层次
+      ③ 浓郁点缀：**只留 2 张**（金句=丁香紫、警示清单=安全橙，橙色还贴合语义），
+         位置在第 1、15 张，**不连成排** —— 饱和色是亮点不是底色。
+      实测目标：16 张 = 10 纸感 + 4 暗夜 + 2 浓郁。 */
 const _fixCode = { number: '—' };
 LAYOUTS_FIX();
 function LAYOUTS_FIX() {
-  const ROT = ['coral', 'dune', 'lilac', 'warm', 'lime', 'butter', 'ikb', 'kraft',
-    'azure', 'midnight', 'mint', 'navy', 'classic', 'indigo', 'ink', 'safety',
-    'lemon', 'forest', 'neon', 'magenta'];
-  const NEED = { paper: 'warm', dark: 'midnight' };
-  LAYS.forEach((l, i) => {
+  /* 每个版式一个默认色。前半是纯文字版式（决定 16 张默认墙面的观感），
+     后半是图文版式（底图盖住大半，底色只影响留白区）。 */
+  const THUMB = {
+    /* ── 纯文字（无图时可见的 16 张）── */
+    'quote':          'lilac',     // 浓郁①：墙上唯一的高饱和亮点，放在第 1 张
+    'bigtype':        'warm',      // 默认选中项，必须最安静
+    'list':           'midnight',
+    'number':         'classic',
+    'swiss':          'ikb',
+    'closing-note':   'dune',
+    'tall-ledger':    'kraft',
+    'section-divider':'ink',
+    'hero-question':  'classic',
+    'pipeline':       'dune',
+    'before-after':   'midnight',
+    'two-signals':    'warm',
+    'data-layer':     'navy',
+    'takeaway':       'forest',
+    'warning':        'safety',    // 浓郁②：语义就是橙色警示
+    'kpi-tower':      'ikb',
+    /* ── 图文（有图时插在前面，共 26 张）── */
+    'image-led':      'dune',
+    'magazine':       'forest',
+    'field-note':     'kraft',
+    'essay-split':    'dune',
+    'evidence-wall':  'classic',
+    'feature':        'dune',
+    'atmos-thesis':   'ink',
+    'marginalia':     'kraft',
+    'matrix':         'ikb',
+    'image-hero':     'ink',
+  };
+  /* 补色池：把三类色都摸得到，保证配色行不会只剩纸黄。 */
+  const PAPER_EXTRA = ['warm', 'classic', 'dune', 'kraft', 'ikb'];
+  const DARK_EXTRA = ['midnight', 'ink', 'navy'];
+  const BOLD_EXTRA = ['lilac', 'coral', 'azure', 'mint', 'butter', 'lime'];
+  LAYS.forEach((l) => {
     l.code = _fixCode[l.id] || l.code;
     l.fam = l.needImg ? 'img' : 'text';
-    /* 每套都要「纸感 + 暗夜」两种退路：想安静有暖纸，想压场有墨夜。
-       上一版把 bigtype 的配色洗成 4 个暖色，等于让人没法做一个安静封面。 */
-    const own = NEED[l.needImg ? 'dark' : 'paper'];
-    const base = l.needImg ? ['kraft', 'dune', 'midnight', 'classic'] : ['warm', 'classic', 'midnight', 'ikb'];
-    l.pals = [ROT[i % ROT.length], ...base, own, ...(l.pals || [])]
+    const own = THUMB[l.id] || (l.needImg ? 'kraft' : 'warm');
+    /* 配色行：缩略图色放第一（它决定卡面，也决定一打开选中哪套），
+       版式**原本的推荐色**紧跟（那是有设计意图的，别抢它的位置），
+       最后补通用池 —— 纸感 / 暗夜 / 浓郁三类都摸得到。 */
+    l.pals = [own, ...(l.pals || []), ...PAPER_EXTRA, ...DARK_EXTRA, ...BOLD_EXTRA]
       .filter((v, j, a) => a.indexOf(v) === j)
       .filter((v) => PALS.some((p) => p.key === v))
-      .slice(0, 6);
+      .slice(0, 10);
   });
 }
 

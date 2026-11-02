@@ -72,11 +72,18 @@ input,textarea{font:inherit;color:inherit}
 .blk-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .blk-t{font-size:11px;font-weight:700;color:var(--soft);letter-spacing:.05em}
 .cnt{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* 文案框吃掉剩余高度：左栏 236px 只有这一个高频输入区，
+   把空白留在它下面 = 一块没有功能的灰色带（960 高下实测 500px）。
+   让它 flex:1 之后，写长文时可见行数从 4 行涨到 20+ 行，
+   短文案时空白也落在输入框内部（用户视作写作空间），而不是页面底部。 */
 #txt{
-  width:100%;min-height:88px;max-height:190px;resize:none;border:1px solid var(--border);
+  width:100%;min-height:88px;resize:none;border:1px solid var(--border);
   border-radius:var(--r);background:var(--raised);padding:9px 10px;font-size:13px;line-height:1.65;outline:0;
+  flex:1 1 auto;
 }
 #txt:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+/* 文案块本身也要能撑开 */
+#col-w > .blk:first-child{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
 .mini{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
 .mini button{
   height:24px;padding:0 9px;border-radius:5px;border:1px solid var(--border);
@@ -124,8 +131,22 @@ input,textarea{font:inherit;color:inherit}
   padding:0 9px;font-size:12px;outline:0;
 }
 .field:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
-.tips{margin-top:auto;padding:14px 14px 16px;border-top:1px solid var(--border)}
-.tips-h{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-bottom:8px}
+/* 贴士：折叠式，**默认收起**。
+   AGENTS §12 条 1 明确写着「个人工具，唯一高频用户＝本人 → 不加常驻新手引导」。
+   原来这 3 段常驻占 120px，第 4 次打开就是纯噪音；但直接删掉又会让第一次用的人
+   卡在「为什么清单版式点不动」。折中是留一个 28px 的行，点开才展开。
+   ⚠️ 不用 margin-top:auto —— 那会把贴士钉到底部、在中间裂开一大片空白；
+   让它跟着内容自然流，空白统一留在末端（设计上叫留白，不是裂缝）。 */
+.tips{border-top:1px solid var(--border);margin-top:4px}
+.tips summary{
+  display:flex;align-items:center;gap:5px;padding:9px 14px;cursor:pointer;
+  font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;list-style:none;
+}
+.tips summary::-webkit-details-marker{display:none}
+.tips summary::after{content:'›';margin-left:auto;font-size:13px;transition:transform .18s}
+.tips[open] summary::after{transform:rotate(90deg)}
+.tips summary:hover{color:var(--soft)}
+.tips-body{padding:0 14px 12px}
 .tips p{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--muted)}
 .tips p:last-child{margin-bottom:0}
 .tips b{color:var(--soft);font-weight:600}
@@ -185,6 +206,11 @@ input,textarea{font:inherit;color:inherit}
 .lay-grid{display:grid;gap:12px 6px}
 .lay-grid.d5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .lay-grid.d4{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* d6：6 列自适应密度。26 套 = 5 行，在 960 高的笔记本上刚好一屏放下
+   （实测 d5 需要 948px > 可用 661px，d6 需要 675px，再把行距收到 9px 即 649px）。
+   6 列时卡片宽 77px，缩略图仍按 3:4 等比，标题在卡下方只留一行省略号。 */
+.lay-grid.d6{grid-template-columns:repeat(6,minmax(0,1fr));gap:9px 5px}
+.lay-grid.d6 .lay-nm{font-size:10px;margin-top:2px}
 .lay{text-align:left;display:block;width:100%}
 .lay-th{
   position:relative;aspect-ratio:3/4;border-radius:5px;overflow:hidden;background:#fff;
@@ -435,14 +461,15 @@ input,textarea{font:inherit;color:inherit}
       <input class="field" id="sign" maxlength="16" placeholder="可留空">
     </div>
 
-    <!-- 左栏内容天然比右栏短，与其留 500px 空白，不如放「第一次用会卡住的 3 件事」。
-         这不是装饰：三条都是实测里用户真的会问的问题。 -->
-    <div class="tips">
-      <div class="tips-h">三个小贴士</div>
-      <p><b>第一行是大标题</b><br>回车后的行会变成小字，最多 3 行。</p>
-      <p><b>写 7 个字最容易排</b><br>4–9 字都能一行放满，超过会自动缩字号。</p>
-      <p><b>清单版式要 2 条以上</b><br>用「·」分隔小字，凑够两条才会亮起来。</p>
-    </div>
+    <!-- AGENTS §12：个人工具不加常驻新手引导。折叠，默认收起，点开才占高度。 -->
+    <details class="tips">
+      <summary>三个小贴士</summary>
+      <div class="tips-body">
+        <p><b>第一行是大标题</b><br>回车后的行会变成小字，最多 3 行。</p>
+        <p><b>写 7 个字最容易排</b><br>4–9 字都能一行放满，超过会自动缩字号。</p>
+        <p><b>清单版式要 2 条以上</b><br>用「·」分隔小字，凑够两条才会亮起来。</p>
+      </div>
+    </details>
   </aside>
 
   <!-- ══ 中：画布 ══ -->
@@ -605,7 +632,7 @@ const $ = (id) => document.getElementById(id);
 const SAMPLE = '周末去了趟海边\n海风 · 日落 · 一部没电的手机';
 const DEF = '周末去了趟海边\n海风 · 日落 · 一部没电的手机';
 
-const ST = { size: 'xhs', mode: 'color', dens: 5 };
+const ST = { size: 'xhs', mode: 'color', dens: 5, densAuto: true };
 const PIC = { src: '', name: '', from: '' };
 const RECENT = [];
 const ART = { W: 1080, H: 1440, k: 1 };
@@ -817,8 +844,15 @@ function renderLays() {
 
   for (const k in keep) state[k] = keep[k];
 
-  $('lays').className = 'lay-grid d' + ST.dens;
+  /* 列数 = 「让当前可见数量一屏放下」的最小值。
+     为什么是算出来的而不是给个 5/6 开关：可见数量会变（无图 16 套 / 有图 26 套），
+     固定 5 列时 26 套要 948px，960 高的笔记本只有 661px —— 用户得滚 2 行，
+     正是他抱怨的「版式只剩几套」。现在 26 套自动落 6 列（5 行 649px）刚好全见，
+     16 套仍是 5 列（4 行）保持大图。手动点密度按钮可临时覆盖（auto 之外）。 */
+  const cols = ST.densAuto ? bestCols(list.length) : ST.dens;
+  $('lays').className = 'lay-grid d' + cols;
   $('lay-n').textContent = `${list.length} 套`;
+  $('dens').querySelectorAll('button').forEach((b) => b.classList.toggle('on', Number(b.dataset.d) === cols));
   /* 「另有 N 套要图」放在头部做成链接，而不是在列表底部加一行按钮：
      底部那一行会把最后一行卡顶出可视区（实测差 27px）。 */
   const need = $('lay-need');
@@ -834,6 +868,23 @@ function scaleArt(root) {
     const w = box.clientWidth || 89;
     art.style.transform = `scale(${w / 300})`;
   });
+}
+
+/* 一屏放下 `n` 套所需的最少列数（5 列优先，放不下才升到 6 列）。
+   高度按实测：卡宽 W → 缩略图 4W/3 + 名字行 22px + 行距（d5=12 / d6=9）。 */
+function bestCols(n) {
+  const box = $('lay-scroll');
+  if (!box) return 5;
+  const avail = box.clientHeight - 14;              // 减去上下 padding
+  const width = box.clientWidth - 24;               // 减去左右 padding
+  for (const c of [5, 6]) {
+    const w = (width - (c - 1) * 6) / c;
+    const cardH = w * 4 / 3 + 22 + (c === 6 ? 2 : 3);
+    const gapY = c === 6 ? 9 : 12;
+    const rows = Math.ceil(n / c);
+    if (rows * cardH + (rows - 1) * gapY <= avail) return c;
+  }
+  return 6;                                          // 还放不下就交给滚动
 }
 
 /* ── 配色 ── */
@@ -942,8 +993,10 @@ $('lays').onclick = (e) => {
 };
 $('dens').onclick = (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  ST.dens = Number(b.dataset.d);
-  [...$('dens').children].forEach((x) => x.classList.toggle('on', x === b));
+  /* 手动点 = 退出自动模式（用户明确要这个密度），再点一次同一个按钮恢复自动。 */
+  const d = Number(b.dataset.d);
+  ST.densAuto = ST.densAuto ? false : (ST.dens === d);
+  if (!ST.densAuto) ST.dens = d;
   renderLays();
 };
 $('lay-need').onclick = () => openSearch();
@@ -1095,7 +1148,7 @@ document.querySelector('.mnav').onclick = (e) => {
 /* ── 启动 ── */
 renderFonts(); renderTmodes(); renderVpos(); renderSizes();
 syncPic(); renderLays(); renderPals(); paint();
-window.addEventListener('resize', () => { fit(); scaleArt($('lays')); });
+window.addEventListener('resize', () => { fit(); renderLays(); });
 setTimeout(() => { fit(); scaleArt($('lays')); }, 60);
 FONTS.forEach((f) => { if (f.file) ensureFont(f.id); });
 if (document.fonts && document.fonts.ready) {
