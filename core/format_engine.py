@@ -848,6 +848,56 @@ def build_style_string(props: dict) -> str:
     return ";".join(parts)
 
 
+# ── 对齐契约归一化（2026-11-03）───────────────────────────────────────
+# 背景：19 套整篇设计（mg-*.json）的对齐方式由**设计规范**逐套决定，
+# 不是全局开关（docs/design-magazine-recipes.md：只有浮世绘 §2.7 要求两端对齐，
+# 卫报/经济学人/宜家/深度阅读明写左对齐）。真源 = 各套 JSON 的 styles.*.text_align。
+#
+# 本函数只做**白名单归一化**：非法值回落 left，合法值原样放行。
+# 实测现有 183 套主题的取值只有 left(263) / center(149) / justify(128)，
+# 全在白名单内 → 本函数对现有产物**零变化**（P2 的回归判据）。
+ALLOWED_TEXT_ALIGN = frozenset({"left", "right", "center", "justify"})
+
+# 禁写属性：这 4 个在本机 Chromium 实测全是「看起来能做、实际是摆设」——
+# text-justify 已移除 / hanging-punctuation 未实现 / text-autospace 被强制回落 /
+# line-break 与浏览器默认 CJK 避头尾重复、无增量（见 docs/plan-wechat-v6-implementation.md §2.3）。
+# 写进产物一律视为无效代码，由夹具断言 A7 拦截；渲染路径不做运行时检查（零开销）。
+_FORBIDDEN_TEXT_CSS = ("text-justify", "hanging-punctuation",
+                       "text-autospace", "line-break")
+
+
+def _normalize_text_align(theme: dict) -> dict:
+    """把 styles 各标签的 text_align 归一化到白名单。
+
+    Args:
+        theme: 主题字典（不原地修改）
+
+    Returns:
+        归一化后的 theme。全部合法时**返回原对象**（零拷贝、零差异）。
+    """
+    styles = theme.get("styles")
+    if not isinstance(styles, dict):
+        return theme
+
+    dirty = False
+    fixed: dict = {}
+    for tag, props in styles.items():
+        if not isinstance(props, dict) or "text_align" not in props:
+            fixed[tag] = props
+            continue
+        raw = props["text_align"]
+        norm = raw.strip().lower() if isinstance(raw, str) else ""
+        if norm in ALLOWED_TEXT_ALIGN:
+            fixed[tag] = props
+        else:
+            fixed[tag] = {**props, "text_align": "left"}
+            dirty = True
+
+    if not dirty:
+        return theme
+    return {**theme, "styles": fixed}
+
+
 # ── 移动端可读性归一（2026-10-29）───────────────────────────────────────
 # 背景：手机宽度（375px）下正文区只有约 343px，微信里又无法横向滚动。
 # 实测 164/164 套主题在遇到长 URL / 长英文串时会横向撑破版面（正文被裁）。
@@ -2203,6 +2253,9 @@ def _wrap_timeline_sections(html: str, cfg: dict, style_map: dict) -> str:
 
 def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> str:
     """为每个 HTML 标签注入内联 style 属性"""
+    # 对齐契约先归一化到白名单（合法值原样放行 → 现有 183 套产物零变化）。
+    # 放在 style_map 构建之前，保证 build_style_string 拿到的一定是合法值。
+    theme = _normalize_text_align(theme)
     styles = theme["styles"]
 
     # 构建各标签的 style 字符串
