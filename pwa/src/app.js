@@ -769,10 +769,15 @@ function drawerCard(t, fav) {
   const inUse = t.id === activeId;
   const isFav = fav.has(t.id);
   const isKit = t.kind === 'kit';
+  // ⚠️ 缩略图目录必须按 kind 分开：
+  //   theme-thumbs/ 只有 164 套配色主题（gen_theme_thumbs.py 生成）
+  //   kit-thumbs/   只有 19 套整篇设计（gen_kit_thumbs.py 生成，480×360）
+  // 早先写死 theme-thumbs/，导致整篇设计的卡全是裂图 / 回落到占位块（2026-11-02 修复）
+  const thumbDir = isKit ? 'kit-thumbs' : 'theme-thumbs';
   return `
     <button class="d-card${isKit ? ' d-card-kit' : ''}" data-id="${t.id}" aria-pressed="${inUse}">
       <span class="d-prev">
-        <img class="d-thumb" loading="lazy" alt="" src="./theme-thumbs/${t.id}.jpg"
+        <img class="d-thumb" loading="lazy" alt="" src="./${thumbDir}/${t.id}.jpg"
              data-thumb="${t.id}">
         <span class="d-fallback" style="background:${t.background};color:${t.primary}">
           <i></i><i></i><i></i><i></i>

@@ -381,6 +381,21 @@ function main() {
   }
   log(`  ✓ 缩略图 ${thumbN} 张`);
 
+  /* 4b. 整篇设计缩略图（kit-thumbs，480×360）
+     必须单独拷：theme-thumbs/ 只有 164 套配色主题，不含任何 mg-*；
+     前端 drawerCard() 按 kind 切这两个目录（2026-11-02）。
+     漏拷会让「整篇设计」的卡全裂图。 */
+  const kitThumbDir = path.join(ROOT, 'public', 'kit-thumbs');
+  let kitThumbN = 0;
+  if (fs.existsSync(kitThumbDir)) {
+    kitThumbN = copyDir(kitThumbDir, path.join(DIST, 'kit-thumbs'), { include: /\.jpg$/ });
+    const manifest = path.join(kitThumbDir, 'manifest.json');
+    if (fs.existsSync(manifest)) {
+      copyFile(manifest, path.join(DIST, 'kit-thumbs', 'manifest.json'));
+    }
+  }
+  log(`  ✓ 整篇设计缩略图 ${kitThumbN} 张`);
+
   /* 5. Python 引擎 + markdown.zip */
   mkdirp(path.join(DIST, 'py'));
   for (const name of ['format_engine.py', 'preprocessor.py', 'magazine_layouts.py']) {

@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-02T00:43:19+08:00",
-  "totalCommits": 321,
+  "generatedAt": "2026-11-02T23:31:01+08:00",
+  "totalCommits": 326,
   "releases": [
     {
       "version": "1.17.0",
@@ -15,16 +15,24 @@
       ],
       "autoCut": false,
       "counts": {
-        "added": 2,
-        "changed": 12,
-        "fixed": 2,
-        "other": 12
+        "added": 3,
+        "changed": 14,
+        "fixed": 3,
+        "other": 13
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "15 个杂志风版式 + 15 套整篇设计（kit 主题）",
+              "scope": "layout",
+              "hash": "cd852a0",
+              "date": "2026-11-02T00:52:52+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "恢复编辑器贴图与搜图，复制到公众号自动内嵌图片",
               "scope": "image",
@@ -47,6 +55,22 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "未完成台账更新（图片 7 项完成 + 记录一个真实缺口）",
+              "scope": "tasks",
+              "hash": "8984c47",
+              "date": "2026-11-02T01:08:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "交接文档同步 2026-11-02 成果 + 清理临时产物忽略",
+              "scope": "handoff",
+              "hash": "3ab7bb3",
+              "date": "2026-11-02T01:03:13+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "未完成任务台账（防止对话压缩后丢任务）",
               "scope": "",
@@ -150,6 +174,14 @@
           "label": "修复",
           "items": [
             {
+              "text": "更新记录闸 + 发版/门禁提速 + 去掉全量 E2E 默认",
+              "scope": "release",
+              "hash": "6123617",
+              "date": "2026-11-02T00:50:54+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
               "text": "左对齐标题不再强制两行等长（右侧整块留白）",
               "scope": "engine",
               "hash": "3afd2f1",
@@ -171,6 +203,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "补提交封面 UX 重做 V2 的产出（原型 / 方案 / 复核 / 字体）",
+              "scope": "xhs",
+              "hash": "eb485c2",
+              "date": "2026-11-02T01:02:17+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "v1.17.0 已部署（b358，推送/贴图已移除）",
               "scope": "state",
