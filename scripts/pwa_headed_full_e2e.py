@@ -343,6 +343,14 @@ def main() -> int:
                 page.click("#btn-themes")
                 page.wait_for_timeout(300)
                 for tid in ids:
+                    # ⚠️ 2026-11-03：抽屉拆成「配色主题 / 整篇设计」两个 tab。
+                    # 19 套 mg-*（kind:'kit'）只在 kit tab 下渲染，配色 tab 里搜不到。
+                    # 不切 tab 就会出现「找不到卡片」（实测 mg-adidas / mg-brutal 必失败）。
+                    want_kit = tid.startswith("mg-")
+                    cur_kit = page.locator("#drawer-mode-tabs [data-mode='kit']").get_attribute("aria-selected") == "true"
+                    if want_kit != cur_kit:
+                        page.click(f"#drawer-mode-tabs [data-mode='{'kit' if want_kit else 'palette'}']")
+                        page.wait_for_timeout(250)
                     card = page.locator(f".d-card[data-id='{tid}']")
                     if card.count() == 0:
                         # 该套不在当前视图 → 用搜索定位（只在找不到时才搜）
@@ -550,7 +558,10 @@ def main() -> int:
             # 封面页
             page.click("#btn-cover")
             page.wait_for_timeout(1200)
-            check("切到封面页", page.is_visible("#cover-root"), "", "封面可见")
+            # ⚠️ 2026-10-31（8fe2e5a）三模块拆分后 #cover-root 已拆成
+            # #title-root（标题图）+ #longform-root（长图文），旧 id 在 DOM 里不存在，
+            # page.is_visible("#cover-root") 恒为 false。改断言标题图根节点。
+            check("切到封面页", page.is_visible("#title-root"), "", "标题图页可见")
             # 2026-10-30：示例墙从「空态 3 张」改成「常驻 6 张」
             # （空态一生成就消失，而电脑版预览下方需要内容填满空白）
             check("封面示例成品墙 6 张（常驻）",
