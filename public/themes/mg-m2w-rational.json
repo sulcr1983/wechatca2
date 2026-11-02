@@ -1,0 +1,206 @@
+{
+  "name": "理性技术",
+  "description": "强对比 · 非对称秩序。标题压重量形成体量对比，正文保持轻盈。适合产品分析、技术评论",
+  "kind": "kit",
+  "locked_layout": "rational",
+  "colors": {
+    "primary": "#111111",
+    "accent": "#d9480f",
+    "background": "#ffffff",
+    "blockquote_bg": "transparent",
+    "code_bg": "#f6f4f2",
+    "hr_color": "#d9480f",
+    "footnote_bg": "#ffffff"
+  },
+  "styles": {
+    "wrapper": {
+      "background_color": "#ffffff",
+      "padding": "16px"
+    },
+    "h1": {
+      "font_size": "24px",
+      "font_weight": "800",
+      "color": "#111111",
+      "margin_top": "0",
+      "margin_bottom": "20px",
+      "line_height": "1.3",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "h2": {
+      "font_size": "20px",
+      "font_weight": "700",
+      "color": "#111111",
+      "line_height": "1.45",
+      "margin_top": "28px",
+      "margin_bottom": "14px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "h3": {
+      "font_size": "18px",
+      "font_weight": "700",
+      "color": "#111111",
+      "line_height": "1.5",
+      "margin_top": "22px",
+      "margin_bottom": "12px",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "p": {
+      "font_size": "16px",
+      "color": "#111111",
+      "line_height": "1.75",
+      "margin_top": "0",
+      "margin_bottom": "14px",
+      "text_align": "left",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "blockquote": {
+      "margin_top": "20px",
+      "margin_bottom": "20px",
+      "padding": "14px 16px",
+      "color": "#111111",
+      "font_size": "15px",
+      "line_height": "1.8",
+      "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    },
+    "blockquote_p": {
+      "font_size": "15px",
+      "color": "#111111",
+      "line_height": "1.8"
+    },
+    "strong": {
+      "font_weight": "700",
+      "color": "#d9480f"
+    },
+    "em": {
+      "font_style": "italic"
+    },
+    "a": {
+      "color": "#d9480f",
+      "text_decoration": "none",
+      "border_bottom": "1px solid #d9480f"
+    },
+    "img": {
+      "border_radius": "0",
+      "max_width": "100%"
+    },
+    "img_wrapper": {
+      "text_align": "center",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "hr": {
+      "border_top": "1px solid #d9480f",
+      "margin_top": "26px",
+      "margin_bottom": "26px"
+    },
+    "code": {
+      "background": "#f6f4f2",
+      "color": "#111111",
+      "padding": "1px 5px",
+      "border_radius": "3px",
+      "font_size": "14px"
+    },
+    "code_block": {
+      "background": "#f8f6f4",
+      "color": "#333333",
+      "padding": "14px 16px",
+      "border_radius": "4px",
+      "font_size": "13px",
+      "line_height": "1.7"
+    },
+    "code_header": {
+      "background": "#ede9e5",
+      "color": "#666666",
+      "font_size": "12px",
+      "padding": "6px 12px"
+    },
+    "pre": {
+      "background": "#f8f6f4",
+      "padding": "0",
+      "border_radius": "4px",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "pre_code": {
+      "color": "#333333",
+      "font_size": "13px",
+      "line_height": "1.7"
+    },
+    "table": {
+      "border_collapse": "collapse",
+      "width": "100%",
+      "margin_top": "18px",
+      "margin_bottom": "18px",
+      "font_size": "14px"
+    },
+    "th": {
+      "background": "#f6f4f2",
+      "color": "#111111",
+      "padding": "8px 10px",
+      "border": "1px solid #ded8d2",
+      "font_weight": "700"
+    },
+    "td": {
+      "padding": "8px 10px",
+      "border": "1px solid #ded8d2",
+      "color": "#111111"
+    },
+    "list_item_bullet": {
+      "color": "#d9480f",
+      "font_size": "16px"
+    },
+    "ol_item_bullet": {
+      "color": "#d9480f",
+      "font_size": "16px"
+    },
+    "list_item_text": {
+      "font_size": "16px",
+      "color": "#111111",
+      "line_height": "1.75"
+    },
+    "list_wrapper": {
+      "margin_top": "14px",
+      "margin_bottom": "14px"
+    },
+    "list_item_row": {
+      "margin_bottom": "8px"
+    },
+    "footnote_section": {
+      "border_top": "1px solid #ded8d2",
+      "margin_top": "26px",
+      "padding_top": "14px"
+    },
+    "footnote_title": {
+      "font_size": "13px",
+      "color": "#d9480f",
+      "font_weight": "700"
+    },
+    "footnote_item": {
+      "font_size": "12.5px",
+      "color": "#111111",
+      "line_height": "1.7"
+    },
+    "footnote_sup": {
+      "font_size": "12px",
+      "color": "#d9480f"
+    },
+    "callout": {
+      "background": "#f6f3f0",
+      "border_left": "3px solid #d9480f",
+      "padding": "14px 16px",
+      "margin_top": "18px",
+      "margin_bottom": "18px"
+    },
+    "callout_title": {
+      "color": "#d9480f",
+      "font_weight": "700",
+      "font_size": "14px"
+    },
+    "callout_content": {
+      "color": "#111111",
+      "font_size": "14px",
+      "line_height": "1.75"
+    }
+  },
+  "source": "md2wechat"
+}

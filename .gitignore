@@ -55,6 +55,12 @@ start_app.ps1
 .vscode/
 .idea/
 
+# Agent 工具本机配置（2026-11-03 用户拍板不入库）
+#   .claude/  = 本机 agent 的 skills 与 settings.local.json（1.6MB，含本机路径/权限，共用会冲突）
+#   .trae-html-share-packages/ = HTML 分享包 zip（44MB 非源码）
+.claude/
+.trae-html-share-packages/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -78,3 +84,7 @@ docs/prototypes/v2/assets/
 # 调试/临时产物（2026-11-02）：不入库
 out/
 scripts/snippets/
+
+# 15 套整篇设计的真实渲染产物（2026-11-02）：由 scripts/render_kit_previews.py 生成
+# 重新生成：.venv/Scripts/python.exe scripts/render_kit_previews.py
+docs/prototypes/kit-previews/
