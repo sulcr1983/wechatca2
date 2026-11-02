@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-03T03:06:55+08:00",
-  "totalCommits": 345,
+  "generatedAt": "2026-11-03T03:09:11+08:00",
+  "totalCommits": 347,
   "releases": [
     {
       "version": "1.17.0",
@@ -15,16 +15,24 @@
       ],
       "autoCut": false,
       "counts": {
-        "added": 11,
+        "added": 12,
         "changed": 23,
         "fixed": 3,
-        "other": 15
+        "other": 16
       },
       "groups": [
         {
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "抽屉拆成「配色主题 / 整篇设计」两个 tab",
+              "scope": "pwa",
+              "hash": "6ce2f92",
+              "date": "2026-11-03T03:07:31+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "字号调节接线（引擎参数贯通 + 抽屉滑块）",
               "scope": "pwa",
@@ -339,6 +347,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "同步构建生成物（STATE.md / CHANGELOG.md / changelog.json）",
+              "scope": "build",
+              "hash": "cd4cd96",
+              "date": "2026-11-03T03:08:05+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "重新构建 dist 并同步生成物（b385 / BUILD_ID ef6d7de8）",
               "scope": "build",
