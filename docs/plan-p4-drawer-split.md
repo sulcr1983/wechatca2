@@ -94,12 +94,18 @@ renderDrawer()
 | `.drawer-head` 之后 | 新增 `.mode-tabs`：两个按钮 `data-mode="palette"` / `data-mode="kit"`，**计数留空由 JS 填**（禁止写死 —— 曾写死 179 实际 183） |
 | `#drawer-filters` | 保留，palette 模式才渲染 |
 | `#kit-note` | 保留（说明条 + 退出按钮）。**文案去掉「版式（默认）」**（A-3） |
-| `#drawer-layouts` | 保留容器；kit 模式整体替换成一行状态文字（决策 4） |
+| `#drawer-layouts` | 保留容器，**palette 专用**；kit 模式下整体 `hidden`（不再往这里塞文字） |
+| **`#kit-lock-note`（新增）** | **kit 网格正上方独立一行**：「版式：整篇设计已锁定」。只在 kit pane 内、只在 kit 模式显示（决策 4，2026-11-03 用户选定） |
 | **`#drawer-grid`** | **palette 专用**，`renderAllFolded` / `renderFamilyFold` / `renderFlat` 照旧写它 —— **一行都不用改** |
 | **`#kit-grid`（新增）** | **kit 专用**，只由 `renderKitPane` 写 |
 | **`.drawer-body`（新增包裹）** | 见下方实现陷阱 |
 | `#drawer-blocks` | **kit 下保留**（段落样式与版式无关，`applyKitLock` 也只锁 `#drawer-custom`） |
 | `#drawer-custom` | kit 下加 `.locked`（既有样式 `style.css:489`） |
+
+> **2026-11-03 用户拍板（三项）**：
+> 1. 「版式已锁定」状态文字 → **kit 网格上方独立一行**（新增 `#kit-lock-note`），不并入 `#kit-note`
+> 2. 段落样式（金句/数据/提示）→ **kit 下保留可用**，不锁死
+> 3. 抽屉宽度 → **统一 520px**（原型定稿值），见 §2.3
 
 #### ⚠️ 实现陷阱：两个网格不能同时 `flex:1` 滚动
 
@@ -134,7 +140,7 @@ renderDrawer()
 | 新增 `renderModeTabs()` | ~624 前 | 两胶囊 + **现算**计数；`aria-pressed` 跟随 `drawerMode` |
 | **新增** `renderKitPane(fav, q)` | ~917 后 | 独立函数：`KITS()` 按 `q` 过滤 → 渲染进 `#kit-grid`；**两种空态分开**；**不带 `.d-kit-tag`** |
 | `renderDrawer()` | :901 | kit 分支要跑 **4 件事**（见 §一目标），不是「一行 return」 |
-| `renderLayouts()` | :691 | kit 态渲染一行状态文字，不渲染 8 胶囊（决策 4） |
+| `renderLayouts()` | :691 | kit 态**整体 hidden**，不渲染 8 胶囊、也不渲染状态文字（状态文字改由 `#kit-lock-note` 承担，见 §2.1） |
 | `applyKitLock()` | :580 | ① 版式胶囊段删除（`renderLayouts` 已接管）；② 文案去掉「版式（默认）」（A-3）；③④ 保留 |
 | `renderAllFolded()` | :854 | `themes` → `PALETTES()`（19 套不再落进「其他风格」，E-5） |
 | `renderFilters()` | :744 | ① kit 模式不渲染；② `themes.length` → `PALETTES().length`（E-10） |
@@ -175,7 +181,9 @@ function renderKitPane(fav, q) {
 | `#kit-grid .d-kit-tag` | `display:none`（B-2，原型 `:713`） |
 | **`.d-card { min-height:140px }`** | **不动**（A-5：4:3 下内容高已 144px，覆盖反而制造歧义） |
 | `body.browsing .stage` | `padding-right:500px` → `var(--drawer-w)`（审查 B-4） |
-| 新增 `--drawer-w` | **单值**，与 `.drawer` 宽度联动。**无「折叠态」** —— v1 写的 248px 不存在（C-1） |
+| `body.browsing .drawer` | `width:500px` → `var(--drawer-w)`（现在两处硬编码必须一起改，否则让位宽度与抽屉宽度不相等） |
+| `.drawer { width }` | `min(560px,94vw)` → `var(--drawer-w)` |
+| 新增 `--drawer-w` | **`520px`（2026-11-03 用户拍板，原型定稿值）**，窄屏走 `min(520px,94vw)`。**无「折叠态」** —— v1 写的 248px 不存在（C-1） |
 
 > **v1 的 C-1 错误已删**：`grep "248px\|collapsed" pwa/src/style.css` 零命中；
 > 原型 `wechat-v7.html:61` 也只有一个 `--drawer-w: 520px`。线上抽屉**没有折叠态**。
@@ -246,10 +254,11 @@ function renderKitPane(fav, q) {
 - **验证**：收藏一套 kit → 色卡条 40 颗内无 kit 混入；当前 kit 以「正在使用」出现在第一位
 - **回滚**：单提交
 
-### 步骤 5｜抽屉宽度归一（审查 B-4）
+### 步骤 5｜抽屉宽度归一 500/560 → 520（审查 B-4）
 
-- `--drawer-w` 单值 + `padding-right` 联动
-- **验证**：桌面 1440px 开抽屉 → 主区右推 == 抽屉宽
+- `--drawer-w: 520px` 单值；`.drawer` / `body.browsing .drawer` / `body.browsing .stage{padding-right}`
+  **三处一起**改用变量（现在 500 与 560 两套并存，让位宽度与实际抽屉宽不相等）
+- **验证**：桌面 1440px 开抽屉 → 主区右推 == 抽屉实测宽度（520px）；1440/1024/768 三档无横向滚动
 - **回滚**：单提交
 
 ---
@@ -272,7 +281,7 @@ function renderKitPane(fav, q) {
 4. kit 模式下 `#drawer-custom` 有 `.locked`，**`#drawer-blocks` 没有**（A-4 回归）
 5. kit 卡 `.d-prev` 高/宽 ≥ 0.73（4:3）
 6. `#kit-note-text` **不含「默认」二字**（A-3 回归）
-7. kit 模式下 `#drawer-layouts` 内无 `.dl-chip`，有状态文字（决策 4）
+7. kit 模式下 `#drawer-layouts` 整体隐藏（无 `.dl-chip`）；**`#kit-lock-note` 可见且文案含「已锁定」**（决策 4：独立一行，不并入说明条）
 8. kit tab 搜有命中 → 有卡；搜无命中 → 文案含「没匹配」；`KITS` 为空 → 文案含「未生成」（B-1）
 9. palette tab 的「全部」chip 数字 == `PALETTES().length`，**不等于** `THEMES.length`（B-3 / E-10）
 10. kit 卡内不存在 `.d-kit-tag`（B-2）
