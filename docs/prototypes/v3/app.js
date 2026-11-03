@@ -58,7 +58,7 @@ function fit() {
 function paint() {
   const dim = SIZES[ST.size];
   ART.W = dim.w; ART.H = dim.h;
-  const { title, sub } = extract(txtValue());
+  const { title, sub, items } = extract(txtValue());
   const src = ST.mode === 'color' ? '' : PIC.src;
   const an = src ? analysisCache.get(src) || null : null;
 
@@ -70,7 +70,7 @@ function paint() {
     window.__v = null;
   } else {
     const opt = {
-      lay: state.lay, title, sub, auth: ($('sign') ? $('sign').value.trim() : ''),
+      lay: state.lay, title, sub, items, auth: ($('sign') ? $('sign').value.trim() : ''),
       photo: src, an, kick: src ? 'NOTES' : '',
     };
     $('cv-art').innerHTML = coverHtml(dim.w, dim.h, opt);
