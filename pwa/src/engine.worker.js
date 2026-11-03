@@ -104,9 +104,16 @@ async function boot() {
 
     // markdown 打成单个 zip 走 zipimport，避免往内存 FS 写 51 个文件。
     // zip 里必须带 markdown-<ver>.dist-info/，见下方 Python 注释。
+    // ⚠️ 2026-11-03：必须带 magazine_layouts.py。format_engine 对它的导入是
+    //   try/except 静默兜底（`except ImportError: MAGAZINE_LAYOUTS = {}`），
+    //   漏了不会报错 —— 后果是 19 套「整篇设计」的 layout_* 全不执行，
+    //   浏览器里点哪套都只是换配色（实测 time 与 m2w-light 产物长度完全相同、
+    //   time 的「栏目·特稿」眉题不出现）。本地夹具跑的是 core/ 包，绕过了这个断点，
+    //   所以 228/228 全绿也发现不了。改 py 文件清单时务必同步这里。
     const files = [
       ['../py/preprocessor.py', 'preprocessor.py'],
       ['../py/format_engine.py', 'format_engine.py'],
+      ['../py/magazine_layouts.py', 'magazine_layouts.py'],
       ['../py/markdown.zip', 'markdown.zip'],
     ];
     let done = 0;

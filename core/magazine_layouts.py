@@ -844,6 +844,19 @@ def layout_ukiyoe(html: str, theme: dict) -> str:
         "box-shadow": f"5px 5px 0 {seal}", "border-radius": "0",
         "font-size": "16px", "line-height": "1.85",
     })
+    # ⚠️ 2026-11-03 实测修复：style_quotes 只改 <blockquote> 自身的 color，
+    # 块内 <p> 仍是前面 style_all 注入的深青灰 → 深靛蓝底压深灰字，几乎看不见
+    # （截图实测：引文整块糊成一片）。配方 2.7 要求「纯白提亮」，
+    # 这里把块内所有 <p> 的字色一起提亮。深底引文只有这一套，不影响其它版式。
+    out = re.sub(
+        r"(<blockquote\b[^>]*>)(.*?)(</blockquote>)",
+        lambda m: m.group(1) + re.sub(
+            r"(<p\b[^>]*>)",
+            lambda mm: style_tag(mm.group(1), {"color": "#FFFFFF"}),
+            m.group(2),
+        ) + m.group(3),
+        out, flags=re.DOTALL,
+    )
 
     out = style_all(out, "strong", {"color": seal, "font-weight": "700"})
 
