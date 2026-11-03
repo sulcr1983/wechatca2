@@ -85,8 +85,5 @@ docs/prototypes/xhs/v2/assets/
 out/
 scripts/snippets/
 
-# 15 套整篇设计的真实渲染产物（2026-11-02）：由 scripts/render_kit_previews.py 生成
-# 重新生成：.venv/Scripts/python.exe scripts/render_kit_previews.py
-docs/prototypes/kit-previews/
-# ⚠️ 该目录已于 2026-11-03 清理删除，此规则保留无害
-# docs/prototypes/kit-previews/
+# （2026-11-03 清理）kit-previews/ 与生成它的 scripts/render_kit_previews.py 均已删除，
+# 原忽略规则一并移除。整篇设计的预览改看 docs/prototypes/wechat/wechat-v7.html。
