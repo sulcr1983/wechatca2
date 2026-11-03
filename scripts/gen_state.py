@@ -101,6 +101,27 @@ def theme_count() -> int:
     return len([p for p in d.glob("*.json") if p.stem not in ("index", "manifest")])
 
 
+def layout_summary() -> str:
+    """版式入口的实时描述 —— 从 `pwa/src/app.js` 的 LAYOUT_OPTIONS 里读。
+
+    为什么不写死：2026-11-03 把入口从 8 项扩到 15 项，STATE.md 里那句
+    「8 种（…）」当场就过期了。STATE 是生成物，就该从代码现算，
+    否则每次改版式都得记得手改生成器（这正是文档数字漂移的老病根）。
+    """
+    src = ROOT / "pwa" / "src" / "app.js"
+    try:
+        text = src.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return "—"
+    m = re.search(r"const LAYOUT_OPTIONS = \[(.*?)\n\];", text, re.S)
+    if not m:
+        return "—"
+    items = re.findall(r"\['([^']*)',\s*'([^']*)'\]", m.group(1))
+    if not items:
+        return "—"
+    return f"{len(items)} 种（" + " / ".join(label for _, label in items) + "）"
+
+
 def latest_gate() -> tuple[str, str, str]:
     """最近一次门禁的 (时间, 结果, 日志名)"""
     d = ROOT / "output" / "gate-run"
@@ -183,7 +204,7 @@ def build_state(allow_net: bool) -> str:
     out.append("## 产品规模\n\n")
     out.append("| 项 | 值 |\n|---|---|\n")
     out.append(f"| 主题数 | {theme_count()} 套 |\n")
-    out.append("| 版式 | 8 种（默认 / 图文节奏 / 卡片流 / 目录导航 / 杂志分栏 / 首屏 / 卡片组 / 时间线）|\n")
+    out.append(f"| 版式 | {layout_summary()} |\n")
     out.append("| 段落样式 | 3 种（金句 / 数据 / 提示，按内容自动识别）|\n")
     out.append("| 主产品 | PWA `https://supersu.ccwu.cc` |\n")
     out.append("| 本地 Flask 版 | 已弃用（保留参考，不进任何门禁）|\n\n")

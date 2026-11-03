@@ -39,7 +39,7 @@ python scripts/run_gates.py --full     # 加上扩展层（依赖外部条件）
 | `pwa_update_panel_test.py` | 更新面板闭环：检查更新 → 一键重启 → 本次更新条数 → 反馈入口 | local |
 | `pwa_release_card_test.py` | 更新「发布小票」 | online |
 | `pwa_auto_update_test.py` | 静默自动更新（真 SW + 探针发版） | local（`--full` 层） |
-| `pwa_headed_full_e2e.py` | 有头全量：164 套 × 3 类夹具 + 8 版式 + 段落开关 + 按钮 + AI（mock） | local（`--ui` 层）/ `--url` 线上 |
+| `pwa_headed_full_e2e.py` | 有头全量：164 套 × 3 类夹具 + 15 版式 + 段落开关 + 按钮 + AI（mock） | local（`--ui` 层）/ `--url` 线上 |
 | `pwa_online_e2e.py` | 线上真环境全量 E2E | online |
 | `doc_sync_check.py` | 文档与代码一致（版本号、族名、主题套数） | in-process |
 

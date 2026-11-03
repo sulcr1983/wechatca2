@@ -352,7 +352,7 @@ PEXELS_API_KEY=your-pexels-key
 | `scripts/pwa_update_panel_test.py` | 更新面板：检查更新 → 一键重启 → 本次更新条数 → 反馈入口 |
 | `scripts/pwa_release_card_test.py` | 更新「发布小票」 |
 | `scripts/pwa_auto_update_test.py` | 静默自动更新（真 Service Worker + 探针发版） |
-| `scripts/pwa_headed_full_e2e.py` | 有头全量 E2E：164 套 × 3 类夹具 + 8 版式 + 段落开关 + 按钮 + AI（mock） |
+| `scripts/pwa_headed_full_e2e.py` | 有头全量 E2E：164 套 × 3 类夹具 + 15 版式 + 段落开关 + 按钮 + AI（mock） |
 | `scripts/pwa_online_e2e.py` | 线上真环境全量 E2E |
 | `scripts/doc_sync_check.py` | 文档与代码一致（版本号/族名/主题套数） |
 

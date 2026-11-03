@@ -4,7 +4,8 @@
 补 pwa_online_e2e.py 没覆盖的三块：
   1. **逐套模板渲染**：164 套 × 3 类夹具（短/标准/复杂），验证每套都能出图、
      不丢字、标签配平、无残留标记
-  2. **8 种版式功能**：默认/图文节奏/卡片流/目录导航/杂志分栏/首屏/卡片组/时间线
+  2. **15 种版式功能**：默认/图文节奏/卡片流/目录导航/杂志分栏/首屏/卡片组/时间线
+     + 7 个报刊版式（朱丝栏/天头/鱼尾/乌丝栏/版心/算经/三道，2026-11-03 扩项）
      × 夹具，验证切换真的改变渲染且不破坏内容
   3. **段落样式开关**：金句/数据/提示三个开关，验证开→出色块、关→消失、刷新后保留
 
@@ -381,12 +382,14 @@ def main() -> int:
                 check(f"{fname}文 · {len(ids)} 套模板全部可渲染",
                       not bad, f"{len(ids) - len(bad)}/{len(ids)}", bad[:2] if bad else "全部通过")
 
-            # ── B. 8 种版式功能 ────────────────────────────────────
-            print("\n── B. 8 种版式功能（标准文）──")
+            # ── B. 15 种版式功能 ───────────────────────────────────
+            # 2026-11-03：入口 8 → 15（新增 7 个报刊版式）。断言跟着改，
+            # 否则永远报「期望 8 实际 15」的假红。
+            print("\n── B. 15 种版式功能（标准文）──")
             if not engine_ready:
                 # 版式/色块都依赖真 Pyodide 引擎（轻量预览不认 layout/blocks），
                 # 引擎没就绪时这些项无意义 → SKIP 而不是 FAIL（避免误判功能坏）
-                for nm in ("版式层渲染 8 个选项", "版式「图文节奏」生效", "版式「卡片流」生效",
+                for nm in ("版式层渲染 15 个选项", "版式「图文节奏」生效", "版式「卡片流」生效",
                            "版式「目录导航」生效", "版式「杂志分栏」生效", "版式「默认」可用",
                            "五种版式输出互不相同", "段落样式三开关", "刷新后色块仍生效"):
                     skip(nm, "引擎未就绪，需精确渲染")
@@ -399,7 +402,7 @@ def main() -> int:
             page.click("#btn-themes")
             page.wait_for_timeout(300)
             chips = page.locator(".dl-chip")
-            check("版式层渲染 8 个选项", chips.count() == 8, "", f"{chips.count()} 个")
+            check("版式层渲染 15 个选项", chips.count() == 15, "", f"{chips.count()} 个")
 
             LAYOUT_EXPECT = [
                 ("图文节奏", "hasAccentBar"),
@@ -581,11 +584,16 @@ def main() -> int:
             page.wait_for_timeout(800)
             check("切回排版页", page.is_visible("#stage"), "", "排版页可见")
 
-            # 自定义配色
-            page.click("#btn-themes")
-            page.wait_for_timeout(400)
+            # 自定义配色（2026-11-03 P4-2 已从抽屉迁入「设置」弹窗）
+            page.click("#btn-more")
+            page.wait_for_timeout(300)
+            page.click('#menu [data-act="settings"]')
+            page.wait_for_timeout(500)
+            check("设置弹窗可打开", page.is_visible("#settings-dlg"), "", "")
             check("三个取色器存在",
-                  page.locator("#drawer-custom input[type='color']").count() == 3, "", "")
+                  page.locator("#settings-dlg input[type='color']").count() == 3, "", "")
+            check("抽屉内不再有取色器",
+                  page.locator("#drawer-custom input[type='color']").count() == 0, "", "")
             page.evaluate("""() => {
                 const el = document.getElementById('dc-bg');
                 el.value = '#0a1628'; el.dispatchEvent(new Event('input', {bubbles:true}));
@@ -596,6 +604,8 @@ def main() -> int:
             page.wait_for_timeout(1200)
             check("「恢复」清掉自定义配色",
                   page.evaluate("() => localStorage.getItem('supersu.pwa.custom')") is None, "", "")
+            page.click("#btn-settings-close")
+            page.wait_for_timeout(400)
 
             # ── E. AI 态（浏览器端 BYOK，2026-10-24）──────────────────
             # ⚠️ PWA 是纯静态站，AI 配置在**浏览器 localStorage**（supersu.ai），

@@ -140,6 +140,9 @@ docs/
 | [`pwa-incremental-update-research.md`](pwa/pwa-incremental-update-research.md) | 增量更新调研（`?h=sha256` 缓存键的由来） |
 | [`plan-update-2026-10-29.md`](pwa/plan-update-2026-10-29.md) | 更新体验重构落地清单 |
 | [`update-handoff.md`](pwa/update-handoff.md) | 更新模块交接 |
+| [`diagnosis-changelog-2026-11-03.md`](pwa/diagnosis-changelog-2026-11-03.md) | 🟡 **更新记录诊断（2026-11-03 快照）** —— 线上/本地实测 + 12 条修复建议，改更新记录前先读 |
+| [`research-update-module-offtheshelf-2026-11-03.md`](pwa/research-update-module-offtheshelf-2026-11-03.md) | 🟡 **现成更新模块调研（2026-11-03）** —— 结论：没有能直接套的，附 git-cliff 本仓库实测证据 |
+| [`review-adversarial-changelog-2026-11-03.md`](pwa/review-adversarial-changelog-2026-11-03.md) | 🟢 **对抗性审查（2026-11-03）** —— **推翻前一版结论**：切点可全自动推导（`version.json` git 历史即真源），附原型实跑验收。**改更新记录前以此为准** |
 
 ### 3.5 `docs/ops/` — 工程规范与运维（📚 长期参考）
 
@@ -280,7 +283,7 @@ docs/prototypes/
 | **W-2** | **线上仍是坏的**：19 套整篇设计只换配色不换版式 | 🔴 待部署 | 线上 `engine.worker.js` 含 `py/magazine_layouts.py` = **0 命中**；修复在 `ffd94df`，已推送未部署 |
 | **W-3** | 三项「内容开关」引擎侧不支持 | 🔴 待决策 | `extract_links_as_footnotes()` 只在 CLI 路径调用（`format_engine.py:3359/3455`），PWA 主入口不调 |
 | **W-4** | 有头 E2E 52 条断言**从未跑完** | 🔴 待跑 | `scripts/pwa_headed_full_e2e.py --local`，必须后台 |
-| **W-5** | 版式入口扩不扩（8 → 18 项） | 🔴 **文档冲突，待拍板** | `design-wechat-v6-final.md` §1.4 说「不要动」；`open-tasks` P-1 说「最高优先级缺口」 |
+| **W-5** | 版式入口 8 → 15（新增 7 个报刊版式） | ✅ **已完成**（2026-11-03，用户拍板「扩」） | `LAYOUT_OPTIONS` 8→15；判据是实测「换主题后配色是否跟着走」，6 套品牌锁死的仍只走 kit；专项 `mag_layout` 63 项断言进门禁 |
 | **W-6** | 7 个杂志风版式的 UI 中文名 | 🟡 待定 | 古籍名方案已拟好（`design-wechat-layout-naming.md`） |
 | **W-7** | 移动端（375px）导航重做 | ⚪ 明确不在本轮 | 用户已定 |
 
