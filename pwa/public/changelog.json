@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-03T03:09:11+08:00",
-  "totalCommits": 347,
+  "generatedAt": "2026-11-03T11:56:30+08:00",
+  "totalCommits": 352,
   "releases": [
     {
       "version": "1.17.0",
@@ -16,9 +16,9 @@
       "autoCut": false,
       "counts": {
         "added": 12,
-        "changed": 23,
-        "fixed": 3,
-        "other": 16
+        "changed": 24,
+        "fixed": 6,
+        "other": 17
       },
       "groups": [
         {
@@ -127,6 +127,14 @@
           "type": "changed",
           "label": "调整",
           "items": [
+            {
+              "text": "19 套整篇设计与 164 套配色主题「看不出区别」的实测诊断",
+              "scope": "diagnosis",
+              "hash": "097cfbf",
+              "date": "2026-11-03T03:54:29+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "浮世绘两端对齐真源收拢到 JSON（等价迁移）",
               "scope": "theme",
@@ -318,6 +326,30 @@
           "label": "修复",
           "items": [
             {
+              "text": "E2E 补齐两处 10-31 拆分后的过时断言（51/51）",
+              "scope": "test",
+              "hash": "977b905",
+              "date": "2026-11-03T03:51:46+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "E2E「切回排版页」用 #btn-editor，修正 10-31 拆分后的过时断言",
+              "scope": "test",
+              "hash": "dde292b",
+              "date": "2026-11-03T03:39:04+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "凭证默认路径从其他项目改为仓库根 .env",
+              "scope": "deploy",
+              "hash": "6a3ee5d",
+              "date": "2026-11-03T03:18:24+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
               "text": "更新记录闸 + 发版/门禁提速 + 去掉全量 E2E 默认",
               "scope": "release",
               "hash": "6123617",
@@ -347,6 +379,14 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "重建 dist 后同步生成物（build 400）",
+              "scope": "build",
+              "hash": "7c4f5b8",
+              "date": "2026-11-03T03:09:32+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "同步构建生成物（STATE.md / CHANGELOG.md / changelog.json）",
               "scope": "build",

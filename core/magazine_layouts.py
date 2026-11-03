@@ -264,6 +264,29 @@ def _guard(original: str, out: str) -> str:
     return out if plain_len(out) >= plain_len(original) else original
 
 
+def wrap_block(html: str, tag: str, style: str, *, inner: bool = False) -> str:
+    """把每个 <tag>…</tag> 块**包进一层 <section>**（结构级改造）。
+
+    2026-11-03 新增。起因：19 套整篇设计的 layout_* 几乎只调 style_tag 属性，
+    标签骨架与配色主题同构，剥掉 CSS 后 8 套/5 套各自完全一样，用户实测
+    「和前面的 164 套没啥不同」。配方文档（docs/design-magazine-recipes.md）
+    里写的「重点结论外面加一圈细红框」「标题做成白字压豆绿圆角块」
+    本来就该是**块级容器**，此前只改属性，等于没做。
+
+    inner=True 时把 section 插在标签**内部**（用于标题这类不能换行的元素），
+    否则插在外部（用于引用、段落这类整块元素）。
+    """
+    def repl(m):
+        open_tag, body, close_tag = m.group(1), m.group(2), m.group(3)
+        if inner:
+            return f"{open_tag}<section style=\"{style}\">{body}</section>{close_tag}"
+        return f'<section style="{style}">{open_tag}{body}{close_tag}</section>'
+
+    return re.sub(
+        rf"(<{tag}\b[^>]*>)(.*?)(</{tag}>)", repl, html, flags=re.DOTALL
+    )
+
+
 def style_tag(open_tag: str, props: dict) -> str:
     """给单个**开标签**覆盖样式属性（同名替换、缺则追加）。
 
@@ -387,6 +410,19 @@ def layout_time(html: str, theme: dict) -> str:
 
     # 强调句：加粗 + 红色，不加底色
     out = style_all(out, "strong", {"color": accent, "font-weight": "700"})
+
+    # 刊头区：栏目名置顶 + 主标题，独立成一个区块（配方 2.1「开头单独设计」）。
+    # ⚠️ 2026-11-03：此前只给 h1 贴样式，骨架上与配色主题同构，用户实测看不出区别。
+    out = re.sub(
+        r"<h1\b[^>]*>.*?</h1>",
+        lambda m: (
+            '<section style="margin:26px 0 28px">'
+            + eyebrow("栏目 · 特稿", accent, 12)
+            + m.group(0)
+            + "</section>"
+        ),
+        out, count=1, flags=re.DOTALL,
+    )
     return _guard(html, out)
 
 
@@ -430,12 +466,15 @@ def layout_guardian(html: str, theme: dict) -> str:
     )
 
     # 引用：**放大**到 19px 加粗，不加框不加底，头上 44px 红引号
+    # 2026-11-03：外层再加一个独立 section（配方「引用要放大」是版面手法，
+    # 只改字号骨架上体现不出来）。这是本套区别于 time/economist 的结构特征。
     out = style_quotes(
         out,
         {"margin": "22px 0", "padding": "0", "border": "none", "background": "transparent",
          "font-size": "19px", "line-height": "1.75", "font-weight": "700", "color": ink},
         prefix=big_quote("", accent, 44),
     )
+    out = wrap_block(out, "blockquote", "margin:0 -6px;padding:0 6px")
 
     # 分隔线：两根，中间隔 3px
     out = re.sub(r"<hr\b[^>]*>", double_rule(soft), out)
@@ -495,6 +534,10 @@ def layout_economist(html: str, theme: dict) -> str:
         "line-height": "1.5", "border-left": f"3px solid {accent}",
         "padding-left": "10px",
     })
+
+    # 2026-11-03 结构级：小标题独立成块（配方 2.4「红色序号 + 浅灰细线」是版面手法）。
+    # 包裹 h2 使骨架区别于 time（包 h1）/guardian（包 blockquote）。
+    out = wrap_block(out, "h2", "margin:26px 0 12px")
     return _guard(html, out)
 
 
@@ -541,6 +584,10 @@ def layout_natgeo(html: str, theme: dict) -> str:
 
     # 分隔线：只画 52px（暗示换话题，不铺满整行）
     out = re.sub(r"<hr\b[^>]*>", thin_rule(accent, 3, "52px", "20px 0 22px"), out)
+
+    # 2026-11-03 结构级：引用独立成块（配方 2.3 浅灰底 + 左黄线 + 黄引号）。
+    # 与 guardian 的区别：guardian 包的是无框放大引文，这里包的是带底色的引文块。
+    out = wrap_block(out, "blockquote", "margin:20px 0")
     return _guard(html, out)
 
 
@@ -603,6 +650,10 @@ def layout_vogue(html: str, theme: dict) -> str:
     })
 
     out = style_all(out, "img", {"border-radius": "0", "width": "100%"})
+
+    # 2026-11-03 结构级：正文段落独立成块（配方 2.8「图片铺满整行、图注压细线」——
+    # Vogue 的版面是「图文分块排列」，不是连续流）。
+    out = wrap_block(out, "p", "margin:0")
     return _guard(html, out)
 
 
@@ -653,6 +704,12 @@ def layout_forbes(html: str, theme: dict) -> str:
         "border-right": "none", "border-bottom": "none",
         "background": "transparent", "font-size": "16px", "line-height": "1.75",
     })
+
+    # 2026-11-03 结构级：引用独立成块（配方 2.9「数字本身就是主视觉，
+    # 数据多的地方单独分出来」——「分出来」是版面动作）。
+    out = wrap_block(out, "blockquote", "margin:18px 0")
+    # 小标题也独立成块：大数字/数据段常挂在小标题下，需要块级分区。
+    out = wrap_block(out, "h2", "margin:24px 0 12px")
     return _guard(html, out)
 
 
@@ -698,6 +755,10 @@ def layout_muji(html: str, theme: dict) -> str:
 
     out = style_all(out, "strong", {"color": body, "font-weight": "700"})
     out = style_all(out, "img", {"border-radius": "0", "box-shadow": "none", "border": "none"})
+
+    # 2026-11-03 结构级：段落独立成块（配方 2.5「每段 2–4 行，留出明显空隙」——
+    # 段落间隙是版面手法，只改 margin-bottom 骨架上看不出区别）。
+    out = wrap_block(out, "p", "margin:0 0 4px")
     return _guard(html, out)
 
 
@@ -735,6 +796,10 @@ def layout_mori(html: str, theme: dict) -> str:
     })
 
     out = style_all(out, "strong", {"color": dark_green, "font-weight": "700"})
+
+    # 2026-11-03 结构级：h2 外层再包一个块（配方 2.6「白字压豆绿圆角块，像书签」——
+    # 书签是挂在版面结构上的，不能只是给文字加背景色）。
+    out = wrap_block(out, "h2", "margin:26px 0 14px")
     return _guard(html, out)
 
 
@@ -781,6 +846,14 @@ def layout_ukiyoe(html: str, theme: dict) -> str:
     })
 
     out = style_all(out, "strong", {"color": seal, "font-weight": "700"})
+
+    # 2026-11-03 结构级：h2 外层包块 + 引用包块（配方 2.7 印章感 = 硬阴影压在**整块**上，
+    # 只给文字加 box-shadow 在骨架上与配色主题同构）。
+    out = wrap_block(out, "h2", "margin:30px 0 16px")
+    out = wrap_block(out, "blockquote", "margin:24px 0")
+    # 主标题也做成印章块（标题本身带靛蓝底 + 赭红硬阴影，是整块印章，
+    # 与 tech 的「无装饰 h1」形成骨架差异）。
+    out = wrap_block(out, "h1", "margin:0 0 20px")
     return _guard(html, out)
 
 
@@ -835,6 +908,11 @@ def layout_note(html: str, theme: dict) -> str:
     out = style_all(out, "strong", {
         "background": pen, "font-weight": "700", "color": ink,
     })
+
+    # 2026-11-03 结构级：重点结论独立成便签块（配方 2.13「单独框出来，左侧立蓝色竖线」）。
+    out = wrap_block(out, "blockquote", "margin:20px 0")
+    # 小节也独立成块：编号标牌 + 明黄细线是「版面分区」而不是行内装饰。
+    out = wrap_block(out, "h2", "margin:28px 0 14px")
     return _guard(html, out)
 
 
@@ -883,6 +961,10 @@ def layout_ikea(html: str, theme: dict) -> str:
     )
 
     out = style_all(out, "strong", {"color": blue, "font-weight": "700"})
+
+    # 2026-11-03 结构级：主标题独立成块（配方 2.14「大标题左对齐 + 下方压 4px 黄线，
+    # 像货架上的价签」——价签是独立版面单元）。
+    out = wrap_block(out, "h1", "margin:0 0 20px")
     return _guard(html, out)
 
 
@@ -923,6 +1005,10 @@ def layout_starbucks(html: str, theme: dict) -> str:
         "border": "none", "border-left": f"3px solid {accent}", "border-radius": "6px",
         "font-size": "15.5px", "line-height": "1.8",
     })
+
+    # 2026-11-03 结构级：引用做成独立信息卡（配方 2.10「米白用在引用、总结、
+    # 信息卡片上」——「卡片」是版面单元，不能只靠背景色）。
+    out = wrap_block(out, "blockquote", "margin:20px 0")
     return _guard(html, out)
 
 
@@ -971,6 +1057,9 @@ def layout_adidas(html: str, theme: dict) -> str:
         "border-right": "none", "border-bottom": "none",
         "background": "transparent", "font-size": "16px", "line-height": "1.75",
     })
+
+    # 2026-11-03 结构级：引用独立成块（配方 2.11「斜向动势」需要块级留白做底）。
+    out = wrap_block(out, "blockquote", "margin:18px 0")
     return _guard(html, out)
 
 
@@ -1027,6 +1116,9 @@ def layout_brutal(html: str, theme: dict) -> str:
 
     # 分隔线：粗黑横线
     out = re.sub(r"<hr\b[^>]*>", thin_rule(black, 4, "100%", "26px 0"), out)
+
+    # 2026-11-03 结构级：正文段落独立成块（配方 2.12「段间留空」靠块级间距实现）。
+    out = wrap_block(out, "p", "margin:0")
     return _guard(html, out)
 
 
@@ -1092,6 +1184,15 @@ def layout_deepread(html: str, theme: dict) -> str:
     out = style_all(out, "strong", {
         "color": accent, "font-weight": "700", "background": rgba(accent, 0.08),
     })
+
+    # 2026-11-03 结构级：金句独立成卡片块（配方 2.15「包成浅暖米色卡片」）。
+    out = wrap_block(out, "blockquote", "margin:24px 0")
+    # 段尾赤桃短横线收尾（配方 2.15「段尾居中对齐划赤桃短横线」）
+    out = re.sub(
+        r"</blockquote>",
+        "</blockquote>" + thin_rule(accent, 2, "48px", "18px auto 0"),
+        out, count=1,
+    )
     return _guard(html, out)
 
 
@@ -1150,6 +1251,18 @@ def layout_tech(html: str, theme: dict) -> str:
     })
 
     out = style_all(out, "strong", {"color": accent, "font-weight": "600"})
+
+    # 2026-11-03 结构级（配方「清晰层级 · 克制留白」）：h1 / h2 / 引用各自独立成块。
+    # h1 不加任何装饰，只用块级留白把它和正文拉开 —— 这正是「克制留白」的落法。
+    # 分隔线换成极短竖标记：技术文档靠章节切口而不是装饰线。
+    # 此前只贴样式，骨架上与配色主题同构 —— 用户实测「看不出区别」。
+    out = wrap_block(out, "h1", "margin:8px 0 22px")
+    out = wrap_block(out, "h2", "margin:30px 0 14px")
+    out = wrap_block(out, "blockquote", "margin:20px 0")
+    # 列表独立成块：技术文的清单/参数表是独立版面单元，靠块级留白与正文分开。
+    # ⚠️ 引擎把列表渲染成 <section><span>•</span>…，不是 <ul>（实测），所以要包 p。
+    out = wrap_block(out, "p", "margin:0 0 16px")
+    out = re.sub(r"<hr\b[^>]*>", thin_rule(accent, 2, "28px", "22px 0"), out)
     return _guard(html, out)
 
 
@@ -1256,6 +1369,11 @@ def layout_swiss(html: str, theme: dict) -> str:
     })
 
     out = style_all(out, "strong", {"color": accent, "font-weight": "700"})
+
+    # 2026-11-03 结构级（配方「统一对齐轴」）：h1 与 h2 各自独立成块，
+    # 靠块级左轴线咬死同一条边。此前只贴样式，骨架无差异。
+    out = wrap_block(out, "h1", "margin:0 0 20px")
+    out = wrap_block(out, "h2", "margin:34px 0 14px")
     return _guard(html, out)
 
 
@@ -1308,6 +1426,9 @@ def layout_light(html: str, theme: dict) -> str:
     })
 
     out = style_all(out, "strong", {"color": accent, "font-weight": "700"})
+
+    # 2026-11-03 结构级（配方「松弛图文节奏」）：引用做成独立小卡块。
+    out = wrap_block(out, "blockquote", "margin:24px 0")
     return _guard(html, out)
 
 
