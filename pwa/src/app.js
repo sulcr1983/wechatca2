@@ -23,6 +23,7 @@ const LS = {
   pp: 'supersu.pwa.ppmode',       // 预处理模式 auto/conservative/longform/tutorial（2026-10-31 接线）
   kitReturn: 'supersu.pwa.kit.return',  // 进整篇设计前用的那套配色主题（退出时回这里）
   fontSize: 'supersu.pwa.fontsize',     // 正文字号 px（2026-11-03 接线；null/缺省 = 用该套原值）
+  bg: 'supersu.pwa.pagebg',             // 整页背景预设（2026-11-03 P4-2；缺省 plain = 不包外层）
 };
 
 const DEFAULT_THEME = 'su-biz-azure';
@@ -245,7 +246,17 @@ async function doRender() {
     lastImgLocalized = 0;
     lastImgFailed = [];
     lastMarkdown = out.markdown;
-    showPreview(out.html);
+    /* 页尾内容（2026-11-03 P4-2）：拼在产物层而不是编辑器文本层，
+       这样复制/导出天然包含它，且不会污染用户正在编辑的正文。
+       tailHtml() 无内容时返回空串 → 产物与不设页尾时逐字节一致。 */
+    const tail = await tailHtml();
+    if (mySeq !== renderSeq) return;
+    /* 整页背景（2026-11-03 P4-2）：包在产物最外层。
+       plain 时 applyPageBg 原样返回 → 产物与不设背景时逐字节一致。 */
+    const composed = applyPageBg(tail ? out.html + tail : out.html);
+    lastHtml = composed;
+    lastRawHtml = composed;
+    showPreview(composed);
     updateImageTip();
     lastPpEffective = out.mode || null;   // auto 判定结果，解析条做反馈
     updateParseBar(out.markdown);
@@ -559,6 +570,17 @@ function pushRecent(id) {
 function setActive(id, announce = false) {
   if (id !== CUSTOM_ID && !byId.has(id)) return;
 
+  /* 配色微调是「临时覆盖」而不是持久化的虚拟主题（2026-11-03 P4-7，用户拍板）。
+     规则：只要从 __custom__ 切到别的主题，就清掉 LS_CUSTOM 并清 customBase ——
+     否则用户改完色、再去挑一套主题，那三个色值会一直盖在新主题上，看起来像「主题坏了」。
+     ⚠️ **读到时不要主动删**：老用户打开仍应看到自己存的配色，不能突然变样。
+     这是 plan §P4「配色微调：改的是语义，不是接线」的落点。 */
+  if (activeId === CUSTOM_ID && id !== CUSTOM_ID) {
+    try { localStorage.removeItem(LS_CUSTOM); } catch { /* 隐私模式可能抛，忽略 */ }
+    themeJsonCache.delete(CUSTOM_ID);
+    customBase = '';
+  }
+
   /* 进 kit 前记住当前那套「配色主题」（2026-11-02）。
      为什么要记：kit 的版式和配色都锁死，用户退出时必须回到**他原来那套**，
      而不是回「默认」—— 否则他挑了很久的主题就白挑了。
@@ -605,7 +627,7 @@ function applyKitLock() {
   const noteText = $('kit-note-text');
   if (note) note.hidden = !isKit;
   if (isKit && noteText) {
-    const layLabel = (LAYOUT_OPTIONS.find(([id]) => id === t.layout) || ['', t.layout])[1];
+    const layLabel = layoutLabel(t.layout);
     noteText.innerHTML = `正在使用整篇设计<b>「${escapeHtml(t.name)}」</b>`
       + `，版式（${escapeHtml(layLabel)}）与配色已固定，不能再单独改。`;
   }
@@ -654,10 +676,9 @@ function renderModeTabs() {
     b.classList.toggle('on', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-  // 整篇设计 tab 下没有可组合的「版式」选项（已锁死），整行隐藏；
-  // 但段落样式（金句/数据/提示）**保留可用**（已定案 2026-11-03，kit 下仍可加色块强调）
-  const lay = $('drawer-layouts');
-  if (lay) lay.hidden = drawerMode === 'kit';
+  // 2026-11-03 P4-5：kit tab 下版式区**不再隐藏**，改为在 renderLayouts 里渲染
+  // 一行状态文字「整篇设计已锁定（套名）」。隐藏会让用户以为功能消失了。
+  // 段落样式（金句/数据/提示）在 kit 下仍可用（已定案 2026-11-03）。
 }
 
 /** 整篇设计 tab 的网格：19 套平铺，每张卡都自带版式+配色。 */
@@ -728,7 +749,24 @@ function closeDrawer() {
 
 /* ── 版式层（B 方案，2026-10-24）──────────────────────────────
    换版式 = 换结构（不是换颜色）。选中后立刻把当前主题的 layout 换掉并重渲染。
-   版式与色调正交：版式决定「区块怎么切」，色调决定「什么颜色」。 */
+   版式与色调正交：版式决定「区块怎么切」，色调决定「什么颜色」。
+
+   2026-11-03 扩项：从 8 项扩到 15 项，新增 7 个「报刊」版式。
+   判据不是偏好，是**实测「换主题后配色是否跟着走」**（探针见
+   `output/_probe_extreme.py` 的同款方法）：函数体里只要有一个非中性的
+   写死十六进制色，换任何主题都会留下一块品牌色 → 不进这张表。
+   实测结果：
+     ✅ 可自由配 13 个：time/guardian/economist/natgeo/vogue/forbes/muji/
+        starbucks/adidas/tech/rational/swiss/light
+     ❌ 品牌锁死 6 个：mori(#1D3A1D) / ukiyoe(#1B3A5C,#22303F,#8C3A2E) /
+        note(#22303F,#F5D90A,#FDF6C8) / ikea(#FFDA1A) /
+        brutal(#F5C6D0,#F5E9A8) / deepread(#4A3B32)
+   这 6 个只走 kit（`locked_layout`），不给单独入口 —— 它们的设计身份就是那套颜色。
+
+   ⚠️ 为什么只取 7 个而不是 13 个：muji/starbucks 是「写死到没有品牌色」的
+   极简派，放进自由组合区会和默认版式看不出区别；tech/rational/swiss/light
+   是 2026-11-02 的 md2wechat 风格，属于另一条产品线，等 P5 单独评估。
+   7 个报刊版式的中文名见 `docs/wechat/design-wechat-layout-naming.md`（汉典已核实）。 */
 const LAYOUT_OPTIONS = [
   ['', '默认'],
   ['rhythm', '图文节奏'],
@@ -738,7 +776,36 @@ const LAYOUT_OPTIONS = [
   ['hero', '首屏'],
   ['card', '卡片组'],
   ['timeline', '时间线'],
+  /* ── 报刊（2026-11-03 新增，纯 accent 派生，可自由配色）── */
+  ['time', '朱丝栏'],
+  ['guardian', '天头'],
+  ['economist', '鱼尾'],
+  ['natgeo', '乌丝栏'],
+  ['vogue', '版心'],
+  ['forbes', '算经'],
+  ['adidas', '三道'],
 ];
+
+/* 分组：版式条按「通用 / 报刊」两段渲染，中间一个细分隔线。
+   15 个胶囊平铺会占三行、把下面的模板网格挤掉 —— 分段后视觉上仍是两组，
+   但组内顺序稳定，用户扫一眼就知道「通用是结构、报刊是版式风格」。 */
+const LAYOUT_GROUP_AT = 8;   // 前 8 项 = 通用，其余 = 报刊
+
+/* 只用于「显示名」的补充映射：这 6 个版式**不给独立入口**（品牌色锁死，
+   换任何主题都会毁），但它们仍是 19 套 kit 的 locked_layout，
+   kit 说明条要说出「版式是哪一个」时不能漏成英文 id。 */
+const LAYOUT_LABEL_ONLY = {
+  muji: '留白', starbucks: '咖啡', mori: '森系', ukiyoe: '浮世绘',
+  note: '手账', ikea: '宜家', brutal: '野兽', deepread: '深读',
+  tech: '技术编辑', rational: '理性', swiss: '瑞士', light: '轻刊',
+};
+
+/** 任意 layout id → 中文显示名（入口表优先，其次显示名表，最后原样） */
+function layoutLabel(id) {
+  if (!id) return '默认';
+  const hit = LAYOUT_OPTIONS.find(([x]) => x === id);
+  return hit ? hit[1] : (LAYOUT_LABEL_ONLY[id] || id);
+}
 
 /* 结构版式：靠小标题切段才有意义（引擎在标题不足 2 个时会原样返回）*/
 // 结构版式：靠小标题切段才有意义（引擎在标题不足 2 个时会原样返回）
@@ -760,14 +827,29 @@ function layoutOf(t) {
 function renderLayouts() {
   const meta = themeMeta(activeId);
   const cur = layoutOf(meta);
-  // kit 状态下版式锁死：渲染时就要带 disabled，不能靠事后补（重建 innerHTML 会丢）
   const locked = !!(meta && meta.kind === 'kit');
-  $('drawer-layouts').innerHTML =
-    '<span class="dl-label">版式</span>' +
-    LAYOUT_OPTIONS.map(([id, label]) => `
+  /* 2026-11-03 P4-5：kit 态不再整行隐藏，改为一行状态文字（plan §P4 决策 E-7/E-8）。
+     隐藏会让用户以为「版式这项功能消失了」；显示状态文字才说得清「已锁定、且锁的是哪套」。
+     ⚠️ 顺带修掉旧问题：原实现对未知 layout id 会回落显示英文 id（LAYOUT_OPTIONS 只有 8 项，
+     19 套的 layout 名不在其中）。这里直接用主题的中文名，不再查表。 */
+  if (locked) {
+    $('drawer-layouts').innerHTML =
+      '<span class="dl-label">版式</span>'
+      + `<span class="dl-locked">整篇设计已锁定（${escapeHtml(meta.name || '')}）</span>`;
+    return;
+  }
+  const chip = ([id, label]) => `
       <button class="dl-chip${id === cur ? ' on' : ''}" data-layout="${id}"
               type="button" aria-pressed="${id === cur}"
-              ${locked ? 'disabled aria-disabled="true"' : 'aria-disabled="false"'}>${label}</button>`).join('');
+              aria-disabled="false">${label}</button>`;
+  /* 2026-11-03 扩项：15 个胶囊分「通用 / 报刊」两段，中间一道细分隔线。
+     段内顺序与 LAYOUT_OPTIONS 一致，两段各占一行，不推挤下方模板网格。 */
+  const head = LAYOUT_OPTIONS.slice(0, LAYOUT_GROUP_AT).map(chip).join('');
+  const mag = LAYOUT_OPTIONS.slice(LAYOUT_GROUP_AT).map(chip).join('');
+  $('drawer-layouts').innerHTML =
+    '<span class="dl-label">版式</span>'
+    + `<span class="dl-group">${head}</span>`
+    + `<span class="dl-group dl-group-mag">${mag}</span>`;
 }
 
 /* ── 段落样式开关（C 方案）────────────────────────────────────
@@ -1892,6 +1974,7 @@ function bindUI() {
     if (act === 'backup') openBackupDialog();
     if (act === 'update') $('btn-update')?.click();   // 移动端浮动入口隐藏，从「更多」进
     if (act === 'about') openAbout();
+    if (act === 'settings') openSettings();           // 低频项：配色微调 / 页尾 / 数据
   });
 
   // 外链图本地化（方案 B2 · #6）：只有用户点击才联网抓图
@@ -1964,6 +2047,25 @@ function bindUI() {
 
   $('btn-about-close').addEventListener('click', closeAbout);
   $('about-mask').addEventListener('click', closeAbout);
+
+  /* 设置弹窗（2026-11-03 P4-2）：关闭 + 页尾持久化 + 数据段两个按钮复用既有入口 */
+  $('btn-settings-close').addEventListener('click', closeSettings);
+  $('settings-mask').addEventListener('click', closeSettings);
+  if ($('set-backup')) $('set-backup').addEventListener('click', () => { closeSettings(); openBackupDialog(); });
+  if ($('set-clear')) $('set-clear').addEventListener('click', () => { closeSettings(); clearAll(); });
+  /* 页尾：改动即存本机并重渲染（页尾是产物层拼接，必须重渲染才看得到） */
+  const onTailChange = () => { lsSet(LS_TAIL, tailPayload()); scheduleRender(); };
+  if ($('tail-on')) $('tail-on').addEventListener('change', onTailChange);
+  if ($('tail-md')) $('tail-md').addEventListener('input', onTailChange);
+  syncTailUi();
+  /* 整页背景（2026-11-03 P4-2）：点卡片即换背景，存本机 + 重渲染 */
+  const bgGrid = $('set-grid-bg');
+  if (bgGrid) {
+    bgGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-bg]');
+      if (btn && !btn.disabled) setBg(btn.dataset.bg);
+    });
+  }
 
   // 移动端 tabs
   $('tabs').addEventListener('click', (e) => {
@@ -2134,6 +2236,117 @@ function applyMode() {
 
 function openAbout() { $('about').hidden = false; $('about-mask').hidden = false; }
 function closeAbout() { $('about').hidden = true; $('about-mask').hidden = true; }
+
+/* ── 设置弹窗（2026-11-03 P4-2，定稿 §3.2）───────────────────────
+   低频项集中入口：配色微调 / 页尾 / 数据。从「⋯」菜单的「设置」进入，
+   顶栏不新增控件（AGENTS.md §6：390px 下顶栏已挤满，加第 5 个会重叠 21px）。 */
+function openSettings() {
+  $('settings-dlg').hidden = false;
+  $('settings-mask').hidden = false;
+  /* ⚠️ 不能用 init() 里的局部 syncCustomInputs（作用域进不来，会抛 ReferenceError）。
+     这里直接按顶层可用的 customColors() / byId 回填，逻辑与它保持一致。 */
+  const base = byId.get(customBase) || themes[0] || {};
+  const c = customColors() || { bg: base.background, text: base.primary, accent: base.accent };
+  if ($('dc-bg')) $('dc-bg').value = c.bg || '#ffffff';
+  if ($('dc-text')) $('dc-text').value = c.text || '#333333';
+  if ($('dc-accent')) $('dc-accent').value = c.accent || '#888888';
+  syncTailUi();
+  renderBgGrid();
+}
+function closeSettings() {
+  $('settings-dlg').hidden = true;
+  $('settings-mask').hidden = true;
+}
+
+/* 页尾内容（2026-11-03 P4-2）：独立于正文，自动附在末尾。
+   ⚠️ 引擎没有页尾参数，所以这里是**前端拼接** —— 在 doRender 拿到 out.html 之后追加。
+   存在 LS.tail 里，复制/导出都包含（因为拼接发生在产物层，不是编辑器文本层）。 */
+const LS_TAIL = 'supersu.pwa.tail';
+function tailPayload() {
+  const on = $('tail-on') ? $('tail-on').checked : false;
+  const md = $('tail-md') ? $('tail-md').value.trim() : '';
+  return { on, md };
+}
+function syncTailUi() {
+  const t = lsGet(LS_TAIL, { on: false, md: '' });
+  if ($('tail-on')) $('tail-on').checked = !!t.on;
+  if ($('tail-md')) $('tail-md').value = t.md || '';
+}
+/** 把页尾 Markdown 渲染成 HTML 片段（用轻量渲染器，与正文同一套主题样式） */
+async function tailHtml() {
+  const t = tailPayload();
+  if (!t.on || !t.md) return '';
+  try {
+    const raw = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
+    return renderLight(t.md, JSON.parse(raw)) || '';
+  } catch { return ''; }
+}
+
+/* ── 整页背景（2026-11-03 P4-2）────────────────────────────────
+   只改整页底色，不动标题/正文/列表样式，与配色自由组合（定稿 §3.3）。
+   ⚠️ 实现是**在产物外面包一层带背景的 <section>**，不是改主题 JSON ——
+   这样复制/导出天然包含背景，且不污染主题文件。
+   plain 时**不包外层**，产物与不设背景时逐字节一致。 */
+const BGS = [
+  { id: 'plain', n: '纯白', bg: '#FFFFFF', css: '' },
+  { id: 'warm', n: '暖纸', bg: '#F7F4EE', css: '' },
+  { id: 'paper', n: '纸张纹理', bg: '#FAF7F0',
+    css: 'repeating-linear-gradient(0deg,rgba(120,110,95,.035) 0 1px,transparent 1px 4px)' },
+  { id: 'grid', n: '细网格', bg: '#FCFCFC',
+    css: 'linear-gradient(rgba(120,110,95,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(120,110,95,.055) 1px,transparent 1px)' },
+];
+const BG_SIZE = { grid: '18px 18px' };
+const LS_BG = LS.bg;
+
+function bgCurrent() {
+  const v = lsGet(LS_BG, 'plain');
+  return BGS.some((b) => b.id === v) ? v : 'plain';
+}
+
+/** 把背景包进产物。plain 或无背景时原样返回（零变化）。 */
+function applyPageBg(html) {
+  const id = bgCurrent();
+  if (id === 'plain' || !html) return html;
+  const b = BGS.find((x) => x.id === id);
+  if (!b) return html;
+  const size = BG_SIZE[id];
+  let s = `background:${b.bg}`;
+  if (b.css) s += `;background-image:${b.css}` + (size ? `;background-size:${size}` : '');
+  /* padding 1px 0 防止首个子元素的 margin 穿透到外层（否则顶部会露白） */
+  return `<section style="${s};padding:1px 0">${html}</section>`;
+}
+
+/** 设置弹窗里的背景选择网格。kit 态禁用（背景是整篇设计的一部分）。 */
+function renderBgGrid() {
+  const grid = $('set-grid-bg');
+  if (!grid) return;
+  const locked = !!(themeMeta(activeId) || {}).kind === 'kit';
+  const cur = bgCurrent();
+  grid.innerHTML = BGS.map((b) => {
+    const on = b.id === cur;
+    const prev = `background:${b.bg}` + (b.css
+      ? `;background-image:${b.css};background-size:${BG_SIZE[b.id] || 'auto'}` : '');
+    return `<button class="bg-card" data-bg="${b.id}" type="button"
+              aria-pressed="${on}" ${locked ? 'disabled' : ''}
+              style="opacity:${locked ? '.4' : '1'}">
+      <span class="bg-prev" style="${prev}"></span>
+      <span class="bg-name">${b.n}${on ? ' ✓' : ''}</span>
+    </button>`;
+  }).join('');
+  const note = $('set-bg-note');
+  if (note) {
+    note.textContent = locked
+      ? '当前用的是整篇设计，背景不可改 —— 那是设计的一部分。'
+      : '只改整页底色，不动标题/正文/列表样式，与配色自由组合。';
+  }
+}
+
+function setBg(id) {
+  if (!BGS.some((b) => b.id === id)) return;
+  lsSet(LS_BG, id);
+  renderBgGrid();
+  scheduleRender();
+}
 
 async function clearAll() {
   if (!confirm(

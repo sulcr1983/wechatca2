@@ -68,7 +68,10 @@ def main() -> int:
         pass
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8096)
+    # 2026-11-03：默认 0 = 让系统分配端口（避免与并行套件撞车）。
+    # 想固定端口调试时显式传 --port 8096。
+    ap.add_argument("--port", type=int, default=0,
+                    help="本地静态服务端口；0 = 系统分配（默认，避免并行撞端口）")
     ap.add_argument("--local", action="store_true",
                     help="测本地 dist（默认测线上服务器）")
     ap.add_argument("--url", default="", help="自定义目标地址")
@@ -81,8 +84,10 @@ def main() -> int:
         if not (DIST / "index.html").exists():
             print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", file=sys.stderr)
             return 2
-        if port_busy(args.port):
-            print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port", file=sys.stderr)
+        # 只在显式指定端口时才预检；port=0 由系统分配，不存在「被占用」这回事。
+        if args.port and port_busy(args.port):
+            print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port 或直接不传（系统分配）",
+                  file=sys.stderr)
             return 2
 
     # 主题清单：本地模式读 dist/index.json；线上模式读源码 public/themes（同一份真源）
@@ -106,13 +111,20 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     srv = None
     if use_local:
-        srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port),
+        # 2026-11-03 修：原来写死 8096，而 run_gates 会把 cover 与本套件**并行**跑
+        # （PARALLEL_SAFE），两边抢同一端口 → 「ERROR: 端口 8096 被占用」假红，
+        # 且连累同批的 cover 一起超时。AGENTS.md §4 早就要求「新增套件一律 bind 0」，
+        # 这里补上：端口 0 = 让系统分配，起完再读真实端口。
+        # 显式 --port 仍尊重（手动调试时想固定端口）。
+        bind_port = args.port if args.port else 0
+        srv = socketserver.ThreadingTCPServer(("127.0.0.1", bind_port),
                                               functools.partial(_Handler, directory=str(DIST)))
         srv.daemon_threads = True
         srv.request_queue_size = 64
         threading.Thread(target=srv.serve_forever, daemon=True).start()
-        url = f"http://127.0.0.1:{args.port}/"
-        print(f"目标：{url}（本地 dist）")
+        real_port = srv.server_address[1]
+        url = f"http://127.0.0.1:{real_port}/"
+        print(f"目标：{url}（本地 dist，端口 {real_port}）")
     else:
         url = args.url or ONLINE_URL
         print(f"目标：{url}（线上服务器）")
@@ -325,18 +337,45 @@ def main() -> int:
                   page.inner_text("#toast")[:40])
 
             # ④b 纯文字：每族换色必须真的改变预览（色调可见化，2026-10-24）
+            # ⚠️ 2026-11-03 修：原来是「点击 → 固定 wait 800ms → 取签名」，
+            # 引擎渲染慢于 800ms 时签名还是旧的 → 误判「换色不可见」（假红）。
+            # 这正是 AGENTS.md 禁止的「用固定 sleep 判定」。改成**轮询到签名变化**，
+            # 超时仍未变化才判失败（真失败）。
+            def wait_sig_change(pg, before, budget_ms=4000, step=250):
+                """轮询直到签名与 before 不同；返回 (签名, 是否在预算内变了)"""
+                waited = 0
+                sig = style_sig(pg)
+                while waited < budget_ms:
+                    if sig and sig != before:
+                        return sig, True
+                    pg.wait_for_timeout(step)
+                    waited += step
+                    sig = style_sig(pg)
+                return sig, bool(sig and sig != before)
+
             for fam, expected in FAMILIES.items():
                 if expected < 2:
                     continue
                 enter_family(page, fam, 300)
                 ids = tone_ids(page)
+                # 先点第一个色点并**等它真的选中**（否则 s1 取的是上一族的残留，
+                # 后面拿它当基准会误判）
                 page.locator(f".d-tone[data-id='{ids[0]}']").click()
-                page.wait_for_timeout(800)
+                page.wait_for_function(
+                    """(id) => { const e = document.querySelector(`.d-tone[data-id="${id}"]`);
+                        return e && (e.getAttribute('aria-pressed') === 'true'
+                                  || e.classList.contains('active')); }""",
+                    arg=ids[0], timeout=6000)
                 s1 = style_sig(page)
                 page.locator(f".d-tone[data-id='{ids[1]}']").click()
-                page.wait_for_timeout(800)
-                s2 = style_sig(page)
-                check(f"纯文字下 {fam} 换色可见", s1 != s2,
+                # 同理：等第二个色点真选中，再轮询签名变化
+                page.wait_for_function(
+                    """(id) => { const e = document.querySelector(`.d-tone[data-id="${id}"]`);
+                        return e && (e.getAttribute('aria-pressed') === 'true'
+                                  || e.classList.contains('active')); }""",
+                    arg=ids[1], timeout=6000)
+                s2, changed = wait_sig_change(page, s1)
+                check(f"纯文字下 {fam} 换色可见", changed,
                       f"{ids[0]} → {ids[1]}")
 
             # ④c 版式 × 色调二维选择器（2026-10-24）：换版式保留同名色调
@@ -387,11 +426,17 @@ def main() -> int:
             page.wait_for_timeout(900)
             page.click("#btn-themes")
             page.wait_for_timeout(350)
-            check("抽屉底部有三个取色器",
-                  page.locator("#drawer-custom input[type='color']").count() == 3,
+            # 2026-11-03 修：P4-2 已把三个取色器从抽屉迁进「设置」弹窗
+            # （见 docs/wechat/handover-2026-11-03-wechat-p4.md §3.2，用户拍板
+            #  「低频项进弹窗、字号留抽屉」）。原断言「抽屉底部有三个取色器」
+            # 是对旧结构的，迁移后必然 0 个 —— 属于**断言过期**，不是功能坏了。
+            # 新语义：抽屉里 0 个（迁走了）；设置弹窗里 3 个（由
+            # pwa_headed_full_e2e.py 的「三个取色器存在」覆盖）。
+            check("抽屉里不再有取色器（已迁入设置弹窗）",
+                  page.locator("#drawer-custom input[type='color']").count() == 0,
                   f"{page.locator('#drawer-custom input[type=color]').count()} 个")
             sig_before = style_sig(page)
-            # 背景改成醒目色（原生 input 用 JS 赋值 + 触发 input 事件）
+            # 背景改成醒目色（取色器现在在设置弹窗里，仍由 #dc-bg 驱动，可直接赋值）
             page.evaluate("""() => {
                 const el = document.getElementById('dc-bg');
                 el.value = '#101820'; el.dispatchEvent(new Event('input', {bubbles: true}));
@@ -407,20 +452,37 @@ def main() -> int:
                   "自定义配色" in page.inner_text("#style-caps"),
                   page.inner_text("#style-caps")[:40])
             # 恢复：回到默认主题，自定义配置清掉
+            # ⚠️ 2026-11-03：`#dc-reset` 已随三个取色器一起迁入「设置」弹窗
+            # （P4-2），抽屉里点不到 —— 必须先**关抽屉**再走「⋯ → 设置」，
+            # 否则抽屉遮罩挡住顶栏，#btn-more 不可点（element is not visible）。
+            page.click("#btn-drawer-close")
+            page.wait_for_timeout(300)
+            page.click("#btn-more")
+            page.wait_for_timeout(250)
+            page.click('#menu [data-act="settings"]')
+            page.wait_for_selector("#settings-dlg:not([hidden])", timeout=8000)
             page.click("#dc-reset")
             page.wait_for_timeout(900)
             check("「恢复」清掉自定义配色",
                   page.evaluate("() => localStorage.getItem('supersu.pwa.custom')") is None,
                   "")
+            page.click("#btn-settings-close")
+            page.wait_for_timeout(300)
 
             # ⑥ 版式层（B 方案）+ 段落样式开关（C 方案），2026-10-24
             page.click("#btn-themes")
             page.wait_for_timeout(400)
             chips = page.locator(".dl-chip")
-            check("版式层有 8 个选项", chips.count() == 8, f"{chips.count()} 个")
+            # 2026-11-03：版式入口 8 → 15（新增 7 个报刊版式：朱丝栏/天头/鱼尾/
+            # 乌丝栏/版心/算经/三道）。判据与理由见 pwa/src/app.js 的 LAYOUT_OPTIONS 注释。
+            check("版式层有 15 个选项", chips.count() == 15, f"{chips.count()} 个")
             new_lays = ["图文节奏", "卡片流", "目录导航", "杂志分栏"]
             check("版式层含 4 种新版式",
                   all(page.locator(f".dl-chip:has-text('{n}')").count() == 1 for n in new_lays), "")
+            mag_lays = ["朱丝栏", "天头", "鱼尾", "乌丝栏", "版心", "算经", "三道"]
+            check("版式层含 7 个报刊版式",
+                  all(page.locator(f".dl-chip:has-text('{n}')").count() == 1 for n in mag_lays),
+                  "、".join(mag_lays))
             page.click(".dl-chip:has-text('卡片流')")
             page.wait_for_timeout(1500)
             check("切「卡片流」版式生效",

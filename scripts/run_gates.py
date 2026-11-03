@@ -110,6 +110,14 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     # 反向验证配套：scripts/kit_alignment_canred.py（11 个故障注入，全部必须变红）。
     ("kit_align",      [PY, "scripts/kit_alignment_fixture.py"],
                        "19 套整篇设计对齐夹具 152（静态 8 条）", "in-process"),
+    # 2026-11-03 接入：报刊版式入口专项（8 → 15 项那次扩项）。
+    # 为什么必须有这道：7 个报刊版式早就存在于 magazine_layouts.py，
+    # 但从没有过独立入口，**从未在「自由组合配色」场景下被验证过**。
+    # 它守四件事：入口与引擎一致 / 换主题不残留品牌色 / 不丢字 / 标签配平；
+    # 另外断言「6 套品牌锁死的版式**不许**进入口表」——
+    # 那 6 套换任何主题都会留下一块品牌色，进了入口就是毁版面。
+    ("mag_layout",     [PY, "scripts/pwa_magazine_layout_test.py"],
+                       "报刊版式入口 63（含品牌锁死反向断言）", "in-process"),
     ("update_panel",   [PY, "scripts/pwa_update_panel_test.py"],
                        "更新面板（检查更新 / 一键更新 / 本次更新条数 / 反馈入口）11", "local"),
     # 2026-10-30 接入：产物级断言（剪贴板真实内容 / 下载文件真实字节 / 清除后无残留）。
@@ -221,7 +229,9 @@ CHANGE_RULES = [
     # 2026-11-03：动 19 套整篇设计 / 杂志版式时，对齐夹具必须跟上。
     # （core/ 前缀已覆盖 magazine_layouts.py，但 public/themes/mg-* 不在 CORE_ALWAYS 内）
     ("public/themes/mg-",     {"kit_align"}),
-    ("core/magazine_layouts.py", {"kit_align", "layout_compat"}),
+    ("core/magazine_layouts.py", {"kit_align", "layout_compat", "mag_layout"}),
+    # 注：`pwa/src/app.js` 在 CORE_ALWAYS 里（命中即跑满本地层），
+    # 所以版式入口表的改动天然会跑到 mag_layout，不需要另写规则。
     ("pwa/scripts/changelog_milestones.json", {"update_panel", "doc_sync"}),
     ("pwa/public/changelog.json", {"update_panel"}),
     ("pwa/version.json",      {"update_panel"}),

@@ -307,28 +307,35 @@ a { color: var(--accent); }
 .ghost-btn:hover { border-color: var(--border-hi); color: var(--text); }
 
 /* ── 抽屉 ─────────────────────────────────────────────────────── */
+/* 抽屉宽度单一真源（2026-11-03 P4-6，plan §P4 B-4）。
+   原实现有四个数字：560（基础）/ 500（browsing 态）/ 写死的 padding-right:500px，
+   改一处忘另一处就会让预览区右侧留出空白。现在全部由 --drawer-w 派生。
+   ⚠️ 计划里提到的「折叠 248」在线上**不存在**（grep 0 命中），故不实现 —— 加了就是死代码。 */
+:root { --drawer-w: 500px; }
 .drawer-mask { position: fixed; inset: 0; z-index: 40; background: rgba(20, 18, 14, .28); backdrop-filter: blur(1px); }
 .drawer {
   position: fixed; top: 0; right: 0; z-index: 50;
-  width: min(560px, 94vw); height: 100%;
+  width: var(--drawer-w); height: 100%;
   background: var(--bg-canvas); border-left: 1px solid var(--border);
   box-shadow: var(--shadow-xl);
   display: flex; flex-direction: column;
   animation: slide-in .22s ease;
 }
 
-/* 选风格模式：抽屉「让位」而不是盖住预览 —— 桌面端把主区右推 460px，
+/* 选风格模式：抽屉「让位」而不是盖住预览 —— 桌面端把主区右推，宽度与抽屉联动。
    编辑器收起、预览留在左侧，点卡片可以直接看到效果（不重叠、不关闭） */
-body.browsing .stage { grid-template-columns: 1fr; padding-right: 500px; }
+body.browsing .stage { grid-template-columns: 1fr; padding-right: var(--drawer-w); }
 body.browsing .pane-edit { display: none; }
-body.browsing .drawer { width: 500px; }
+body.browsing .drawer { width: var(--drawer-w); }
 body.browsing .drawer-mask { display: none; }
 
 @media (max-width: 900px) {
-  /* 手机宽度不够，只能浮层：恢复遮罩与编辑器，抽屉盖在上面 */
+  /* 手机宽度不够，只能浮层：恢复遮罩与编辑器，抽屉盖在上面。
+     ⚠️ 这里改的是**变量本身**而不是逐条规则 —— 500px 在 375px 屏上会横向溢出，
+     改了变量后 `.drawer` / `padding-right` 等所有派生处自动跟随，不会再漏一处。 */
+  :root { --drawer-w: min(560px, 94vw); }
   body.browsing .stage { padding-right: 0; }
   body.browsing .pane-edit { display: flex; }
-  body.browsing .drawer { width: min(560px, 94vw); }
   body.browsing .drawer-mask { display: block; }
 }
 @keyframes slide-in { from { transform: translateX(24px); opacity: .4 } to { transform: translateX(0); opacity: 1 } }
@@ -400,10 +407,13 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 }
 
 .d-card {
-  /* 2026-10-19 修：缩略图高度 84→104 时未同步抬高卡片，卡片被钉在 118px，
-     flex 把 .d-prev 压回 ~82px（线上实测）。104 + 32(body) = 136 内容高，
-     留 2px 余量 → 140。 */
-  display: flex; flex-direction: column; min-height: 140px;
+  /* 2026-11-03 重算（P4-4）：缩略图改为 aspect-ratio（2:1 / kit 4:3），高度随卡片宽度变化。
+     ⚠️ min-height 必须给具体值，不能用 0 或 auto —— 实测两者都会让卡片在抽屉的
+     grid 里塌陷到 4px（内容 115px 全被 overflow:hidden 裁掉，缩略图与标题条双双消失）。
+     取值推导：palette 卡 150px 宽 → 图 75px(2:1) + body 40px = 115，留 1px → 116；
+     kit 卡 150px 宽 → 图 112.5px(4:3) + body 40px = 152.5，留 1px → 153。
+     宽度变大时 aspect-ratio 会撑高卡片，min-height 只作下限兜底。 */
+  display: flex; flex-direction: column; min-height: 116px;
   border-radius: var(--radius-lg); border: 1px solid var(--border);
   background: var(--bg-raised); overflow: hidden; text-align: left;
   transition: border-color .15s, box-shadow .15s;
@@ -420,7 +430,15 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
   font-size: 10px; line-height: 1.6; letter-spacing: .04em;
 }
 
-.d-prev { height: 104px; background: var(--bg-hover); overflow: hidden; position: relative; }
+/* 缩略图 2:1（2026-11-03 P4-4）：定稿 §1.3「卡片预览区改为 2:1，不裁图」。
+   用 aspect-ratio 而不是固定高度，卡片变宽时缩略图跟着变高、不再被 object-fit 裁掉。
+   ⚠️ 必须 flex:none —— .d-card 是 flex 列容器，.d-prev 作为 flex 子项会被
+   「按内容压缩」到高度 0，aspect-ratio 完全不生效（实测 prevRatio=Infinity）。
+   kit 卡单独用 4:3（见下 .d-card-kit .d-prev）。 */
+.d-prev { flex: none; aspect-ratio: 2 / 1; height: auto; background: var(--bg-hover); overflow: hidden; position: relative; }
+/* 整篇设计卡：4:3 + 独立尺寸预算（P4-4 / 决策 E-6）。
+   不与 palette 卡共用预算 —— 4:3 比 2:1 高，共用 min-height 会被挤压裁掉 39–46%。 */
+.d-card-kit .d-prev { flex: none; aspect-ratio: 4 / 3; }
 /* 图片必须在占位层之上：占位层是 absolute，晚于 img 渲染会盖住真实缩略图 */
 .d-thumb { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; position: relative; z-index: 1; }
 .d-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 4px; padding: 10px; color: var(--text-muted); z-index: 0; }
@@ -429,14 +447,24 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 .d-fallback i:nth-child(3) { width: 88%; }
 .d-fallback i:nth-child(4) { width: 74%; }
 
-.d-body { padding: 7px 9px 8px; display: flex; align-items: center; gap: 6px; }
-.d-name { flex: 1; min-width: 0; font-size: 12px; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.d-fav { flex: none; width: 20px; height: 20px; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 13px; display: grid; place-items: center; }
-.d-fav:hover { background: var(--bg-hover); color: var(--accent); }
-.d-fav[data-on="1"] { color: var(--accent); }
+/* 卡片标题条 C 案（2026-11-03 P4-3，定稿 §1.5「四轮才定」）：深墨底 + 白字。
+   ⚠️ 变量必须用线上真实存在的 `--text` / `--bg-canvas`。方案原文写的
+   `var(--color-foreground)` 在线上**未定义**（`--color-*` 命中 0），照抄会变成
+   白字压白底、文字直接消失（plan-wechat-v6-implementation §P4 B-1）。 */
+.d-body { padding: 10px 12px; display: flex; align-items: center; gap: 6px; background: var(--text); border-top: 0; }
+/* ⚠️ 必须显式覆盖 `.d-family-card .d-name`（特异性 0,2,0 > 0,1,0）：
+   否则族代表卡标题仍是朱砂 #AF3E2B 压深墨 = 3.06:1，低于 4.5:1 不可读（§P4 B-2）。 */
+.d-name,
+.d-family-card .d-name { flex: 1; min-width: 0; font: 700 15px/1.3 Georgia, 'Songti SC', 'SimSun', serif; color: var(--bg-canvas); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-fav { flex: none; width: 20px; height: 20px; border-radius: var(--radius-sm); color: rgba(247, 244, 238, .55); font-size: 13px; display: grid; place-items: center; }
+.d-fav:hover { background: rgba(247, 244, 238, .12); color: var(--bg-canvas); }
+.d-fav[data-on="1"] { color: #E8A08C; }
 
 /* ── 2A 族折叠（与本地版 templates/index.html 一致）：族代表卡 + 12 色调色点 ── */
-.d-family-card .d-name { color: var(--accent); }
+/* ⚠️ 2026-11-03：原本这里是 `.d-family-card .d-name { color: var(--accent) }`，
+   在 C 案（深墨底白字）落地后会把它覆盖成朱砂压深墨 = 3.06:1 不可读。
+   现已**删除该行**，统一由上方第 446–447 行的 `.d-name, .d-family-card .d-name` 接管。
+   不要再加回来 —— 这是 plan-wechat-v6-implementation §P4 B-2 明确警告的陷阱。 */
 /* 「全部」视图的分区标题（编辑精选 / 按族浏览）：整行跨列，不占卡片位 */
 .d-sec { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 4px 0 -2px; }
 .d-sec b { font-size: 13px; color: var(--text); }
@@ -480,14 +508,38 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
 
 /* 版式层（B 方案）：换结构而不是换颜色 */
 .drawer-layouts {
-  flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  padding: 9px 16px; border-bottom: 1px solid var(--border);
+  flex: none; display: flex; align-items: flex-start; gap: 5px; flex-wrap: wrap;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
 }
-.drawer-layouts .dl-label { font-size: 11.5px; color: var(--text-muted); margin-right: 2px; flex: none; }
+.drawer-layouts .dl-label {
+  font-size: 11.5px; color: var(--text-muted); flex: none;
+  line-height: 23px; min-width: 24px;
+}
+/* 版式分组（2026-11-03 扩项 8 → 15）：通用 8 项一行，报刊 7 项另起一行。
+   ⚠️ 实测数据（1440px 视口 / 500px 抽屉 / 内边距 8px 14px）：
+     · 内容宽 471px，「版式」标签 24px + gap 5px → 通用段可用 442px
+     · 通用 8 项胶囊宽 38+60+49+60+60+38+49+49 = 403px，加 7 个 gap 35px = 438px
+       → 438 ≤ 442，正好一行（**余量只有 4px**，改字号或 padding 前先量一遍）
+     · 报刊段 `flex-basis:100%` 强制换行，margin-left 对齐到通用段起点
+   总高 103px（8 项时约 57px）；下方模板网格实测仍有 430px，不塌陷。 */
+.dl-group { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+.dl-group-mag {
+  flex: 1 1 100%; margin-top: 1px; padding-top: 6px;
+  border-top: 1px dashed var(--border); margin-left: 29px;
+}
+/* kit 态版式锁定提示（2026-11-03 P4-5）：替代原来整行隐藏的做法 */
+.dl-locked { font-size: 12px; color: var(--text-muted); letter-spacing: .02em; }
 .dl-chip {
-  padding: 4px 11px; border: 1px solid var(--border); border-radius: 12px;
-  background: var(--bg-surface); font-size: 11.5px; cursor: pointer;
-  color: var(--text-soft); font-family: inherit;
+  /* 2026-11-03 用户反馈「版式名字的字体和框都太大」。
+     实测真因不是字号（11px 已比上方筛选 chip 的 12.5px 小），而是**圆角**：
+     border-radius:11px 用在 23px 高的胶囊上 = 半高全圆，15 个密集排列时
+     每个都鼓成「药丸」，一排 8 个看着又胖又重。
+     改 5px（约 1/4 高）后是「小方胶囊」，密集排列才收得住。
+     字号同步从 11px 降到 10.5px、内边距 3px 6px，进一步减重。 */
+  padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg-surface); font-size: 10.5px; cursor: pointer;
+  color: var(--text-soft); font-family: inherit; white-space: nowrap;
+  line-height: 1.35;
 }
 .dl-chip:hover { border-color: var(--border-hi); }
 .dl-chip.on { background: var(--text-soft); color: var(--bg-surface); border-color: var(--text-soft); }
@@ -573,6 +625,48 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
   border-radius: 5px; background: none; cursor: pointer;
 }
 .drawer-custom .dc-reset { margin-left: auto; height: 26px; padding: 0 10px; font-size: 12px; }
+
+/* ── 设置弹窗（2026-11-03 P4-2）─────────────────────────────────
+   低频项集中在这里：配色微调 / 页尾 / 数据。高频项留在抽屉里。 */
+.set-sec { padding: 0 0 4px; }
+.set-sec + .set-sec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.set-h { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: .06em; margin-bottom: 10px; }
+.set-row { display: flex; align-items: flex-start; gap: 14px; justify-content: space-between; }
+.set-row.set-col { flex-direction: column; align-items: stretch; gap: 8px; }
+.set-l b { display: block; font-size: 13px; color: var(--text); margin-bottom: 3px; }
+.set-l em { display: block; font-style: normal; font-size: 12px; line-height: 1.7; color: var(--text-muted); }
+.set-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none; }
+.set-ctl .dc-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-soft); }
+.set-ctl input[type="color"] {
+  width: 30px; height: 22px; padding: 0; border: 1px solid var(--border);
+  border-radius: 5px; background: none; cursor: pointer;
+}
+.set-sw { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.set-sw input { margin-top: 3px; flex: none; }
+.set-sw b { display: block; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+.set-sw em { display: block; font-style: normal; font-size: 12px; line-height: 1.7; color: var(--text-muted); }
+/* 整页背景预设（2026-11-03 P4-2）：4 个小卡，横排自动换行。
+   每卡左边一块真实背景预览（含纹理），右边名字。kit 态禁用（半透明 + disabled）。 */
+.tw-bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bg-card {
+  display: flex; flex-direction: column; gap: 0;
+  padding: 0; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-raised); overflow: hidden; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.bg-card:hover:not(:disabled) { border-color: var(--border-hi); }
+.bg-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.bg-card:disabled { cursor: not-allowed; }
+.bg-prev { display: block; height: 40px; width: 100%; }
+.bg-name { display: block; padding: 5px 8px; font-size: 11px; color: var(--text-soft); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) { .tw-bgs { grid-template-columns: repeat(2, 1fr); } }
+.set-ta {
+  width: 100%; min-height: 84px; padding: 8px 10px; resize: vertical;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--bg-canvas); color: var(--text); font: inherit; font-size: 13px; line-height: 1.7;
+}
+.set-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.set-note { margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
 
 /* ── 对话框 ───────────────────────────────────────────────────── */
 .dialog-mask { position: fixed; inset: 0; z-index: 60; background: rgba(20, 18, 14, .3); }

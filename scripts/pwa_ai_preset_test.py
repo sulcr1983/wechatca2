@@ -66,7 +66,9 @@ def main() -> int:
         pass
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8098)
+    # 2026-11-03：默认 0 = 系统分配端口（避免与并行/同批套件撞车，见 AGENTS.md §4）
+    ap.add_argument("--port", type=int, default=0,
+                    help="本地静态服务端口；0 = 系统分配（默认）")
     ap.add_argument("--local", action="store_true",
                     help="测本地 dist（默认测线上服务器）")
     ap.add_argument("--url", default="", help="自定义目标地址")
@@ -77,20 +79,22 @@ def main() -> int:
         if not (DIST / "index.html").exists():
             print("ERROR: pwa/dist 不存在，先跑 node pwa/scripts/build.mjs", file=sys.stderr)
             return 2
-        if port_busy(args.port):
-            print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port", file=sys.stderr)
+        # 只在显式指定端口时才预检；port=0 由系统分配，不存在「被占用」
+        if args.port and port_busy(args.port):
+            print(f"ERROR: 端口 {args.port} 被占用 —— 换 --port 或直接不传", file=sys.stderr)
             return 2
 
     OUT.mkdir(parents=True, exist_ok=True)
     srv = None
     if use_local:
-        srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port),
+        srv = socketserver.ThreadingTCPServer(("127.0.0.1", args.port if args.port else 0),
                                               functools.partial(_Handler, directory=str(DIST)))
         srv.daemon_threads = True
         srv.request_queue_size = 64
         threading.Thread(target=srv.serve_forever, daemon=True).start()
-        url = f"http://127.0.0.1:{args.port}/"
-        print(f"目标：{url}（本地 dist）")
+        real_port = srv.server_address[1]
+        url = f"http://127.0.0.1:{real_port}/"
+        print(f"目标：{url}（本地 dist，端口 {real_port}）")
     else:
         url = args.url or ONLINE_URL
         print(f"目标：{url}（线上服务器）")
