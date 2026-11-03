@@ -282,8 +282,9 @@ a{color:var(--accent)}
   letter-spacing:.16em;color:#0A0A0A;flex:none;text-transform:uppercase}
 .vog .v-foot .r{margin-left:auto;font-variant-numeric:tabular-nums}
 /* 降级 2 级：内容实在放不下时缩字号（宁可变小，绝不裁字） */
+.vog .v-body.deg2{padding-top:32px}
 .vog .v-body.deg2 .v-p{font-size:44px;line-height:1.66;margin-bottom:26px}
-.vog .v-body.deg2 .v-bignum{font-size:140px}
+.vog .v-body.deg2 .v-bignum{font-size:120px;margin-bottom:0}
 .vog .v-body.deg2 .v-cover-ttl{font-size:96px}
 .vog .v-body.deg2 .v-cover-sub{font-size:26px;margin-top:28px}
 .vog .v-body.deg2 .v-quote{font-size:60px}
@@ -826,7 +827,7 @@ function renderVog(page, ctx) {
   if (page.role === 'cover') {
     body = `
       <h1 class="v-cover-ttl">${fill(page.title)}</h1>
-      <p class="v-cover-sub">${fill(page.paras[0] || '')}</p>
+      ${page.paras[0] ? `<p class="v-cover-sub">${fill(page.paras[0])}</p>` : ''}
       ${o.num ? `<div class="v-bignum" style="margin-top:auto">01</div>` : ''}`;
   } else {
     const num = o.num ? `<div class="v-bignum">${String(i - 1).padStart(2,'0')}</div>` : '';
