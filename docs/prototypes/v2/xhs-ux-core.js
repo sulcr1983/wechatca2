@@ -1321,8 +1321,7 @@ function renderRecipe(W, H, o) {
      ⚠️ 百分比只认「小字里真的写了数字」的情况，否则一律按原顺序递减并显式标注「示意」。
         配方原话：always use real percentages, never fabricate —— 编数据比没图更糟。 */
   if (kind === 'hbar') {
-    const raw = String(lead || '').split(/[·、／/｜|，,；;\n]+/).map(x => x.trim()).filter(Boolean).slice(0, 6);
-    const list = raw.length >= 3 ? raw : ['第一项', '第二项', '第三项', '第四项', '第五项'];
+    const list = items(6);
     const nums = list.map((x) => {
       const m = x.match(/(\d+(?:\.\d+)?)\s*(%|万|k|K)?/);
       return m ? parseFloat(m[1]) : null;
@@ -1371,7 +1370,9 @@ function renderRecipe(W, H, o) {
         + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden`)
       + `<div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center">`
       + list.map((x, i) => {
-        const m = String(x).match(/^(\S{1,8}?)\s+(.+)$/);
+        /* 只有真的以数字开头才把首段当量（「¥1,280 订阅」「94% Claude」）；否则用序号 ——
+           绝不把首词硬拆成数字（否则 "Claude Code" 会变成 num=Claude）。 */
+        const m = String(x).match(/^([¥$€]?\s?\d[\d,.]*\s*(?:%|万|千|k|K|元|块|次|个|本|小时|h)?)\s+(.+)$/);
         const num = m ? m[1] : String(i + 1).padStart(2, '0');
         const lbl = m ? m[2] : x;
         return `<div style="display:flex;align-items:baseline;gap:${22 * S}px;`

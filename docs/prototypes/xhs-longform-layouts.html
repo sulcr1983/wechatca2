@@ -281,6 +281,12 @@ a{color:var(--accent)}
   display:flex;align-items:center;font-family:var(--font);font-size:21px;
   letter-spacing:.16em;color:#0A0A0A;flex:none;text-transform:uppercase}
 .vog .v-foot .r{margin-left:auto;font-variant-numeric:tabular-nums}
+/* 降级 2 级：内容实在放不下时缩字号（宁可变小，绝不裁字） */
+.vog .v-body.deg2 .v-p{font-size:44px;line-height:1.66;margin-bottom:26px}
+.vog .v-body.deg2 .v-bignum{font-size:140px}
+.vog .v-body.deg2 .v-cover-ttl{font-size:96px}
+.vog .v-body.deg2 .v-cover-sub{font-size:26px;margin-top:28px}
+.vog .v-body.deg2 .v-quote{font-size:60px}
 
 /* ── 3.3 MUJI：浅底块 + 酒红小序号 + 大留白 ─────────────────── */
 .muj{background:#F7F5F0;color:#3D3935;padding:104px 96px 92px}
@@ -577,9 +583,9 @@ const NEW_TPLS = {
   vog: {
     id:'vog', name:'Vogue 画报', tag:'新版式', d:'巨大斜体数字 + 双线 + 黑白',
     desc:'<b>Vogue 手法</b>：整篇只有黑与白，没有彩色；标题下压一粗一细双线；每节前一个比标题大数倍的斜体数字；重点不上色只垫下划线。'
-        + '<br><b>分页密度</b>：中 —— 每页约 130 字，行距 1.9 显通透。',
+        + '<br><b>分页密度</b>：中 —— 每页约 110 字，行距 1.9 显通透。',
     cls:'vog',
-    dens: 130,
+    dens: 110,
   },
   muj: {
     id:'muj', name:'MUJI 留白', tag:'新版式', d:'浅底块 + 酒红小序号 + 大留白',
@@ -724,16 +730,16 @@ function fitPages(title, blocks, dens, cls, pal, opts) {
     `<div class="meas-card">${renderer(p, { pal, i: i + 1, n: ps.length, o: opts })}</div>`).join('');
 
   // 实测修正：溢出就把本页末段推到下一页，直到稳定
-  for (let pass = 0; pass < 12; pass++) {
+  for (let pass = 0; pass < 24; pass++) {
     MEAS.innerHTML = build(pages);
     const cards = [...MEAS.querySelectorAll('.meas-card > .card')];
     let moved = false;
     for (let k = 0; k < cards.length; k++) {
       if (bodyOverflowOf(cards[k]) <= 1) continue;
       const page = pages[k];
-      if (page.role === 'cover') continue;
 
-      if (page.paras.length > 1) {
+      // 正文页：先把末段推到下一页
+      if (page.role !== 'cover' && page.paras.length > 1) {
         const tail = page.paras.pop();
         if (k + 1 < pages.length && pages[k + 1].role === 'body') {
           pages[k + 1].paras.unshift(tail);
@@ -743,9 +749,18 @@ function fitPages(title, blocks, dens, cls, pal, opts) {
         moved = true;
         break;
       }
-      // 只剩一段仍溢出 → 降级：本页不再用重型元素（引文/大字），退回普通段落
-      if (!page.degrade) {
-        page.degrade = true;
+      // 封面没有可去掉的重型元素 → 直接跳到缩字号
+      if (page.role === 'cover') {
+        if ((page.degrade || 0) < 2) {
+          page.degrade = 2;
+          moved = true;
+          break;
+        }
+        continue;
+      }
+      // 只剩一段仍溢出 → 降级：先去掉重型元素，再缩字号（两级兜底）
+      if ((page.degrade || 0) < 2) {
+        page.degrade = (page.degrade || 0) + 1;
         moved = true;
         break;
       }
@@ -838,7 +853,7 @@ function renderVog(page, ctx) {
     </div>
     <div class="v-dline"><div class="thick" style="background:${pal.ink}"></div>
       <div class="thin" style="background:${pal.ink}"></div></div>
-    <div class="v-body">${body}</div>
+    <div class="v-body${page.degrade >= 2 ? ' deg2' : ''}">${body}</div>
     <div class="v-foot" style="border-color:${pal.ink}">
       <span>${esc(o.sign || 'SuperSu')}</span>
       ${o.pn ? `<span class="r">${String(i).padStart(2,'0')}&nbsp;/&nbsp;${String(n).padStart(2,'0')}</span>` : ''}
