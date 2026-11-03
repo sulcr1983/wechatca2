@@ -73,6 +73,8 @@
 - upgrade-insecure-requests 只在强制模式下追加 (8341e32)
 
 ### 其他
+- sync generated outputs (worker py list fix) (9cd8582)
+- 新增断言 worker 必须加载 dist/py 下全部 .py（含反向验证） (153c8cc)
 - sync generated outputs for build 414 (a2cafc0)
 - 重建 dist 后同步生成物（build 400） (7c4f5b8)
 - 同步构建生成物（STATE.md / CHANGELOG.md / changelog.json） (cd4cd96)

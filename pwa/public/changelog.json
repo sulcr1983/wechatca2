@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-03T13:19:57+08:00",
-  "totalCommits": 363,
+  "generatedAt": "2026-11-03T19:56:46+08:00",
+  "totalCommits": 365,
   "releases": [
     {
       "version": "1.17.0",
@@ -18,7 +18,7 @@
         "added": 14,
         "changed": 31,
         "fixed": 7,
-        "other": 18
+        "other": 20
       },
       "groups": [
         {
@@ -459,6 +459,22 @@
           "type": "other",
           "label": "其他",
           "items": [
+            {
+              "text": "sync generated outputs (worker py list fix)",
+              "scope": "build",
+              "hash": "9cd8582",
+              "date": "2026-11-03T13:21:08+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "新增断言 worker 必须加载 dist/py 下全部 .py（含反向验证）",
+              "scope": "build",
+              "hash": "153c8cc",
+              "date": "2026-11-03T13:20:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
             {
               "text": "sync generated outputs for build 414",
               "scope": "build",
