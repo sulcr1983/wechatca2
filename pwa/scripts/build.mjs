@@ -865,6 +865,25 @@ function assertDist(themeCount) {
   }
   if (/SHELL_OPTIONAL/.test(swSrc)) problems.push('sw.js 仍在用硬编码 SHELL_OPTIONAL 清单');
 
+  /* 6.5) worker 的 py 加载清单必须覆盖 dist/py 下全部 .py
+     ⚠️ 2026-11-03 事故：engine.worker.js 只加载 3 个 py，漏了 magazine_layouts.py。
+        format_engine 对它是 try/except 静默兜底（except ImportError: MAGAZINE_LAYOUTS = {}），
+        漏了不报错 —— 19 套「整篇设计」的 layout_* 在浏览器里一次都没跑过，
+        点哪套都只换配色。本地夹具跑的是 core/ 包（from core.magazine_layouts import），
+        绕过了这个断点，所以 228/228 全绿也发现不了。
+        这条断言把「漏加载」从运行期静默变成构建期报错。 */
+  const workerSrc = fs.readFileSync(path.join(DIST, 'src', 'engine.worker.js'), 'utf8');
+  for (const name of fs.readdirSync(path.join(DIST, 'py'))) {
+    if (!name.endsWith('.py')) continue;
+    /* ⚠️ 只认**加载行的真实写法** `'../py/<name>'`，不能用 includes(name)：
+       第一次实现就是这么写的，结果我在这段代码上方留的注释里含 "magazine_layouts.py"
+       字样，把断言自己骗成通过 —— 反向验证（临时删掉加载行）照样全绿。
+       教训：断言必须匹配**行为**，不能匹配**文字**。 */
+    if (!workerSrc.includes(`'../py/${name}'`)) {
+      problems.push(`engine.worker.js 未加载 py/${name}（该模块在浏览器里不会生效）`);
+    }
+  }
+
   // 7) 版本号必须注入进更新模块：残留占位符 = 页面永远不知道自己在哪个版本
   //    （2026-10-29 事故：running 读的是服务器 version.json，导致永远判「已是最新」）
   const updSrc = fs.readFileSync(path.join(DIST, 'src', 'update', 'index.js'), 'utf8');
