@@ -185,6 +185,46 @@ def run(cmd: list[str]) -> tuple[int, str]:
         return 1, str(e)
 
 
+# ── H 段落：文档相对链接必须可达 ──────────────────────────────────────
+# 2026-11-03 踩过的坑：把 65 份文档按模块移进子目录后，全仓有 200+ 处相对链接
+# 需要跟着改；手工改必然漏，且**字数校验（A–G 段）完全抓不到**——
+# 断链的文档照样「数字一致」，只是点不开。所以单列一段机检。
+LINK_SKIP_DIRS = {".git", "node_modules", "output", "pwa/dist", "temp_covers",
+                  "test_output", "blcaptain-style-skill", ".venv", ".pytest_cache"}
+MD_LINK_RE = re.compile(r"(\[[^\]]*\]\()([^)\s]+)(\))")
+
+
+def check_links() -> list[str]:
+    """检查所有 .md 里的相对链接目标是否存在"""
+    bad: list[str] = []
+    for p in sorted(ROOT.rglob("*.md")):
+        rel = p.relative_to(ROOT).as_posix()
+        if any(rel.startswith(d + "/") for d in LINK_SKIP_DIRS):
+            continue
+        try:
+            lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        except Exception:
+            continue
+        for i, line in enumerate(lines, 1):
+            for m in MD_LINK_RE.finditer(line):
+                target = m.group(2)
+                if re.match(r"(http|https|mailto|data|javascript|#)", target):
+                    continue
+                tgt = target.split("#", 1)[0]
+                if not tgt or tgt.startswith("/"):
+                    continue
+                parts: list[str] = []
+                for seg in (p.parent / tgt).as_posix().split("/"):
+                    if seg == "..":
+                        if parts:
+                            parts.pop()
+                    elif seg not in ("", "."):
+                        parts.append(seg)
+                if not (ROOT / "/".join(parts)).exists():
+                    bad.append(f"{rel}:{i} 断链 → {target}")
+    return bad
+
+
 def scan(path: Path) -> list[tuple[int, str, str]]:
     """返回 [(行号, 行内容, 命中类型)]"""
     try:
@@ -317,6 +357,18 @@ def main() -> int:
         print("     现役文档改在根目录现有那几份里；历史/过程记录 → docs/archive/")
     else:
         print(f"  OK 只有约定的 {len(ROOT_MD_ALLOWED)} 份")
+
+    # ── H 相对链接必须可达 ──
+    print("\n[H] 文档相对链接是否可达（移动/归档后最容易断）")
+    links = check_links()
+    if links:
+        problems.append(f"断链 {len(links)} 条")
+        for b in links[:10]:
+            print(f"  ⛔ {b}")
+        if len(links) > 10:
+            print(f"       …… 还有 {len(links) - 10} 条")
+    else:
+        print("  OK 全部相对链接可达")
 
     print("\n" + "=" * 60)
     if problems:
