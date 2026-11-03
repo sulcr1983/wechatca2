@@ -22,7 +22,7 @@
 
 | 线 | 产出 | 结论 |
 |---|---|---|
-| ① 外部调研 | `docs/research-2026-10-25-xhs-cover-survey.html` | 7 个方案对比 + 许可分档（MIT 可借鉴 / AGPL 只学思路） |
+| ① 外部调研 | `docs/research/research-2026-10-25-xhs-cover-survey.html` | 7 个方案对比 + 许可分档（MIT 可借鉴 / AGPL 只学思路） |
 | ② 对抗性审计 | `docs/prototypes/cover/cover-lab-audit.html` | 推翻 3 处、3 个真 bug、1 个盲区；保下 4 条真增量 |
 | ③ 规范 + 原型 | `docs/xhs/cover-style-spec.md` + `cover-lab-v2.html` + `cover_style_check.py` | 立了硬约束，原型跑通 12 版式 × 底图三级遮罩 |
 
