@@ -284,9 +284,9 @@ a{color:var(--accent)}
 /* 降级 2 级：内容实在放不下时缩字号（宁可变小，绝不裁字） */
 .vog .v-body.deg2{padding-top:32px}
 .vog .v-body.deg2 .v-p{font-size:44px;line-height:1.66;margin-bottom:26px}
-.vog .v-body.deg2 .v-bignum{font-size:120px;margin-bottom:0}
-.vog .v-body.deg2 .v-cover-ttl{font-size:96px}
-.vog .v-body.deg2 .v-cover-sub{font-size:26px;margin-top:28px}
+.vog .v-body.deg2 .v-bignum{font-size:88px;line-height:.78;margin-bottom:0}
+.vog .v-body.deg2 .v-cover-ttl{font-size:88px}
+.vog .v-body.deg2 .v-cover-sub{font-size:26px;margin-top:24px}
 .vog .v-body.deg2 .v-quote{font-size:60px}
 
 /* ── 3.3 MUJI：浅底块 + 酒红小序号 + 大留白 ─────────────────── */
@@ -825,10 +825,12 @@ function renderVog(page, ctx) {
   const { pal, i, n, o } = ctx;
   let body = '';
   if (page.role === 'cover') {
+    // 封面：标题在上、下方留白（杂志封面本来就是这样），不用 margin-top:auto 撑底，
+    // 否则大数字贴底会把内容挤出容器（实测溢出 15~35px）
     body = `
       <h1 class="v-cover-ttl">${fill(page.title)}</h1>
       ${page.paras[0] ? `<p class="v-cover-sub">${fill(page.paras[0])}</p>` : ''}
-      ${o.num ? `<div class="v-bignum" style="margin-top:auto">01</div>` : ''}`;
+      ${o.num ? `<div class="v-bignum">01</div>` : ''}`;
   } else {
     const num = o.num ? `<div class="v-bignum">${String(i - 1).padStart(2,'0')}</div>` : '';
     const src = page.paras.slice();          // 必须复制：不能改分页结果本身
