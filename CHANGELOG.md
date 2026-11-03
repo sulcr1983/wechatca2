@@ -15,6 +15,7 @@
 - 按用户要求移除公众号推送与编辑器贴图：入口、配置、代理脚本一并删掉，页面更干净
 
 ### 新增
+- 4 套新增整篇设计改名 + 旧名别名登记 (d3bd733)
 - 19 套整篇设计改为结构级差异化（19 套 → 19 种骨架） (e35f5c8)
 - 抽屉拆成「配色主题 / 整篇设计」两个 tab (6ce2f92)
 - 字号调节接线（引擎参数贯通 + 抽屉滑块） (d1322bd)
@@ -30,6 +31,13 @@
 - 审计 P0 安全响应头 + P1 本机数据备份/恢复 (b878d7b)
 
 ### 调整
+- xhs longform vogue degrade fix + v3 concept-c hybrid prototype (338cf5e)
+- longform layouts prototype - vogue degrade padding and optional sub (c1f6783)
+- xhs prototypes cleanup - real items first, tighten numeric parse (800ce54)
+- v3 原型把 items 透传给版式渲染 (2918904)
+- 小红书原型条目取真实正文 + 分页溢出兜底加强 (89a3174)
+- 小红书原型补齐配方表剩余 4 条（S04/S06/S10/S11） (1f0192e)
+- 小红书两模块需求台账独立成文 + 三模块速览修正过期结论 (df4965d)
 - 19 套整篇设计与 164 套配色主题「看不出区别」的实测诊断 (097cfbf)
 - 浮世绘两端对齐真源收拢到 JSON（等价迁移） (9c739ed)
 - 修正 P0 断言口径（12 条×19=228）与已定案状态，消除文档内部矛盾 (dbc588b)
