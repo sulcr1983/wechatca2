@@ -64,6 +64,7 @@
 - 排版骨架系统方案 —— 结构层与皮肤层分离 (d367bdc)
 
 ### 修复
+- PWA 漏加载 magazine_layouts.py，19 套 layout 在浏览器从未执行 (ffd94df)
 - E2E 补齐两处 10-31 拆分后的过时断言（51/51） (977b905)
 - E2E「切回排版页」用 #btn-editor，修正 10-31 拆分后的过时断言 (dde292b)
 - 凭证默认路径从其他项目改为仓库根 .env (6a3ee5d)
@@ -72,6 +73,7 @@
 - upgrade-insecure-requests 只在强制模式下追加 (8341e32)
 
 ### 其他
+- sync generated outputs for build 414 (a2cafc0)
 - 重建 dist 后同步生成物（build 400） (7c4f5b8)
 - 同步构建生成物（STATE.md / CHANGELOG.md / changelog.json） (cd4cd96)
 - 重新构建 dist 并同步生成物（b385 / BUILD_ID ef6d7de8） (b72e90e)
