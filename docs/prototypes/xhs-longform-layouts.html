@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书长图文 · 差异化版式原型（Economist / Vogue / MUJI）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23AF3E2B'/%3E%3C/svg%3E">
+<style>
+/* ════════════════════════════════════════════════════════════════
+   0. 设计系统变量 —— 与 pwa/src/style.css :root 逐值一致
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --bg-canvas:#F7F4EE; --bg-surface:#FAF9F5; --bg-raised:#FFFFFF; --bg-hover:#F0EDE8;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --text-soft:#6E6759; --text-muted:#9B9484;
+  --accent:#AF3E2B; --accent-dim:#96331F;
+  --accent-soft:rgba(175,62,43,.08); --accent-glow:rgba(175,62,43,.12);
+  --success:#5F8F73;
+  --radius-sm:6px; --radius:8px; --radius-lg:12px; --radius-xl:16px;
+  --font:"DM Sans","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:"JetBrains Mono","Cascadia Code",ui-monospace,monospace;
+  --shadow-sm:0 1px 3px rgba(87,76,54,.04);
+  --shadow:0 1px 8px rgba(87,76,54,.06);
+  --shadow-lg:0 4px 16px rgba(87,76,54,.10);
+  --shadow-xl:0 16px 48px rgba(20,18,14,.22);
+  --top-h:56px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg-canvas);color:var(--text);font-family:var(--font);
+  font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+a{color:var(--accent)}
+
+/* ════════════════════════════════════════════════════════════════
+   1. 顶栏 —— 1:1 复刻 pwa/src/style.css + cover.css（R5 铁律）
+   ════════════════════════════════════════════════════════════════ */
+.top{
+  height:var(--top-h);padding:0 16px;display:flex;align-items:center;
+  border-bottom:1px solid var(--border);background:var(--bg-surface);
+  position:relative;z-index:20;
+}
+.top-left{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);
+  color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.brand{font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand-tail{font-size:12.5px;color:var(--text-muted);margin-left:2px}
+.brand-sub{font-size:11.5px;color:var(--text-muted);margin-left:4px;
+  padding-left:8px;border-left:1px solid var(--border-hi)}
+.cover-btn{
+  height:32px;padding:0 11px;border-radius:var(--radius-sm);font-size:12.5px;
+  font-weight:600;color:var(--accent);background:var(--accent-soft);
+  white-space:nowrap;transition:background .15s,color .15s;flex:none;
+  display:inline-flex;align-items:center;
+}
+.cover-btn:hover{background:var(--accent-glow)}
+.cover-btn[aria-pressed="true"]{background:var(--accent);color:#fff}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.engine-badge{font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;gap:5px}
+.engine-badge i{width:6px;height:6px;border-radius:50%;background:var(--success)}
+
+/* ════════════════════════════════════════════════════════════════
+   2. 三栏骨架
+   ════════════════════════════════════════════════════════════════ */
+.cv-stage{
+  height:calc(100vh - var(--top-h));display:grid;
+  grid-template-columns:340px minmax(0,1fr) 424px;
+  overflow:hidden;
+}
+.cv-col{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.cv-col-left{border-right:1px solid var(--border);background:var(--bg-surface)}
+.cv-col-right{border-left:1px solid var(--border);background:var(--bg-surface)}
+.cv-pad{padding:16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1;min-height:0}
+.cv-sect{display:flex;flex-direction:column;gap:9px;min-height:0}
+.cv-sect-head{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+  color:var(--text-soft);letter-spacing:.01em}
+.cv-sect-head .n{width:17px;height:17px;border-radius:5px;background:var(--bg-hover);
+  display:grid;place-items:center;font-size:10.5px;color:var(--text-muted);flex:none}
+
+/* ── 文章条（§2.4：长文不常驻首屏）──────────────────────────── */
+.art-bar{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);
+  box-shadow:var(--shadow-sm);
+}
+.art-bar-thumb{width:34px;height:34px;border-radius:6px;background:var(--bg-hover);
+  display:grid;place-items:center;font-size:15px;flex:none;color:var(--text-muted)}
+.art-bar-info{min-width:0;flex:1}
+.art-bar-title{font-size:12.5px;font-weight:700;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.art-bar-sub{font-size:11px;color:var(--text-muted);margin-top:1px;
+  font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:5px}
+.art-bar-sub .dot{width:3px;height:3px;border-radius:50%;background:var(--border-hi);flex:none}
+.art-bar-edit{
+  height:28px;padding:0 10px;border-radius:6px;font-size:11.5px;font-weight:700;
+  color:var(--accent);background:var(--accent-soft);flex:none;
+}
+.art-bar-edit:hover{background:var(--accent-glow)}
+
+/* ── 通用控件 ───────────────────────────────────────────────── */
+.row{display:flex;gap:6px}
+.btn{
+  height:34px;padding:0 12px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:600;
+  background:var(--bg-raised);border:1px solid var(--border);color:var(--text-soft);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .15s;flex:1;min-width:0;white-space:nowrap;
+}
+.btn:hover{background:var(--bg-hover);color:var(--text)}
+.btn.on{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.btn-primary{
+  background:var(--accent);border-color:transparent;color:#fff;font-weight:700;height:40px;
+  font-size:13px;box-shadow:0 2px 8px var(--accent-glow);
+}
+.btn-primary:hover{background:var(--accent-dim);color:#fff}
+.big{height:44px}
+.hint{font-size:11px;color:var(--text-muted);line-height:1.6}
+.hint b{color:var(--text-soft);font-weight:700}
+
+/* ── 版式卡片（真渲染缩略图）─────────────────────────────────── */
+.tpl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.tpl{
+  position:relative;border-radius:var(--radius);border:1.5px solid var(--border);
+  background:var(--bg-raised);overflow:hidden;cursor:pointer;padding:0;
+  transition:border-color .15s,box-shadow .15s,transform .12s;text-align:left;display:block;
+}
+.tpl:hover{border-color:var(--border-hi);transform:translateY(-1px)}
+.tpl[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.tpl-thumb{width:100%;aspect-ratio:3/4;overflow:hidden;position:relative;background:#eee}
+.tpl-thumb .mini{position:absolute;top:0;left:0;transform-origin:top left}
+.tpl-meta{padding:7px 9px 8px;border-top:1px solid var(--border)}
+.tpl-name{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:5px}
+.tpl-name .tag{font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;
+  background:var(--bg-hover);color:var(--text-muted)}
+.tpl-name .tag.new{background:var(--accent);color:#fff}
+.tpl-sub{font-size:10px;color:var(--text-muted);margin-top:2px;line-height:1.4;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── 色板 ───────────────────────────────────────────────────── */
+.pals{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.pal{aspect-ratio:1;border-radius:6px;border:1.5px solid transparent;padding:0;
+  position:relative;overflow:hidden;cursor:pointer;display:block}
+.pal[aria-pressed="true"]{border-color:var(--text);box-shadow:0 0 0 2px var(--bg-surface)}
+.pal i{position:absolute;border-radius:50%}
+.pal .a{width:46%;height:46%;left:14%;top:18%}
+.pal .b{width:34%;height:34%;right:14%;bottom:18%;opacity:.55}
+
+/* ── 版式选项（开关）────────────────────────────────────────── */
+.opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg-raised);font-size:12px}
+.opt label{flex:1;cursor:pointer;font-weight:600;color:var(--text-soft)}
+.opt input[type=text]{height:26px;border:1px solid var(--border);border-radius:5px;
+  padding:0 7px;font-size:11.5px;width:100px;background:var(--bg-surface);
+  font-family:inherit;outline:0}
+.opt input[type=text]:focus{border-color:var(--accent)}
+.sw{position:relative;width:34px;height:20px;border-radius:10px;background:var(--border-hi);
+  flex:none;cursor:pointer;transition:background .18s;border:0;padding:0}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;
+  border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.sw[aria-checked="true"]{background:var(--accent)}
+.sw[aria-checked="true"]::after{transform:translateX(14px)}
+
+/* ── 中栏预览 ───────────────────────────────────────────────── */
+.cv-mid{background:var(--bg-canvas);display:flex;flex-direction:column;min-width:0}
+.cv-mid-head{display:flex;align-items:center;gap:10px;padding:12px 18px;
+  border-bottom:1px solid var(--border);flex:none;background:var(--bg-canvas)}
+.cv-mid-title{font-size:12.5px;font-weight:700;color:var(--text-soft)}
+.cv-mid-meta{font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.cv-mid-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.mini-btn{height:26px;padding:0 9px;border-radius:5px;font-size:11px;font-weight:600;
+  background:var(--bg-raised);border:1px solid var(--border);color:var(--text-soft)}
+.mini-btn:hover{background:var(--bg-hover);color:var(--text)}
+.mini-btn.on{background:var(--accent);color:#fff;border-color:transparent}
+.cards-flow{
+  flex:1;overflow-y:auto;padding:20px;display:flex;flex-wrap:wrap;
+  gap:16px;align-content:flex-start;justify-content:center;min-height:0;
+}
+.cv-slot{
+  width:236px;flex:none;border-radius:var(--radius);overflow:hidden;
+  background:var(--bg-raised);box-shadow:var(--shadow);position:relative;
+}
+.cv-slot .card-scaler{width:1080px;height:1440px;transform-origin:top left}
+.cv-slot-num{
+  position:absolute;left:6px;top:6px;z-index:5;font-size:10px;font-weight:700;
+  padding:1px 5px;border-radius:4px;background:rgba(25,23,19,.55);color:#fff;
+  backdrop-filter:blur(4px);font-variant-numeric:tabular-nums;
+}
+.cv-slot:hover{box-shadow:var(--shadow-lg)}
+
+/* ════════════════════════════════════════════════════════════════
+   3. 三套版式的卡片本体（1080×1440 真尺寸，缩放着看）
+   ════════════════════════════════════════════════════════════════ */
+.card{
+  width:1080px;height:1440px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+
+/* ── 3.1 Economist：序号徽章 + 重点句放大 + 红色细线体系 ────── */
+.eco{background:#FBF9F5;color:#1A1A1A;padding:96px 92px 84px;
+  font-family:"Songti SC","SimSun",Georgia,serif}
+.eco .e-top{display:flex;align-items:center;gap:20px;flex:none;
+  padding-bottom:26px;border-bottom:3px solid #E3120B}
+.eco .e-logo{font-family:var(--font);font-size:34px;font-weight:800;letter-spacing:-.02em;
+  color:#E3120B;flex:none}
+.eco .e-rule{width:64px;height:3px;background:#E3120B;flex:none;margin-left:auto}
+.eco .e-ed{font-family:var(--font);font-size:24px;letter-spacing:.14em;
+  color:#8A857D;text-transform:uppercase;flex:none}
+.eco .e-body{flex:1;min-height:0;display:flex;flex-direction:column;
+  padding-top:52px;overflow:hidden}
+.eco .e-cover-ttl{font-size:104px;line-height:1.14;font-weight:700;
+  letter-spacing:-.02em;margin:0;color:#121212}
+.eco .e-cover-kick{font-family:var(--font);font-size:30px;line-height:1.5;
+  color:#6B665E;margin:38px 0 0;font-weight:400}
+.eco .e-cover-meta{font-family:var(--font);font-size:22px;color:#9A948B;
+  letter-spacing:.1em;margin-top:auto;padding-top:40px}
+
+/* 内页：章节序号徽章 */
+.eco .e-chap{display:flex;align-items:baseline;gap:22px;margin:0 0 30px;flex:none}
+.eco .e-badge{
+  font-family:var(--font);font-size:26px;font-weight:800;color:#fff;
+  background:#E3120B;width:58px;height:58px;border-radius:4px;
+  display:grid;place-items:center;flex:none;letter-spacing:-.02em;
+}
+.eco .e-chap-ttl{font-size:62px;line-height:1.2;font-weight:700;margin:0;
+  letter-spacing:-.01em;color:#121212}
+.eco .e-chap-rule{height:1px;background:#DAD5CC;margin:0 0 34px;flex:none}
+.eco p.e-p{font-size:52px;line-height:1.62;margin:0 0 34px;color:#3A3630;
+  text-align:justify;text-justify:inter-ideograph}
+.eco .e-pull{
+  font-size:66px;line-height:1.42;font-weight:700;color:#121212;
+  margin:14px 0 34px;padding-left:28px;border-left:7px solid #E3120B;
+}
+.eco .e-pull .lead{font-family:var(--font);font-size:24px;font-weight:700;
+  color:#E3120B;letter-spacing:.16em;display:block;margin-bottom:16px;text-transform:uppercase}
+.eco .e-quote{
+  background:#F2EEE6;padding:38px 40px;margin:0 0 34px;
+  font-family:var(--font);font-size:46px;line-height:1.6;color:#2E2A25;
+}
+.eco .e-foot{margin-top:auto;padding-top:26px;border-top:1px solid #DAD5CC;
+  display:flex;align-items:center;font-family:var(--font);font-size:22px;color:#9A948B;flex:none}
+.eco .e-foot .r{margin-left:auto;font-variant-numeric:tabular-nums;letter-spacing:.06em}
+
+/* ── 3.2 Vogue：巨大斜体数字 + 双线 + 黑白 ─────────────────── */
+.vog{background:#FFFFFF;color:#0A0A0A;padding:92px 88px 80px;
+  font-family:"Songti SC","SimSun",Georgia,serif}
+.vog .v-top{display:flex;align-items:flex-end;gap:18px;flex:none}
+.vog .v-mast{font-size:52px;font-weight:900;letter-spacing:.32em;
+  line-height:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif}
+.vog .v-iss{margin-left:auto;font-family:var(--font);font-size:22px;
+  letter-spacing:.2em;color:#8C8C8C}
+.vog .v-dline{flex:none;margin:18px 0 0}
+.vog .v-dline .thick{height:5px;background:#0A0A0A}
+.vog .v-dline .thin{height:1px;background:#0A0A0A;margin-top:5px}
+.vog .v-body{flex:1;min-height:0;display:flex;flex-direction:column;
+  padding-top:56px;overflow:hidden}
+.vog .v-cover-ttl{font-size:118px;line-height:1.02;font-weight:900;
+  letter-spacing:-.03em;margin:0}
+.vog .v-cover-sub{font-family:var(--font);font-size:30px;line-height:1.55;
+  color:#5C5C5C;margin:40px 0 0;font-weight:400;letter-spacing:.02em}
+.vog .v-bignum{
+  font-family:"Times New Roman",Georgia,serif;font-size:200px;line-height:.82;
+  font-style:italic;font-weight:400;color:#0A0A0A;letter-spacing:-.04em;
+  margin:0 0 -6px;flex:none;
+}
+.vog .v-chap-ttl{font-size:64px;line-height:1.16;font-weight:900;margin:0 0 20px;
+  letter-spacing:-.015em}
+.vog .v-hair{height:1px;background:#D4D4D4;margin:0 0 36px;flex:none}
+.vog p.v-p{font-size:52px;line-height:1.86;margin:0 0 36px;color:#141414;
+  text-align:justify;text-justify:inter-ideograph}
+.vog .v-em{border-bottom:3px solid #0A0A0A;padding-bottom:4px;font-weight:700}
+.vog .v-quote{
+  font-size:76px;line-height:1.34;font-weight:400;font-style:italic;
+  margin:10px 0 36px;padding:0 0 0 0;letter-spacing:-.01em;
+}
+.vog .v-quote::before{content:"“";font-size:110px;line-height:0;
+  display:block;margin:26px 0 10px;color:#0A0A0A}
+.vog .v-cap{font-family:var(--font);font-size:22px;line-height:1.6;
+  letter-spacing:.06em;color:#8C8C8C;padding-top:12px;
+  border-top:1px solid #D4D4D4;margin:0 0 34px}
+.vog .v-foot{margin-top:auto;padding-top:22px;border-top:1px solid #0A0A0A;
+  display:flex;align-items:center;font-family:var(--font);font-size:21px;
+  letter-spacing:.16em;color:#0A0A0A;flex:none;text-transform:uppercase}
+.vog .v-foot .r{margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* ── 3.3 MUJI：浅底块 + 酒红小序号 + 大留白 ─────────────────── */
+.muj{background:#F7F5F0;color:#3D3935;padding:104px 96px 92px}
+.muj .m-top{display:flex;align-items:center;gap:14px;flex:none}
+.muj .m-mark{font-family:var(--font);font-size:26px;font-weight:700;
+  letter-spacing:.06em;color:#7B2D26}
+.muj .m-rule{flex:1;height:1px;background:#DDD8CF}
+.muj .m-body{flex:1;min-height:0;display:flex;flex-direction:column;
+  padding-top:88px;overflow:hidden}
+.muj .m-cover-ttl{font-size:88px;line-height:1.32;font-weight:600;margin:0;
+  letter-spacing:.01em;color:#2E2A25}
+.muj .m-cover-sub{font-family:var(--font);font-size:30px;line-height:1.75;
+  color:#8A8279;margin:44px 0 0;font-weight:400;letter-spacing:.06em}
+.muj .m-cover-meta{margin-top:auto;padding-top:48px;font-family:var(--font);
+  font-size:22px;letter-spacing:.24em;color:#B0A89D}
+.muj .m-chap{display:flex;align-items:baseline;gap:16px;margin:0 0 26px;flex:none}
+.muj .m-num{font-family:var(--font);font-size:34px;font-weight:600;
+  color:#7B2D26;letter-spacing:.02em;flex:none;font-variant-numeric:tabular-nums}
+.muj .m-chap-ttl{font-size:56px;line-height:1.4;font-weight:600;margin:0;
+  letter-spacing:.03em;color:#2E2A25}
+.muj .m-hair{height:1px;background:#E8E4DC;margin:0 0 44px;flex:none}
+.muj p.m-p{font-size:50px;line-height:1.92;margin:0 0 42px;color:#3D3935;
+  letter-spacing:.045em;text-align:justify;text-justify:inter-ideograph}
+.muj .m-quote{
+  background:#EFECE5;padding:44px 46px;margin:0 0 44px;
+  font-size:48px;line-height:1.82;color:#3D3935;letter-spacing:.045em;
+}
+.muj .m-em{font-weight:700;color:#2E2A25}
+.muj .m-foot{margin-top:auto;padding-top:26px;display:flex;align-items:center;
+  font-family:var(--font);font-size:21px;letter-spacing:.2em;color:#B0A89D;flex:none}
+.muj .m-foot .r{margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* ── 旧模板（对比用，仅取 2 套代表）──────────────────────────── */
+.old{background:#F4EFE6;color:#2b2b2b;padding:88px 84px 80px}
+.old .o-mast{font-size:26px;letter-spacing:.3em;text-transform:uppercase;
+  border-top:1px solid #2b2b2b;border-bottom:1px solid #2b2b2b;
+  padding:14px 0;display:flex;font-family:var(--font)}
+.old .o-mast .r{margin-left:auto;font-size:20px;letter-spacing:.1em;color:#8A7F70}
+.old .o-body{flex:1;min-height:0;padding-top:48px;overflow:hidden}
+.old .o-ttl{font-size:82px;line-height:1.24;margin:0 0 40px;font-weight:700}
+.old p.o-p{font-size:52px;line-height:1.66;margin:0 0 34px;color:#3a3a3a}
+.old .o-foot{margin-top:auto;padding-top:22px;border-top:1px solid #C9BFB0;
+  display:flex;font-family:var(--font);font-size:21px;color:#8A7F70;flex:none}
+.old .o-foot .r{margin-left:auto}
+
+/* ── 空态 ───────────────────────────────────────────────────── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;color:var(--text-muted);font-size:13px;padding:60px 20px;text-align:center;flex:1}
+.empty .ico{font-size:34px;opacity:.4}
+
+/* ════════════════════════════════════════════════════════════════
+   4. 全屏文章编辑层（88vh，源自 xhs-canvas-ux.html:1810）
+   ════════════════════════════════════════════════════════════════ */
+.mask{position:fixed;inset:0;z-index:50;background:rgba(20,18,14,.42);
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:50%;bottom:0;z-index:51;transform:translate(-50%,100%);
+  width:min(980px,calc(100vw - 32px));max-height:88vh;
+  background:var(--bg-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow:var(--shadow-xl);display:flex;flex-direction:column;
+  transition:transform .26s cubic-bezier(.22,.8,.36,1);overflow:hidden;
+}
+.sheet.on{transform:translate(-50%,0)}
+.sheet-grip{height:14px;display:grid;place-items:center;flex:none}
+.sheet-grip i{width:36px;height:4px;border-radius:2px;background:var(--border-hi)}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:0 20px 10px;flex:none}
+.sheet-title{font-size:15px;font-weight:700}
+.sheet-sub{font-size:11.5px;color:var(--text-muted);margin-left:2px}
+.sheet-x{margin-left:auto;width:30px;height:30px;border-radius:6px;
+  color:var(--text-muted);font-size:15px;display:grid;place-items:center;flex:none}
+.sheet-x:hover{background:var(--bg-hover);color:var(--text)}
+.sheet-body{overflow-y:auto;padding:0 20px 16px;min-height:0;flex:1}
+.sheet-foot{display:flex;align-items:center;gap:8px;padding:12px 20px 18px;
+  border-top:1px solid var(--border);flex:none;background:var(--bg-surface)}
+.art-full{
+  width:100%;height:min(56vh,440px);min-height:220px;resize:none;
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--bg-raised);padding:14px 16px;outline:0;
+  font-size:14px;line-height:1.78;font-family:inherit;
+}
+.art-full:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.art-foot{display:flex;align-items:center;gap:10px;margin-top:8px;
+  font-size:11.5px;color:var(--text-muted)}
+.art-hint{margin-left:auto}
+.btn-sm{height:34px;padding:0 14px;border-radius:var(--radius-sm);font-size:12.5px;
+  font-weight:600;background:var(--bg-raised);border:1px solid var(--border);
+  color:var(--text-soft);display:inline-flex;align-items:center}
+.btn-sm:hover{background:var(--bg-hover)}
+.btn-sm.ghost{background:none;border-color:transparent}
+
+/* ════════════════════════════════════════════════════════════════
+   5. 响应式
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width:1339px){
+  .cv-stage{grid-template-columns:312px minmax(0,1fr) 392px}
+  .cv-slot{width:206px}
+}
+@media (max-width:1179px){
+  .cv-stage{grid-template-columns:300px minmax(0,1fr)}
+  .cv-col-right{display:none}
+}
+@media (max-width:899px){
+  body{overflow:auto}
+  .cv-stage{height:auto;grid-template-columns:1fr;overflow:visible}
+  .cv-col-left{border-right:0;border-bottom:1px solid var(--border)}
+  .cv-col-right{display:flex;border-left:0;border-top:1px solid var(--border)}
+  .cv-mid{min-height:auto}
+  .cards-flow{padding:14px;gap:12px;justify-content:flex-start}
+  .cv-slot{width:calc(50% - 6px);max-width:236px}
+  .top{padding:0 8px}
+  .top-left{gap:4px;min-width:0}
+  .brand,.brand-tail,.brand-sub,.engine-badge{display:none}
+  .cover-btn{font-size:10px;padding:0 5px;height:30px;min-height:44px}
+  .top-right{gap:2px;flex:none}
+  .tpl-grid{grid-template-columns:repeat(2,1fr)}
+  .art-bar-edit,.btn,.btn-primary,.btn-sm,.mini-btn{min-height:44px}
+  .opt input[type=text]{height:36px;font-size:16px}
+}
+@media (max-width:420px){
+  .cv-slot{width:100%}
+  .cards-flow{justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-left">
+    <div class="brand-mark">S</div>
+    <div>
+      <span class="brand">SuperSu</span><span class="brand-tail">公众号编辑器</span>
+    </div>
+    <button class="cover-btn" id="btn-editor" aria-pressed="false">公众号排版</button>
+    <button class="cover-btn" id="btn-cover" aria-pressed="false">小红书标题图</button>
+    <button class="cover-btn" id="btn-longform" aria-pressed="true">小红书长图文</button>
+  </div>
+  <div class="top-right">
+    <span class="engine-badge"><i></i>引擎就绪</span>
+  </div>
+</header>
+
+<div class="cv-stage">
+  <!-- ═══ 左栏 ═══ -->
+  <div class="cv-col cv-col-left">
+    <div class="cv-pad">
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">1</span>整篇文章</div>
+        <div class="art-bar">
+          <div class="art-bar-thumb">¶</div>
+          <div class="art-bar-info">
+            <div class="art-bar-title" id="art-title">—</div>
+            <div class="art-bar-sub">
+              <span id="art-count">0 字</span>
+              <span class="dot"></span>
+              <span id="art-pages">分 0 页</span>
+            </div>
+          </div>
+          <button class="art-bar-edit" id="art-edit">编辑全文</button>
+        </div>
+        <div class="hint">读改和看图是两件事 —— 整篇文章收进全屏层，画布不再被挤扁（+17%）。</div>
+      </div>
+
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">2</span>封面配图</div>
+        <div class="row">
+          <button class="btn on" data-img="none">不要图</button>
+          <button class="btn" data-img="upload">传一张</button>
+          <button class="btn" data-img="search">搜图</button>
+        </div>
+        <div class="hint" id="img-hint">纯排印：<b>Economist</b> / <b>MUJI</b> 本身就是无图版式；<b>Vogue</b> 可上图。</div>
+      </div>
+
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">3</span>导出</div>
+        <button class="btn btn-primary big" id="btn-export">导出一整套</button>
+        <div class="row">
+          <button class="btn" id="btn-zip">打包 ZIP</button>
+          <button class="btn" id="btn-demo">示例文章</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 中栏 ═══ -->
+  <div class="cv-col cv-mid">
+    <div class="cv-mid-head">
+      <span class="cv-mid-title">整套实时预览</span>
+      <span class="cv-mid-meta" id="mid-meta">—</span>
+      <div class="cv-mid-right">
+        <button class="mini-btn on" id="view-new">新版式</button>
+        <button class="mini-btn" id="view-old">旧模板（对比）</button>
+      </div>
+    </div>
+    <div class="cards-flow" id="cards-root">
+      <div class="empty">
+        <div class="ico">◫</div>
+        <div>点「示例文章」看效果<br>或点左栏「编辑全文」粘贴你自己的文章</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 右栏 ═══ -->
+  <div class="cv-col cv-col-right">
+    <div class="cv-pad">
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">A</span>版式（<span id="tpl-n">3</span> 套真差异化）</div>
+        <div class="tpl-grid" id="tpl-grid"></div>
+      </div>
+
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">B</span>纸色 / 色板</div>
+        <div class="pals" id="pals"></div>
+        <div class="hint" id="pal-hint">色板只改颜色，不改排版结构 —— <b>版式差异在骨架里</b>。</div>
+      </div>
+
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">C</span>版式选项</div>
+        <div class="opt">
+          <button class="sw" id="sw-pn" aria-checked="true" aria-label="显示页码"></button>
+          <label for="sw-pn">显示页码</label>
+        </div>
+        <div class="opt">
+          <button class="sw" id="sw-num" aria-checked="true" aria-label="章节序号"></button>
+          <label for="sw-num">章节序号</label>
+        </div>
+        <div class="opt">
+          <label for="sign">署名</label>
+          <input type="text" id="sign" placeholder="可不填" maxlength="16">
+        </div>
+      </div>
+
+      <div class="cv-sect">
+        <div class="cv-sect-head"><span class="n">D</span>这套版式做了什么</div>
+        <div class="hint" id="tpl-desc">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 全屏文章编辑层 ═══ -->
+<div class="mask" id="mask"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="编辑整篇文章">
+  <div class="sheet-grip"><i></i></div>
+  <div class="sheet-head">
+    <span class="sheet-title">整篇文章</span>
+    <span class="sheet-sub">第一行作封面标题 · 单独一行「---」强制分页</span>
+    <button class="sheet-x" id="sheet-x" aria-label="关闭">✕</button>
+  </div>
+  <div class="sheet-body">
+    <textarea class="art-full" id="art-full" spellcheck="false"
+      placeholder="把文章粘到这里。&#10;第一行会作封面标题；单独一行的「---」可强制分页。"></textarea>
+    <div class="art-foot">
+      <span id="art-full-count">0 字</span>
+      <span class="art-hint">改完点「完成」，画布会重新分页</span>
+    </div>
+  </div>
+  <div class="sheet-foot">
+    <button class="btn-sm ghost" id="art-cancel">取消</button>
+    <button class="btn-sm" id="art-done" style="margin-left:auto">完成</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   状态
+   ════════════════════════════════════════════════════════════════ */
+const S = {
+  text: '',
+  tpl: 'eco',
+  pal: 'paper',
+  pn: true,
+  num: true,
+  sign: '',
+  view: 'new',
+};
+
+const PALS = {
+  paper:  { name:'暖纸', bg:'#FBF9F5', ink:'#1A1A1A', soft:'#6B665E', line:'#DAD5CC', accent:'#E3120B', block:'#F2EEE6' },
+  ivory:  { name:'象牙', bg:'#FEFDFB', ink:'#161616', soft:'#6E6A64', line:'#E2DED7', accent:'#9E2B25', block:'#F5F2EC' },
+  ash:    { name:'灰阶', bg:'#F5F5F4', ink:'#101010', soft:'#6B6B6B', line:'#D6D6D4', accent:'#111111', block:'#EAEAE8' },
+  ink:    { name:'墨夜', bg:'#15161A', ink:'#EDEAE4', soft:'#9A968E', line:'#3A3B41', accent:'#D9553F', block:'#1F2127' },
+  navy:   { name:'深蓝', bg:'#121A2B', ink:'#E8ECF4', soft:'#939DB0', line:'#2E3A50', accent:'#C9A227', block:'#1B2537' },
+};
+
+const NEW_TPLS = {
+  eco: {
+    id:'eco', name:'经济学人', tag:'新版式', d:'序号徽章 + 重点句放大 + 红线体系',
+    desc:'<b>Economist 手法</b>：红色只画线不铺底；小节用红底序号徽章「01」；重点句放大 1.27 倍并加左红竖线；正文深灰非纯黑。'
+        + '<br><b>分页密度</b>：密 —— 每页约 170 字，信息量大。',
+    cls:'eco',
+    dens: 170,
+  },
+  vog: {
+    id:'vog', name:'Vogue 画报', tag:'新版式', d:'巨大斜体数字 + 双线 + 黑白',
+    desc:'<b>Vogue 手法</b>：整篇只有黑与白，没有彩色；标题下压一粗一细双线；每节前一个比标题大数倍的斜体数字；重点不上色只垫下划线。'
+        + '<br><b>分页密度</b>：中 —— 每页约 130 字，行距 1.9 显通透。',
+    cls:'vog',
+    dens: 130,
+  },
+  muj: {
+    id:'muj', name:'MUJI 留白', tag:'新版式', d:'浅底块 + 酒红小序号 + 大留白',
+    desc:'<b>MUJI 手法</b>：米白底 + 低饱和酒红只用于序号；字距加大；引用铺浅米色块、<b>不用左侧竖线</b>；强调直接加粗不标红。'
+        + '<br><b>分页密度</b>：疏 —— 每页约 100 字，留白是主体。',
+    cls:'muj',
+    dens: 100,
+  },
+};
+
+const OLD_TPLS = {
+  editorial: {
+    id:'editorial', name:'杂志编辑', tag:'旧', d:'刊头 + 上下细线（只改页眉页脚）',
+    desc:'<b>旧模板</b>：与另外 11 套共用同一排版器，只换页眉文字 / 页脚格式 / 纸色。'
+        + '<br>对比看：<b>没有</b>序号系统、没有重点句处理、不改变段落节奏。',
+    cls:'old',
+  },
+  memo: {
+    id:'memo', name:'苹果备忘录', tag:'旧', d:'拟物：iOS 界面（只改页眉页脚）',
+    desc:'<b>旧模板</b>：拟物道具风 —— 模仿 iOS 备忘录界面。解决「像某个熟悉软件」，不解决「文章怎么排得好看」。',
+    cls:'old',
+  },
+};
+
+const DEMO = `周末去了趟海边，才想明白的三件事
+
+以前总觉得，休息就是什么都不做。后来发现，什么都不做反而更累。真正让人缓过来的，是换一种方式用力。
+
+第一件事：把手机留在车里。
+
+回程那天我数了一下，两个小时里我没有摸过一次手机。海风很大，说话要靠喊。那是我这半年里，第一次完整地听完别人讲一段话，没有中途低头。
+
+---
+
+第二件事：认真地看一次日出。
+
+四点半起床的时候我很后悔。但太阳从海平线冒出来的那十几秒，我脑子里是空的——不是发呆的空，是那种什么都不必想的空。
+
+我忽然理解了为什么有人愿意为了这个起那么早。它不提供任何"信息"，但它让人重新意识到时间是有刻度的。
+
+---
+
+第三件事：接受"没干什么"。
+
+我们习惯把一天折算成产出：读了几页书、走了几步路、完成了几个任务。可那两天我什么都没完成，回来却比休假前更有精神。
+
+后来我想到一个解释：人不是电池，休息不是充电。休息更像换气——你得先把旧的呼出去，新的才进得来。
+
+---
+
+所以现在我给自己定了个很低的规矩：每个月至少有一个下午，不安排任何事。
+
+不是"休息"，是留白。`;
+
+/* ════════════════════════════════════════════════════════════════
+   分页器 —— 每套版式密度不同（这本身就是版式差异）
+   ════════════════════════════════════════════════════════════════ */
+function parseArticle(text) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let buf = [];
+  const flush = () => {
+    const s = buf.join('\n').trim();
+    if (s) blocks.push(s);
+    buf = [];
+  };
+  for (const ln of lines) {
+    const t = ln.trim();
+    if (/^(-{3,}|\*{3,})$/.test(t)) { flush(); blocks.push({ pagebreak: true }); continue; }
+    if (t === '') { flush(); continue; }
+    buf.push(t);
+  }
+  flush();
+  const title = typeof blocks[0] === 'string' ? blocks.shift() : '未命名';
+  return { title, blocks };
+}
+
+function paginate(title, blocks, maxChars) {
+  const pages = [{ role: 'cover', title, paras: [] }];
+  let cur = { role: 'body', paras: [] };
+  let chars = 0;
+  const push = () => {
+    if (cur.paras.length) pages.push(cur);
+    cur = { role: 'body', paras: [] };
+    chars = 0;
+  };
+  for (const b of blocks) {
+    if (b && b.pagebreak) { push(); continue; }
+    const len = b.length;
+    if (chars + len > maxChars && cur.paras.length) push();
+    cur.paras.push(b);
+    chars += len;
+  }
+  if (cur.paras.length) pages.push(cur);
+  // 末页若太短且能并回，则并回（避免孤字页）
+  if (pages.length > 2) {
+    const last = pages[pages.length - 1];
+    const prev = pages[pages.length - 2];
+    const tailLen = last.paras.join('').length;
+    const prevLen = prev.paras.join('').length;
+    if (tailLen < maxChars * 0.32 && prevLen + tailLen < maxChars * 1.06) {
+      prev.paras = prev.paras.concat(last.paras);
+      pages.pop();
+    }
+  }
+  return pages;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   实测分页：字符数只做粗分，最终以真实 DOM 高度为准
+   —— 这正是现产品 buildLong 的做法（measureDense + packDense），
+      原型必须一致，否则「分 4 页」是假的。
+   ════════════════════════════════════════════════════════════════ */
+const STORY_MAX_PAGES = 6;
+
+const MEAS = document.createElement('div');
+MEAS.style.cssText =
+  'position:fixed;left:-99999px;top:0;width:1080px;height:1440px;' +
+  'visibility:hidden;pointer-events:none;';
+document.body.appendChild(MEAS);
+
+function bodyOverflowOf(cardEl) {
+  const body = cardEl.querySelector('.e-body,.v-body,.m-body,.o-body');
+  if (!body) return 0;
+  return body.scrollHeight - body.clientHeight;
+}
+
+/** 用真实布局把「按字数粗分」的页修成「不裁字」的页 */
+function fitPages(title, blocks, dens, cls, pal, opts) {
+  let pages = paginate(title, blocks, dens);
+
+  // 页数超上限 → 逐步加密（留白给内容让位），与产品 STORY_MAX_PAGES 一致
+  let guard = 0;
+  let d = dens;
+  while (pages.length > STORY_MAX_PAGES && guard++ < 10) {
+    d = Math.round(d * 1.18);
+    pages = paginate(title, blocks, d);
+  }
+
+  const renderer = RENDERERS[cls] || renderEco;
+  const build = (ps) => ps.map((p, i) =>
+    `<div class="meas-card">${renderer(p, { pal, i: i + 1, n: ps.length, o: opts })}</div>`).join('');
+
+  // 实测修正：溢出就把本页末段推到下一页，直到稳定
+  for (let pass = 0; pass < 8; pass++) {
+    MEAS.innerHTML = build(pages);
+    const cards = [...MEAS.querySelectorAll('.meas-card > .card')];
+    let moved = false;
+    for (let k = 0; k < cards.length; k++) {
+      if (bodyOverflowOf(cards[k]) <= 1) continue;
+      const page = pages[k];
+      if (page.role === 'cover' || page.paras.length <= 1) continue;
+
+      const tail = page.paras.pop();
+      if (k + 1 < pages.length && pages[k + 1].role === 'body') {
+        pages[k + 1].paras.unshift(tail);
+      } else {
+        pages.push({ role: 'body', paras: [tail] });
+      }
+      moved = true;
+      break;                       // 一轮只搬一段，重新测量更稳
+    }
+    if (!moved) break;
+  }
+
+  // 清掉因搬移而变空的正文页
+  MEAS.innerHTML = '';
+  return pages.filter((p) => p.role === 'cover' || p.paras.length > 0);
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fill = (s) => esc(s);
+
+function foot(pal, i, n, o) {
+  if (!o.pn) return '';
+  const sign = o.sign ? `<span style="letter-spacing:.1em">${esc(o.sign)}</span>` : '';
+  return `<span>${sign}</span><span class="r">${String(i).padStart(2,'0')} / ${String(n).padStart(2,'0')}</span>`;
+}
+
+function renderEco(page, ctx) {
+  const { pal, i, n, o } = ctx;
+  const st = `style="--x:0"`;
+  let body = '';
+  if (page.role === 'cover') {
+    body = `
+      <h1 class="e-cover-ttl">${fill(page.title)}</h1>
+      <p class="e-cover-kick">${fill(page.paras[0] || '')}</p>
+      <div class="e-cover-meta">${o.num ? 'ESSAY &nbsp;/&nbsp; NO. 01' : 'ESSAY'}</div>`;
+  } else {
+  // 章节标题：只有短句才当标题。没有短句就不占位（宁可只留序号徽章，也不写「正文」）
+  const head = page.paras[0] && page.paras[0].length < 26 ? page.paras[0] : '';
+    const chap = o.num
+      ? `<div class="e-chap"><span class="e-badge">${String(i - 1).padStart(2,'0')}</span>`
+        + (head ? `<h2 class="e-chap-ttl">${fill(head)}</h2>` : '') + `</div>`
+        + `<div class="e-chap-rule"></div>`
+      : '';
+    const paras = (o.num && head ? page.paras.slice(1) : page.paras);
+    const ps = paras.map((p, k) => {
+      if (k === 1 && p.length > 18 && p.length < 70) {
+        return `<div class="e-pull"><span class="lead">Key</span>${fill(p)}</div>`;
+      }
+      return `<p class="e-p">${fill(p)}</p>`;
+    }).join('');
+    body = chap + ps;
+  }
+  return `<div class="card eco" style="background:${pal.bg};color:${pal.ink}">
+    <div class="e-top">
+      <span class="e-logo">The Economist</span>
+      <span class="e-rule"></span>
+      <span class="e-ed">Essay</span>
+    </div>
+    <div class="e-body">${body}</div>
+    <div class="e-foot" style="border-color:${pal.line};color:${pal.soft}">
+      <span>SuperSu</span>${o.pn ? `<span class="r" style="margin-left:auto">${String(i).padStart(2,'0')} / ${String(n).padStart(2,'0')}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderVog(page, ctx) {
+  const { pal, i, n, o } = ctx;
+  let body = '';
+  if (page.role === 'cover') {
+    body = `
+      <h1 class="v-cover-ttl">${fill(page.title)}</h1>
+      <p class="v-cover-sub">${fill(page.paras[0] || '')}</p>
+      ${o.num ? `<div class="v-bignum" style="margin-top:auto">01</div>` : ''}`;
+  } else {
+    const num = o.num ? `<div class="v-bignum">${String(i - 1).padStart(2,'0')}</div>` : '';
+    const paras = page.paras;
+    const ttl = paras[0] && paras[0].length < 26 ? paras.shift() : '';
+    const head = ttl
+      ? `<h2 class="v-chap-ttl">${fill(ttl)}</h2><div class="v-hair" style="background:${pal.line}"></div>`
+      : '';
+    const ps = paras.map((p) => {
+      if (p.length > 18 && p.length < 70) return `<div class="v-quote">${fill(p)}</div>`;
+      return `<p class="v-p">${fill(p)}</p>`;
+    }).join('');
+    body = num + head + ps;
+  }
+  return `<div class="card vog" style="background:${pal.bg};color:${pal.ink}">
+    <div class="v-top">
+      <span class="v-mast">VOGUE</span>
+      <span class="v-iss">${o.num ? 'ISSUE 03' : 'EDITORIAL'}</span>
+    </div>
+    <div class="v-dline"><div class="thick" style="background:${pal.ink}"></div>
+      <div class="thin" style="background:${pal.ink}"></div></div>
+    <div class="v-body">${body}</div>
+    <div class="v-foot" style="border-color:${pal.ink}">
+      <span>${esc(o.sign || 'SuperSu')}</span>
+      ${o.pn ? `<span class="r">${String(i).padStart(2,'0')}&nbsp;/&nbsp;${String(n).padStart(2,'0')}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderMuj(page, ctx) {
+  const { pal, i, n, o } = ctx;
+  let body = '';
+  if (page.role === 'cover') {
+    body = `
+      <h1 class="m-cover-ttl">${fill(page.title)}</h1>
+      <p class="m-cover-sub">${fill(page.paras[0] || '')}</p>
+      <div class="m-cover-meta">${o.num ? 'NOTE 03' : 'NOTE'}</div>`;
+  } else {
+    const paras = page.paras;
+    const ttl = paras[0] && paras[0].length < 26 ? paras.shift() : '';
+    const head = ttl
+      ? `<div class="m-chap">${o.num ? `<span class="m-num">${String(i - 1).padStart(2,'0')}</span>` : ''}`
+        + `<h2 class="m-chap-ttl">${fill(ttl)}</h2></div>`
+        + `<div class="m-hair" style="background:${pal.line}"></div>`
+      : '';
+    const ps = paras.map((p) => {
+      if (p.length > 24 && p.length < 80) return `<div class="m-quote">${fill(p)}</div>`;
+      return `<p class="m-p">${fill(p)}</p>`;
+    }).join('');
+    body = head + ps;
+  }
+  return `<div class="card muj" style="background:${pal.bg};color:${pal.ink}">
+    <div class="m-top">
+      <span class="m-mark">無印</span>
+      <span class="m-rule" style="background:${pal.line}"></span>
+    </div>
+    <div class="m-body">${body}</div>
+    <div class="m-foot">
+      <span>${esc(o.sign || 'SuperSu')}</span>
+      ${o.pn ? `<span class="r">${String(i).padStart(2,'0')} / ${String(n).padStart(2,'0')}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderOld(page, ctx) {
+  const { pal, i, n, o } = ctx;
+  let body = '';
+  if (page.role === 'cover') {
+    body = `<h1 class="o-ttl">${fill(page.title)}</h1>`;
+  } else {
+    const ps = page.paras.map((p) => `<p class="o-p">${fill(p)}</p>`).join('');
+    body = ps;
+  }
+  return `<div class="card old" style="background:${pal.bg};color:${pal.ink}">
+    <div class="o-mast" style="border-color:${pal.ink}">
+      <span>EDITORIAL</span><span class="r" style="color:${pal.soft}">COLLECTION // VOL. 2026</span>
+    </div>
+    <div class="o-body">${body}</div>
+    <div class="o-foot" style="border-color:${pal.line};color:${pal.soft}">
+      <span>SuperSu</span>${o.pn ? `<span class="r">${i} / ${n}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+const RENDERERS = { eco: renderEco, vog: renderVog, muj: renderMuj, old: renderOld };
+
+/* ════════════════════════════════════════════════════════════════
+   主渲染
+   ════════════════════════════════════════════════════════════════ */
+function currentTplDef() {
+  if (S.view === 'old') return OLD_TPLS[S.tpl] || OLD_TPLS.editorial;
+  return NEW_TPLS[S.tpl] || NEW_TPLS.eco;
+}
+
+function buildPages() {
+  if (!S.text.trim()) return null;
+  const { title, blocks } = parseArticle(S.text);
+  const def = currentTplDef();
+  const dens = def.dens || 170;
+  const pal = PALS[S.pal] || PALS.paper;
+  const opts = { pn: S.pn, num: S.num, sign: S.sign };
+  return { title, pages: fitPages(title, blocks, dens, def.cls, pal, opts) };
+}
+
+function render() {
+  const root = document.getElementById('cards-root');
+  const out = buildPages();
+  const def = currentTplDef();
+
+  // 文章条
+  document.getElementById('art-title').textContent = out ? out.title : '还没有内容';
+  const chars = S.text.replace(/\s/g, '').length;
+  document.getElementById('art-count').textContent = `${chars} 字`;
+  document.getElementById('art-pages').textContent = out ? `分 ${out.pages.length} 页` : '分 0 页';
+  document.getElementById('mid-meta').textContent = out
+    ? `${out.pages.length} 页 · ${def.name} · 每页约 ${def.dens || 170} 字`
+    : `—`;
+
+  // 说明
+  document.getElementById('tpl-desc').innerHTML = def.desc;
+  document.getElementById('pal-hint').innerHTML = S.view === 'old'
+    ? '旧模板：色板是<b>唯一</b>可变维度。'
+    : '色板只改颜色，不改排版结构 —— <b>版式差异在骨架里</b>。';
+
+  // 卡片
+  if (!out) {
+    root.innerHTML = `<div class="empty"><div class="ico">◫</div>
+      <div>点「示例文章」看效果<br>或点左栏「编辑全文」粘贴你自己的文章</div></div>`;
+    return;
+  }
+
+  const pal = PALS[S.pal] || PALS.paper;
+  const opts = { pn: S.pn, num: S.num, sign: S.sign };
+  const renderer = RENDERERS[def.cls] || renderEco;
+
+  root.innerHTML = out.pages.map((page, idx) => `
+    <div class="cv-slot" data-idx="${idx}">
+      <div class="cv-slot-num">${idx + 1}</div>
+      <div class="card-scaler">${renderer(page, { pal, i: idx + 1, n: out.pages.length, o: opts })}</div>
+    </div>`).join('');
+
+  // 缩放：按容器实际宽度算
+  requestAnimationFrame(() => {
+    root.querySelectorAll('.cv-slot').forEach((slot) => {
+      const scaler = slot.querySelector('.card-scaler');
+      const w = slot.clientWidth;
+      const k = w / 1080;
+      scaler.style.transform = `scale(${k})`;
+      slot.style.height = `${1440 * k}px`;
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   模板缩略图（真渲染，不是文字卡）
+   ════════════════════════════════════════════════════════════════ */
+function buildTplGrid() {
+  const grid = document.getElementById('tpl-grid');
+  const list = S.view === 'old' ? Object.values(OLD_TPLS) : Object.values(NEW_TPLS);
+  document.getElementById('tpl-n').textContent = list.length;
+
+  grid.innerHTML = list.map((t) => {
+    const cls = t.cls;
+    const idx = list.indexOf(t);
+    const isNew = t.tag === '新版式';
+    return `<button class="tpl" data-tpl="${t.id}" aria-pressed="${t.id === S.tpl}">
+      <div class="tpl-thumb"><div class="mini" data-cls="${cls}" data-i="${idx}"></div></div>
+      <div class="tpl-meta">
+        <div class="tpl-name">${esc(t.name)}
+          <span class="tag ${isNew ? 'new' : ''}">${esc(t.tag)}</span></div>
+        <div class="tpl-sub">${esc(t.d)}</div>
+      </div>
+    </button>`;
+  }).join('');
+
+  // 用用户当前文章的前几段渲染真缩略图
+  const sample = S.text.trim() ? S.text : DEMO;
+  const { title, blocks } = parseArticle(sample);
+  const pal = PALS[S.pal] || PALS.paper;
+  const opts = { pn: S.pn, num: S.num, sign: S.sign };
+
+  // 缩略图也走实测分页，保证缩略图里不出现被裁掉的字
+  const THUMB_DENS = 150;
+
+  grid.querySelectorAll('.mini').forEach((mini) => {
+    const cls = mini.dataset.cls;
+    const renderer = RENDERERS[cls] || renderEco;
+    const pages = fitPages(title, blocks, THUMB_DENS, cls, pal, opts);
+    const page = pages[1] || pages[0];
+    mini.style.width = '1080px';
+    mini.style.height = '1440px';
+    mini.innerHTML = renderer(page, { pal, i: 2, n: pages.length, o: opts });
+    const w = mini.parentElement.clientWidth || 165;
+    mini.style.transform = `scale(${w / 1080})`;
+  });
+
+  grid.querySelectorAll('.tpl').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      S.tpl = btn.dataset.tpl;
+      if (S.view === 'old' && !OLD_TPLS[S.tpl]) S.view = 'new';
+      if (S.view === 'new' && !NEW_TPLS[S.tpl]) S.view = 'old';
+      syncTplGrid();
+      render();
+    });
+  });
+}
+
+function syncTplGrid() {
+  document.querySelectorAll('#tpl-grid .tpl').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.tpl === S.tpl));
+  });
+}
+
+function buildPals() {
+  const box = document.getElementById('pals');
+  box.innerHTML = Object.entries(PALS).map(([k, p]) => `
+    <button class="pal" data-pal="${k}" aria-pressed="${k === S.pal}"
+      aria-label="${esc(p.name)}" title="${esc(p.name)}"
+      style="background:${p.bg}">
+      <i class="a" style="background:${p.accent}"></i>
+      <i class="b" style="background:${p.ink}"></i>
+    </button>`).join('');
+  box.querySelectorAll('.pal').forEach((b) => {
+    b.addEventListener('click', () => {
+      S.pal = b.dataset.pal;
+      box.querySelectorAll('.pal').forEach((x) =>
+        x.setAttribute('aria-pressed', String(x.dataset.pal === S.pal)));
+      buildTplGrid();
+      render();
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   交互接线
+   ════════════════════════════════════════════════════════════════ */
+const $ = (id) => document.getElementById(id);
+
+// 全屏文章编辑层
+function openEditor() {
+  $('art-full').value = S.text;
+  $('art-full-count').textContent = `${S.text.replace(/\s/g,'').length} 字`;
+  $('mask').classList.add('on');
+  $('sheet').classList.add('on');
+  setTimeout(() => $('art-full').focus(), 120);
+}
+function closeEditor() {
+  $('mask').classList.remove('on');
+  $('sheet').classList.remove('on');
+}
+$('art-edit').addEventListener('click', openEditor);
+$('sheet-x').addEventListener('click', closeEditor);
+$('art-cancel').addEventListener('click', closeEditor);
+$('mask').addEventListener('click', closeEditor);
+$('art-full').addEventListener('input', () => {
+  $('art-full-count').textContent =
+    `${$('art-full').value.replace(/\s/g,'').length} 字`;
+});
+$('art-done').addEventListener('click', () => {
+  S.text = $('art-full').value;
+  closeEditor();
+  buildTplGrid();
+  render();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeEditor();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    if ($('sheet').classList.contains('on')) $('art-done').click();
+  }
+});
+
+// 视图切换
+$('view-new').addEventListener('click', () => {
+  S.view = 'new';
+  if (!NEW_TPLS[S.tpl]) S.tpl = 'eco';
+  $('view-new').classList.add('on'); $('view-old').classList.remove('on');
+  buildTplGrid(); render();
+});
+$('view-old').addEventListener('click', () => {
+  S.view = 'old';
+  if (!OLD_TPLS[S.tpl]) S.tpl = 'editorial';
+  $('view-old').classList.add('on'); $('view-new').classList.remove('on');
+  buildTplGrid(); render();
+});
+
+// 开关
+function bindSw(id, key) {
+  const el = $(id);
+  el.addEventListener('click', () => {
+    S[key] = !S[key];
+    el.setAttribute('aria-checked', String(S[key]));
+    buildTplGrid(); render();
+  });
+}
+bindSw('sw-pn', 'pn');
+bindSw('sw-num', 'num');
+
+$('sign').addEventListener('input', () => {
+  S.sign = $('sign').value;
+  render();
+});
+
+// 配图模式
+document.querySelectorAll('[data-img]').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-img]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    const mode = b.dataset.img;
+    $('img-hint').innerHTML = mode === 'none'
+      ? '纯排印：<b>Economist</b> / <b>MUJI</b> 本身就是无图版式；<b>Vogue</b> 可上图。'
+      : mode === 'upload'
+        ? '上传后：<b>Vogue</b> 图铺满整宽不加圆角（配方 2.8）；Economist 走「上图下文」；MUJI 图不加圆角/边框/阴影。'
+        : '搜图需一次性填 Pexels 免费 Key；国内不可达时会提示改用上传。';
+  });
+});
+
+// 示例文章
+$('btn-demo').addEventListener('click', () => {
+  S.text = DEMO;
+  buildTplGrid();
+  render();
+});
+
+$('btn-export').addEventListener('click', () => {
+  const n = document.querySelectorAll('#cards-root .cv-slot').length;
+  alert(n ? `原型演示：将导出 ${n} 张 PNG（1080×1440）` : '先写文章或点「示例文章」');
+});
+$('btn-zip').addEventListener('click', () => {
+  const n = document.querySelectorAll('#cards-root .cv-slot').length;
+  alert(n ? `原型演示：将打包 ${n} 张 PNG 为 ZIP` : '先写文章或点「示例文章」');
+});
+
+// 切页签（原型内保持长图文）
+['btn-editor', 'btn-cover'].forEach((id) => {
+  $(id).addEventListener('click', () => alert('原型只演示「小红书长图文」，其他页签未实现'));
+});
+
+// 窗口尺寸变化 → 重算缩放
+let rt;
+window.addEventListener('resize', () => {
+  clearTimeout(rt);
+  rt = setTimeout(() => { buildTplGrid(); render(); }, 160);
+});
+
+/* ════════════════════════════════════════════════════════════════
+   启动
+   ════════════════════════════════════════════════════════════════ */
+buildPals();
+buildTplGrid();
+render();
+</script>
+</body>
+</html>

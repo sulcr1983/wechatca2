@@ -120,6 +120,14 @@ const LAYS = [
   { id:'takeaway',      name:'要点账本', code:'S07', desc:'大标题 + 3 行要点，深底收尾',   needImg:false, group:'new', pals:['ink','midnight','classic'] },
   { id:'warning',       name:'警示清单', code:'S05', desc:'3 条「不要这样做」，左侧色条',  needImg:false, group:'new', pals:['orange','bold','paper'] },
   { id:'kpi-tower',     name:'数字塔',  code:'S09', desc:'4 组数字 + 高低柱，数据感',    needImg:false, group:'new', pals:['paper','ikb','electric'] },
+
+  /* ══════ 第三组：2026-11-03 补齐的 4 条（配方 S04/S06/S10/S11）══════
+     这四条在 references/layout-recipes.md 里一直有，但此前**没有渲染分支**，
+     所以一份 28 条的配方表，产品里只兑现了 24 条 —— 用户说的「单调」有这个成分。 */
+  { id:'browser-mock',  name:'浏览器框', code:'S04', desc:'把内容装进一个网页窗口里',    needImg:false, group:'new', pals:['ikb','paper','midnight'] },
+  { id:'pipeline-arch', name:'流程架构', code:'S06', desc:'三段式：输入 / 生成 / 分享',  needImg:false, group:'new', pals:['paper','indigo','ink'] },
+  { id:'h-bar',         name:'横条排行', code:'S10', desc:'5–6 行横条比大小，适合 Top N', needImg:false, group:'new', pals:['ikb','orange','paper'] },
+  { id:'stacked-ledger', name:'堆叠账本', code:'S11', desc:'大数字 + 标签的 4 行账本',   needImg:false, group:'new', pals:['midnight','kraft','paper'] },
 ];
 /* ══ 多巴胺扩容 ══
    用户原话「颜色比较单调啊，默认的淡黄色，多巴胺颜色也要多搞搞」。
@@ -668,6 +676,11 @@ const RECIPE_KIND = {
   'closing-note': 'closing', 'tall-ledger': 'ledger', 'section-divider': 'divider',
   'hero-question': 'question', pipeline: 'pipeline', 'before-after': 'beforeafter',
   'two-signals': 'twoSignals', 'data-layer': 'dataLayer',
+  /* 2026-11-03 补齐配方文档里剩下没落的 4 条（S04/S06/S10/S11）。
+     用户原话「现在的模板太单调了……要增加更多模板」—— 这 4 条是 layout-recipes.md
+     里唯四没有对应渲染分支的配方，补完 28 条配方全部可用。 */
+  'browser-mock': 'browser', 'pipeline-arch': 'pipeline3',
+  'h-bar': 'hbar', 'stacked-ledger': 'stacked',
 };
 
 function renderRecipe(W, H, o) {
@@ -1219,6 +1232,155 @@ function renderRecipe(W, H, o) {
     return wrapRecipe();
   }
 
+  /* ── S04 浏览器框：把内容装进一个「网页窗口」里 ──
+     适合写工具 / 界面 / 产品页。配方：直边窗口 + 一个主块 + 2–3 个功能格 + 底部动作条。 */
+  if (kind === 'browser') {
+    const mods = items(3);
+    const list = mods.length >= 2 ? mods : ['基本信息', '使用方式', '效果'];
+    inner = `<div style="position:absolute;inset:0;z-index:2;box-sizing:border-box;padding:${PAD}px ${PAD}px ${44 * S}px;`
+      + `display:flex;flex-direction:column">`
+      + KICK('Interface · 界面')
+      + H1(72, `line-height:1.16;font-weight:600;color:${pal.ink};margin-bottom:${30 * S}px;`
+        + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden`)
+      + `<div style="flex:1;min-height:0;border:${Math.max(1, 2 * S)}px solid ${pal.ink};`
+      + `background:${pal.paper2 || 'transparent'};display:flex;flex-direction:column">`
+      // 窗口顶栏：三个圆点 + 一条地址栏
+      + `<div style="flex:none;display:flex;align-items:center;gap:${10 * S}px;`
+      + `padding:${14 * S}px ${18 * S}px;border-bottom:1px solid ${pal.line || 'rgba(0,0,0,.15)'}">`
+      + [0, 1, 2].map(() => `<span style="width:${9 * S}px;height:${9 * S}px;border-radius:50%;`
+        + `border:1px solid ${pal.muted};display:block"></span>`).join('')
+      + `<span style="flex:1;height:${18 * S}px;margin-left:${8 * S}px;`
+      + `border:1px solid ${pal.line || 'rgba(0,0,0,.15)'};display:block"></span></div>`
+      // 主块
+      + `<div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;`
+      + `padding:${30 * S}px ${26 * S}px">`
+      + `<div style="font-size:${40 * S}px;line-height:1.28;font-weight:600;color:${pal.ink};`
+        + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(t)}</div>`
+      + (lead ? `<div style="font-size:${24 * S}px;line-height:1.55;color:${pal.muted};`
+        + `margin-top:${14 * S}px">${esc(lead)}</div>` : '')
+      + `</div>`
+      // 三个功能格
+      + `<div style="flex:none;display:grid;grid-template-columns:repeat(${list.length},1fr);`
+      + `border-top:1px solid ${pal.line || 'rgba(0,0,0,.15)'}">`
+      + list.map((x, i) => `<div style="padding:${18 * S}px ${16 * S}px;min-width:0;`
+        + `${i ? `border-left:1px solid ${pal.line || 'rgba(0,0,0,.15)'};` : ''}">`
+        + `<div style="font:600 ${13 * S}px/1 ${MONO};letter-spacing:.18em;color:${pal.accent};`
+        + `margin-bottom:${8 * S}px">${String(i + 1).padStart(2, '0')}</div>`
+        + `<div style="font-size:${20 * S}px;line-height:1.4;color:${pal.ink};`
+        + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(x)}</div>`
+        + `</div>`).join('')
+      + `</div></div>`
+      // 底部动作条
+      + `<div style="flex:none;margin-top:${22 * S}px;display:flex;align-items:center;justify-content:space-between;`
+      + `font:400 ${16 * S}px/1 ${MONO};letter-spacing:.16em;color:${pal.muted}">`
+      + `<span>READY · 可以直接用</span><span>→</span></div>`
+      + `</div>`;
+    return wrapRecipe();
+  }
+
+  /* ── S06 流程架构：三段式，每段编号 + 标签 + 动作 + 结果 ──
+     适合工作流与分层系统。配方要求发丝线框 + 中性填充，所以只用 1px 边、不填色块。 */
+  if (kind === 'pipeline3') {
+    const steps = items(3);
+    const list = steps.length === 3 ? steps : ['把素材收进来', '排成一套结构', '发出去'];
+    const tails = ['输入', '生成', '分享'];
+    inner = `<div style="position:absolute;inset:0;z-index:2;box-sizing:border-box;padding:${PAD}px ${PAD}px ${48 * S}px;`
+      + `display:flex;flex-direction:column">`
+      + KICK('Pipeline · 三步')
+      + H1(76, `line-height:1.16;font-weight:600;color:${pal.ink};margin-bottom:${34 * S}px;`
+        + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden`)
+      + `<div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;`
+      + `gap:${14 * S}px">`
+      + list.map((x, i) => `<div style="display:flex;align-items:stretch;gap:0;`
+        + `border:1px solid ${pal.line || 'rgba(0,0,0,.2)'};background:${pal.paper2 || 'transparent'}">`
+        + `<div style="flex:none;width:${88 * S}px;display:grid;place-items:center;`
+        + `border-right:1px solid ${pal.line || 'rgba(0,0,0,.2)'};`
+        + `font:700 ${34 * S}px/1 ${MONO};letter-spacing:-.03em;color:${pal.accent}">`
+        + `${String(i + 1).padStart(2, '0')}</div>`
+        + `<div style="flex:1;min-width:0;padding:${20 * S}px ${22 * S}px">`
+        + `<div style="font-size:${30 * S}px;line-height:1.36;color:${pal.ink};font-weight:600;`
+        + `display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">${esc(x)}</div>`
+        + `<div style="font:400 ${15 * S}px/1.5 ${MONO};letter-spacing:.16em;color:${pal.muted};`
+        + `margin-top:${8 * S}px">${tails[i]}</div></div>`
+        + `<div style="flex:none;width:${44 * S}px;display:grid;place-items:center;`
+        + `color:${pal.accent};font-size:${20 * S}px">${i === list.length - 1 ? '■' : '→'}</div>`
+        + `</div>`).join('')
+      + `</div>`
+      + `<div style="flex:none;font:400 ${16 * S}px/1.6 ${MONO};letter-spacing:.14em;color:${pal.muted};`
+      + `margin-top:${26 * S}px">每一层都能单独替换，不影响上下游</div>`
+      + `</div>`;
+    return wrapRecipe();
+  }
+
+  /* ── S10 横条图：5–8 行，条长编码大小 ──
+     ⚠️ 百分比只认「小字里真的写了数字」的情况，否则一律按原顺序递减并显式标注「示意」。
+        配方原话：always use real percentages, never fabricate —— 编数据比没图更糟。 */
+  if (kind === 'hbar') {
+    const raw = String(lead || '').split(/[·、／/｜|，,；;\n]+/).map(x => x.trim()).filter(Boolean).slice(0, 6);
+    const list = raw.length >= 3 ? raw : ['第一项', '第二项', '第三项', '第四项', '第五项'];
+    const nums = list.map((x) => {
+      const m = x.match(/(\d+(?:\.\d+)?)\s*(%|万|k|K)?/);
+      return m ? parseFloat(m[1]) : null;
+    });
+    const real = nums.every((n) => n !== null && Number.isFinite(n));
+    const vals = real
+      ? nums.map((n) => n / Math.max(...nums))
+      : list.map((_, i) => 1 - i * (0.62 / Math.max(1, list.length - 1)));
+    const labels = list.map((x) => x.replace(/\s*\d+(?:\.\d+)?\s*(%|万|k|K)?\s*$/, '').trim() || x);
+    inner = `<div style="position:absolute;inset:0;z-index:2;box-sizing:border-box;padding:${PAD}px ${PAD}px ${48 * S}px;`
+      + `display:flex;flex-direction:column">`
+      + KICK(real ? 'Ranking · 排序' : 'Ranking · 排序（示意）')
+      + H1(72, `line-height:1.16;font-weight:600;color:${pal.ink};margin-bottom:${38 * S}px;`
+        + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden`)
+      + `<div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;`
+      + `gap:${22 * S}px">`
+      + list.map((x, i) => `<div>`
+        + `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:${14 * S}px;`
+        + `margin-bottom:${8 * S}px">`
+        + `<span style="font-size:${26 * S}px;line-height:1.3;color:${pal.ink};min-width:0;`
+        + `overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(labels[i])}</span>`
+        + `<span style="flex:none;font:600 ${22 * S}px/1 ${MONO};letter-spacing:-.02em;`
+        + `color:${i === 0 ? pal.accent : pal.muted};font-variant-numeric:tabular-nums">`
+        + `${real ? (nums[i] % 1 ? nums[i].toFixed(1) : nums[i]) + (x.match(/%/) ? '%' : '') : '—'}</span></div>`
+        + `<div style="height:${Math.round(14 * S)}px;background:${pal.paper2 || 'rgba(128,128,128,.18)'};`
+        + `border:1px solid ${pal.line || 'rgba(0,0,0,.14)'}">`
+        + `<div style="width:${Math.round(vals[i] * 100)}%;height:100%;`
+        + `background:${i === 0 ? pal.accent : pal.muted};opacity:${i === 0 ? 1 : 0.5}"></div></div>`
+        + `</div>`).join('')
+      + `</div>`
+      + `<div style="flex:none;font:400 ${15 * S}px/1.6 ${MONO};letter-spacing:.14em;color:${pal.muted};`
+      + `margin-top:${26 * S}px">${real ? '按小字里给的数字等比换算' : '条长为示意 · 换成你的真实数字即可'}</div>`
+      + `</div>`;
+    return wrapRecipe();
+  }
+
+  /* ── S11 堆叠账本：大数字 + 标签 + 副行，4–6 行 ──
+     与小字切条的区别：这里每一行是「一个量」，不是「一句话」，所以数字必须是主角。 */
+  if (kind === 'stacked') {
+    const raw = items(4);
+    const list = raw.length >= 3 ? raw : ['项目一', '项目二', '项目三', '项目四'];
+    inner = `<div style="position:absolute;inset:0;z-index:2;box-sizing:border-box;padding:${PAD}px ${PAD}px ${48 * S}px;`
+      + `display:flex;flex-direction:column">`
+      + KICK('Ledger · 账本')
+      + H1(70, `line-height:1.16;font-weight:600;color:${pal.ink};margin-bottom:${32 * S}px;`
+        + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden`)
+      + `<div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center">`
+      + list.map((x, i) => {
+        const m = String(x).match(/^(\S{1,8}?)\s+(.+)$/);
+        const num = m ? m[1] : String(i + 1).padStart(2, '0');
+        const lbl = m ? m[2] : x;
+        return `<div style="display:flex;align-items:baseline;gap:${22 * S}px;`
+          + `padding:${20 * S}px 0;${i ? `border-top:1px solid ${pal.line || 'rgba(0,0,0,.15)'};` : ''}">`
+          + `<div style="flex:none;min-width:${150 * S}px;font:700 ${38 * S}px/1.1 ${MONO};`
+          + `letter-spacing:-.03em;color:${pal.accent};font-variant-numeric:tabular-nums">${esc(num)}</div>`
+          + `<div style="flex:1;min-width:0;font-size:${27 * S}px;line-height:1.38;color:${pal.ink};`
+          + `display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(lbl)}</div>`
+          + `</div>`;
+      }).join('')
+      + `</div></div>`;
+    return wrapRecipe();
+  }
+
   /* 兜底：任何没命中的 kind 退回「论点」排版，绝不返回空画布 */
   inner = `<div style="position:absolute;inset:0;z-index:2;box-sizing:border-box;padding:${PAD}px;`
     + `display:flex;flex-direction:column;justify-content:center">`
@@ -1746,5 +1908,14 @@ function extract(text) {
   const first = before[0] || '';
   const one = first.split(/[。！？!?；;]/)[0] || first;
   const sub = one.slice(0, 44);
-  return { title, sub };
+  /* ⚠️ 2026-11-03：以前只返回 title + sub，导致所有「多条目」版式
+     （清单 / 排行 / 账本 / 竖排流程 / 警示清单 / 数字塔…）拿不到正文，
+     只能退回我编的占位词（「第一项 / 第二项」）——用户看到的就是「模板都一样」。
+     现在把标题之后的**实际行**也带上：去掉行首的列表符号与序号，最多 8 条。
+     调用方不传就用 sub 切分，行为不变。 */
+  const items = rest
+    .map((l) => l.replace(/^(\d+[.、)]|[-*•·])\s*/, '').replace(/^#{1,6}\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  return { title, sub, items };
 }
