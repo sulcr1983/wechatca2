@@ -734,9 +734,14 @@ function renderRecipe(W, H, o) {
 
   const H1 = (size, extra) => `<h1 class="ttl" style="margin:0;font-size:${size * S}px;${extra}">${titleHtml(t)}</h1>`;
   const LEAD = (size, extra) => lead ? `<div class="sub" style="font-size:${size * S}px;${extra}">${esc(lead)}</div>` : '';
-  /* 小字切条目：`·`/`、`/换行 都算分隔；不足 2 条时给一组和主题无关的占位（不编内容） */
+  /* 条目来源（按优先级）：
+     1. o.items —— 用户真写的正文行（标题之后，已去掉列表符号）；
+     2. 小字里的分隔项（`·` / `、` / 换行）—— 旧行为，不破。
+     ⚠️ 不再返回占位词（「第一项」类）—— 那样每张版式长得一模一样，
+       用户看不出「我写的东西在哪」，这正是「模板单调」的一半原因。 */
   const items = (n) => {
-    const a = String(lead || '').split(/[·、／/｜|，,；;\n]+/).map(x => x.trim()).filter(Boolean);
+    const real = (o.items && o.items.length) ? o.items : null;
+    const a = real || String(lead || '').split(/[·、／/｜|，,；;\n]+/).map(x => x.trim()).filter(Boolean);
     return a.slice(0, n);
   };
 
