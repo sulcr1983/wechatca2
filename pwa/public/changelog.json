@@ -1,8 +1,580 @@
 {
-  "version": "1.17.0",
-  "generatedAt": "2026-11-03T23:21:48+08:00",
-  "totalCommits": 372,
+  "version": "1.18.0",
+  "generatedAt": "2026-11-03T23:30:36+08:00",
+  "totalCommits": 373,
   "releases": [
+    {
+      "version": "1.18.0",
+      "date": "2026-11-03",
+      "title": "",
+      "highlights": [
+        "更新记录版本边界改为全自动推导，消灭「一版塞三天」",
+        "版式入口 8 → 15，新增 7 个报刊版式（用户拍板「扩」）",
+        "PWA 漏加载 magazine_layouts.py，19 套 layout 在浏览器从未执行"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 15,
+        "changed": 36,
+        "fixed": 5,
+        "other": 10
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "更新记录版本边界改为全自动推导，消灭「一版塞三天」",
+              "scope": "update",
+              "hash": "05c3958",
+              "date": "2026-11-03T23:25:25+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "版式入口 8 → 15，新增 7 个报刊版式（用户拍板「扩」）",
+              "scope": "layout",
+              "hash": "b80cf87",
+              "date": "2026-11-03T22:54:54+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "4 套新增整篇设计改名 + 旧名别名登记",
+              "scope": "kit",
+              "hash": "d3bd733",
+              "date": "2026-11-03T12:33:19+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "19 套整篇设计改为结构级差异化（19 套 → 19 种骨架）",
+              "scope": "layout",
+              "hash": "e35f5c8",
+              "date": "2026-11-03T12:25:12+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "抽屉拆成「配色主题 / 整篇设计」两个 tab",
+              "scope": "pwa",
+              "hash": "6ce2f92",
+              "date": "2026-11-03T03:07:31+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "字号调节接线（引擎参数贯通 + 抽屉滑块）",
+              "scope": "pwa",
+              "hash": "d1322bd",
+              "date": "2026-11-03T03:04:45+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "字号等比缩放 apply_font_scale + 产物实测基准",
+              "scope": "engine",
+              "hash": "9f97260",
+              "date": "2026-11-03T03:02:44+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "对齐契约白名单归一化 + 禁写属性常量",
+              "scope": "engine",
+              "hash": "8231add",
+              "date": "2026-11-03T02:56:58+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "推送凭证统一走 .env 的 GITHUB_TOKEN",
+              "scope": "release",
+              "hash": "1bd2c9a",
+              "date": "2026-11-03T02:34:34+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "19 套整篇设计对齐夹具 + 反向验证（证明不是摆设）",
+              "scope": "gate",
+              "hash": "160cc88",
+              "date": "2026-11-03T02:21:44+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "整篇设计缩略图目录分离 + kit 缩略图生成脚本",
+              "scope": "pwa",
+              "hash": "a8270c0",
+              "date": "2026-11-03T01:56:52+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "4 个杂志风版式 + kit 主题 locked_layout 运行时归一化",
+              "scope": "engine",
+              "hash": "dcd6f91",
+              "date": "2026-11-03T01:55:34+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "补交 4 套 mg-m2w 整篇设计 + 19 张 kit 缩略图（此前漏入库）",
+              "scope": "kit",
+              "hash": "e281df3",
+              "date": "2026-11-03T01:55:11+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "15 个杂志风版式 + 15 套整篇设计（kit 主题）",
+              "scope": "layout",
+              "hash": "cd852a0",
+              "date": "2026-11-02T00:52:52+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "恢复编辑器贴图与搜图，复制到公众号自动内嵌图片",
+              "scope": "image",
+              "hash": "ffee888",
+              "date": "2026-11-02T00:22:05+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "版式扩项后的文档与断言同步（STATE 改为从代码现算版式数）",
+              "scope": "",
+              "hash": "2243acd",
+              "date": "2026-11-03T22:57:41+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "版式扩项后的文档与断言同步（STATE 改为从代码现算版式数）",
+              "scope": "",
+              "hash": "9baa051",
+              "date": "2026-11-03T22:57:27+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "散落的调研 HTML 归入 research/ 并同步引用",
+              "scope": "",
+              "hash": "3f3f417",
+              "date": "2026-11-03T20:02:47+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "CLOSURE 补本轮台账 + doc_sync 新增相对链接机检（[H] 段）",
+              "scope": "",
+              "hash": "621b8d6",
+              "date": "2026-11-03T20:00:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "文档与原型按模块归组（65 份顶层 → 3 份；36 个原型 → 6 个模块目录）",
+              "scope": "",
+              "hash": "532f384",
+              "date": "2026-11-03T19:58:44+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "xhs longform vogue degrade fix + v3 concept-c hybrid prototype",
+              "scope": "proto",
+              "hash": "338cf5e",
+              "date": "2026-11-03T12:43:13+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "longform layouts prototype - vogue degrade padding and optional sub",
+              "scope": "proto",
+              "hash": "c1f6783",
+              "date": "2026-11-03T12:41:26+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "xhs prototypes cleanup - real items first, tighten numeric parse",
+              "scope": "proto",
+              "hash": "800ce54",
+              "date": "2026-11-03T12:40:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "v3 原型把 items 透传给版式渲染",
+              "scope": "proto",
+              "hash": "2918904",
+              "date": "2026-11-03T12:38:25+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "小红书原型条目取真实正文 + 分页溢出兜底加强",
+              "scope": "proto",
+              "hash": "89a3174",
+              "date": "2026-11-03T12:38:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "小红书原型补齐配方表剩余 4 条（S04/S06/S10/S11）",
+              "scope": "proto",
+              "hash": "1f0192e",
+              "date": "2026-11-03T12:37:32+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "小红书两模块需求台账独立成文 + 三模块速览修正过期结论",
+              "scope": "xhs",
+              "hash": "df4965d",
+              "date": "2026-11-03T12:34:54+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "19 套整篇设计与 164 套配色主题「看不出区别」的实测诊断",
+              "scope": "diagnosis",
+              "hash": "097cfbf",
+              "date": "2026-11-03T03:54:29+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "浮世绘两端对齐真源收拢到 JSON（等价迁移）",
+              "scope": "theme",
+              "hash": "9c739ed",
+              "date": "2026-11-03T02:56:26+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "修正 P0 断言口径（12 条×19=228）与已定案状态，消除文档内部矛盾",
+              "scope": "plan",
+              "hash": "dbc588b",
+              "date": "2026-11-03T02:47:09+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "落进 2026-11-03 三项拍板（状态文字位置 / 段落样式 / 抽屉 520px）",
+              "scope": "plan",
+              "hash": "a9c1154",
+              "date": "2026-11-03T02:42:40+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "P4 拆分方案 v2 —— 按对抗性审查 14 条逐条修订",
+              "scope": "plan",
+              "hash": "0cdeb15",
+              "date": "2026-11-03T02:39:16+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "P4 抽屉两 tab 方案的对抗性审查（14 条）",
+              "scope": "review",
+              "hash": "b756e65",
+              "date": "2026-11-03T02:38:39+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "P4 抽屉两 tab 拆分方案（不写代码）",
+              "scope": "plan",
+              "hash": "12ab679",
+              "date": "2026-11-03T02:29:19+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "整体页面设计对抗性审查 + 三条新决策落进计划",
+              "scope": "review",
+              "hash": "5ba4fac",
+              "date": "2026-11-03T02:21:57+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "微信排版改版方案文档全套 + README/AGENTS 口径同步（183 套风格）",
+              "scope": "",
+              "hash": "4891464",
+              "date": "2026-11-03T01:56:37+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "微信排版改版原型 v3–v7 + 配色对比 + v2 封面原型修正",
+              "scope": "prototype",
+              "hash": "b768308",
+              "date": "2026-11-03T01:56:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "未完成台账更新（图片 7 项完成 + 记录一个真实缺口）",
+              "scope": "tasks",
+              "hash": "8984c47",
+              "date": "2026-11-02T01:08:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "交接文档同步 2026-11-02 成果 + 清理临时产物忽略",
+              "scope": "handoff",
+              "hash": "3ab7bb3",
+              "date": "2026-11-02T01:03:13+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "未完成任务台账（防止对话压缩后丢任务）",
+              "scope": "",
+              "hash": "df97df6",
+              "date": "2026-11-01T23:58:24+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "用户实测确认「公众号接受 data URI 内嵌图」",
+              "scope": "design",
+              "hash": "5ab5db6",
+              "date": "2026-11-01T23:55:42+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "句方便复制链路完整抓包，推翻「对方排版更细」的判断",
+              "scope": "design",
+              "hash": "bfd582f",
+              "date": "2026-11-01T23:46:19+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "粘贴图片实测（推翻旧结论）+ 版式段去重 26→18",
+              "scope": "design",
+              "hash": "4a01b2b",
+              "date": "2026-11-01T23:41:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "字体可行性实测（公众号正文用不了自定义字体）",
+              "scope": "design",
+              "hash": "88dbda3",
+              "date": "2026-11-01T23:35:22+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "风格页加二级切换（配色主题 / 整篇设计），15 套一屏可见",
+              "scope": "prototype",
+              "hash": "40d4dce",
+              "date": "2026-11-01T23:14:40+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "抽屉改三段标签（风格 / 版式 / 更多），修「主题卡被挤没」",
+              "scope": "prototype",
+              "hash": "0f57c2f",
+              "date": "2026-11-01T23:04:04+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "kit 主题方案（15 套整篇设计）+ 引擎优化方案 + 原型实现",
+              "scope": "design",
+              "hash": "a4956c7",
+              "date": "2026-11-01T22:37:08+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "杂志风配方库 15 套（纯方案 + 原型，代码零改动）",
+              "scope": "design",
+              "hash": "2e8195d",
+              "date": "2026-11-01T22:09:18+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "方案 V3 —— 实证抄句方便 72 套的真实手法 + 紧凑版式条 + 长图文",
+              "scope": "design",
+              "hash": "4ece663",
+              "date": "2026-11-01T21:51:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "排版体系方案 V2 —— 三层模型（皮肤/钩子/版式）+ 开源调查",
+              "scope": "design",
+              "hash": "1112e97",
+              "date": "2026-11-01T21:29:35+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "排版骨架系统方案 —— 结构层与皮肤层分离",
+              "scope": "design",
+              "hash": "d367bdc",
+              "date": "2026-11-01T21:12:04+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "PWA 漏加载 magazine_layouts.py，19 套 layout 在浏览器从未执行",
+              "scope": "engine",
+              "hash": "ffd94df",
+              "date": "2026-11-03T13:15:09+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "E2E 补齐两处 10-31 拆分后的过时断言（51/51）",
+              "scope": "test",
+              "hash": "977b905",
+              "date": "2026-11-03T03:51:46+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "E2E「切回排版页」用 #btn-editor，修正 10-31 拆分后的过时断言",
+              "scope": "test",
+              "hash": "dde292b",
+              "date": "2026-11-03T03:39:04+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "凭证默认路径从其他项目改为仓库根 .env",
+              "scope": "deploy",
+              "hash": "6a3ee5d",
+              "date": "2026-11-03T03:18:24+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "更新记录闸 + 发版/门禁提速 + 去掉全量 E2E 默认",
+              "scope": "release",
+              "hash": "6123617",
+              "date": "2026-11-02T00:50:54+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "清理 kit-previews 的死忽略规则（目录与生成脚本均已删除）",
+              "scope": "",
+              "hash": "64114e2",
+              "date": "2026-11-03T20:02:28+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "sync generated outputs（文档整理后的构建与状态源）",
+              "scope": "build",
+              "hash": "abfe0f3",
+              "date": "2026-11-03T19:59:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "sync generated outputs (worker py list fix)",
+              "scope": "build",
+              "hash": "9cd8582",
+              "date": "2026-11-03T13:21:08+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "新增断言 worker 必须加载 dist/py 下全部 .py（含反向验证）",
+              "scope": "build",
+              "hash": "153c8cc",
+              "date": "2026-11-03T13:20:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "sync generated outputs for build 414",
+              "scope": "build",
+              "hash": "a2cafc0",
+              "date": "2026-11-03T12:44:22+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "重建 dist 后同步生成物（build 400）",
+              "scope": "build",
+              "hash": "7c4f5b8",
+              "date": "2026-11-03T03:09:32+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "同步构建生成物（STATE.md / CHANGELOG.md / changelog.json）",
+              "scope": "build",
+              "hash": "cd4cd96",
+              "date": "2026-11-03T03:08:05+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "重新构建 dist 并同步生成物（b385 / BUILD_ID ef6d7de8）",
+              "scope": "build",
+              "hash": "b72e90e",
+              "date": "2026-11-03T01:57:31+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "清账后重生成 STATE.md（b379 本地 / b358 线上，线上落后 21 提交）",
+              "scope": "state",
+              "hash": "ff4df80",
+              "date": "2026-11-03T01:57:03+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "补提交封面 UX 重做 V2 的产出（原型 / 方案 / 复核 / 字体）",
+              "scope": "xhs",
+              "hash": "eb485c2",
+              "date": "2026-11-02T01:02:17+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.17.0",
       "date": "2026-11-01",
@@ -3567,565 +4139,5 @@
       ]
     }
   ],
-  "unreleased": {
-    "count": 65,
-    "visibleCount": 14,
-    "groups": [
-      {
-        "type": "added",
-        "label": "新增",
-        "items": [
-          {
-            "text": "版式入口 8 → 15，新增 7 个报刊版式（用户拍板「扩」）",
-            "scope": "layout",
-            "hash": "b80cf87",
-            "date": "2026-11-03T22:54:54+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "4 套新增整篇设计改名 + 旧名别名登记",
-            "scope": "kit",
-            "hash": "d3bd733",
-            "date": "2026-11-03T12:33:19+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "19 套整篇设计改为结构级差异化（19 套 → 19 种骨架）",
-            "scope": "layout",
-            "hash": "e35f5c8",
-            "date": "2026-11-03T12:25:12+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "抽屉拆成「配色主题 / 整篇设计」两个 tab",
-            "scope": "pwa",
-            "hash": "6ce2f92",
-            "date": "2026-11-03T03:07:31+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "字号调节接线（引擎参数贯通 + 抽屉滑块）",
-            "scope": "pwa",
-            "hash": "d1322bd",
-            "date": "2026-11-03T03:04:45+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "字号等比缩放 apply_font_scale + 产物实测基准",
-            "scope": "engine",
-            "hash": "9f97260",
-            "date": "2026-11-03T03:02:44+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "对齐契约白名单归一化 + 禁写属性常量",
-            "scope": "engine",
-            "hash": "8231add",
-            "date": "2026-11-03T02:56:58+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "推送凭证统一走 .env 的 GITHUB_TOKEN",
-            "scope": "release",
-            "hash": "1bd2c9a",
-            "date": "2026-11-03T02:34:34+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "19 套整篇设计对齐夹具 + 反向验证（证明不是摆设）",
-            "scope": "gate",
-            "hash": "160cc88",
-            "date": "2026-11-03T02:21:44+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "整篇设计缩略图目录分离 + kit 缩略图生成脚本",
-            "scope": "pwa",
-            "hash": "a8270c0",
-            "date": "2026-11-03T01:56:52+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "4 个杂志风版式 + kit 主题 locked_layout 运行时归一化",
-            "scope": "engine",
-            "hash": "dcd6f91",
-            "date": "2026-11-03T01:55:34+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "补交 4 套 mg-m2w 整篇设计 + 19 张 kit 缩略图（此前漏入库）",
-            "scope": "kit",
-            "hash": "e281df3",
-            "date": "2026-11-03T01:55:11+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "15 个杂志风版式 + 15 套整篇设计（kit 主题）",
-            "scope": "layout",
-            "hash": "cd852a0",
-            "date": "2026-11-02T00:52:52+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "恢复编辑器贴图与搜图，复制到公众号自动内嵌图片",
-            "scope": "image",
-            "hash": "ffee888",
-            "date": "2026-11-02T00:22:05+08:00",
-            "breaking": false,
-            "dev": false
-          }
-        ]
-      },
-      {
-        "type": "changed",
-        "label": "调整",
-        "items": [
-          {
-            "text": "版式扩项后的文档与断言同步（STATE 改为从代码现算版式数）",
-            "scope": "",
-            "hash": "2243acd",
-            "date": "2026-11-03T22:57:41+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "版式扩项后的文档与断言同步（STATE 改为从代码现算版式数）",
-            "scope": "",
-            "hash": "9baa051",
-            "date": "2026-11-03T22:57:27+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "散落的调研 HTML 归入 research/ 并同步引用",
-            "scope": "",
-            "hash": "3f3f417",
-            "date": "2026-11-03T20:02:47+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "CLOSURE 补本轮台账 + doc_sync 新增相对链接机检（[H] 段）",
-            "scope": "",
-            "hash": "621b8d6",
-            "date": "2026-11-03T20:00:35+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "文档与原型按模块归组（65 份顶层 → 3 份；36 个原型 → 6 个模块目录）",
-            "scope": "",
-            "hash": "532f384",
-            "date": "2026-11-03T19:58:44+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "xhs longform vogue degrade fix + v3 concept-c hybrid prototype",
-            "scope": "proto",
-            "hash": "338cf5e",
-            "date": "2026-11-03T12:43:13+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "longform layouts prototype - vogue degrade padding and optional sub",
-            "scope": "proto",
-            "hash": "c1f6783",
-            "date": "2026-11-03T12:41:26+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "xhs prototypes cleanup - real items first, tighten numeric parse",
-            "scope": "proto",
-            "hash": "800ce54",
-            "date": "2026-11-03T12:40:35+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "v3 原型把 items 透传给版式渲染",
-            "scope": "proto",
-            "hash": "2918904",
-            "date": "2026-11-03T12:38:25+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "小红书原型条目取真实正文 + 分页溢出兜底加强",
-            "scope": "proto",
-            "hash": "89a3174",
-            "date": "2026-11-03T12:38:07+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "小红书原型补齐配方表剩余 4 条（S04/S06/S10/S11）",
-            "scope": "proto",
-            "hash": "1f0192e",
-            "date": "2026-11-03T12:37:32+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "小红书两模块需求台账独立成文 + 三模块速览修正过期结论",
-            "scope": "xhs",
-            "hash": "df4965d",
-            "date": "2026-11-03T12:34:54+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "19 套整篇设计与 164 套配色主题「看不出区别」的实测诊断",
-            "scope": "diagnosis",
-            "hash": "097cfbf",
-            "date": "2026-11-03T03:54:29+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "浮世绘两端对齐真源收拢到 JSON（等价迁移）",
-            "scope": "theme",
-            "hash": "9c739ed",
-            "date": "2026-11-03T02:56:26+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "修正 P0 断言口径（12 条×19=228）与已定案状态，消除文档内部矛盾",
-            "scope": "plan",
-            "hash": "dbc588b",
-            "date": "2026-11-03T02:47:09+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "落进 2026-11-03 三项拍板（状态文字位置 / 段落样式 / 抽屉 520px）",
-            "scope": "plan",
-            "hash": "a9c1154",
-            "date": "2026-11-03T02:42:40+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "P4 拆分方案 v2 —— 按对抗性审查 14 条逐条修订",
-            "scope": "plan",
-            "hash": "0cdeb15",
-            "date": "2026-11-03T02:39:16+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "P4 抽屉两 tab 方案的对抗性审查（14 条）",
-            "scope": "review",
-            "hash": "b756e65",
-            "date": "2026-11-03T02:38:39+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "P4 抽屉两 tab 拆分方案（不写代码）",
-            "scope": "plan",
-            "hash": "12ab679",
-            "date": "2026-11-03T02:29:19+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "整体页面设计对抗性审查 + 三条新决策落进计划",
-            "scope": "review",
-            "hash": "5ba4fac",
-            "date": "2026-11-03T02:21:57+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "微信排版改版方案文档全套 + README/AGENTS 口径同步（183 套风格）",
-            "scope": "",
-            "hash": "4891464",
-            "date": "2026-11-03T01:56:37+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "微信排版改版原型 v3–v7 + 配色对比 + v2 封面原型修正",
-            "scope": "prototype",
-            "hash": "b768308",
-            "date": "2026-11-03T01:56:07+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "未完成台账更新（图片 7 项完成 + 记录一个真实缺口）",
-            "scope": "tasks",
-            "hash": "8984c47",
-            "date": "2026-11-02T01:08:35+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "交接文档同步 2026-11-02 成果 + 清理临时产物忽略",
-            "scope": "handoff",
-            "hash": "3ab7bb3",
-            "date": "2026-11-02T01:03:13+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "未完成任务台账（防止对话压缩后丢任务）",
-            "scope": "",
-            "hash": "df97df6",
-            "date": "2026-11-01T23:58:24+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "用户实测确认「公众号接受 data URI 内嵌图」",
-            "scope": "design",
-            "hash": "5ab5db6",
-            "date": "2026-11-01T23:55:42+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "句方便复制链路完整抓包，推翻「对方排版更细」的判断",
-            "scope": "design",
-            "hash": "bfd582f",
-            "date": "2026-11-01T23:46:19+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "粘贴图片实测（推翻旧结论）+ 版式段去重 26→18",
-            "scope": "design",
-            "hash": "4a01b2b",
-            "date": "2026-11-01T23:41:07+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "字体可行性实测（公众号正文用不了自定义字体）",
-            "scope": "design",
-            "hash": "88dbda3",
-            "date": "2026-11-01T23:35:22+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "风格页加二级切换（配色主题 / 整篇设计），15 套一屏可见",
-            "scope": "prototype",
-            "hash": "40d4dce",
-            "date": "2026-11-01T23:14:40+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "抽屉改三段标签（风格 / 版式 / 更多），修「主题卡被挤没」",
-            "scope": "prototype",
-            "hash": "0f57c2f",
-            "date": "2026-11-01T23:04:04+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "kit 主题方案（15 套整篇设计）+ 引擎优化方案 + 原型实现",
-            "scope": "design",
-            "hash": "a4956c7",
-            "date": "2026-11-01T22:37:08+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "杂志风配方库 15 套（纯方案 + 原型，代码零改动）",
-            "scope": "design",
-            "hash": "2e8195d",
-            "date": "2026-11-01T22:09:18+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "方案 V3 —— 实证抄句方便 72 套的真实手法 + 紧凑版式条 + 长图文",
-            "scope": "design",
-            "hash": "4ece663",
-            "date": "2026-11-01T21:51:35+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "排版体系方案 V2 —— 三层模型（皮肤/钩子/版式）+ 开源调查",
-            "scope": "design",
-            "hash": "1112e97",
-            "date": "2026-11-01T21:29:35+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "排版骨架系统方案 —— 结构层与皮肤层分离",
-            "scope": "design",
-            "hash": "d367bdc",
-            "date": "2026-11-01T21:12:04+08:00",
-            "breaking": false,
-            "dev": true
-          }
-        ]
-      },
-      {
-        "type": "fixed",
-        "label": "修复",
-        "items": [
-          {
-            "text": "PWA 漏加载 magazine_layouts.py，19 套 layout 在浏览器从未执行",
-            "scope": "engine",
-            "hash": "ffd94df",
-            "date": "2026-11-03T13:15:09+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "E2E 补齐两处 10-31 拆分后的过时断言（51/51）",
-            "scope": "test",
-            "hash": "977b905",
-            "date": "2026-11-03T03:51:46+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "E2E「切回排版页」用 #btn-editor，修正 10-31 拆分后的过时断言",
-            "scope": "test",
-            "hash": "dde292b",
-            "date": "2026-11-03T03:39:04+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "凭证默认路径从其他项目改为仓库根 .env",
-            "scope": "deploy",
-            "hash": "6a3ee5d",
-            "date": "2026-11-03T03:18:24+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "更新记录闸 + 发版/门禁提速 + 去掉全量 E2E 默认",
-            "scope": "release",
-            "hash": "6123617",
-            "date": "2026-11-02T00:50:54+08:00",
-            "breaking": false,
-            "dev": true
-          }
-        ]
-      },
-      {
-        "type": "other",
-        "label": "其他",
-        "items": [
-          {
-            "text": "清理 kit-previews 的死忽略规则（目录与生成脚本均已删除）",
-            "scope": "",
-            "hash": "64114e2",
-            "date": "2026-11-03T20:02:28+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "sync generated outputs（文档整理后的构建与状态源）",
-            "scope": "build",
-            "hash": "abfe0f3",
-            "date": "2026-11-03T19:59:07+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "sync generated outputs (worker py list fix)",
-            "scope": "build",
-            "hash": "9cd8582",
-            "date": "2026-11-03T13:21:08+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "新增断言 worker 必须加载 dist/py 下全部 .py（含反向验证）",
-            "scope": "build",
-            "hash": "153c8cc",
-            "date": "2026-11-03T13:20:07+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "sync generated outputs for build 414",
-            "scope": "build",
-            "hash": "a2cafc0",
-            "date": "2026-11-03T12:44:22+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "重建 dist 后同步生成物（build 400）",
-            "scope": "build",
-            "hash": "7c4f5b8",
-            "date": "2026-11-03T03:09:32+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "同步构建生成物（STATE.md / CHANGELOG.md / changelog.json）",
-            "scope": "build",
-            "hash": "cd4cd96",
-            "date": "2026-11-03T03:08:05+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "重新构建 dist 并同步生成物（b385 / BUILD_ID ef6d7de8）",
-            "scope": "build",
-            "hash": "b72e90e",
-            "date": "2026-11-03T01:57:31+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "清账后重生成 STATE.md（b379 本地 / b358 线上，线上落后 21 提交）",
-            "scope": "state",
-            "hash": "ff4df80",
-            "date": "2026-11-03T01:57:03+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "补提交封面 UX 重做 V2 的产出（原型 / 方案 / 复核 / 字体）",
-            "scope": "xhs",
-            "hash": "eb485c2",
-            "date": "2026-11-02T01:02:17+08:00",
-            "breaking": false,
-            "dev": true
-          }
-        ]
-      }
-    ],
-    "counts": {
-      "added": 14,
-      "changed": 36,
-      "fixed": 5,
-      "other": 10
-    },
-    "highlights": [
-      "版式入口 8 → 15，新增 7 个报刊版式（用户拍板「扩」）",
-      "PWA 漏加载 magazine_layouts.py，19 套 layout 在浏览器从未执行",
-      "4 套新增整篇设计改名 + 旧名别名登记"
-    ]
-  }
+  "unreleased": null
 }
