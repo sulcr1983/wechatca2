@@ -122,7 +122,7 @@
 - **硬化**：6 个测试脚本加 UTF-8 stdout 守卫（GBK 管道不再崩，无需再设 PYTHONIOENCODING）；3 个自起服务的脚本用 `PY = sys.executable` 取代硬编码 WorkBuddy venv 路径
 - **影响范围**：测试覆盖
 
-### 模块：docs/prototypes/prototype_full.html / docs/prototypes/prototype_ai_simplify.html (旧原型)
+### 模块：docs/prototypes/legacy/prototype_full.html / docs/prototypes/legacy/prototype_ai_simplify.html (旧原型)
 - **状态**：Confirmed（废弃）
 - **是否可运行**：否，用户明确说"原型图不管了"
 - **依赖模块**：无
@@ -153,8 +153,8 @@
 | `public/social-thumb/*.png` | 封面风格缩略图 | stable | low | index.html |
 | `.env.example` | 环境变量模板 | stable | low | 无 |
 | `tests/test_e2e.py` | 端到端测试，41 个函数 | stable | low | Flask test client |
-| `docs/prototypes/prototype_full.html` | 旧原型（废弃） | obsolete | none | 无 |
-| `docs/prototypes/prototype_ai_simplify.html` | 旧原型（废弃） | obsolete | none | 无 |
+| `docs/prototypes/legacy/prototype_full.html` | 旧原型（废弃） | obsolete | none | 无 |
+| `docs/prototypes/legacy/prototype_ai_simplify.html` | 旧原型（废弃） | obsolete | none | 无 |
 
 ---
 
@@ -413,7 +413,7 @@ python tests/test_headed_wechat_copy.py
 - **风险**：低，不影响后端 API
 - **是否验证**：是，服务启动正常，API 调用正常
 
-### 变更 2：docs/prototypes/prototype_full.html 修改（已废弃）
+### 变更 2：docs/prototypes/legacy/prototype_full.html 修改（已废弃）
 - **改动**：修复 CSS 高度 2100px 和滚动条问题
 - **影响**：无（用户已说不做原型图）
 - **风险**：无
@@ -671,8 +671,8 @@ python tests/test_headed_wechat_copy.py
 - **设计流程**：走「UI 设计全栈专家团」（TeamCreate `ui-supersu`）——视觉建筑师 + 体验设计师并行产出、v1.1→v1.3 多轮对抗修订后收口；Ardot 画布产出 **5 帧**设计稿（fileId **737147257801936**）：帧1 主工作台 / 帧2 模板库抽屉 560 / 帧3 历史抽屉 480 / 帧4 手动复制指引 560 / 帧5 渲染错误浮层 480。
 - **设计系统**：暖纸 `#F7F4EE` → 白卡 `#FFFFFF` → 印泥朱砂 `#AF3E2B`（白字对比度约 5:1）+ Noto Sans SC / Inter / JetBrains Mono；三段式骨架（顶栏 56 白 chrome / 左 620 内容 | 右 819 预览+风格 / 底栏 64）；模板选择 = 右栏「最近使用」胶囊条 + 模板库抽屉（两行 chips：全部/收藏/最近 + 六族 卷宗/庙会/信笺/素页/夜航/钢印）。
 - **交互定稿**：主路径「粘贴 →（可选换风格）→ 复制」2-3 步；富文本粘贴默认开 + toast 撤销 + `Ctrl+Shift+V` 逃生门；编辑器 = 整理后 Markdown 源码（粘贴/导入写回、手动打字不改写）；复制唯一 primary（min-w 148/h 40）；解析条（智能转换 switch / 识别结构 chips / 整理格式）on-off 双态；出稿三件套（复制/推送/历史）权重 0<1<唯一主。
-- **HTML 交互原型**：`docs/prototypes/wechat-redesign.html`（单文件零依赖，可点可玩：实时渲染 / 主题切换含深色反相 / 模板库抽屉 / 富文本粘贴模拟 / 复制降级浮层 / 插入 popover）。
-- **方案文档**：`docs/wechat-page-redesign.md`（tokens / 交互规范 / 前端契约 / P0-P3 落地顺序 / 待决策项）。
+- **HTML 交互原型**：`docs/prototypes/wechat/wechat-redesign.html`（单文件零依赖，可点可玩：实时渲染 / 主题切换含深色反相 / 模板库抽屉 / 富文本粘贴模拟 / 复制降级浮层 / 插入 popover）。
+- **方案文档**：`docs/wechat/wechat-page-redesign.md`（tokens / 交互规范 / 前端契约 / P0-P3 落地顺序 / 待决策项）。
 - **落地决策（用户拍板 2026-10-18）**：① 落地基准 = **完整版原型**（非简化版）；② 先收工程账再落 P0 界面；③ 三模式默认 auto + 设置里可切。
 
 **B. 自动编辑三模式（P1 部分落地，2026-10-17）**
@@ -694,7 +694,7 @@ python tests/test_headed_wechat_copy.py
 
 ### 变更 20：公众号页 P0 界面落地（2026-10-18）
 
-- **用户拍板（1A / 2A / 3A）**：落地基准 = 完整版原型 `docs/prototypes/wechat-redesign.html`；先收工程账（提交 + 文档 + 清理）再落 P0；自动编辑三模式默认 auto + 设置里可切（设置入口属 P1 待接）。
+- **用户拍板（1A / 2A / 3A）**：落地基准 = 完整版原型 `docs/prototypes/wechat/wechat-redesign.html`；先收工程账（提交 + 文档 + 清理）再落 P0；自动编辑三模式默认 auto + 设置里可切（设置入口属 P1 待接）。
 - **落地内容（`templates/index.html`，+约 700 行）**：
   - **设计系统全换**：暖纸 `#F7F4EE` / 次表面 `#FAF9F5` / 白卡 `#FFFFFF` / 描边 `#EAE6DD·#D8D2C6` / 文本 `#191713·#6E6759·#9B9484` / 印泥朱砂 `#AF3E2B`（hover `#96331F`）/ 成功 `#5F8F73`；圆角 16/14/12/8；阴影两级；字体 Noto Sans SC 优先。
   - **顶栏**：贴边白 chrome 56px + 底边 1px；朱砂方章「版」logo；tab 底部 2px 朱砂激活条。
@@ -748,11 +748,11 @@ python tests/test_headed_wechat_copy.py
 
 **文档产出**：
 - `docs/overview.md`（一页看懂，替代此前写的 requirements.md / architecture.md —— 个人项目不需要 34 项 FR 与 10 条 ADR）
-- `docs/api-reference.md`（28 路由一张表 + 3 个高频接口契约）
+- `docs/ops/api-reference.md`（28 路由一张表 + 3 个高频接口契约）
 - `docs/testing.md`（6 套件跑法、实测基线、5 个坑、DOM 契约）
-- `docs/runbook.md`（装起停 + 数据在哪 + 12 条故障处置 + 备份迁移）
-- `docs/pwa-build-plan.md`（**PWA 施工图**：范围、10 条定稿决策、D1-D10 文件级任务、验收表、部署、风险）
-- `pwa-design.md` 冻结为设计存档，冲突以施工图为准
+- `docs/ops/runbook.md`（装起停 + 数据在哪 + 12 条故障处置 + 备份迁移）
+- `docs/pwa/pwa-build-plan.md`（**PWA 施工图**：范围、10 条定稿决策、D1-D10 文件级任务、验收表、部署、风险）
+- `pwa/pwa-design.md` 冻结为设计存档，冲突以施工图为准
 
 **阶段 0 验证（两项命门，均已通过）**：
 - **0a Pyodide 跑现有引擎**：436 字样本输出与本地 `POST /api/render` **逐字节一致**（html 4821B）；引擎启动 6.7s、渲染 415ms；Pyodide v0.28.3
@@ -792,7 +792,7 @@ python tests/test_headed_wechat_copy.py
 > 历史（2026-10-18 已过期）：PWA D1 开工建议 —— 已完成，不再适用。
 
 ### DO NOT DO
-- 不要碰 docs/prototypes/prototype_full.html 和 docs/prototypes/prototype_ai_simplify.html（已废弃）
+- 不要碰 docs/prototypes/legacy/prototype_full.html 和 docs/prototypes/legacy/prototype_ai_simplify.html（已废弃）
 - 不要重构 backend API 结构（约 23 条路由，当前够用；PWA 主链路已不走 Flask）
 - 不要添加新功能除非用户明确要求（用户说过"到时再慢慢修"）
 - **不要再造第二套版本/更新体系**：`pwa/version.json`（语义化版本）+ `build`（git 提交数）+ 静默自动升级已上线，改它前先读 `AGENTS.md` §4 的版本规则与 `pwa/src/update/*`

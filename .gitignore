@@ -76,10 +76,10 @@ pwa/node_modules/
 docs/ux-audit/shots/after/
 
 # 原型 v2 的字体/示例图副本（2026-11-01）
-# 为了让 docs/prototypes/v2 能被当静态站点直接托管，把 pwa/public/fonts 与 public/images
+# 为了让 docs/prototypes/xhs/v2 能被当静态站点直接托管，把 pwa/public/fonts 与 public/images
 # 拷了一份进来（13MB）。字体本来就在仓库里，不重复入库。
 # 回填：见 HANDOFF.md §3「看封面 UX 原型」
-docs/prototypes/v2/assets/
+docs/prototypes/xhs/v2/assets/
 
 # 调试/临时产物（2026-11-02）：不入库
 out/
@@ -88,3 +88,5 @@ scripts/snippets/
 # 15 套整篇设计的真实渲染产物（2026-11-02）：由 scripts/render_kit_previews.py 生成
 # 重新生成：.venv/Scripts/python.exe scripts/render_kit_previews.py
 docs/prototypes/kit-previews/
+# ⚠️ 该目录已于 2026-11-03 清理删除，此规则保留无害
+# docs/prototypes/kit-previews/

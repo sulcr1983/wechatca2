@@ -99,8 +99,8 @@ git checkout flask-v1-archive-2026-10-28 -- start-app.bat
 | `CLOSURE.md`（全文） | `docs/archive/closure-2026-09-10-task-log.md` |
 | `HANDOVER.md` | `docs/archive/handover-2026-10-25-pwa-onboarding.md` |
 | `HANDOFF-2026-10-25.md` | `docs/archive/handoff-2026-10-25-round.md` |
-| `AI_USAGE.md` | `docs/agent-constitution-ai-usage.md`（不是历史，是活文档，只是不该占根目录） |
-| `docs/design-audit.md` 等 6 份带日期的快照 | `docs/archive/`（含 `docs/audit/` 两份审计） |
+| `AI_USAGE.md` | `docs/ops/agent-constitution-ai-usage.md`（不是历史，是活文档，只是不该占根目录） |
+| `docs/archive/design-audit.md` 等 6 份带日期的快照 | `docs/archive/`（含 `docs/audit/` 两份审计） |
 
 ### 保留了什么
 

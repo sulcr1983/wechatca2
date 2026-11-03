@@ -1,0 +1,64 @@
+/* ══════════════════════════════════════════════════════════════════════
+   xhs-ux-core.css —— 三版共用：封面画布样式 + 字体
+   与 xhs-ux-core.js 配套；画布坐标系是「真实输出像素」1080×1440
+   ══════════════════════════════════════════════════════════════════════ */
+@font-face{font-family:'Noto Serif SC';font-weight:400;font-display:swap;
+  src:url("../../../pwa/dist/fonts/cover/noto-serif-sc-400.woff2") format('woff2')}
+@font-face{font-family:'Noto Sans SC';font-weight:400;font-display:swap;
+  src:url("../../../pwa/dist/fonts/cover/noto-sans-sc-400.woff2") format('woff2')}
+@font-face{font-family:'Noto Sans SC';font-weight:700;font-display:swap;
+  src:url("../../../pwa/dist/fonts/cover/noto-sans-sc-700.woff2") format('woff2')}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   7. 封面画布渲染 —— 坐标系是「真实输出像素」（1080×1440 / 1080×1080 / 2100×900）
+   所有位置与字号都按 W/H 比例算，所以三种尺寸共用同一套版式函数
+   ══════════════════════════════════════════════════════════════════ */
+.cv-art{
+  position:absolute;left:0;top:0;overflow:hidden;
+  font-family:'Noto Serif SC',serif;color:var(--ink);background:var(--paper);
+}
+.cv-art.sans{font-family:'Noto Sans SC',sans-serif}
+.cv-art .ph{position:absolute;object-fit:cover;display:block}
+.cv-art .veil{position:absolute;inset:0;background:var(--paper);opacity:0;pointer-events:none}
+.cv-art .scrim{position:absolute;left:0;right:0;pointer-events:none}
+.cv-art .blk{position:absolute;left:8.15%;right:8.15%}
+.cv-art .ttl{
+  font-weight:500;letter-spacing:.02em;line-height:1.18;margin:0;
+  word-break:break-word;text-wrap:balance;
+}
+/* 压在照片上的文字：scrim 管 90%，投影只补笔画边缘那 10%（design §5 铁律 3）。
+   0 0 18px 而不是 2px 2px —— 硬投影会让笔画发虚，模糊半径大才是「衬底」效果。 */
+.cv-art .onphoto{text-shadow:0 1px 18px rgba(8,7,6,.34),0 0 3px rgba(8,7,6,.22)}
+.cv-art .sub{line-height:1.62;color:var(--muted);text-wrap:pretty}
+.cv-art .kick{
+  font-family:'Noto Sans SC',sans-serif;font-weight:500;
+  letter-spacing:.2em;color:var(--accentText);
+}
+.cv-art .auth{color:var(--muted);letter-spacing:.06em}
+.cv-art .bar{background:var(--accent)}
+.cv-art .rule{background:var(--line)}
+
+/* 长文内页 */
+.cv-art .pg-head,.cv-art .pg-foot{
+  position:absolute;left:8.15%;right:8.15%;
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:'Noto Sans SC',sans-serif;letter-spacing:.18em;
+  color:var(--accentText);
+}
+.cv-art .pg-body{position:absolute;left:8.15%;right:8.15%}
+.cv-art .pg-body p{margin:0 0 43px;line-height:1.74;text-wrap:pretty}
+.cv-art .pg-body p:last-child{margin-bottom:0}
+.cv-art .pg-body h3{
+  margin:0 0 30px;font-weight:600;line-height:1.36;color:var(--ink);
+}
+.cv-art .pg-body .item{
+  display:flex;gap:26px;margin-bottom:34px;line-height:1.6;
+}
+.cv-art .pg-body .item .num{
+  flex:none;font-weight:600;color:var(--accentText);
+  font-variant-numeric:tabular-nums;
+}
+.cv-art .pg-deco{position:absolute;color:var(--accent);pointer-events:none}
+.cv-art .bgline{position:absolute;inset:0;pointer-events:none}
+

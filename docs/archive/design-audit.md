@@ -81,7 +81,7 @@
   <div class="result-card-body" style="background:linear-gradient(135deg,#e8d5c0,#d4a06a);"></div>
   ```
   写死渐变占位，**未绑定** API 返回的真实图片 `url`。API 实际已返回 `images[].url`（见 `app.py:536/549`），只是前端没用。
-- **修正目标**：结果卡用 `<img src="{真实url}">` 渲染；保留下载按钮（`/output/{task_id}/{fname}`）。原型见 `docs/prototypes/social-studio-target.html` 结果区。
+- **修正目标**：结果卡用 `<img src="{真实url}">` 渲染；保留下载按钮（`/output/{task_id}/{fname}`）。原型见 `docs/prototypes/legacy/social-studio-target.html` 结果区。
 
 #### D-4 【P0】风格选择器对产出零区分度
 - **现象（功能视角）**：用户以为在"选风格"，实际选什么都不影响结果——12 个选项全部渲染成同一个 editorial 封面。静默失败，UI 完全正常，极难察觉。
@@ -274,9 +274,9 @@
 
 | 文件 | 类型 | 说明 |
 |---|---|---|
-| `docs/design-audit.md` | 本文档 | 双页面偏差报告 + 修正契约 + 验收标准 + 路线图 |
-| `docs/prototypes/social-studio-target.html` | Social 原型 | 小红书 studio 修正目标态（可选交互） |
-| `docs/prototypes/wechat-studio-target.html` | WeChat 原型 | 公众号页修正目标态（可选交互） |
+| `docs/archive/design-audit.md` | 本文档 | 双页面偏差报告 + 修正契约 + 验收标准 + 路线图 |
+| `docs/prototypes/legacy/social-studio-target.html` | Social 原型 | 小红书 studio 修正目标态（可选交互） |
+| `docs/prototypes/wechat/wechat-studio-target.html` | WeChat 原型 | 公众号页修正目标态（可选交互） |
 | `output/e2e_audit/shots/proto_studio_desktop.png` | 截图 | Social 原型桌面端渲染核验 |
 | `output/e2e_audit/shots/proto_studio_mobile.png` | 截图 | Social 原型移动端渲染核验 |
 | `output/e2e_audit/shots/proto_wechat_desktop.png` | 截图 | WeChat 原型桌面端渲染核验 |
@@ -290,7 +290,7 @@
 ## 6. 修复执行记录（2026-07-24 已闭环）
 
 > 按 AGENTS.md §11 纪律：代码修复已完成，并通过全部回归门禁 + 真实浏览器验证。
-> 提交：本地 commit（未 push）。改动文件：`templates/index.html`、`core/guizang_renderer.py`、`docs/prototypes/*`、`docs/design-audit.md`。
+> 提交：本地 commit（未 push）。改动文件：`templates/index.html`、`core/guizang_renderer.py`、`docs/prototypes/*`、`docs/archive/design-audit.md`。
 
 ### 6.1 逐项修复状态
 

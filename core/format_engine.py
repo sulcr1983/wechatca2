@@ -860,7 +860,7 @@ ALLOWED_TEXT_ALIGN = frozenset({"left", "right", "center", "justify"})
 
 # 禁写属性：这 4 个在本机 Chromium 实测全是「看起来能做、实际是摆设」——
 # text-justify 已移除 / hanging-punctuation 未实现 / text-autospace 被强制回落 /
-# line-break 与浏览器默认 CJK 避头尾重复、无增量（见 docs/plan-wechat-v6-implementation.md §2.3）。
+# line-break 与浏览器默认 CJK 避头尾重复、无增量（见 docs/wechat/plan-wechat-v6-implementation.md §2.3）。
 # 写进产物一律视为无效代码，由夹具断言 A7 拦截；渲染路径不做运行时检查（零开销）。
 _FORBIDDEN_TEXT_CSS = ("text-justify", "hanging-punctuation",
                        "text-autospace", "line-break")

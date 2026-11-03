@@ -86,9 +86,9 @@
 | `README.md` | 🔄 重写：图文并茂 + 表情丰富 + mermaid + 4 张截图 |
 | `AGENTS.md` | 🔄 洁癖：92 主题 / 新架构 / 新 DOM / 搜图特性 |
 | `HANDOFF.md` | 🔄 洁癖：新模块 / 新链路 / 变更 4 |
-| `docs/design-audit.md` | 🔄 洁癖：DOM 更新 / W-2 已解决 / 新能力注 |
+| `docs/archive/design-audit.md` | 🔄 洁癖：DOM 更新 / W-2 已解决 / 新能力注 |
 | `files/TODO.md` | 🆕 新建：任务清单（全部已打勾） |
-| `docs/task_closure_social-bg.md` | 🆕 本收尾文档 |
+| `docs/archive/task_closure_social-bg.md` | 🆕 本收尾文档 |
 | `docs/screenshots/*.png` | 🆕 4 张 README 配图 |
 
 **未提交/已排除**：`.env`（密钥）、`data/`（含加密账号+bg_cache）、`output/`（运行时产物）、`uploads/`、`test_output/`、`blcaptain-style-skill/`（嵌套 git+node_modules）、`.workbuddy/`（私密记忆）、`temp_covers/`、`reports/`、`output/_shot_readme.py`（临时脚本）。

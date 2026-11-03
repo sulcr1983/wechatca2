@@ -16,7 +16,7 @@
   AUTO  —— 字重 / 字距 / 字号 / 字体配对 / 对比度 / 违禁 CSS 模式
   HUMAN —— 选图质感（quiet-zone + light test）、主体避让、缩略图观感
 
-规范真源：docs/cover-style-spec.md
+规范真源：docs/xhs/cover-style-spec.md
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ def contrast(a: str, b: str) -> float:
 
 
 # ---------------------------------------------------------------- 阈值
-# 数值依据见 docs/cover-style-spec.md §4–§5；改这里等于改规范。
+# 数值依据见 docs/xhs/cover-style-spec.md §4–§5；改这里等于改规范。
 
 TH = {
     "title_vs_paper": 7.0,    # 标题对纸底：AAA 大字号
@@ -456,7 +456,7 @@ def main() -> None:
     ap.add_argument("--strict", action="store_true", help="有 FAIL 则退出码 1")
     args = ap.parse_args()
 
-    print("封面风格规范校验 · docs/cover-style-spec.md")
+    print("封面风格规范校验 · docs/xhs/cover-style-spec.md")
     rows: list[Row] = []
     if args.src in ("all", "pwa"):
         rows += check_gz(parse_gz())

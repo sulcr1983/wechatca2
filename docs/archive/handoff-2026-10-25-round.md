@@ -308,7 +308,7 @@ node pwa/scripts/build.mjs                  # 改过 pwa/src、core 引擎、the
 | `scripts/clean_output.py` | output 清理 |
 | `AGENTS.md` | 项目规则 + 完整测试清单 |
 | `files/TODO.md` | 待办（已核定，无未完成项） |
-| `docs/pm-review-abc-layouts.md` | 上一轮 PM 测评报告 |
+| `docs/archive/pm-review-abc-layouts.md` | 上一轮 PM 测评报告 |
 
 ---
 

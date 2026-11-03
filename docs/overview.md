@@ -5,7 +5,7 @@
 
 > 个人项目，够用就好。本文档合并了原「需求规格」与「架构设计」两份文档，只保留**接手、改动、排查时真正用得上的信息**。
 >
-> 配套：`api-reference.md`（28 个路由，仅本地版）· `testing.md`（测试怎么跑）· `runbook.md`（装起停 + 故障排查）· `project-conventions.md`（产出物与 Git 规范）· `audit-playbook.md`（36 项审计清单）
+> 配套：`ops/api-reference.md`（28 个路由，仅本地版）· `testing.md`（测试怎么跑）· `ops/runbook.md`（装起停 + 故障排查）· `ops/project-conventions.md`（产出物与 Git 规范）· `ops/audit-playbook.md`（36 项审计清单）
 
 ---
 

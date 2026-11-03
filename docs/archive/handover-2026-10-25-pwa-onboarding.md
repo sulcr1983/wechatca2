@@ -22,18 +22,18 @@
 
 > **历史交接链（保留备查）**
 > ~~**最新交接（2026-10-24：B2 #6 外链图本地化）**~~：该轮「尚未提交、尚未部署」已作废——后续提交已部署，线上 build 已远超 128（详见上方更正条）。
-> **上一轮交接（2026-10-19 第二轮：TXT 格式兼容 + 出口三件套）**：[`docs/handover-2026-10-19-txt-format-exports.md`](docs/handover-2026-10-19-txt-format-exports.md)。
-> 上一份 [`docs/handover-2026-10-19-ui-polish.md`](docs/handover-2026-10-19-ui-polish.md) 的「部署失败 / 线上仍是 build 119」**已作废——重试部署已成功**，其内容仍可看，但 §0 状态过时。
+> **上一轮交接（2026-10-19 第二轮：TXT 格式兼容 + 出口三件套）**：[`docs/archive/handover-2026-10-19-txt-format-exports.md`](handover-2026-10-19-txt-format-exports.md)。
+> 上一份 [`docs/archive/handover-2026-10-19-ui-polish.md`](handover-2026-10-19-ui-polish.md) 的「部署失败 / 线上仍是 build 119」**已作废——重试部署已成功**，其内容仍可看，但 §0 状态过时。
 
 > 写于 2026-10-18 12:15。对象：接手继续做这个 PWA 的人（包括未来的我和别的 agent）。
-> **先读 `docs/pwa-build-plan.md`（施工图，D1–D10 已全部完成）读细节，本文只讲「现在在哪、还差什么、怎么接着做」。**
+> **先读 `docs/pwa/pwa-build-plan.md`（施工图，D1–D10 已全部完成）读细节，本文只讲「现在在哪、还差什么、怎么接着做」。**
 
 ---
 
 ## 0. 一句话现状
 
 **PWA 已上线**：https://supersu.ccwu.cc（自定义域名）+ https://supersu-pwa.pages.dev，粘贴纯文本 → 浏览器内 Python 引擎排版 → 164 套主题 → 复制到公众号，全程无后端、可离线。有头浏览器冒烟 **23/23 通过**，线上域名有头实测渲染通过（2026-10-18）。
-**没做的**：推送探测、离线包、真机验收（见 §3）。~~首页优化已提交但未部署成功~~ → **2026-10-19 第二轮已部署成功，线上 build 128**，详见 `docs/handover-2026-10-19-txt-format-exports.md`。
+**没做的**：推送探测、离线包、真机验收（见 §3）。~~首页优化已提交但未部署成功~~ → **2026-10-19 第二轮已部署成功，线上 build 128**，详见 `docs/archive/handover-2026-10-19-txt-format-exports.md`。
 **2026-10-19 补**：小红书封面已落地——12 风格（归藏 2 × 3 尺寸 + 模板 10 × 3:4）、纯色/上传/Wikimedia 免 key 搜图、Noto 中文字体子集、断网可生成；有头测试 16/16。
 **2026-10-19 第二轮补**：格式兼容扩展（复选框/章节标记/括号编号/非标表/Alerts/admonition）+ 出口三件套（长图 PNG / HTML / Markdown，有头 8/8）+ 抽屉缩略图修复；方案真源 `docs/feature-expansion-plan.html`（30 项 · 6 批次，B1 已完成）。
 
@@ -281,7 +281,7 @@ node pwa/scripts/build.mjs
 
 ## 10. 接手后建议的顺序
 
-0. ~~先处理 2026-10-19 首页优化~~ ✅ **已完成并部署**（第二轮）。最新进度与下一步见 `docs/handover-2026-10-19-txt-format-exports.md`；功能扩展按 `docs/feature-expansion-plan.html` 的批次推进（B1 已完成，**下一批 B2：外链图本地化 / 九宫格切图 / 批量导出图片**）。
+0. ~~先处理 2026-10-19 首页优化~~ ✅ **已完成并部署**（第二轮）。最新进度与下一步见 `docs/archive/handover-2026-10-19-txt-format-exports.md`；功能扩展按 `docs/feature-expansion-plan.html` 的批次推进（B1 已完成，**下一批 B2：外链图本地化 / 九宫格切图 / 批量导出图片**）。
 1. ~~先提交~~ ✅（0332b7f）→ ~~部署 Cloudflare~~ ✅（supersu.ccwu.cc）→ ~~补「更多」菜单 + 离线验证~~ 见下
 2. **离线验证**（§3.3）→ Chrome DevTools 离线刷新，确认 SW 缓存够用
 3. **补「更多」菜单**（§3.4）→ 推送探测 + AI 配置

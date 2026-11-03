@@ -46,7 +46,7 @@
 - `files/TODO.md`：已完成区加 `UX-DESIGN`；待办区立项 U-1…U-15（分三批）+「明确不做」清单。
 - `AGENTS.md`：新增 §12「前端改造方案 v3」——权威文档指针、三条设计铁律、审计实锤（防重复误判）、不做清单、实施纪律。
 - `HANDOFF.md`：新增「变更 11」（本轮内容，标注未动代码与下一步）。
-- 本文件：`docs/task_closure_ux-design.md`（阶段收尾）。
+- 本文件：`docs/archive/task_closure_ux-design.md`（阶段收尾）。
 
 ## 5. 下一步（待批准）
 

@@ -3,7 +3,7 @@
 > 🛑 **2026-10-24 审计声明**：本文为**历史快照/方案稿**，其中的版本号、构建号、「未提交/未部署」等状态**均已过期**。现行状态唯一真源：`HANDOFF.md` §0 + `AGENTS.md` + `CLOSURE.md`。
 
 > 写给下一位接手的人 / AI。**先看 §0 现状和 §1 接手步骤**，再看细节。
-> 关联：`HANDOVER.md`（PWA 总交接）、`CLOSURE.md`、`AGENTS.md`、上一份 `docs/handover-2026-10-19-ui-polish.md`（首页优化，**已部署成功，其 §0 的「未部署」已作废**）。
+> 关联：`HANDOVER.md`（PWA 总交接）、`CLOSURE.md`、`AGENTS.md`、上一份 `docs/archive/handover-2026-10-19-ui-polish.md`（首页优化，**已部署成功，其 §0 的「未部署」已作废**）。
 
 ---
 
@@ -76,7 +76,7 @@ node pwa/scripts/build.mjs                                   # 改过 pwa/src、
 | # | 提交 | 内容 |
 |---|---|---|
 | 1 | `16c7f17` | **TXT 格式兼容扩展**（`core/preprocessor.py`）+ 测试夹具入库 + 抽屉缩略图修复 |
-| 2 | `ea6499a` | **功能扩展方案 + 可点击原型**（`docs/feature-expansion-plan.html`、`docs/prototypes/feature-expansion.html`） |
+| 2 | `ea6499a` | **功能扩展方案 + 可点击原型**（`docs/feature-expansion-plan.html`、`docs/prototypes/legacy/feature-expansion.html`） |
 | 3 | `c9e6c9d` | **出口三件套**（PWA）：长图 PNG / HTML 文件 / Markdown 导出 |
 | 4 | `30b59cf` `9828cfc` | 线上 E2E 的**固定等待改轮询**，修掉「每跑一次偶发一项」 |
 | 5 | `89e9898` | 重建更新记录生成物（部署预检所需） |
@@ -97,7 +97,7 @@ node pwa/scripts/build.mjs                                   # 改过 pwa/src、
 | `::: tip / warning / details` | → 复用现有 `:::summary` 卡片 |
 | `【提示】【注意】【风险】` | → 提示块 |
 
-**刻意不做**（理由写在 `docs/txt-format-support.md` §5）：Setext 下划线标题（会和 `====` 分隔线打架）、pangu/全角清理（违反「不改写原文」）、KaTeX 公式渲染、TSV/CSV、高亮、脚注渲染。
+**刻意不做**（理由写在 `docs/archive/txt-format-support.md` §5）：Setext 下划线标题（会和 `====` 分隔线打架）、pangu/全角清理（违反「不改写原文」）、KaTeX 公式渲染、TSV/CSV、高亮、脚注渲染。
 
 ### 2.2 测试夹具入库
 
@@ -163,7 +163,7 @@ node pwa/scripts/build.mjs                                   # 改过 pwa/src、
 
 ## 4. 下一步（按方案批次）
 
-方案真源：`docs/feature-expansion-plan.html`（30 项 · 6 批次）。B1 已完成；B2 的 #6 已完成（2026-10-24，见 `docs/handover-2026-10-24-image-localize.md`），**下一项是 #7 九宫格切图**：
+方案真源：`docs/feature-expansion-plan.html`（30 项 · 6 批次）。B1 已完成；B2 的 #6 已完成（2026-10-24，见 `docs/archive/handover-2026-10-24-image-localize.md`），**下一项是 #7 九宫格切图**：
 
 | 批次 | 内容 | 状态 |
 |---|---|---|

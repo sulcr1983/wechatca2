@@ -63,7 +63,7 @@ AI 生成专属底图 · 深色模式预览 · 模板可视化设计器。
 
 > 原施工进度表（阶段 0-4 / PWA-0a...4.2）已整体闭环，逐条打勾失去意义，故替换为本记录（2026-10-24 审计）。
 > 细节去查：`docs/archive/closure-2026-09-10-task-log.md` 任务 7-22（逐任务验收）·
-> `AGENTS.md` §3/§4（架构与测试）· `STATE.md`（当前状态）· `docs/pwa-build-plan.md`（历史施工图）。
+> `AGENTS.md` §3/§4（架构与测试）· `STATE.md`（当前状态）· `docs/pwa/pwa-build-plan.md`（历史施工图）。
 
 | 原条目 | 结果 |
 |---|---|
@@ -212,7 +212,7 @@ AI 生成专属底图 · 深色模式预览 · 模板可视化设计器。
 | LIC-3 | 第二批主题参照 TypeZen（`mspringjade/wechat-formatter`，**AGPL-3.0 + README 附加非商用条款**） | ✅ 2026-10-13 走**纯灵感派生**：不移植其代码；族名/色调词/色值/文案全部自研（色值 = 色相 × 族级基线推导，命名对照见 AGENTS §10）；替代路线（直接移植=整体 AGPL 化+非商用）已向用户说明并弃选 |
 
 > ⚠️ 仍留有的历史痕迹（不影响当前主题文件的原创性，属历史记录）：`scripts/remove_dup_themes.py`、
-> `docs/task_closure_social-bg.md`、`HANDOFF.md 变更 4` 中仍提及上游仓库名。
+> `docs/archive/task_closure_social-bg.md`、`HANDOFF.md 变更 4` 中仍提及上游仓库名。
 > 若要让公开仓彻底看不出沿革，需单独决策是否清理这些历史记录。
 
 ---

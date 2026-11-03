@@ -79,4 +79,4 @@ python app.py            # 另开一个终端，http://127.0.0.1:5000
 # → test_output/audit/audit-result.md
 ```
 
-完整人工审计清单见 `docs/audit-playbook.md`（36 项，含判定标准与处置方式）。
+完整人工审计清单见 `docs/ops/audit-playbook.md`（36 项，含判定标准与处置方式）。

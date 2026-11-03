@@ -319,7 +319,7 @@ function buildThemeIndex() {
       // 实际跑着「目录导航」——见 docs/update-handoff.md）。
       layout: theme.layout || '',
       // kit（整篇设计，2026-11-02）：版式与配色都锁死，不可与「版式层」自由组合。
-      // 用独立字段 locked_layout 而不是复用 layout —— 见 docs/design-kit-themes.md §2.3：
+      // 用独立字段 locked_layout 而不是复用 layout —— 见 docs/wechat/design-kit-themes.md §2.3：
       // layout 会被用户本机的 layoutOv[id] 覆盖，kit 的版式一旦被覆盖就不再锁定。
       kind: theme.kind === 'kit' ? 'kit' : 'palette',
       lockedLayout: theme.locked_layout || '',

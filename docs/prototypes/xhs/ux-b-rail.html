@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>方案 B · 单侧集成栏</title>
+<link rel="stylesheet" href="../_core/xhs-ux-core.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   方案 B：单侧集成栏
+   左 = 画布（独占剩余全部）｜右 = 一条 380px 集成栏：写 → 图 → 版式 → 配色 → 字体
+   核心主张：**操作全在一侧**。手不用在屏幕两头来回跑；画布只被一边挤。
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#F7F4EE; --surface:#FAF9F5; --raised:#fff; --hover:#F0EDE8; --sunken:#F2EEE7;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --soft:#6E6759; --muted:#9B9484;
+  --accent:#AF3E2B; --accent-soft:rgba(175,62,43,.08);
+  --r:8px; --r-lg:12px;
+  --top-h:52px; --rail-w:380px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--text);overflow:hidden;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+
+.top{
+  height:var(--top-h);flex:none;padding:0 14px;display:flex;align-items:center;gap:10px;
+  background:var(--raised);border-bottom:1px solid var(--border);
+}
+.top .tag{font-size:11px;font-weight:700;letter-spacing:.08em;color:#fff;background:#8A5A2B;
+  padding:2px 7px;border-radius:4px;flex:none}
+.top h1{font-size:13px;font-weight:600;margin:0;white-space:nowrap}
+.top .say{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .right{margin-left:auto;display:flex;gap:8px;flex:none}
+.btn-save{height:32px;padding:0 16px;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;box-shadow:0 2px 8px rgba(175,62,43,.22)}
+.btn-save:hover{background:#9C3524}
+
+.app{flex:1;display:flex;min-height:0}
+
+/* ── 左：画布 ── */
+.canvas{flex:1;min-width:0;display:flex;flex-direction:column;
+  background:radial-gradient(ellipse 74% 84% at 50% 46%,rgba(255,255,255,.62),rgba(255,255,255,0) 64%),var(--bg);}
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px}
+.cv-wrap{position:relative;overflow:hidden;border-radius:2px;background:#fff;
+  box-shadow:0 1px 2px rgba(30,25,15,.10),0 12px 38px rgba(30,25,15,.13)}
+#cv-art{position:absolute;inset:0}
+.meta{height:22px;flex:none;display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:10.5px;color:var(--muted);padding-bottom:6px}
+.meta b{font-weight:600;color:var(--soft);font-variant-numeric:tabular-nums}
+.meta .dot{color:var(--border-hi)}
+
+/* ── 右：集成栏 ── */
+.rail{
+  width:var(--rail-w);flex:none;border-left:1px solid var(--border);background:var(--surface);
+  display:flex;flex-direction:column;min-height:0;
+}
+.rail-scroll{flex:1;overflow-y:auto;min-height:0;padding:12px 14px 20px}
+.rail-scroll::-webkit-scrollbar{width:8px}
+.rail-scroll::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:4px}
+
+.blk + .blk{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.blk-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+.blk-hd b{font-size:11px;font-weight:700;color:var(--soft);letter-spacing:.04em}
+.blk-hd em{font-style:normal;font-size:10.5px;color:var(--muted)}
+
+#txt{
+  width:100%;height:74px;resize:none;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--raised);padding:8px 10px;font-size:13px;line-height:1.6;outline:0;
+}
+#txt:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.row-mini{display:flex;align-items:center;gap:6px;margin-top:5px}
+.row-mini .cnt{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row-mini .sp{margin-left:auto}
+.mini{height:24px;padding:0 8px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:10.5px;color:var(--soft)}
+.mini:hover{background:var(--hover);color:var(--text)}
+
+/* 图：一排缩略 + 纯色格 */
+.pics{display:flex;gap:5px}
+.pic{width:46px;height:61px;border-radius:5px;overflow:hidden;border:2px solid transparent;
+  background:var(--sunken);position:relative;flex:none}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+
+/* 版式：4 列网格（380px 宽刚好一眼看全 8-9 个） */
+.lay-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.lay{text-align:left}
+.lay-th{position:relative;aspect-ratio:3/4;border-radius:5px;overflow:hidden;background:#fff;
+  border:2px solid transparent;box-shadow:0 1px 2px rgba(30,25,15,.08);
+  transition:border-color .12s,box-shadow .12s}
+.lay:hover .lay-th{box-shadow:0 2px 8px rgba(30,25,15,.15)}
+.lay[aria-pressed="true"] .lay-th{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.thumb-art{position:absolute;left:0;top:0;transform-origin:top left}
+.lay-nm{font-size:10px;font-weight:600;margin-top:3px;text-align:center;color:var(--soft);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lay[aria-pressed="true"] .lay-nm{color:var(--accent)}
+.lay[disabled]{cursor:not-allowed;opacity:.36}
+
+.pals{display:flex;flex-wrap:wrap;gap:6px}
+.pal{width:32px;height:22px;border-radius:5px;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.pal[aria-pressed="true"]{border-color:var(--accent)}
+
+.fonts{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.fnt{height:34px;border-radius:5px;border:1px solid var(--border);background:var(--raised);
+  font-size:11.5px;color:var(--soft);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;line-height:1.25}
+.fnt em{font-style:normal;font-size:9px;color:var(--muted)}
+.fnt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+.fnt[aria-pressed="true"] em{color:rgba(175,62,43,.6)}
+
+.sizes{display:flex;gap:5px}
+.sizes button{flex:1;height:28px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:11px;color:var(--soft)}
+.sizes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,8px);opacity:0;
+  background:rgba(25,23,19,.92);color:#fff;font-size:12px;padding:8px 14px;border-radius:99px;
+  transition:.18s;pointer-events:none;z-index:99}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="tag">方案 B</span>
+  <h1>单侧集成栏</h1>
+  <span class="say">所有操作都在右手边一条里，画布独占其余空间</span>
+  <div class="right"><button class="btn-save" id="save">保存大图</button></div>
+</header>
+
+<div class="app">
+  <!-- 左：画布独占 -->
+  <main class="canvas">
+    <div class="stage" id="stage">
+      <div class="cv-wrap" id="cv-wrap"><div id="cv-art"></div></div>
+    </div>
+    <div class="meta">
+      <b id="dim">1080 × 1440</b><span class="dot">·</span>
+      <span id="vd">—</span><span class="dot">·</span><span>改完即时预览</span>
+    </div>
+  </main>
+
+  <!-- 右：一条集成栏 -->
+  <aside class="rail">
+    <div class="rail-scroll">
+
+      <div class="blk">
+        <div class="blk-hd"><b>文案</b><em>第一行作大标题</em></div>
+        <textarea id="txt" spellcheck="false"></textarea>
+        <div class="row-mini">
+          <span class="cnt" id="cnt"></span>
+          <span class="sp"></span>
+          <button class="mini" id="smp">示例</button>
+          <button class="mini" id="clr">清空</button>
+        </div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-hd"><b>配图</b><em id="pic-hint">点一下即换</em></div>
+        <div class="pics" id="pics"></div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-hd"><b>版式</b><em id="lay-hint">9 套</em></div>
+        <div class="lay-grid" id="lays"></div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-hd"><b>配色</b><em id="pal-hint"></em></div>
+        <div class="pals" id="pals"></div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-hd"><b>字体</b><em>只换标题</em></div>
+        <div class="fonts" id="fonts"></div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-hd"><b>尺寸</b><em>仅部分版式</em></div>
+        <div class="sizes" id="sizes"></div>
+      </div>
+
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../_core/xhs-ux-core.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const SAMPLE = '周末去了趟海边\n两天里我没看手机，只听见浪';
+const DEF = '周末去了趟海边\n两天里我没看手机';
+
+const ST = { size:'xhs', img:'p1', mode:'search' };
+const ART = { W:1080, H:1440, k:1 };
+
+function toast(m){ const t=$('toast'); t.textContent=m; t.className='toast on';
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.className='toast',1800); }
+
+function fit(){
+  const stage=$('stage'), wrap=$('cv-wrap');
+  const k = Math.min((stage.clientWidth-4)/ART.W, (stage.clientHeight-4)/ART.H);
+  ART.k = k;
+  wrap.style.width = Math.round(ART.W*k)+'px';
+  wrap.style.height = Math.round(ART.H*k)+'px';
+  const a = wrap.querySelector('.cv-art');
+  if (a){ a.style.transform=`scale(${k})`; a.style.transformOrigin='top left'; }
+}
+
+function paint(){
+  const dim = SIZES[ST.size];
+  ART.W = dim.w; ART.H = dim.h;
+  const { title, sub } = extract($('txt').value);
+  const src = ST.mode==='color' ? '' : photoOf(ST.img).src;
+  const an = src ? analysisCache.get(src) : null;
+  if (!title){
+    $('cv-art').innerHTML = `<div class="cv-art" style="width:${dim.w}px;height:${dim.h}px;`
+      + `--paper:${palOf(state.pal).paper};display:grid;place-items:center">`
+      + `<div style="text-align:center;color:#9B9484;font-size:26px;line-height:1.8">`
+      + `右边写一句话<br><span style="font-size:20px">画布立刻就有内容</span></div></div>`;
+  } else {
+    // coverHtml 把判定挂在传入对象上，必须先建对象再读（内联字面量读不到 _verdict）
+    const opt = { lay: state.lay, title, sub, auth: state.sign, photo: src, an,
+      kick: ST.mode==='color' ? '' : 'TRAVEL NOTES' };
+    $('cv-art').innerHTML = coverHtml(dim.w, dim.h, opt);
+    window.__lastVerdict = opt._verdict;
+  }
+  $('dim').textContent = `${dim.w} × ${dim.h}`;
+  const v = window.__lastVerdict;
+  $('vd').textContent = src && v && v.verdict ? `${v.verdict}${v.cr?` ${v.cr.toFixed(1)}:1`:''}`
+    : (ST.mode==='color' ? '纯文字' : '—');
+  fit();
+}
+
+/* ── 配图：一排缩略 + 最后一格「不要图」（少一个开关状态） ── */
+function initPics(){
+  $('pics').innerHTML = PHOTOS.map(p =>
+    `<button class="pic" data-p="${p.id}" title="${p.name}">`
+    + `<img src="${p.src}" alt="${p.name}" loading="lazy"></button>`).join('')
+    + `<button class="pic" data-m="color" title="不要图（纯文字版式）" `
+    + `style="background:repeating-linear-gradient(45deg,#EFEAE0,#EFEAE0 4px,#E5DFD2 4px,#E5DFD2 8px)"></button>`;
+  $('pics').onclick = (e) => {
+    const b = e.target.closest('.pic'); if (!b) return;
+    if (b.dataset.m === 'color'){
+      ST.mode = 'color';
+      if (layOf(state.lay).needImg) state.lay = 'swiss';
+    } else {
+      ST.mode = 'search';
+      ST.img = b.dataset.p;
+      if (!layOf(state.lay).needImg) state.lay = 'image-led';
+      analyze(photoOf(ST.img).src).then(a=>{ analysisCache.set(photoOf(ST.img).src,a); paint(); }).catch(paint);
+    }
+    syncPics(); renderLays(); renderSizes(); paint();
+  };
+}
+function syncPics(){
+  [...$('pics').children].forEach(b => b.setAttribute('aria-pressed',
+    String(ST.mode==='color' ? b.dataset.m==='color' : b.dataset.p===ST.img)));
+  $('pic-hint').textContent = ST.mode==='color' ? '当前：不要图' : photoOf(ST.img).name;
+}
+
+/* ── 版式网格 ── */
+function renderLays(){
+  const { title, sub } = extract($('txt').value);
+  const n = sub ? sub.split(/[·、\n]/).filter(Boolean).length : 0;
+  const avail = LAYS.filter(l => ST.mode==='color' ? !l.needImg : true);
+  $('lays').innerHTML = avail.map(l => {
+    const ok = l.id==='list' ? n>=2 : true;
+    // 缩略图 300×400：格宽约 82px，2 倍设备像素够用；也是合成层的安全上限
+    // （9 张 1080×1440 的缩略图会让 Page.captureScreenshot 永久挂住，实测过）
+    return `<button class="lay" data-l="${l.id}" aria-pressed="${state.lay===l.id}"${ok?'':' disabled'}`
+      + ` title="${ok?l.desc:'清单要 2 条以上小字'}">`
+      + `<div class="lay-th"><div class="thumb-art" data-w="300" data-h="400">`
+      + coverHtml(300,400,{ lay:l.id, title:title||'你的标题', sub:sub||'第二行当小字',
+          photo:l.needImg?photoOf(ST.img).src:'', an:l.needImg?analysisCache.get(photoOf(ST.img).src):null,
+          kick:l.needImg?'NOTES':'' })
+      + `</div></div><div class="lay-nm">${l.name}</div></button>`;
+  }).join('');
+  $('lay-hint').textContent = `${avail.length} 套`;
+  scaleThumbs();
+}
+function scaleThumbs(){
+  document.querySelectorAll('#lays .thumb-art').forEach(el=>{
+    const w = el.parentElement.clientWidth; if (!w) return;
+    el.style.width = el.dataset.w+'px'; el.style.height = el.dataset.h+'px';
+    el.style.transform = `scale(${w/Number(el.dataset.w)})`;
+  });
+}
+
+function renderPals(){
+  $('pals').innerHTML = PALS.map(p =>
+    `<button class="pal" data-p="${p.key}" aria-pressed="${state.pal===p.key}" title="${p.name}"`
+    + ` style="background:linear-gradient(135deg,${p.paper} 0 54%,${p.accent} 54%)"></button>`).join('');
+  $('pal-hint').textContent = palOf(state.pal).name;
+}
+function renderFonts(){
+  $('fonts').innerHTML = FONTS.map(f =>
+    `<button class="fnt" data-f="${f.id}" aria-pressed="${state.font===f.id}">`
+    + `${f.name}<em>${f.note}</em></button>`).join('');
+}
+function renderSizes(){
+  const ok = layOf(state.lay).needImg ? ['xhs','square','wide'] : ['xhs'];
+  $('sizes').innerHTML = ['xhs','square','wide'].map(k =>
+    `<button data-s="${k}" aria-pressed="${ST.size===k}"${ok.includes(k)?'':' disabled style="opacity:.34"'}>`
+    + `${SIZES[k].label}</button>`).join('');
+}
+
+$('lays').onclick = (e) => {
+  const b = e.target.closest('.lay'); if (!b || b.disabled) return;
+  state.lay = b.dataset.l;
+  [...$('lays').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  renderSizes(); paint();
+};
+$('pals').onclick = (e) => {
+  const b = e.target.closest('.pal'); if (!b) return;
+  state.pal = b.dataset.p;
+  [...$('pals').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  $('pal-hint').textContent = palOf(state.pal).name;
+  paint(); renderLays();
+};
+$('fonts').onclick = (e) => {
+  const b = e.target.closest('.fnt'); if (!b) return;
+  state.font = b.dataset.f;
+  [...$('fonts').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  paint(); renderLays();
+};
+$('sizes').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  ST.size = b.dataset.s; renderSizes(); paint();
+};
+
+$('txt').addEventListener('input', () => {
+  $('cnt').textContent = `${$('txt').value.length} 字`;
+  paint(); renderLays();
+});
+$('smp').onclick = () => { $('txt').value = SAMPLE; $('txt').dispatchEvent(new Event('input')); };
+$('clr').onclick = () => { $('txt').value = ''; $('txt').dispatchEvent(new Event('input')); };
+$('save').onclick = () => toast('原型不导出：落地走 render.js 的 domToBlob');
+
+window.addEventListener('resize', () => { fit(); scaleThumbs(); });
+
+/* 启动 */
+$('txt').value = DEF;
+initPics(); syncPics(); renderPals(); renderFonts(); renderSizes(); renderLays();
+$('cnt').textContent = `${DEF.length} 字`;
+Promise.all(PHOTOS.map(p=>analyze(p.src).then(a=>analysisCache.set(p.src,a))))
+  .then(()=>{ paint(); renderLays(); })   // 分析完要重画，否则判定值停在「—」
+  .catch(()=>{});
+paint();
+setTimeout(()=>{ fit(); scaleThumbs(); }, 80);
+</script>
+</body>
+</html>

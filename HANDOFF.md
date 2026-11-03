@@ -22,9 +22,9 @@
 | 三模块 IA（排版 / 标题图 / 长图文） | ✅ 线上运行 | `pwa/src/cover/index.js` 的顶栏三 tab |
 | 小红书标题图 | ✅ 线上运行（旧版 UI） | `pwa/src/cover/title-page.js` |
 | 小红书长图文 | ✅ 线上运行（旧版 UI） | `pwa/src/cover/longform-page.js` |
-| **封面 UX 重做（本文 §6 那一条线）** | ⚠️ **只有原型，`pwa/src` 一行未改** | `docs/prototypes/v2/` |
+| **封面 UX 重做（本文 §6 那一条线）** | ⚠️ **只有原型，`pwa/src` 一行未改** | `docs/prototypes/xhs/v2/` |
 
-**判断某件事到底做了没有，只看两处**：`pwa/src/**` 有没有对应代码 + `docs/CLOSURE.md` 有没有那一行台账。
+**判断某件事到底做了没有，只看两处**：`pwa/src/**` 有没有对应代码 + `CLOSURE.md` 有没有那一行台账。
 **不要相信任何方案文档里的"已实现"** —— 这条被违反过不止一次。
 
 ---
@@ -56,7 +56,7 @@
 ```
 
 **拆的是产品面，不是代码**：渲染管线、模板目录、搜图、可读性分析、分页算法一份代码，
-两个小红书模块各自的 UI 与状态。这一点写进了 `docs/design-module-split-ia.md`（R1/R2 决策）。
+两个小红书模块各自的 UI 与状态。这一点写进了 `docs/xhs/design-module-split-ia.md`（R1/R2 决策）。
 
 ### 三个模块为什么这么分
 
@@ -91,8 +91,8 @@ scripts/
   cdp_shot.mjs / cdp_measure.mjs   零依赖 CDP 截图 / 量取
   gen_v2_palettes.mjs        ★ 配色对比度反解与校验
 docs/
-  design-xhs-studio-final.md         ★ 封面 UX 现行方案（V2）
-  review-xhs-studio-adversarial.md   ★ 对 V1 的对抗性复核（全部实测数据）
+  xhs/design-xhs-studio-final.md         ★ 封面 UX 现行方案（V2）
+  xhs/review-xhs-studio-adversarial.md   ★ 对 V1 的对抗性复核（全部实测数据）
   prototypes/v2/                     ★ V2 可交互原型（自包含，13MB）
   prototypes/ux-*.html               V1 原型与三方案对比（历史）
   archive/                           历史快照（全部带"已过期"声明）
@@ -134,20 +134,20 @@ python -m http.server 8899 --directory pwa/dist               # 本地预览
 
 ```bash
 python -m http.server 8126                                   # 仓库根起服务
-# 然后开 http://127.0.0.1:8126/docs/prototypes/v2/index.html
+# 然后开 http://127.0.0.1:8126/docs/prototypes/xhs/v2/index.html
 ```
 
-`docs/prototypes/v2/` 是**自包含**的：内核、字体、示例图都在 `v2/assets/` 里。
+`docs/prototypes/xhs/v2/` 是**自包含**的：内核、字体、示例图都在 `v2/assets/` 里。
 不要把它改回 `../` 相对路径 —— 原型会被当静态站点托管（只暴露该目录），父级一律 404。
 
 `v2/assets/` **不入库**（13MB 的字体/图片副本，字体本来就在 `pwa/public/fonts`）。
 新克隆下来跑一次就行：
 
 ```bash
-mkdir -p docs/prototypes/v2/assets/{fonts,img}
-cp pwa/public/fonts/cover/*.woff2 docs/prototypes/v2/assets/fonts/
+mkdir -p docs/prototypes/xhs/v2/assets/{fonts,img}
+cp pwa/public/fonts/cover/*.woff2 docs/prototypes/xhs/v2/assets/fonts/
 cp public/images/{09-snow-bike,05-swing,02-night-street,06-desk-lamp,03-school-bus,07-radio}.jpg \
-   docs/prototypes/v2/assets/img/
+   docs/prototypes/xhs/v2/assets/img/
 ```
 
 没回填也能打开页面，只是字体退回系统默认、示例图点了会提示「打不开」。
@@ -377,7 +377,7 @@ cp public/images/{09-snow-bike,05-swing,02-night-street,06-desk-lamp,03-school-b
 git status --short        # 应只剩空（或你自己的新改动）
 ```
 
-`docs/prototypes/v2/assets/` 的 13MB 字体/图片副本**仍在 `.gitignore` 里**（不重复入库），
+`docs/prototypes/xhs/v2/assets/` 的 13MB 字体/图片副本**仍在 `.gitignore` 里**（不重复入库），
 新克隆后按 §3 的一条 `cp` 回填即可。`out/`（调试产物）与 `scripts/snippets/`（临时探针）
 也已加进 `.gitignore`。
 
@@ -404,10 +404,10 @@ git status --short        # 应只剩空（或你自己的新改动）
 | [`CLOSURE.md`](CLOSURE.md) | 收尾台账（每轮一行，历史全文在 `docs/archive/`） |
 | [`ARCHIVE.md`](ARCHIVE.md) | 封存记录：什么东西移出了工作区、怎么取回 |
 | [`README.md`](README.md) | 对外说明、使用方式、功能清单 |
-| `docs/design-xhs-studio-final.md` | 封面 UX 现行方案（V2，含所有实测数值） |
-| `docs/review-xhs-studio-adversarial.md` | 对 V1 的对抗性复核（P0/P1/P2 + 复现命令） |
-| `docs/design-module-split-ia.md` | 三模块 IA 的拆分决策（R1–R6） |
-| `docs/prototypes/v2/` | V2 可交互原型（入口 `index.html`） |
+| `docs/xhs/design-xhs-studio-final.md` | 封面 UX 现行方案（V2，含所有实测数值） |
+| `docs/xhs/review-xhs-studio-adversarial.md` | 对 V1 的对抗性复核（P0/P1/P2 + 复现命令） |
+| `docs/xhs/design-module-split-ia.md` | 三模块 IA 的拆分决策（R1–R6） |
+| `docs/prototypes/xhs/v2/` | V2 可交互原型（入口 `index.html`） |
 | `docs/testing.md` + `docs/testing/` | 怎么测：门禁分层、三档判据、探针 |
 | `files/TODO.md` | 待办与排期 |
 
@@ -415,7 +415,7 @@ git status --short        # 应只剩空（或你自己的新改动）
 
 - `docs/archive/`：Flask 时代系统说明、2026-10-18 的 PWA 交接、2026-10-25 那一轮交接、
   任务 1–23 收尾全文。**它们写的版本号和文件名都过期了，只有追溯价值。**
-- `docs/handoff-xhs-studio-redesign.md`（2026-10-31）：Studio 重设计的子系统交接。
+- `docs/xhs/handoff-xhs-studio-redesign.md`（2026-10-31）：Studio 重设计的子系统交接。
   **它写的"Phase 3 未开始"已经过期**——Phase 3 主体迁移在 10-31 就落地发版了（见 `CLOSURE.md` 归档台账）；
   封面 UX 部分则被本文 §6.3 取代。读它只为了解当时的取舍理由，不要当现状。
 - `.workbuddy/memory/YYYY-MM-DD.md`：逐日工作日志，含当轮踩坑的原始记录（最接近现场的材料）。

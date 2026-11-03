@@ -267,7 +267,7 @@ SOFTWARE.
 
 ## 10. 我方 AGPL 现状与待办（与本文档配套）
 
-**已执行**（对应 `docs/pwa-cloudflare-plan.md` 红线 1 的路线 A）：
+**已执行**（对应 `docs/pwa/pwa-cloudflare-plan.md` 红线 1 的路线 A）：
 
 - 仓库已有 `LICENSE`（AGPL-3.0 全文），`README.md` 与站点「关于」口径一致（AGPL-3.0）
 - 站点「关于」提供**源码链接**与**第三方许可链接**，满足 AGPL §13「网络交互用户可获取源码」
@@ -277,7 +277,7 @@ SOFTWARE.
 
 | 项 | 事 | 出处 |
 |---|---|---|
-| 上游署名 | `references/*.md`、`public/screenshot-backgrounds/style-b/*.webp` 为上游 AGPL 衍生，需在 NOTICE 署名并保留 AGPL 声明 | `pwa-cloudflare-plan.md` 红线 1 |
+| 上游署名 | `references/*.md`、`public/screenshot-backgrounds/style-b/*.webp` 为上游 AGPL 衍生，需在 NOTICE 署名并保留 AGPL 声明 | `pwa/pwa-cloudflare-plan.md` 红线 1 |
 | BLCaptain | 双许可，「免费」条件需与作者书面确认（是否营利） | 同上 红线 2 |
 | Pexels | 图片署名需带链接 | 同上 红线 5 |
 | 字体 | 自托管 woff2 需随附 OFL 文本（`pwa/dist/fonts/`） | 同上 |

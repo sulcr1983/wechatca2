@@ -2,7 +2,7 @@
 """19 套「整篇设计」(mg-*) 对齐夹具 —— 回答「能不能完整实现文字自动对齐」。
 
 ⚠️ 断言依据是**各套原有设计规范**，不是我的偏好：
-   docs/design-magazine-recipes.md §2.1–2.15 逐套配方
+   docs/wechat/design-magazine-recipes.md §2.1–2.15 逐套配方
    只有浮世绘（§2.7）明写「两端对齐」；卫报/经济学人/宜家/深度阅读写的是「左对齐」；
    其余 14 套规范未提对齐 → 保持引擎默认 left。
 
@@ -53,7 +53,7 @@ from core.preprocessor import preprocess  # noqa: E402
 THEMES = ROOT / "public" / "themes"
 
 # ── 各套对齐契约：值 + 规范出处 ──────────────────────────────────────
-# 出处一律指 docs/design-magazine-recipes.md；未写对齐的套保持引擎默认。
+# 出处一律指 docs/wechat/design-magazine-recipes.md；未写对齐的套保持引擎默认。
 SPEC: dict[str, tuple[str, str]] = {
     "mg-ukiyoe": ("justify", "recipes §2.7「正文…两端对齐」"),
     "mg-guardian": ("left", "recipes §2.2 无对齐要求，左对齐到底"),

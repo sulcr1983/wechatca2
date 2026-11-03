@@ -169,7 +169,7 @@ bash pwa/scripts/deploy.sh
 | `scripts/build_themes.py` | 字号标尺（§4）→ 119 套 su-* |
 | `pwa/src/app.js` + `pwa/src/style.css` | 模板库族折叠（2A，UI 真源） |
 | `pwa/scripts/deploy.sh` | 部署铁律硬预检 |
-| `docs/handoff-stress-audit-2026-10-18.md` | 本文 |
+| `docs/archive/handoff-stress-audit-2026-10-18.md` | 本文 |
 
 ---
 
@@ -177,4 +177,4 @@ bash pwa/scripts/deploy.sh
 
 - 测试夹具：`E:/personal/Downloads/SuperSu_AI排版压力测试文档.txt`（16 章，每章写明「期望」）
 - 审计报告：`E:/personal/Downloads/SuperSu_深度审计报告_2026-10-18.md`（P0/P1/P2 + 三阶段执行顺序）
-- 开源方案：`docs/plan-oss-reference.md`（借鉴方法论、许可证判定矩阵、xiaohu 否决记录）
+- 开源方案：`docs/archive/plan-oss-reference.md`（借鉴方法论、许可证判定矩阵、xiaohu 否决记录）

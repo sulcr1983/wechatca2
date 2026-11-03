@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>方案 A · 三栏常驻</title>
+<link rel="stylesheet" href="../_core/xhs-ux-core.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   方案 A：三栏常驻
+   左 = 写 + 选图｜中 = 画布｜右 = 版式 / 配色 / 文字（字体·玩法·位置）/ 尺寸
+   核心主张：切换零成本。版式缩略图永远在右边，点一下就换，画布不挪位。
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#F7F4EE; --surface:#FAF9F5; --raised:#fff; --hover:#F0EDE8; --sunken:#F2EEE7;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --soft:#6E6759; --muted:#9B9484;
+  --accent:#AF3E2B; --accent-soft:rgba(175,62,43,.08);
+  --r:8px; --r-lg:12px; --r-xl:16px;
+  --sh:0 1px 2px rgba(30,25,15,.05),0 4px 16px rgba(30,25,15,.07);
+  --top-h:52px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--text);overflow:hidden;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+
+.top{
+  height:var(--top-h);padding:0 14px;display:flex;align-items:center;gap:10px;
+  background:var(--raised);border-bottom:1px solid var(--border);
+}
+.top .tag{
+  font-size:11px;font-weight:700;letter-spacing:.08em;color:#fff;background:var(--accent);
+  padding:2px 7px;border-radius:4px;flex:none;
+}
+.top h1{font-size:13px;font-weight:600;margin:0;white-space:nowrap}
+.top .say{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.btn-save{
+  height:32px;padding:0 16px;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;box-shadow:0 2px 8px rgba(175,62,43,.22);
+}
+.btn-save:hover{background:#9C3524}
+
+/* ── 出片托盘：保存的第二步（第一步是画布定影） ──
+   旧代码 generate() 生成后直接 want.click() 落盘，用户不知道存到哪、存了几张。
+   改成「点保存 → 定影 → 托盘写明尺寸和体积 → 用户自己点下载」。 */
+@keyframes fixFlash{
+  0%{opacity:1;filter:brightness(1)}
+  38%{opacity:.82;filter:brightness(1.14)}
+  100%{opacity:1;filter:brightness(1)}
+}
+.cv-art.fix{animation:fixFlash .52s ease}
+
+.tray{
+  position:fixed;left:50%;bottom:18px;transform:translate(-50%,150%);
+  width:min(560px,calc(100vw - 32px));background:var(--raised);
+  border:1px solid var(--border);border-radius:var(--r-xl);
+  box-shadow:0 12px 40px rgba(30,25,15,.20);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;z-index:60;
+  transition:transform .28s cubic-bezier(.2,.8,.3,1);
+}
+.tray.on{transform:translate(-50%,0)}
+/* 托盘是 fixed，不参与布局 —— 不让位就会盖住画布底部和动作条（实测遮 39px）。
+   用 padding 把画布整体挤上去，配合 fit() 重算缩放。 */
+/* 要让位的是**整栏**（画布 + 下方动作条），只挤 stage 的话
+   「复制 / 九宫格 / 保存大图」会被托盘盖住 —— 实测截图上正好消失。 */
+.app.tray-open .col-canvas{padding-bottom:104px}
+.tray-th{
+  width:40px;height:53px;border-radius:4px;overflow:hidden;flex:none;
+  background:var(--sunken);position:relative;
+}
+.tray-th .tray-art{position:absolute;left:0;top:0;transform-origin:top left;transform:scale(.25)}
+.tray-main{min-width:0;flex:1}
+.tray-t{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:5px}
+.tray-t svg{color:#2E7D5B;flex:none}
+.tray-s{font-size:11px;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums}
+.tray-btns{display:flex;gap:6px;flex:none}
+.tray-x{width:26px;height:26px;border-radius:50%;color:var(--muted);font-size:15px;line-height:1;flex:none}
+.tray-x:hover{background:var(--sunken);color:var(--text)}
+
+/* 三栏 */
+.app{height:calc(100% - var(--top-h));display:flex;min-height:0}
+.col-write{
+  width:224px;flex:none;border-right:1px solid var(--border);background:var(--surface);
+  display:flex;flex-direction:column;min-height:0;
+}
+.col-canvas{flex:1;min-width:0;display:flex;flex-direction:column;
+  background:radial-gradient(ellipse 70% 80% at 50% 46%,rgba(255,255,255,.6),rgba(255,255,255,0) 62%),var(--bg);}
+.col-side{
+  width:360px;flex:none;border-left:1px solid var(--border);background:var(--surface);
+  display:flex;flex-direction:column;min-height:0;
+}
+
+/* ── 左栏 ── */
+.sec{padding:12px 12px 0}
+.sec:last-child{padding-bottom:12px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sec-title{font-size:11px;font-weight:700;color:var(--soft);letter-spacing:.04em}
+.sec-hint{font-size:10.5px;color:var(--muted)}
+#txt{
+  width:100%;height:86px;resize:none;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--raised);padding:9px 10px;font-size:13px;line-height:1.62;outline:0;
+}
+#txt:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.cnt{text-align:right;font-size:10.5px;color:var(--muted);margin-top:2px}
+.quick{display:flex;gap:5px;margin-top:6px}
+.quick button{height:24px;padding:0 8px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:10.5px;color:var(--soft)}
+.quick button:hover{background:var(--hover);color:var(--text)}
+
+.pics{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.pic{position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;
+  border:2px solid transparent;background:var(--sunken)}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.pic span{position:absolute;left:0;right:0;bottom:0;padding:10px 5px 4px;font-size:9px;
+  color:#fff;background:linear-gradient(transparent,rgba(20,18,14,.75));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode-row{display:flex;gap:5px;margin-bottom:7px}
+.mode-row button{flex:1;height:26px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:10.5px;color:var(--soft)}
+.mode-row button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* ── 中栏：画布 ── */
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px}
+.cv-wrap{position:relative;overflow:hidden;border-radius:2px;background:#fff;
+  box-shadow:0 1px 2px rgba(30,25,15,.10),0 12px 38px rgba(30,25,15,.13)}
+#cv-art{position:absolute;inset:0}
+/* 画布动作条：宽度在 fit() 里同步成画布宽度，做到「贴在预览边上」 */
+.canvas-bar{
+  flex:none;height:48px;margin:0 auto 8px;padding:0 4px;
+  display:flex;align-items:center;gap:12px;
+}
+.cb-meta{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:7px;
+  min-width:0;overflow:hidden;white-space:nowrap}
+.cb-meta b{font-weight:600;color:var(--soft);font-variant-numeric:tabular-nums}
+.cb-meta .dot{color:var(--border-hi)}
+.cb-meta .trust{color:var(--muted)}
+.cb-acts{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.cb-btn{
+  height:32px;padding:0 12px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--raised);font-size:12px;color:var(--soft);white-space:nowrap;
+}
+.cb-btn:hover{background:var(--hover);color:var(--text);border-color:var(--border-hi)}
+.cb-primary{
+  height:32px;padding:0 18px;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;white-space:nowrap;
+  box-shadow:0 2px 8px rgba(175,62,43,.22);
+}
+.cb-primary:hover{background:#9C3524}
+.top-tip{font-size:11px;color:var(--muted)}
+
+/* 小按钮（左栏用） */
+.mini-btn{height:24px;padding:0 8px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:10.5px;color:var(--soft);white-space:nowrap}
+.mini-btn:hover{background:var(--hover);color:var(--text);border-color:var(--border-hi)}
+/* 当前生效的那个（无 Key 时是「不要图」）：要有选中态，否则左栏看起来还在等用户选图 */
+.mini-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);
+  color:var(--accent);font-weight:600}
+
+/* 配图三态 */
+.pic-cta{
+  width:100%;aspect-ratio:3/4;border:1.5px dashed var(--border-hi);border-radius:8px;
+  background:var(--raised);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:7px;color:var(--soft);padding:10px;transition:.15s;
+}
+.pic-cta:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.pic-cta b{font-size:12.5px}
+.pic-cta small{font-size:10px;color:var(--muted);max-width:96%;text-align:center;line-height:1.45}
+.pic-acts{display:flex;gap:6px;margin-top:8px}
+.pic-acts .mini-btn{flex:1;height:28px}
+.pic-thumb{aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--sunken);
+  border:1px solid var(--border)}
+.pic-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pic-meta{margin-top:7px}
+.pic-meta b{display:block;font-size:12px;line-height:1.3}
+.pic-meta span{display:block;font-size:10.5px;color:var(--muted);margin-top:1px}
+
+/* 搜图弹层 */
+.search-wrap{position:fixed;inset:0;background:rgba(24,21,17,.55);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.search-box{background:var(--raised);border-radius:var(--r-lg);padding:18px;
+  width:min(760px,94vw);max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 24px 70px rgba(20,16,10,.32)}
+.search-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.search-title{font-size:13px;font-weight:600}
+.search-sub{font-size:10.5px;color:var(--muted)}
+.search-head .nine-x{margin-left:auto}
+.search-bar{display:flex;gap:8px}
+.search-bar input{flex:1;height:34px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--surface);padding:0 10px;font-size:13px;outline:0}
+.search-bar input:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.search-note{font-size:10.5px;color:var(--muted);margin:8px 0 0;min-height:15px}
+
+/* Key 状态条 */
+.key-tip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 10px;border-radius:var(--r);font-size:11.5px;margin-bottom:10px}
+.key-tip.warn{background:#FFF6E5;border:1px solid #F0D9A8;color:#8A5A00}
+.key-tip.ok{background:#EFF7EC;border:1px solid #CBE3C2;color:#3F6B2E}
+.key-tip .k-btn{
+  height:24px;padding:0 9px;border-radius:5px;font-size:11px;font-weight:600;
+  background:rgba(255,255,255,.8);border:1px solid currentColor;color:inherit;
+}
+.key-tip .k-btn:hover{background:#fff}
+.key-tip .k-sp{margin-left:auto}
+.key-form{display:flex;flex-direction:column;gap:7px;padding:10px;margin-bottom:10px;
+  border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.key-form input{height:32px;border:1px solid var(--border);border-radius:5px;
+  background:var(--raised);padding:0 10px;font-size:12px;outline:0;font-family:ui-monospace,monospace}
+.key-form input:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.key-help{font-size:10.5px;color:var(--muted);margin:0;line-height:1.5}
+.key-help b{color:var(--soft)}
+.search-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;
+  overflow-y:auto;min-height:0}
+.sr{position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;
+  border:2px solid transparent;background:var(--sunken)}
+.sr img{width:100%;height:100%;object-fit:cover;display:block}
+.sr:hover{border-color:var(--border-hi)}
+.sr[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.sr span{position:absolute;left:0;right:0;bottom:0;padding:9px 5px 3px;font-size:9px;
+  color:#fff;background:linear-gradient(transparent,rgba(20,18,14,.78));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-foot{display:flex;margin-top:12px}
+.search-foot .cb-btn{margin:0 auto}
+
+/* 「还有 N 套图文版式」入口：无 Key 时代替分组标题，占满一行 */
+.lay-more2{
+  grid-column:1/-1;margin-top:6px;padding:7px 8px;border-radius:5px;
+  border:1px dashed var(--border-hi);background:var(--surface);
+  font-size:9.5px;line-height:1.5;color:var(--muted);text-align:left;
+}
+.lay-more2:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+/* 版式折叠 */
+.more-btn{
+  width:100%;height:26px;margin-top:6px;border-radius:var(--r);
+  border:1px dashed var(--border-hi);background:transparent;
+  font-size:11px;color:var(--soft);
+}
+.more-btn:hover{background:var(--raised);color:var(--text)}
+
+/* 九宫格 */
+.nine-wrap{position:fixed;inset:0;background:rgba(24,21,17,.55);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.nine-box{background:var(--raised);border-radius:var(--r-lg);padding:18px;
+  box-shadow:0 24px 70px rgba(20,16,10,.32);max-height:92vh;overflow:auto}
+.nine-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.nine-title{font-size:13px;font-weight:600}
+.nine-x{margin-left:auto;width:26px;height:26px;border-radius:6px;color:var(--soft);
+  font-size:12px}
+.nine-x:hover{background:var(--hover);color:var(--text)}
+.nine-grid{display:grid;grid-template-columns:repeat(3,110px);gap:6px}
+.nine-cell{position:relative;width:110px;height:147px;overflow:hidden;background:#fff;
+  border-radius:2px;box-shadow:0 1px 3px rgba(30,25,15,.16)}
+.nine-cell .nine-layer{position:absolute;left:0;top:0;width:1080px;height:1440px;
+  transform-origin:top left}
+.nine-foot{display:flex;align-items:center;gap:12px;margin-top:14px}
+.nine-hint{font-size:11px;color:var(--muted)}
+
+/* ── 右栏 ── */
+.side-scroll{flex:1;min-height:0;padding:10px 12px 10px;display:flex;flex-direction:column}
+/* 9 套常驻一屏放得下；点「还有 4 套」展开后这里自己滚，下面的字体/玩法不动 */
+.lay-grid{flex:1;min-height:150px;overflow-y:auto;align-content:start;padding-right:6px}
+/* 滚动条必须有「轨道」，否则浅色手柄浮在浅色背景上根本看不见，
+   用户就不知道下面还有 6 套（实测截图确认过） */
+.lay-grid::-webkit-scrollbar{width:8px}
+.lay-grid::-webkit-scrollbar-track{background:var(--sunken);border-radius:4px}
+.lay-grid::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:4px;border:1px solid var(--sunken)}
+.lay-grid:hover::-webkit-scrollbar-thumb{background:var(--soft)}
+.side-scroll::-webkit-scrollbar{width:8px}
+.side-scroll::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:4px}
+
+.lay-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.lay{text-align:left}
+.lay-th{position:relative;aspect-ratio:3/4;border-radius:5px;overflow:hidden;background:#fff;
+  border:2px solid transparent;box-shadow:0 1px 2px rgba(30,25,15,.08);
+  transition:border-color .12s,box-shadow .12s}
+.lay:hover .lay-th{box-shadow:0 2px 8px rgba(30,25,15,.14)}
+.lay[aria-pressed="true"] .lay-th{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.thumb-art{position:absolute;left:0;top:0;transform-origin:top left}
+.lay-nm{font-size:10.5px;font-weight:600;margin-top:4px;line-height:1.3;min-width:0}
+.lay-nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.lay-nm{display:flex;align-items:baseline;gap:4px}
+.lay-nm em{font-style:normal;font-size:8.5px;font-weight:500;color:var(--muted);
+  flex:none;margin-left:auto;letter-spacing:.02em}
+/* 色板名浮在缩略图左下角：名字行只有 106px，两段字并排必挤（实测重叠） */
+.lay-pal{
+  position:absolute;left:4px;bottom:4px;z-index:2;max-width:calc(100% - 30px);
+  padding:0 4px;border-radius:3px;font-size:8.5px;line-height:14px;
+  color:#3a352c;background:rgba(255,255,255,.84);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* 卡内色点：圆形斜切（纸色 + 强调色），与现有产品的色点同形 */
+/* ── 配色色卡：独立一行，带名字，看得清、点得准 ── */
+/* 一行挤 4 个：色板从 13 扩到 23 套后，2 个一行会把右栏撑爆 */
+.pchips{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.pchip{
+  display:inline-flex;align-items:center;gap:5px;height:27px;padding:0 7px 0 5px;
+  border-radius:6px;border:1px solid var(--border);background:var(--surface);
+  font-size:10.5px;color:var(--soft);white-space:nowrap;line-height:1;
+  flex:0 0 auto;
+}
+.pchip:hover{border-color:var(--border-hi);color:var(--text)}
+.pchip i{
+  width:15px;height:15px;border-radius:50%;flex:none;
+  /* 斜切：左上是纸色、右下是强调色 —— 一眼看出这套色板的两个主色 */
+  background:linear-gradient(135deg,var(--p) 0 52%,var(--a) 52%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+}
+.pchip[aria-pressed="true"]{
+  border-color:var(--accent);color:var(--text);font-weight:600;
+  background:var(--accent-soft);
+}
+.pchip[aria-pressed="true"] i{box-shadow:0 0 0 1.5px var(--accent)}
+
+.lay-dots{display:none}
+.lay-dot{width:12px;height:12px;border-radius:50%;cursor:pointer;flex:none;
+  border:1.5px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
+  transition:border-color .12s,transform .12s}
+.lay-dot:hover{transform:scale(1.12)}
+.lay-dot[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 1px var(--accent)}
+.lay[aria-pressed="true"] .lay-nm{color:var(--accent)}
+.lay[aria-disabled="true"]{cursor:not-allowed;opacity:.45}
+/* 缩略图去饱和：一眼分出「这套现在用不了」，但画面仍然看得见（不是藏起来） */
+.lay-off{filter:grayscale(.8)}
+.lay[aria-disabled="true"]:hover .lay-th{box-shadow:0 1px 2px rgba(30,25,15,.08)}
+/* 「图」角标：一眼分出「这套要配图」和「纯文字也能用」——这两类是不同的风格，
+   不是同一套东西的开关。放在名字右边，不挡缩略图。 */
+.lay-tag{
+  position:absolute;right:4px;top:4px;z-index:2;
+  padding:0 4px;border-radius:3px;font-size:9px;font-weight:700;line-height:14px;
+  color:#fff;background:rgba(24,21,17,.62);backdrop-filter:blur(2px);
+}
+
+/* 紧凑控制行：左标签 + 右胶囊。字体/尺寸不再各占一个带标题的区块。 */
+.row{display:flex;align-items:flex-start;gap:8px;margin-top:7px}
+.rlab{width:26px;flex:none;font-size:10.5px;font-weight:700;color:var(--soft);
+  padding-top:7px;letter-spacing:.02em}
+.chips{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.chip{height:26px;padding:0 9px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:11.5px;color:var(--soft);white-space:nowrap;
+  transition:border-color .12s,background .12s,color .12s}
+.chip:hover{border-color:var(--border-hi);color:var(--text)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:600}
+
+/* 字体胶囊：用**该字体自己**写自己的名字 —— 不点开就能看出字形差异 */
+.fchip{height:30px;padding:0 10px;font-size:14px;line-height:1}
+
+.pals{display:flex;flex-wrap:wrap;gap:5px;flex:1}
+.pal{width:30px;height:20px;border-radius:5px;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.pal[aria-pressed="true"]{border-color:var(--accent)}
+
+.sw{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--soft);
+  padding-top:6px;cursor:pointer;white-space:nowrap}
+.sw input{margin:0;accent-color:var(--accent)}
+
+.field{flex:1;min-width:0;height:26px;border:1px solid var(--border);border-radius:5px;
+  background:var(--raised);padding:0 8px;font-size:11.5px;outline:0}
+.field:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.divider{height:1px;background:var(--border);margin:12px 0 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,8px);opacity:0;
+  background:rgba(25,23,19,.92);color:#fff;font-size:12px;padding:8px 14px;border-radius:99px;
+  transition:.18s;pointer-events:none;z-index:99}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="tag">方案 A</span>
+  <h1>三栏常驻</h1>
+  <span class="say">写 → 选图 → 右边一直能点着换版式</span>
+
+</header>
+
+<div class="app">
+  <aside class="col-write">
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-title">文案</span>
+        <button class="mini-btn" id="btn-use-main" title="从公众号排版页带入标题">用正文</button>
+        <span class="sec-hint" id="cnt"></span>
+      </div>
+      <textarea id="txt" spellcheck="false"></textarea>
+      <div class="quick">
+        <button id="smp">示例</button>
+        <button id="clr">清空</button>
+      </div>
+    </div>
+
+    <!-- 配图三态：**默认是「还没选」，不是一堵图片墙**。
+         真实用户刚进来手上没有图 —— 先把「怎么拿到图」摆在脸上，
+         拿回来之后再让他看见图。 -->
+    <div class="sec" style="flex:1;min-height:0;overflow-y:auto">
+      <div class="sec-head"><span class="sec-title">配图</span><span class="sec-hint" id="pic-hint">还没选</span></div>
+
+      <div id="pic-empty">
+        <button class="pic-cta" id="pic-search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+          <b>搜一张好图</b>
+          <small id="pic-kw">先写一句标题，会自动提取关键词</small>
+        </button>
+        <div class="pic-acts">
+          <button class="mini-btn" id="pic-upload">传一张</button>
+          <button class="mini-btn" id="pic-none">不要图</button>
+        </div>
+      </div>
+
+      <div id="pic-chosen" hidden>
+        <div class="pic-thumb"><img id="pic-img" alt=""></div>
+        <div class="pic-meta">
+          <b id="pic-name"></b>
+          <span id="pic-src"></span>
+        </div>
+        <!-- 选完图之后「搜图」不能消失：用户想换图时第一反应还是「搜」，
+             写「换一张」他会以为是「换回上一张」 -->
+        <div class="pic-acts">
+          <button class="mini-btn" id="pic-change">搜图</button>
+          <button class="mini-btn" id="pic-upload2">传一张</button>
+          <button class="mini-btn" id="pic-none2">不要图</button>
+        </div>
+      </div>
+
+      <input type="file" id="pic-file" accept="image/*" hidden>
+    </div>
+  </aside>
+
+  <main class="col-canvas">
+    <div class="stage" id="stage">
+      <div class="cv-wrap" id="cv-wrap"><div id="cv-art"></div></div>
+    </div>
+    <!-- 动作条贴着画布下沿，宽度跟随画布：视线不用离开预览区。
+         放顶栏太远（1440 宽屏上离画布 340px），放右栏又挤掉版式。 -->
+    <div class="canvas-bar" id="cbar">
+      <div class="cb-meta">
+        <b id="dim">1080 × 1440</b><span class="dot">·</span>
+        <span id="vd">底图判定中…</span>
+        <span class="dot">·</span>
+        <span class="trust">纯前端生成 · 内容不上传</span>
+      </div>
+      <div class="cb-acts">
+        <button class="cb-btn" id="btn-copy" title="复制成图片，可直接粘到公众号">复制</button>
+        <button class="cb-btn" id="btn-nine" title="切成 3×3 九张，适合九图笔记">九宫格</button>
+        <button class="cb-primary" id="save">保存大图</button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="col-side">
+    <div class="side-scroll">
+      <div class="sec-head"><span class="sec-title">版式</span><span class="sec-hint" id="lay-hint">点一下即换</span></div>
+      <!-- 15 套全部列出，靠这块自己滚：滚动条就是「收起来」，
+           不再需要一个「另外 N 套」的按钮（多一层点击，还容易被当成「只有这些」） -->
+      <div class="lay-grid" id="lays"></div>
+
+      <div class="divider"></div>
+
+      <!-- 配色单独一行：原来把色点塞在每张版式卡的最下面，一个 12px 小圆点，
+           挤在 106px 宽的卡里，既看不清颜色也点不准（用户原话「根本看不清啊」）。
+           现在独立成行 —— 选中版式后这里只列它支持的色板，带名字、能看清。 -->
+      <div class="row">
+        <span class="rlab">配色</span>
+        <div class="pchips" id="pals"></div>
+      </div>
+      <div class="row">
+        <span class="rlab">字体</span>
+        <div class="chips" id="fonts"></div>
+      </div>
+      <div class="row">
+        <span class="rlab">玩法</span>
+        <div class="chips" id="tmodes"></div>
+      </div>
+      <div class="row">
+        <span class="rlab">位置</span>
+        <div class="chips" id="vpos"></div>
+        <label class="sw"><input type="checkbox" id="frost"><span>磨砂</span></label>
+      </div>
+      <div class="row">
+        <span class="rlab">尺寸</span>
+        <div class="chips" id="sizes"></div>
+      </div>
+      <div class="row">
+        <span class="rlab">署名</span>
+        <input class="field" id="sign" maxlength="16" placeholder="可留空，会出现在签名位">
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 搜图弹层：一次能看到 8–12 张候选，才选得动。放左栏那 224px 里没法比。 -->
+<div class="search-wrap" id="search" hidden>
+  <div class="search-box">
+    <div class="search-head">
+      <span class="search-title">搜一张好图</span>
+      <span class="search-sub">关键词从标题自动提取，可以改</span>
+      <button class="nine-x" id="search-x" aria-label="关闭">✕</button>
+    </div>
+    <!-- Key 状态条：没配是橙色提示，配了变绿色小字。
+         搜图依赖 Pexels（免费但要申请 Key），这一条是「为什么搜不了」的全部答案。 -->
+    <div class="key-tip" id="key-tip"></div>
+    <div class="key-form" id="key-form" hidden>
+      <input id="key-input" placeholder="粘贴 Pexels API Key（形如 563492ad6f...）" autocomplete="off" spellcheck="false">
+      <button class="cb-primary" id="key-save">保存</button>
+      <p class="key-help">去 <b>pexels.com/api</b> 免费申请 · 约 2 分钟 · Key 只存在本机，不上传</p>
+    </div>
+
+    <div class="search-bar">
+      <input id="search-kw" placeholder="中文英文都行，比如 海边 / beach" autocomplete="off">
+      <button class="cb-primary" id="search-go">搜索</button>
+    </div>
+    <p class="search-note" id="search-note"></p>
+    <div class="search-grid" id="search-grid"></div>
+    <div class="search-foot"><button class="cb-btn" id="search-more">加载更多</button></div>
+  </div>
+</div>
+
+<!-- 九宫格：真的把画布切 9 片（每片是同一份 HTML 的不同位移），不是示意图 -->
+<div class="nine-wrap" id="nine" hidden>
+  <div class="nine-box">
+    <div class="nine-head">
+      <span class="nine-title">九宫格 · 把这张切成 3 × 3</span>
+      <button class="nine-x" id="nine-x" aria-label="关闭">✕</button>
+    </div>
+    <div class="nine-grid" id="nine-grid"></div>
+    <div class="nine-foot">
+      <span class="nine-hint" id="nine-hint"></span>
+      <button class="cb-btn" id="nine-pick" style="margin-left:auto">换成别的图</button>
+      <input type="file" id="nine-file" accept="image/*" hidden>
+      <button class="cb-btn" id="nine-dl">下载 9 张</button>
+    </div>
+  </div>
+</div>
+
+<!-- 出片托盘 -->
+<div class="tray" id="tray">
+  <div class="tray-th"><div class="tray-art" id="tray-art"></div></div>
+  <div class="tray-main">
+    <div class="tray-t">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="tray-t">大图已生成</span>
+    </div>
+    <div class="tray-s" id="tray-s">1080 × 1440 · PNG</div>
+  </div>
+  <div class="tray-btns">
+    <button class="btn-ghost" id="tray-nine">九宫格</button>
+    <button class="btn-save" id="tray-dl">下载 PNG</button>
+  </div>
+  <button class="tray-x" id="tray-x" aria-label="关闭">✕</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../_core/xhs-ux-core.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   方案 A 的接线 —— 全部操作都是「点一下 → 画布重画」，没有弹层
+   ══════════════════════════════════════════════════════════════════ */
+const $ = (id) => document.getElementById(id);
+const SAMPLE = '周末去了趟海边\n两天里我没看手机，只听见浪';
+/* 默认文案带 2 条小字（用「·」分隔）：
+   清单版式要求「引语能切成 ≥2 条」，只给一句的话清单一进来就是置灰的，
+   用户会以为「这张卡坏了」。默认样例要能演示出全部 7 套现有版式。 */
+const DEF = '周末去了趟海边\n海风 · 日落 · 一部没电的手机';
+
+const ST = { size:'xhs', img:'p1', mode:'search' };
+/* 每张版式各自记住上次用的色板（catalog.js 的 members 模型：
+   色板是「某张卡支持哪几套」，不是全局开关）。 */
+const PAL_MAP = {};
+const palFor = (layId) => PAL_MAP[layId] || layOf(layId).pals[0];
+
+const ART = { W:1080, H:1440, k:1 };
+
+function toast(m){ const t=$('toast'); t.textContent=m; t.className='toast on';
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.className='toast',1800); }
+
+/* ── 画布 ── */
+function fit(){
+  const stage=$('stage'), wrap=$('cv-wrap');
+  const availH = stage.clientHeight - 4;
+  const availW = stage.clientWidth - 4;
+  const k = Math.min(availW/ART.W, availH/ART.H);
+  ART.k = k;
+  wrap.style.width = Math.round(ART.W*k)+'px';
+  wrap.style.height = Math.round(ART.H*k)+'px';
+  const a = wrap.querySelector('.cv-art');
+  if (a){ a.style.transform=`scale(${k})`; a.style.transformOrigin='top left'; }
+  // 动作条跟着画布宽度走：窄画布（3:4）时它自然收窄，不会在两侧留一截空白
+  const bar = $('cbar');
+  if (bar) bar.style.width = Math.max(360, wrap.offsetWidth) + 'px';
+}
+
+function paint(){
+  const dim = SIZES[ST.size];
+  ART.W = dim.w; ART.H = dim.h;
+  const { title, sub } = extract($('txt').value);
+  const src = ST.mode==='color' ? '' : PIC.src;
+  const an = src ? analysisCache.get(src) : null;
+
+  if (!title){
+    $('cv-art').innerHTML = `<div class="cv-art" style="width:${dim.w}px;height:${dim.h}px;`
+      + `--paper:${palOf(state.pal).paper};display:grid;place-items:center">`
+      + `<div style="text-align:center;color:#9B9484;font-size:26px;line-height:1.8">`
+      + `左边写一句话<br><span style="font-size:20px">画布立刻就有内容</span></div></div>`;
+    window.__lastVerdict = null;
+  } else {
+    // coverHtml 会把判定结果挂在传入对象上（o._verdict），所以先建对象再读，
+    // 不能直接写内联字面量 —— 那样读不到判定值（本文件第一版就踩了）。
+    const opt = { lay: state.lay, title, sub, auth: state.sign, photo: src, an,
+      kick: ST.mode==='color' ? '' : 'TRAVEL NOTES' };
+    $('cv-art').innerHTML = coverHtml(dim.w, dim.h, opt);
+    window.__lastVerdict = opt._verdict;
+  }
+  $('dim').textContent = `${dim.w} × ${dim.h}`;
+  const v = window.__lastVerdict;
+  $('vd').textContent = src && v && v.verdict ? `${v.verdict}${v.cr?` ${v.cr.toFixed(1)}:1`:''}` : (ST.mode==='color'?'纯文字':'—');
+  fit();
+}
+
+/* ══════════ 配图：三态状态机 ══════════
+   PIC.kind: none（还没选）| stock（搜来的）| upload（本地传的）
+   这一层是原实现 cv-modes 的「搜一张好图 / 传一张 / 不要图」，
+   第一版原型把它压成了「搜图 / 不要图」两个 tab，还直接把 9 张示例图铺出来 ——
+   等于假设用户手上已经有图。真实流程里第一步恰恰是「图从哪来」。 */
+/* 默认带一张示例底图：空着的话 13 套里有 8 套是「需要图」的，
+   用户一进来就只能用 5 套 —— 第一印象就是「版式很少」。
+   标明「示例底图」，点「换一张」就换成自己的。 */
+const PIC = { src:PHOTOS[0].src, name:PHOTOS[0].name,
+  from:'示例底图 · 点「换一张」用自己的', kind:'sample' };
+
+/* 关键词自动提取（对应 search.js 的 autoKeyword：只取第一行，不吸正文）。
+   中文→英文的小映射表先给「常见题材」，命中不了就取前 12 字直接搜。 */
+const KW_MAP = { '海边':'beach', '海':'sea', '咖啡':'coffee', '山':'mountain',
+  '城市':'city', '夜':'night', '秋':'autumn', '雪':'snow', '花':'flower',
+  '猫':'cat', '狗':'dog', '书':'book', '街':'street', '旅行':'travel' };
+function guessKw(){
+  const t = ($('txt').value || '').split('\n')[0].trim();
+  if (!t) return '';
+  for (const [zh, en] of Object.entries(KW_MAP)) if (t.includes(zh)) return en;
+  return t.replace(/[，。！？、；：""''《》【】（）()\s]+/g, ' ').trim().slice(0, 12);
+}
+
+function syncPic(){
+  const has = ST.mode === 'search' && !!PIC.src;
+  $('pic-empty').hidden = has;
+  $('pic-chosen').hidden = !has;
+  // 「还没选」和「选了不要图」是两回事：默认态用户还没做选择，
+  // 直接写「纯文字版式」会让他以为系统替他决定了（体验上像被抢了方向盘）
+  $('pic-hint').textContent = PIC.kind === 'color' ? '纯文字版式'
+    : PIC.kind === 'sample' ? '示例底图' : (has ? '点图可换' : '还没选');
+  /* 无 Key 时启动态就是「不要图」，按钮要有选中态 ——
+     否则左栏看起来还是「等你选图」，和画布上的纯文字不自洽。 */
+  $('pic-none').setAttribute('aria-pressed', String(PIC.kind === 'color' && !has));
+  if (has){
+    $('pic-img').src = PIC.src;
+    $('pic-name').textContent = PIC.name;
+    $('pic-src').textContent = PIC.from;
+  } else {
+    const kw = guessKw();
+    $('pic-kw').textContent = PEXELS_KEY
+      ? (kw ? `会用「${kw}」来搜` : '先写一句标题，会自动提取关键词')
+      : '还没配 Key · 点这里去配（免费）';
+  }
+}
+
+function usePic(src, name, from, kind){
+  PIC.src = src; PIC.name = name; PIC.from = from; PIC.kind = kind;
+  ST.mode = 'search';
+  if (!layOf(state.lay).needImg) state.lay = 'image-led';
+  analyze(src).then(a => { analysisCache.set(src, a); paint(); }).catch(paint);
+  syncPic(); renderLays(); renderPals(); renderSizes(); paint();
+}
+
+function setNoPic(){
+  ST.mode = 'color'; PIC.src = ''; PIC.kind = 'color';
+  if (layOf(state.lay).needImg) state.lay = 'swiss';
+  syncPic(); renderLays(); renderPals(); renderSizes(); paint();
+}
+
+$('pic-none').onclick = setNoPic;
+$('pic-none2').onclick = setNoPic;
+$('pic-change').onclick = openSearch;
+$('pic-search').onclick = openSearch;
+$('pic-upload').onclick = () => $('pic-file').click();
+$('pic-upload2').onclick = () => $('pic-file').click();
+$('pic-file').onchange = (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => usePic(String(r.result), f.name.replace(/\.[^.]+$/, '').slice(0, 14), '本地图片 · 不上传', 'upload');
+  r.readAsDataURL(f);
+  e.target.value = '';
+};
+$('btn-use-main').onclick = () => toast('落地时从公众号排版页带入标题与首段（读 supersu.article）');
+
+/* ══════════ 搜图弹层 ══════════ */
+let srPage = 0, srPool = [], srShown = [];
+
+/* Pexels Key：真实实现在 search.js 的 getStockKeys/setStockKeys（存 localStorage）。
+   原型里只放内存，但状态机与文案和落地一致 —— 因为「为什么搜不了」是用户最容易卡住的地方。 */
+let PEXELS_KEY = '';
+
+function renderKeyTip(){
+  const tip = $('key-tip');
+  if (PEXELS_KEY){
+    tip.className = 'key-tip ok';
+    tip.innerHTML = `✓ 已配置 Pexels Key · 可以搜真实图库`
+      + `<button class="k-btn k-sp" id="key-reset">更换</button>`;
+    $('key-reset').onclick = () => { PEXELS_KEY = ''; $('key-form').hidden = true; renderKeyTip(); };
+  } else {
+    tip.className = 'key-tip warn';
+    tip.innerHTML = `还没配 Pexels Key —— 搜图要用它（免费，约 2 分钟申请）`
+      + `<button class="k-btn k-sp" id="key-open">填 Key</button>`
+      + `<button class="k-btn" id="key-demo">先用示例图库</button>`;
+    $('key-open').onclick = () => { $('key-form').hidden = false; $('key-input').focus(); };
+    $('key-demo').onclick = () => {
+      $('key-form').hidden = true;
+      demoMode = true;
+      runSearch(true);
+      $('search-note').textContent = '示例图库模式 · 本地精选图（够试版式，不是真实搜索）';
+    };
+  }
+}
+
+$('key-save').onclick = () => {
+  const v = $('key-input').value.trim();
+  if (v.length < 16){ $('search-note').textContent = 'Key 看起来太短，再检查一下'; return; }
+  PEXELS_KEY = v;
+  $('key-input').value = '';
+  $('key-form').hidden = true;
+  renderKeyTip();
+  $('search-note').textContent = 'Key 已保存 · 现在搜索会走 Pexels（原型仍用本地图库模拟）';
+};
+function openSearch(){
+  $('search-kw').value = guessKw();
+  $('search').hidden = false;
+  renderKeyTip();
+  $('key-form').hidden = true;
+  $('search-note').textContent = '原型用本地图库模拟结果；落地走 Pexels（免费 Key，没配会引导填写）';
+  runSearch(true);
+  setTimeout(() => $('search-kw').select(), 60);
+}
+let demoMode = false;   // 「先用示例图库」的降级开关
+
+function runSearch(reset){
+  /* 没配 Key 也没点「示例图库」→ 不展示任何「搜索结果」。
+     用本地图库冒充真实搜索，用户会以为搜到的就是 Pexels 的图，
+     到了真机上发现搜 beach 出来的是「海边雾晨」，信任一次就没了。 */
+  if (!PEXELS_KEY && !demoMode){
+    $('search-grid').innerHTML = '';
+    $('search-more').hidden = true;
+    $('search-note').textContent = '配好 Key 才能搜真实图库 · 或者点上面的「先用示例图库」试试版式';
+    return;
+  }
+  if (reset){ srPage = 0; srShown = []; }
+  const kw = $('search-kw').value.trim().toLowerCase();
+  // 模拟检索：先按名字匹配，命中不足就回落到整库（真实产品是 Pexels 分页）
+  const hit = PHOTOS.filter(p => kw && (p.name.includes(kw) || kw.split(/\s+/).some(w => w.length > 1 && p.name.includes(w))));
+  srPool = hit.length ? hit : PHOTOS;
+  const page = srPool.slice(srPage * 8, srPage * 8 + 8);
+  srShown = reset ? page : srShown.concat(page);
+  srPage++;
+  const more = srPool.length > srPage * 8;
+  $('search-more').hidden = !more;
+  $('search-note').textContent = kw
+    ? `「${kw}」· 找到 ${srPool.length} 张${hit.length ? '' : '（没命中，显示全部）'}`
+    : '输入关键词再搜';
+  $('search-grid').innerHTML = srShown.map(p =>
+    `<button class="sr" data-p="${p.id}" aria-pressed="${PIC.src === p.src}">`
+    + `<img src="${p.src}" alt="${p.name}" loading="lazy"><span>${p.name}</span></button>`).join('');
+}
+$('search-go').onclick = () => runSearch(true);
+$('search-kw').onkeydown = (e) => { if (e.key === 'Enter') runSearch(true); };
+$('search-more').onclick = () => runSearch(false);
+$('search-x').onclick = () => { $('search').hidden = true; };
+$('pals').onclick = (e) => {
+  const b = e.target.closest('.pchip'); if (!b) return;
+  setPal(b.dataset.pal);
+};
+
+$('search').onclick = (e) => { if (e.target === $('search')) $('search').hidden = true; };
+$('search-grid').onclick = (e) => {
+  const b = e.target.closest('.sr'); if (!b) return;
+  const ph = PHOTOS.find(p => p.id === b.dataset.p);
+  $('search').hidden = true;
+  usePic(ph.src, ph.name, `搜图 · ${$('search-kw').value || '关键词'}`, 'stock');
+};
+
+/* ── 右栏：版式 ── */
+function renderLays(){
+  /* ⚠️ 缩略图只画「版式本身」，把字体/玩法/位置临时归位到默认再看。
+     为什么：用户一旦选了「毛笔 + 竖排」，9 张缩略图全长一个样，
+     就彻底失去了「比较版式」的作用 —— 而比较版式正是这排东西唯一的职责。
+     自己的文案、自己的图、自己的配色要保留（那才是「你的封面」），
+     字体和玩法不保留（那是叠加在版式之上的一层）。 */
+  const keepF = state.font, keepT = state.tmode, keepV = state.vpos;
+  state.font = 'auto'; state.tmode = 'stack'; state.vpos = 'auto';
+  try { return renderLaysInner(); }
+  finally { state.font = keepF; state.tmode = keepT; state.vpos = keepV; }
+}
+
+function renderLaysInner(){
+  const { sub } = extract($('txt').value);
+  const listCount = sub ? sub.split(/[·、\n]/).filter(Boolean).length : 0;
+  /* ══ 版式可见性：跟「有没有配图 API」走（2026-11-01 用户需求）══
+     用户原话：「没有登陆图的 api，就自动默认显示纯文字版式，登陆了就出现图文版式排前」。
+
+     所以不再有分组标题（那三行「现有版式 · 7 / 新增纯文字版式 · 11」是废信息）：
+       · 没配 Pexels Key → **只出纯文字版式**，图文版式不渲染，底部留一个入口说明原因
+       · 配了 Key       → 全出，且**图文版式排前面**（此时他才真的会用图）
+     现有 7 套永远在前（顺序不动），这条不受影响。 */
+  const hasKey = !!(typeof PEXELS_KEY === 'string' && PEXELS_KEY.trim());
+  const existLays = LAYS.filter(l => l.group === 'exist');
+  const newImg = LAYS.filter(l => l.group !== 'exist' && l.needImg);
+  const newTxt = LAYS.filter(l => l.group !== 'exist' && !l.needImg);
+  const hiddenImg = hasKey ? 0 : newImg.length;
+
+  const G = hasKey
+    ? [{ list: existLays }, { list: newImg }, { list: newTxt }]
+    : [{ list: existLays.filter(l => !l.needImg) }, { list: newTxt }];
+  const hasPic = hasKey;
+
+  const card = (l) => {
+    const needImgBlocked = l.needImg && ST.mode === 'color';
+    const listBlocked = l.id === 'list' && listCount < 2;
+    const ok = !needImgBlocked && !listBlocked;
+    const why = needImgBlocked ? '这套需要一张图 · 点一下去搜一张'
+      : listBlocked ? '清单要 2 条以上小字' : l.desc;
+    /* ⚠️ 缩略图必须用**这张卡自己的**默认色板渲染。
+       之前直接调 coverHtml()，它内部读的是全局 state.pal ——
+       于是 26 张缩略图全都画成同一个颜色，一片米黄（用户原话「默认的颜色都是淡黄色」）。
+       这也是「版式看起来都差不多」的隐藏原因：颜色一样，形状差异也被削弱了。 */
+    const curPal = palFor(l.id);
+    const keepPal = state.pal;
+    state.pal = curPal;
+    const palName = palOf(curPal).name;
+
+    /* 卡片样式对齐现有产品：缩略图 / 名字 + 色板名 / 一排卡内色点。
+       ⚠️ 用 div 不用 button —— 卡里要嵌色点，button 不能套 button。
+       色点的点击在事件委托里优先处理。 */
+    const cardHtml = `<div class="lay" data-l="${l.id}" role="button" tabindex="0"
+        aria-pressed="${state.lay===l.id}"${ok?'':' aria-disabled="true"'} title="${why}">`
+      + `<div class="lay-th${ok ? '' : ' lay-off'}"><div class="thumb-art" data-w="300" data-h="400">`
+      + coverHtml(300,400,{ lay:l.id, title:extract($('txt').value).title||'你的标题',
+          /* 需要图但当前没图时，缩略图用示例底图渲染：
+             先让人看见这套有多好看，再告诉他还差一张图。画成空白纸面 = 又藏了一次。 */
+          sub:extract($('txt').value).sub||'第二行当小字',
+          photo:l.needImg?(PIC.src || PHOTOS[0].src):'',
+          an:l.needImg?analysisCache.get(PIC.src || PHOTOS[0].src):null,
+          kick:l.needImg?'NOTES':'' })
+      + (l.needImg ? '<span class="lay-tag" title="需要一张底图">图</span>' : '')
+      + `</div></div>`   /* 关 thumb-art + lay-th。少一个 </div> 会让后面的卡全嵌套进上一张，
+                             表现为「一张卡高 2156px、名字色点全被 overflow 裁掉」（实测踩过） */
+      /* 名字后面挂配方编号（M03 / S12…）：一眼能对上 references/layout-recipes.md，
+         也让「这套是抄的还是编的」变得可验证 */
+      + `<div class="lay-nm"><span>${l.name}</span>${l.code && l.code !== '—' ? `<em>${l.code}</em>` : ''}</div>`
+      + `</div>`;   /* 色点已挪到独立的「配色」行，卡里只留缩略图 + 名字 */
+
+    state.pal = keepPal;      // 缩略图渲染完立刻还原，别污染主画布
+    return cardHtml;
+  };
+
+  const shown = G.reduce((n, g) => n + g.list.length, 0);
+  $('lays').innerHTML = G.map(g => g.list.map(card).join('')).join('')
+    + (hiddenImg
+      /* 不悄悄消失：明确说「还有 N 套图文版式，配个免费 Key 就出来」，点一下直接开配置 */
+      ? `<button class="lay-more2" id="lay-need-key">还有 ${hiddenImg} 套图文版式 · 配个免费 Key 就出现 →</button>`
+      : '');
+
+  $('lay-hint').textContent = `${shown} 套`;
+  scaleThumbs($('lays'));
+  const nk = $('lay-need-key');
+  if (nk) nk.onclick = () => { ST.mode = 'search'; openSearch(); };
+}
+
+/* 配色：只列当前版式支持的色板（catalog.js 的 members 模型）。
+   色板是版式的属性，不是全局 13 选 1 —— 换了版式，这一行跟着变。 */
+function renderPals(){
+  const keys = layOf(state.lay).pals || ['paper'];
+  if (!keys.includes(state.pal)) state.pal = keys[0];
+  const el = $('pals');
+  if (!el) return;
+  el.innerHTML = keys.map(k => {
+    const p = palOf(k);
+    return `<button class="pchip" data-pal="${k}" aria-pressed="${state.pal === k}"`
+      + ` title="${p.name}"><i style="--p:${p.paper};--a:${p.accent}"></i><span>${p.name}</span></button>`;
+  }).join('');
+}
+
+function setPal(k){
+  state.pal = k;
+  PAL_MAP[state.lay] = k;        // 每张版式各自记住上次用的色板
+  renderPals(); paint();
+}
+
+/* 字体：胶囊用该字体自己写自己的名字 —— 不点开就能看出字形差异。
+   ⚠️ 代价是 10 款可选字体要全部注入（6.5MB）。原型是本地文件无所谓，
+      落地时必须改成「字体区进入视口才加载」+ 缓存，否则首屏太重。 */
+function renderFonts(){
+  $('fonts').innerHTML = FONTS.map(f =>
+    `<button class="chip fchip" data-f="${f.id}" aria-pressed="${state.font===f.id}"`
+    + ` title="${f.note}" style="font-family:${f.family}">${f.name}</button>`).join('');
+}
+function renderTmodes(){
+  $('tmodes').innerHTML = TMODES.map(t =>
+    `<button class="chip" data-t="${t.id}" aria-pressed="${state.tmode===t.id}"`
+    + ` title="${t.note}">${t.name}</button>`).join('');
+}
+function renderVpos(){
+  const V = [['auto','自动'],['top','上'],['mid','中'],['bottom','下']];
+  $('vpos').innerHTML = V.map(([k,n]) =>
+    `<button class="chip" data-v="${k}" aria-pressed="${state.vpos===k}">${n}</button>`).join('');
+  $('frost').checked = !!state.frost;
+}
+function renderSizes(){
+  const m = layOf(state.lay).needImg ? ['xhs','square','wide'] : ['xhs'];
+  $('sizes').innerHTML = ['xhs','square','wide'].map(k =>
+    `<button class="chip" data-s="${k}" aria-pressed="${ST.size===k}"${m.includes(k)?'':' disabled style="opacity:.35"'}>`
+    + `${SIZES[k].label}</button>`).join('');
+}
+
+function scaleThumbs(root){
+  root.querySelectorAll('.thumb-art').forEach(el=>{
+    const w = el.parentElement.clientWidth; if (!w) return;
+    el.style.width = el.dataset.w+'px'; el.style.height = el.dataset.h+'px';
+    el.style.transform = `scale(${w/Number(el.dataset.w)})`;
+  });
+}
+
+/* ── 右栏事件 ── */
+$('lays').onclick = (e) => {
+  /* 色点优先：点卡里的色点 = 只换色板，不换版式 */
+  const dot = e.target.closest('.lay-dot');
+  if (dot){
+    const layId = dot.dataset.lay;
+    PAL_MAP[layId] = dot.dataset.pal;
+    if (state.lay === layId) state.pal = dot.dataset.pal;
+    renderLays(); paint();
+    return;
+  }
+
+  const b = e.target.closest('.lay'); if (!b) return;
+
+  /* 置灰的版式也要能点：点了不是没反应，而是告诉他「差什么 + 一键补上」。
+     这两类的区别是**风格不同**（图文 vs 纯文字），不是权限不同 ——
+     所以引导应该直接打开搜图，而不是弹一句「不可用」。 */
+  if (b.getAttribute('aria-disabled') === 'true') {
+    const l = layOf(b.dataset.l);
+    if (l.needImg && ST.mode === 'color') {
+      toast('这套要配一张图 · 已打开搜图');
+      openSearch();
+    } else {
+      toast(l.desc);
+    }
+    return;
+  }
+
+  state.lay = b.dataset.l;
+  state.pal = palFor(state.lay);      // 切版式时取回它自己记住的色板
+  [...$('lays').querySelectorAll('.lay')].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  /* ⚠️ 必须重渲染配色行：换版式 = 换一组可用色板（catalog 的 members 模型）。
+     漏了这一句，选了「杂志封面」配色行还停在上一个版式的 3 个色卡（实测踩过）。 */
+  renderPals(); renderLays(); renderSizes(); paint();
+};
+$('fonts').onclick = (e) => {
+  const b = e.target.closest('.fchip'); if (!b) return;
+  state.font = b.dataset.f;
+  ensureFont(state.font);
+  [...$('fonts').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  paint(); renderLays();
+};
+$('tmodes').onclick = (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  state.tmode = b.dataset.t;
+  [...$('tmodes').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  paint(); renderLays();
+};
+$('vpos').onclick = (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  state.vpos = b.dataset.v;
+  [...$('vpos').children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  paint();
+};
+$('frost').onchange = (e) => { state.frost = e.target.checked; paint(); };
+$('sizes').onclick = (e) => {
+  const b = e.target.closest('.chip'); if (!b || b.disabled) return;
+  ST.size = b.dataset.s; renderSizes(); paint();
+};
+$('sign').oninput = (e) => { state.sign = e.target.value.trim(); paint(); };
+
+/* ── 文案 ── */
+$('txt').addEventListener('input', () => {
+  $('cnt').textContent = `${$('txt').value.length} / 500`;
+  syncPic();          // 关键词提示要跟着标题变（「会用『海边』来搜」）
+  paint(); renderLays();
+});
+$('smp').onclick = () => { $('txt').value = SAMPLE; $('txt').dispatchEvent(new Event('input')); };
+$('clr').onclick = () => { $('txt').value = ''; $('txt').dispatchEvent(new Event('input')); };
+/* 保存：落地时走 render.js 的 domToBlob + 出片托盘（生成 → 确认 → 下载） */
+/* 保存 = 两段式：定影 → 托盘 → 用户点下载。
+   托盘不自动消失（用户确认后再关），这一点和旧版「偷偷落盘」正相反。 */
+$('save').onclick = () => {
+  const dim = SIZES[ST.size];
+  const art = document.querySelector('#cv-art .cv-art');
+  if (!art) { toast('先写一句话'); return; }
+  art.classList.add('fix');
+  setTimeout(() => art.classList.remove('fix'), 560);
+
+  // 托盘缩略图：按 160 宽重画一张小的（不复用主画布，避免把 scale 带进去）
+  const { title, sub } = extract($('txt').value);
+  const src = ST.mode === 'color' ? '' : PIC.src;
+  const thumb = coverHtml(160, Math.round(160 * dim.h / dim.w), {
+    lay: state.lay, title, sub, auth: state.sign,
+    photo: layOf(state.lay).needImg ? src : '',
+    an: src ? analysisCache.get(src) : null,
+  });
+  $('tray-art').innerHTML = thumb;
+  const th = $('tray-art').querySelector('.cv-art');
+  if (th) { th.style.transformOrigin = 'top left'; }
+
+  $('tray-t').textContent = '大图已生成';
+  $('tray-s').textContent = `${dim.w} × ${dim.h} · PNG · 约 ${Math.round(dim.w * dim.h / 3600)} KB`;
+  $('tray').classList.add('on');
+  document.querySelector('.app').classList.add('tray-open');
+  fit();
+  clearTimeout($('save')._t);
+  $('save')._t = setTimeout(hideTray, 12000);
+};
+function hideTray() {
+  $('tray').classList.remove('on');
+  document.querySelector('.app').classList.remove('tray-open');
+  fit();
+}
+$('tray-x').onclick = hideTray;
+$('tray-dl').onclick = () => toast('原型未接 PNG 导出：落地时用 modern-screenshot 出图并触发下载');
+$('tray-nine').onclick = () => { hideTray(); nineSrc = null; openNine(); };
+$('btn-copy').onclick = () => toast('已复制为图片 · 落地时写 navigator.clipboard');
+
+/* 九宫格：把同一份画布 HTML 复制 9 份，每份用不同的位移，露出 1/9 的画面。
+   不是画一张示意图 —— 切出来的就是真实成品，改文案/字体后打开仍是新的。 */
+function openNine(){
+  /* ⚠️ 不能直接复制 innerHTML：主画布那层 .cv-art 上带着 fit() 写的
+     `transform:scale(0.54)`（把 1080 缩到屏幕上）。原样复制过来再被九宫格
+     缩放一次 = 缩了两次，结果每格只有 1/5 大小、只看得到 4 格（实测踩过）。
+     所以克隆后必须把这层 transform 清掉。 */
+  const srcEl = document.querySelector('#cv-art .cv-art');
+  if (!srcEl) { toast('画布还是空的'); return; }
+  let src;
+  if (nineSrc){
+    // 切外部图：等尺寸铺进 1080×1440 的画布框里，再走同一套切片
+    src = `<div class="cv-art" style="width:1080px;height:1440px;overflow:hidden;background:#000">`
+      + `<img src="${nineSrc}" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
+  } else {
+    const clone = srcEl.cloneNode(true);
+    clone.style.transform = 'none';
+    src = clone.outerHTML;
+  }
+  const cellW = 110, cellH = 147;
+  const kW = cellW / 360, kH = cellH / 480;   // 360×480 = 1080×1440 的 1/3
+  const k = Math.min(kW, kH);
+  const cells = [];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      cells.push(`<div class="nine-cell"><div class="nine-layer" style="`
+        + `transform:scale(${k}) translate(${-360 * c}px,${-480 * r}px)">${src}</div></div>`);
+    }
+  }
+  $('nine-grid').innerHTML = cells.join('');
+  $('nine-hint').textContent = `每张 360 × 480 · 按 1→9 顺序发`;
+  $('nine').hidden = false;
+}
+let nineSrc = null;      // 非空时切这张外部图，而不是当前画布
+$('btn-nine').onclick = () => { nineSrc = null; openNine(); };
+$('nine-pick').onclick = () => $('nine-file').click();
+$('nine-file').onchange = (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { nineSrc = String(r.result); $('nine').hidden = true; openNine(); };
+  r.readAsDataURL(f);
+  e.target.value = '';
+};
+$('nine-x').onclick = () => { $('nine').hidden = true; };
+$('nine').onclick = (e) => { if (e.target === $('nine')) $('nine').hidden = true; };
+$('nine-dl').onclick = () => { $('nine').hidden = true; toast('9 张已打包 · 落地时走 fflate 打 ZIP'); };
+
+window.addEventListener('resize', () => { fit(); scaleThumbs($('lays')); });
+
+/* ── 启动 ── */
+$('txt').value = DEF;
+/* ══ 启动态跟「有没有配图 API」绑定（2026-11-01 用户需求）══
+   用户原话：「没有登陆图的 api，就自动默认显示纯文字版式，登陆了就出现图文版式排前」。
+   · 没 Key：进入纯文字模式（不铺示例图），默认版式落「大字版」——
+     它是现有 7 套里纯文字最强的一张，不用图也成立
+   · 有 Key：进图文模式，默认「图文封面」 */
+if (PEXELS_KEY) {
+  ST.mode = 'search';
+  state.lay = 'image-led';
+} else {
+  ST.mode = 'color';
+  state.lay = 'bigtype';
+  PIC.kind = 'color';
+  PIC.src = '';
+}
+syncPic();
+renderFonts(); renderTmodes(); renderVpos(); renderSizes();
+renderPals(); renderLays();
+$('cnt').textContent = `${DEF.length} / 500`;
+// 只分析默认这张示例图；其余等用户真的选中再分析（省内存）
+analyze(PIC.src).then(a => { analysisCache.set(PIC.src, a); paint(); renderLays(); }).catch(() => {});
+paint();
+setTimeout(()=>{ fit(); scaleThumbs($('lays')); }, 80);
+
+/* 字体逐个到位后重画胶囊与画布：font-display:swap 会先显示回退字形，
+   不重画就会一直停在回退字上（缩略图也是同理）。 */
+FONTS.forEach(f => { if (f.file) ensureFont(f.id); });
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => { paint(); renderLays(); });
+}
+</script>
+</body>
+</html>

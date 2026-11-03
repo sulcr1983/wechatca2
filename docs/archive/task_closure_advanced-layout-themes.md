@@ -54,7 +54,7 @@
 
 **侵权文字清理**（用户要求「不能完全看得出」）：
 - 删除 3 个脚本：旧适配脚本 + 2 个一次性去重脚本（目标 id 均已不存在，属死代码，且是外部来源痕迹的主要载体）
-- 清理 `AGENTS.md` / `HANDOFF.md` / `docs/task_closure_social-bg.md` / `files/TODO.md` 中所有外部仓库名与「开源适配」表述，改为中性描述
+- 清理 `AGENTS.md` / `HANDOFF.md` / `docs/archive/task_closure_social-bg.md` / `files/TODO.md` 中所有外部仓库名与「开源适配」表述，改为中性描述
 - 保留历史记录的可读性（历史条目改为「外部仓库」并标注「已被推翻」），不篡改事实
 
 ### 1.4 修复本轮发现的问题（共 9 个既有缺陷 + 3 项本批自查）

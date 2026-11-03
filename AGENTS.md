@@ -95,12 +95,25 @@ references/             归藏设计系统参考文档
 data/                   运行时数据（配置/账号/历史/bg_cache 图片缓存）
 output/                 封面渲染输出
 docs/
+  INDEX.md              ★ 文档与原型索引（唯一入口；未完成事项汇总在 §5）
+  overview.md           项目概览（一页看懂）
+  testing.md            现在怎么测（PWA 主产品）
+  wechat/               公众号排版（主线）：方案定稿 / 实现计划 / 审查 / kit 数据真源
+  xhs/                  小红书：标题图 / 长图文 / 封面工坊
+  engine/               引擎 / 主题 / 版式 / 字号 / 字体（改动前必读 engine-change-impact）
+  pwa/                  PWA 工程 / 发布 / 更新模块
+  ops/                  工程规范 / 运行手册 / 审计 / API 速查
+  research/             竞品与外部调研（长期有效）
+  meta/                 台账与快照（会过期，用前看日期）
+  prototypes/           HTML 原型，按模块分组：_core / _assets / wechat / xhs / cover / legacy / data
   testing/              ★ 测试文档四件套：TEST_PLAN / TEST_CASES / TEST_REPORT / BUG_REPORT
   screenshots/          README 配图
-  prototypes/           早期 HTML 原型（已废弃，但 cover-style-spec.md 仍引用其示例）
   archive/              历史归档（方案稿 / 旧交接 / 审计快照 / legacy-scripts），
                         每份开头必须有「已归档/已过期」声明（doc_sync [C] 段自动检查）
 ```
+
+> 📌 **文档归类纪律（2026-11-03 起）**：新增 `.md` **放进对应主题目录**，不要平铺在 `docs/` 顶层，
+> 并回来更新 `docs/INDEX.md` §3。未完成事项统一写进 `docs/INDEX.md` §5，不要散落在各文档里。
 
 ## 4. 启动与停止
 
@@ -150,7 +163,7 @@ python scripts/clean_output.py    # output/ 清理（U-15）：默认预览保�
                                   # 只动 output/ 内部，绝不碰 data/ public/ pwa/dist/
 python scripts/audit_mobile_typography.py  # ★ 移动端排版体检（375px 微信环境）：静态层秒级，
                                   # --browser 加 Chrome 实测页宽/折行/表格宽度。有 FAIL 时退出码 1，可当门禁。
-                                  # 判据与取舍见 docs/mobile-typography.md；报告 output/mobile-audit/report.json
+                                  # 判据与取舍见 docs/engine/mobile-typography.md；报告 output/mobile-audit/report.json
 python tests/test_headed_full_e2e.py  # 前端有头全按钮 E2E（双页全量，33 项）— 33/33 通过
                                       # 快捷入口：scripts/run_headed_test.bat（自起服务，需 5000 空闲）
 python tests/test_headed_userflow.py  # 有头用户流程（需先启动服务，7 项）— 7/7 通过
@@ -440,7 +453,7 @@ aside.drawer#drawer    → 风格库 560px：#drawer-search + #drawer-filters + 
   - `core/preprocessor.py` 8 处：① 纯分隔线（整行只由 `=`/`-`/`—` 组成）→ `<hr>`，不再产出 `## =` 假标题；② 短标签行**保留结尾冒号**（不再吞字）；③ 阿拉伯数字「连续有序列表」**保留原序号**（不再重排成 `1.` 或标题化）；④ 嵌套列表**保留行首缩进**；⑤ 含 `|` / 以 `<` 开头 / `$$` 公式块不判标题；⑥ `_BULLET_RE` 要求符号后跟空白（`**加粗**` 不再被拆成 `- *加粗**`）；⑦ 步骤行「步骤一：…」**保留标签文字**；⑧ 箭头行「标签：内容 → A → B」不误拆为清单
   - `core/format_engine.py`：`md_to_html` 出口统一做 `sanitize_raw_html`（决策 4A 渲染层安全清洗）——危险标签（script/style/iframe/object/embed/form/…）/ 事件属性（`on*`）/ 危险协议 URL（`javascript:` / `vbscript:` / `data:text/html`）渲染前清除，正常标签与内联 style 保留
   - `scripts/build_themes.py`：字号标尺**整体对齐业界调研比例**（交接文档 §4：四来源一致口径 = 正文 15–16 / h1 18–22 / h2 16–18）——`SCALE` 由 h1 25 / h2 20 / p 16 改为 **h1 22 / h2 18 / h3 16 / h4 15 / h5 14 / h6 13 / p 15**（正文取业内最推荐的 15px；13px 只留给 h6 与注释级）。改这一处重跑 `build_themes.py` 即 119 套全量生效，可逆
-  - **移动端排版归一（2026-10-29，用户实拍反馈驱动）**：色块标题居中在手机上折行呈锯齿。诊断数据：h1 居中 102/164 套，18 字标题下 **101/102 折成两行**；长 URL 在 **164/164** 套会把版面横向撑破；3 套表格 5 列溢出；图注 `13px #999999` 对比度仅 2.85:1（低于 WCAG AA）。修复全部落在引擎单点（主题 JSON 零改动），详见 `docs/mobile-typography.md`：
+  - **移动端排版归一（2026-10-29，用户实拍反馈驱动）**：色块标题居中在手机上折行呈锯齿。诊断数据：h1 居中 102/164 套，18 字标题下 **101/102 折成两行**；长 URL 在 **164/164** 套会把版面横向撑破；3 套表格 5 列溢出；图注 `13px #999999` 对比度仅 2.85:1（低于 WCAG AA）。修复全部落在引擎单点（主题 JSON 零改动），详见 `docs/engine/mobile-typography.md`：
   - `normalize_heading_align()`（`inject_inline_styles` 第 10 步，**必须在深色模式注入之后**——深色模式靠 `style="{完整样式串}"` 精确 replace，提前改样式会打掉 22 套主题的 `data-darkmode-*`）：① h1 带底色块的主题 → h1–h6 全部居中改左；② 色块标题左右内边距补到 16px，与正文左缘同栅格；③ 纯文字刊头**保留居中**，但按 `_estimate_text_width()` 估算放不下一行时自动改左（984 样本实测 981 正确）
   - `_ensure_text_wrap()`：`p/td/th/li/h1–h6` 补 `overflow-wrap:break-word;word-break:break-word`（长 URL 防撑破）；标题另加 `text-wrap:balance`（居中刊头折两行时长度接近）；`td/th` 横向内边距压到 ≤16px
   - `convert_image_captions()`：图注色按底色明暗自适应（`#6B7280` / `#A1A7AE`）；⚠️ 同时修掉一个**从未生效**的老 bug —— 原正则要求 `<em>` 严格匹配，而 `em` 早已被注入 `<em style="…">`，图注样式一直没打上过

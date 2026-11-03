@@ -4,11 +4,11 @@
 
 ---
 
-# SuperSu 审计报告 2026-10-18 —— 审计对象：docs/audit-playbook.md v1
+# SuperSu 审计报告 2026-10-18 —— 审计对象：docs/ops/audit-playbook.md v1
 
 > **审计性质**：对抗性审计（adversarial review）——假定一个"零上下文执行者"按指导书逐条执行，找出会导致假 FAIL / 假 PASS / 流程卡死 / 误判发布的缺陷。
 > **验证方式**：不只用读的——所有可疑命令均在本仓库实跑，基线数字均与仓库实况核对。
-> **上位规范**：本报告按 `docs/audit-playbook.md` §5.1 模板与 §4 分级框架出具。
+> **上位规范**：本报告按 `docs/ops/audit-playbook.md` §5.1 模板与 §4 分级框架出具。
 > ⚠️ 自指警示：本报告落在 `docs/audit/`，即触发 PB-05 所述的 D5 冲突——D5 白名单需同步修订。
 
 ## 一、结论

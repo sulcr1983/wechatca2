@@ -6,12 +6,12 @@
 
 # 交接：PWA 首页体验优化（2026-10-19）
 
-> ⚠️ **本文 §0 的状态已过时，请以最新交接为准** → [`docs/handover-2026-10-19-txt-format-exports.md`](handover-2026-10-19-txt-format-exports.md)。
+> ⚠️ **本文 §0 的状态已过时，请以最新交接为准** → [`docs/archive/handover-2026-10-19-txt-format-exports.md`](handover-2026-10-19-txt-format-exports.md)。
 > **部署失败已解决**：重试 `deploy.sh` 成功，首页优化**已在线**，线上现为 **build 128**（第二轮又叠加了格式兼容扩展、出口三件套、抽屉缩略图修复）。
 > 本文的价值在于：首页优化改了什么、验收清单、已知坑——这些仍然有效。
 
 > 写给下一位接手的人 / AI。**先看 §0 现状和 §1 接手步骤**，再看细节。
-> 关联：`HANDOVER.md`（PWA 总交接）、`CLOSURE.md`、`AGENTS.md`、`docs/update-handoff.md`。
+> 关联：`HANDOVER.md`（PWA 总交接）、`CLOSURE.md`、`AGENTS.md`、`docs/pwa/update-handoff.md`。
 
 ---
 
@@ -212,7 +212,7 @@ PWA 是主打的重写版，目前只搬了排版 + 封面主链路；本地 Fla
 - BLCaptain 9 种封面风格（需要 Node/Playwright）
 - AI 生成封面图、历史记录、内置教程
 - 三模式预处理 UI 入口、离线 zip、真机验收
-- 引擎遗留：诗词分层、夹具箭头行互斥等（见 `docs/handoff-stress-audit-2026-10-18.md`）
+- 引擎遗留：诗词分层、夹具箭头行互斥等（见 `docs/archive/handoff-stress-audit-2026-10-18.md`）
 
 ---
 

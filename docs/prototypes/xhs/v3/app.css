@@ -1,0 +1,572 @@
+/* ══════════════════════════════════════════════════════════════════════
+   v3/app.css —— 两版骨架共用的外壳样式
+   ─────────────────────────────────────────────────────────────────────
+   body[data-mode="three"]  → 方案 1：三栏常驻（236 / 1fr / 520）
+   body[data-mode="canvas"] → 方案 2：单画布（画布吃满，底部常驻版式条 + 命令栏）
+
+   两版**共用同一套 DOM id**，差别全部由 CSS 与少量分支承担：
+   这样两版渲染出来的封面必然逐像素一致，对比的只有骨架本身。
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#F6F4EF; --surface:#FBFAF6; --raised:#fff; --sunken:#EFEBE3; --hover:#F2EFE7;
+  --border:#E7E2D7; --border-hi:#D6CFC0;
+  --text:#17150F; --soft:#6B6555; --muted:#9A9384;
+  --accent:#A83A26; --accent-soft:rgba(168,58,38,.09);
+  --ok:#2E7D5B; --warn:#8A6100; --warn-bg:#FFF6DC;
+  --r:7px; --r-lg:11px;
+  --top:44px;
+  --L:236px; --R:520px;
+  --sh:0 1px 2px rgba(30,25,15,.05),0 4px 14px rgba(30,25,15,.06);
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--text);overflow:hidden;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--sunken)}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:5px;border:2px solid var(--sunken)}
+::-webkit-scrollbar-thumb:hover{background:var(--soft)}
+
+/* ── 顶栏 ── */
+.top{
+  height:var(--top);padding:0 14px;display:flex;align-items:center;gap:12px;
+  background:var(--raised);border-bottom:1px solid var(--border);position:relative;z-index:30;
+}
+.brand{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.brand i{width:16px;height:16px;border-radius:4px;background:var(--accent);display:block;flex:none}
+/* 方案标识：评审时一眼知道自己在看哪一版 */
+.mtag{
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#fff;background:var(--accent);
+  padding:1px 7px;border-radius:4px;flex:none;
+}
+.nav{display:flex;gap:2px;margin-left:6px;background:var(--sunken);padding:2px;border-radius:8px;flex:none}
+.nav a{font-size:12px;padding:4px 12px;border-radius:6px;text-decoration:none;color:var(--soft)}
+.nav a.on{background:var(--raised);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.top .sp{flex:1}
+.top-note{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-save{
+  height:30px;padding:0 16px;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;box-shadow:0 2px 8px rgba(168,58,38,.22);flex:none;
+}
+.btn-save:hover{background:#93321F}
+.icon-btn{
+  width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--soft);flex:none;
+}
+.icon-btn:hover{background:var(--sunken);color:var(--text)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   方案 1：三栏常驻
+   ══════════════════════════════════════════════════════════════════════ */
+body[data-mode="three"] .body{
+  display:grid;grid-template-columns:var(--L) minmax(360px,1fr) var(--R);
+  height:calc(100% - var(--top));
+}
+
+.col-write{
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;min-height:0;overflow-y:auto;
+}
+.blk{padding:12px 14px;border-bottom:1px solid var(--border)}
+.blk:last-child{border-bottom:0}
+.blk-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.blk-t{font-size:11px;font-weight:700;color:var(--soft);letter-spacing:.05em}
+.cnt{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+#txt{
+  width:100%;min-height:88px;resize:none;border:1px solid var(--border);
+  border-radius:var(--r);background:var(--raised);padding:9px 10px;font-size:13px;line-height:1.65;outline:0;
+}
+#txt:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+body[data-mode="three"] #col-w > .blk:first-child{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+body[data-mode="three"] #txt{flex:1 1 auto}
+.mini{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.mini button{
+  height:24px;padding:0 9px;border-radius:5px;border:1px solid var(--border);
+  background:var(--raised);font-size:11px;color:var(--soft);
+}
+.mini button:hover{background:var(--hover);color:var(--text)}
+.mini button.ghost{border-style:dashed}
+
+.seg{display:flex;gap:4px;background:var(--sunken);padding:2px;border-radius:7px;margin-bottom:9px}
+.seg button{flex:1;height:24px;border-radius:5px;font-size:11.5px;color:var(--soft)}
+.seg button.on{background:var(--raised);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.pic-cur{display:flex;gap:9px;align-items:center}
+.pic-th{
+  width:60px;height:80px;border-radius:6px;overflow:hidden;flex:none;position:relative;
+  background:repeating-linear-gradient(135deg,#EFEBE3 0 6px,#F7F5EF 6px 12px);
+  border:1px solid var(--border);
+}
+.pic-th img{width:100%;height:100%;object-fit:cover;display:block}
+.pic-meta{min-width:0;flex:1}
+.pic-nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pic-src{font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pic-empty{
+  height:80px;border:1px dashed var(--border-hi);border-radius:6px;display:grid;place-items:center;
+  font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6;padding:6px;
+}
+.recent{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.recent button{aspect-ratio:3/4;border-radius:4px;overflow:hidden;border:1px solid var(--border);background:var(--sunken)}
+.recent img{width:100%;height:100%;object-fit:cover;display:block}
+
+.jbar{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden}
+.jbar i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.jbar i.ok{background:var(--ok)}
+.jnote{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.55}
+
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--border);
+  background:var(--raised);font-size:11.5px;color:var(--soft);white-space:nowrap;
+  display:inline-flex;align-items:center;line-height:1;
+}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.chip:hover{border-color:var(--border-hi)}
+.field{
+  width:100%;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--raised);
+  padding:0 9px;font-size:12px;outline:0;
+}
+.field:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.tips{border-top:1px solid var(--border);margin-top:4px}
+.tips summary{
+  display:flex;align-items:center;gap:5px;padding:9px 14px;cursor:pointer;
+  font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;list-style:none;
+}
+.tips summary::-webkit-details-marker{display:none}
+.tips summary::after{content:'›';margin-left:auto;font-size:13px;transition:transform .18s}
+.tips[open] summary::after{transform:rotate(90deg)}
+.tips-body{padding:0 14px 12px}
+.tips p{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--muted)}
+.tips p:last-child{margin-bottom:0}
+.tips b{color:var(--soft);font-weight:600}
+
+/* ── 画布（两版共用） ── */
+.col-canvas{
+  display:flex;flex-direction:column;min-width:0;position:relative;
+  background:radial-gradient(ellipse 62% 72% at 50% 44%,rgba(255,255,255,.72),rgba(255,255,255,0) 60%),var(--bg);
+}
+.stage{flex:1;min-height:0;display:grid;place-items:center;padding:14px 18px 6px}
+#cv-wrap{position:relative;box-shadow:0 2px 6px rgba(30,25,15,.07),0 18px 48px rgba(30,25,15,.11)}
+#cv-art{position:absolute;left:0;top:0;width:1080px;height:1440px;transform-origin:top left}
+@keyframes fix{0%{opacity:1}35%{opacity:.86;filter:brightness(1.1)}100%{opacity:1}}
+#cv-wrap.fixing{animation:fix .5s ease}
+
+.meta{
+  height:24px;display:flex;align-items:center;gap:8px;justify-content:center;
+  font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex:none;
+}
+.meta b{color:var(--soft);font-weight:600}
+.meta .dot{opacity:.45}
+.meta .badge{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--sunken);color:var(--soft)}
+
+.bar{
+  flex:none;height:56px;display:flex;align-items:center;gap:8px;padding:0 18px 12px;
+  justify-content:flex-end;
+}
+.bar .info{margin-right:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.bar .info svg{color:var(--ok);flex:none}
+.cb{
+  height:34px;padding:0 13px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--raised);font-size:12.5px;color:var(--text);display:flex;align-items:center;gap:6px;
+}
+.cb:hover{border-color:var(--border-hi);background:#fff}
+.cb-primary{
+  height:34px;padding:0 18px;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;
+  box-shadow:0 2px 10px rgba(168,58,38,.24);
+}
+.cb-primary:hover{background:#93321F}
+
+/* ── 右栏（仅方案 1） ── */
+.col-side{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+.side-h{
+  flex:none;height:40px;display:flex;align-items:center;gap:8px;padding:0 14px;
+  border-bottom:1px solid var(--border);background:var(--surface);
+}
+.side-t{font-size:11px;font-weight:700;color:var(--soft);letter-spacing:.05em}
+.side-n{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dens{display:flex;gap:2px;margin-left:auto;background:var(--sunken);padding:2px;border-radius:6px}
+.dens button{width:26px;height:20px;border-radius:4px;display:grid;place-items:center;color:var(--muted)}
+.dens button.on{background:var(--raised);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+.lay-scroll{flex:1;min-height:0;overflow-y:auto;padding:10px 12px 4px;
+  /* 卡片不满屏时垂直居中，空白均分上下 —— 否则 16 套在 1440 下排 3 行、
+     下方空 213px，看起来像「版式没铺满」而不是留白。 */
+  display:flex;flex-direction:column}
+.lay-grid{margin-block:auto;width:100%}
+.lay-grid{display:grid;gap:12px 6px}
+.lay-grid.d5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.lay-grid.d4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.lay-grid.d6{grid-template-columns:repeat(6,minmax(0,1fr));gap:9px 5px}
+.lay-grid.d6 .lay-nm{font-size:10px;margin-top:2px}
+
+/* 版式卡（两版共用） */
+.lay{text-align:left;display:block;width:100%}
+.lay-th{
+  position:relative;aspect-ratio:3/4;border-radius:5px;overflow:hidden;background:#fff;
+  border:1.5px solid transparent;box-shadow:0 1px 2px rgba(30,25,15,.09);
+}
+.lay:hover .lay-th{box-shadow:0 2px 9px rgba(30,25,15,.16)}
+.lay[aria-pressed="true"] .lay-th{border-color:var(--accent);box-shadow:0 0 0 2.5px var(--accent-soft)}
+.lay[aria-pressed="true"] .lay-nm{color:var(--accent)}
+.lay-th .art{position:absolute;left:0;top:0;transform-origin:top left}
+.lay-code{
+  position:absolute;right:3px;top:3px;font:600 8px/1 ui-monospace,Menlo,monospace;
+  padding:2px 3px;border-radius:3px;background:rgba(255,255,255,.86);color:#5B5548;
+  letter-spacing:.02em;
+}
+.lay-tag{
+  position:absolute;left:3px;top:3px;font-size:8.5px;line-height:1;padding:2px 3px;border-radius:3px;
+  background:rgba(20,18,14,.66);color:#fff;font-weight:600;
+}
+.lay-ok{
+  position:absolute;left:3px;bottom:3px;width:13px;height:13px;border-radius:50%;
+  background:var(--accent);color:#fff;display:grid;place-items:center;font-size:9px;
+}
+.lay-nm{
+  font-size:11px;font-weight:600;margin-top:3px;line-height:1.35;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lay[aria-disabled="true"] .lay-th{filter:grayscale(.85);opacity:.55}
+.lay[aria-disabled="true"] .lay-nm{color:var(--muted)}
+.link{border-bottom:1px dashed currentColor;padding-bottom:1px}
+.link:hover{color:var(--text)}
+.needpill{
+  height:22px;padding:0 8px;border-radius:11px;background:var(--accent-soft);color:var(--accent);
+  font-size:10.5px;font-weight:600;white-space:nowrap;
+}
+
+.side-f{flex:none;border-top:1px solid var(--border);padding:8px 14px 10px;background:var(--surface)}
+.frow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.frow:last-child{margin-bottom:0}
+.flab{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;width:26px;flex:none}
+.fbody{flex:1;min-width:0}
+.hs{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px}
+.hs::-webkit-scrollbar{height:5px}
+.wraprow{display:flex;flex-wrap:wrap;gap:5px}
+.pchip{
+  height:26px;display:inline-flex;align-items:center;line-height:1;gap:6px;padding:0 8px 0 5px;border-radius:6px;
+  border:1px solid var(--border);background:var(--raised);font-size:11px;color:var(--soft);flex:none;
+}
+.pchip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600;background:var(--accent-soft)}
+.sw{width:16px;height:16px;border-radius:4px;position:relative;flex:none;border:1px solid rgba(0,0,0,.12)}
+.sw i{position:absolute;right:2px;bottom:2px;width:7px;height:7px;border-radius:2px;display:block}
+.fchips{display:flex;flex-wrap:wrap;gap:4px}
+.fchip{
+  height:30px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:var(--raised);
+  font-size:13.5px;color:var(--soft);white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;
+}
+.fchip.sm{font-size:12px;padding:0 6px;height:26px}
+.fchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.sw2{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--soft);white-space:nowrap}
+
+/* ══════════════════════════════════════════════════════════════════════
+   方案 2：单画布
+   画布吃满整页；12 套版式做成**底部常驻横条**（不是弹层 —— R7 说
+   「选图之后要不断切不同版式看预览」，横条才是零点击成本）。
+   文案 / 配图 / 配色 / 字体 / 玩法 / 尺寸 → 底部抽屉，一次只开一个。
+   ══════════════════════════════════════════════════════════════════════ */
+body[data-mode="canvas"] .body{
+  height:calc(100% - var(--top));display:flex;flex-direction:column;position:relative;
+  /* 抽屉用 translateY(110%) 藏起来，绝对定位的溢出仍会撑高 scrollHeight
+     （实测 375×812 下 docH=886，多出一条 74px 的幽灵滚动）。裁掉即可。 */
+  overflow:hidden;
+}
+/* 画布必须显式 flex:1 —— 否则在 column 容器里按内容高塌成一条
+   （2026-11-03 实测：不写这行，stage 只剩 320px 高，画布缩到 240×320，
+     下方 500px 全空）。 */
+body[data-mode="canvas"] .col-canvas{flex:1;min-height:0}
+/* C-1 的「画布占 68%」不是写死高度：让 stage flex:1，
+   版式条与命令栏按内容定高（实测 1440×900 下画布占 71%，375 宽下 62%）。 */
+body[data-mode="canvas"] .stage{padding:16px 22px 4px}
+/* 单画布版本没有侧栏，画布可以更大：宽度只受高度约束 */
+body[data-mode="canvas"] .cv-max{height:100%;display:grid;place-items:center}
+
+/* 底部常驻版式横条 */
+.laybar{
+  flex:none;height:112px;display:flex;align-items:stretch;gap:0;
+  border-top:1px solid var(--border);background:var(--surface);position:relative;
+}
+.laybar-h{
+  width:58px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  border-right:1px solid var(--border);color:var(--muted);
+}
+.laybar-h b{font-size:11px;color:var(--soft);font-weight:700;letter-spacing:.06em;writing-mode:vertical-rl}
+.laybar-h span{font-size:10px;font-variant-numeric:tabular-nums}
+.laybar-scroll{
+  flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;display:flex;gap:9px;
+  /* 上下 padding 必须给卡片名留位置：112px 横条里，卡片 = 缩略图 + 3px 间距 + 14px 名。
+     2026-11-03 实测 9px padding 时卡片高 102 > 可用 93，卡片名被裁成一条线。 */
+  padding:6px 10px;align-items:center;scroll-behavior:smooth;
+}
+.laybar-scroll::-webkit-scrollbar{height:6px}
+.laybar .lay{width:60px;flex:none}
+.laybar .lay-nm{font-size:10px;text-align:center}
+.laybar .lay-th{border-radius:4px}
+.laybar-more{
+  width:44px;flex:none;border-left:1px solid var(--border);display:grid;place-items:center;
+  color:var(--soft);font-size:10.5px;font-weight:600;line-height:1.3;text-align:center;
+}
+.laybar-more:hover{background:var(--hover);color:var(--text)}
+
+/* 底部命令栏 */
+.cmdbar{
+  flex:none;height:46px;display:flex;align-items:center;gap:6px;padding:0 14px 8px;
+  background:var(--surface);
+  /* 抽屉打开时命令栏必须仍在最上层：否则用户开了「样式」抽屉就再也点不到
+     「历史 / 保存」，也关不掉抽屉（只能按 Esc，而原型没接 Esc）。 */
+  position:relative;z-index:61;border-top:1px solid var(--border);
+  flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+}
+.cmdbar::-webkit-scrollbar{height:0}
+.cmd{
+  height:32px;padding:0 11px;border-radius:16px;border:1px solid var(--border);
+  background:var(--raised);font-size:12px;color:var(--soft);display:inline-flex;align-items:center;gap:5px;
+  white-space:nowrap;
+}
+.cmd:hover{border-color:var(--border-hi);color:var(--text)}
+.cmd.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.cmd .n{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cmd.on .n{color:var(--accent)}
+.cmdbar .sp{flex:1}
+.cmd-save{
+  height:32px;padding:0 16px;border-radius:16px;background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:600;box-shadow:0 2px 8px rgba(168,58,38,.22);flex:none;
+}
+
+/* 底部抽屉 */
+.drawer{
+  position:absolute;left:0;right:0;bottom:0;z-index:60;
+  background:var(--raised);border-top:1px solid var(--border);
+  box-shadow:0 -14px 40px rgba(30,25,15,.14);
+  transform:translateY(110%);transition:transform .24s cubic-bezier(.2,.8,.3,1);
+  max-height:min(62vh,440px);display:flex;flex-direction:column;
+}
+.drawer.on{transform:translateY(0)}
+.drawer-h{
+  flex:none;height:38px;display:flex;align-items:center;gap:8px;padding:0 14px;
+  border-bottom:1px solid var(--border);
+}
+.drawer-t{font-size:12px;font-weight:700}
+.drawer-b{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 16px}
+.drawer-grip{
+  position:absolute;left:50%;top:5px;transform:translateX(-50%);
+  width:32px;height:3px;border-radius:2px;background:var(--border-hi);
+}
+.pane{display:none}
+.pane.on{display:block}
+.pane textarea{min-height:110px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:720px){ .two-col{grid-template-columns:1fr} }
+
+/* ── 弹层（两版共用） ── */
+.mask{
+  position:fixed;inset:0;background:rgba(24,20,14,.44);display:grid;place-items:center;z-index:80;
+  backdrop-filter:blur(2px);
+}
+.sheet{
+  background:var(--raised);border-radius:14px;box-shadow:0 24px 70px rgba(20,16,10,.30);
+  width:min(620px,calc(100vw - 40px));max-height:calc(100vh - 60px);display:flex;flex-direction:column;overflow:hidden;
+}
+.sheet-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex:none}
+.sheet-t{font-size:13.5px;font-weight:700}
+.sheet-s{font-size:11.5px;color:var(--muted)}
+.sheet-x{width:26px;height:26px;border-radius:50%;color:var(--muted);font-size:16px;line-height:1;margin-left:auto;flex:none}
+.sheet-x:hover{background:var(--sunken);color:var(--text)}
+.sheet-b{padding:14px 16px;overflow-y:auto}
+.sheet-f{padding:11px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;flex:none}
+
+/* 图库 */
+.keytip{
+  display:flex;align-items:center;gap:8px;font-size:11.5px;padding:8px 10px;border-radius:7px;margin-bottom:10px;
+  background:var(--warn-bg);color:var(--warn);
+}
+.srch{display:flex;gap:7px;margin-bottom:10px}
+.srch input{
+  flex:1;height:32px;border:1px solid var(--border);border-radius:7px;padding:0 10px;font-size:12.5px;outline:0;background:var(--raised);
+}
+.srch input:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px var(--accent-soft)}
+.srch button{height:32px;padding:0 14px;border-radius:7px;background:var(--accent);color:#fff;font-size:12px;font-weight:600}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sr{
+  border-radius:7px;overflow:hidden;border:2px solid transparent;background:var(--sunken);position:relative;aspect-ratio:3/4;
+}
+.sr img{width:100%;height:100%;object-fit:cover;display:block}
+.sr span{
+  position:absolute;left:0;right:0;bottom:0;font-size:10px;color:#fff;padding:12px 6px 4px;
+  background:linear-gradient(transparent,rgba(0,0,0,.62));text-align:left;
+}
+.sr[aria-pressed="true"]{border-color:var(--accent)}
+.snote{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+
+/* 九宫格 */
+.nine-warn{
+  display:flex;align-items:center;gap:8px;font-size:11.5px;padding:8px 10px;border-radius:7px;
+  background:var(--warn-bg);color:var(--warn);margin-bottom:12px;
+}
+.nine-warn button{
+  margin-left:auto;height:24px;padding:0 9px;border-radius:5px;background:var(--warn);color:#fff;font-size:11px;font-weight:600;flex:none;
+}
+.ngrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;background:var(--sunken);padding:5px;border-radius:8px}
+.ncell{position:relative;aspect-ratio:3/4;overflow:hidden;background:#fff;border-radius:3px}
+.ncell .nlayer{position:absolute;left:0;top:0;transform-origin:top left}
+.ncell .nno{
+  position:absolute;left:3px;top:3px;font:600 9px/1 ui-monospace,monospace;color:#fff;
+  background:rgba(20,18,14,.5);padding:2px 4px;border-radius:3px;
+}
+.ncell.blank::after{content:'空白';position:absolute;inset:0;display:grid;place-items:center;font-size:10px;color:#B8AE9C}
+
+/* 全部版式 */
+.ov-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}
+.ov{text-align:left}
+.ov .lay-th{border-radius:6px}
+
+/* 历史 */
+.hist{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.hcard{text-align:left}
+.hcard .hc-th{aspect-ratio:3/4;border-radius:6px;overflow:hidden;background:var(--sunken);position:relative}
+.hcard .hc-th .art{position:absolute;left:0;top:0;transform-origin:top left}
+.hcard .hc-nm{font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcard .hc-s{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hist-empty{font-size:11.5px;color:var(--muted);line-height:1.7;padding:6px 0}
+
+/* 出片托盘 */
+.tray{
+  position:fixed;left:50%;bottom:16px;transform:translate(-50%,160%);
+  width:min(540px,calc(100vw - 32px));background:var(--raised);border:1px solid var(--border);
+  border-radius:12px;box-shadow:0 14px 44px rgba(30,25,15,.20);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;z-index:70;transition:transform .3s cubic-bezier(.2,.8,.3,1);
+}
+.tray.on{transform:translate(-50%,0)}
+.tray-th{width:38px;height:51px;border-radius:4px;overflow:hidden;background:var(--sunken);position:relative;flex:none}
+.tray-th .art{position:absolute;left:0;top:0;transform-origin:top left}
+.tray-m{flex:1;min-width:0}
+.tray-t{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:5px}
+.tray-s{font-size:11px;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums}
+.tray-b{display:flex;gap:6px;flex:none}
+.tray-b button{height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--raised)}
+.tray-b .pri{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
+
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:#241F17;color:#fff;font-size:12px;padding:8px 14px;border-radius:8px;z-index:90;
+  transition:opacity .18s,transform .18s;
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ── 断点 ── */
+@media (max-width:1280px){
+  /* 收窄两侧，但**不写死列数** —— 列数由 bestCols() 按实测可用高度算，
+     这里改成 4 列会让 16 套变成 4 行 × 143px = 605px > 556px，最后一行被切掉
+     （2026-11-03 实测：1280×900 下第 4 行压掉 49px）。 */
+  body[data-mode="three"]{--L:214px;--R:428px}
+}
+/* 窄屏：三栏互相压死后改为「单页 + 底部 tab」，与方案 2 的骨架殊途同归 */
+@media (max-width:980px){
+  /* 顶栏在 375 下 4 个控件就挤爆（实测把 layout viewport 撑到 467：
+     brand 88 + 方案标 54 + 页签 112 + 提示 130 + 保存 82 > 375，
+     溢出会连带把 .tray 的 left:50% 也算错，看起来像「托盘偏右」）。
+     窄屏只留 brand + 保存，页签靠底部 tab 切，方案标随页签一起去掉。 */
+  .mtag,.nav,.top .top-note{display:none}
+  .top{gap:8px;padding:0 10px}
+  body[data-mode="three"] .body{display:block;position:relative;overflow:hidden}
+  body[data-mode="three"] .col-canvas{height:100%}
+  body[data-mode="three"] .col-write,
+  body[data-mode="three"] .col-side{
+    display:none;position:absolute;inset:0;z-index:40;border:0;padding-bottom:48px;
+  }
+  body[data-mode="three"] .col-write.on,
+  body[data-mode="three"] .col-side.on{display:flex}
+  body[data-mode="three"] .mnav{display:flex}
+  body[data-mode="three"] #txt{min-height:120px}
+  .laybar{height:96px}
+  .laybar .lay{width:54px}
+  .laybar-h{width:34px}
+  .laybar-h b{display:none}
+  .cmdbar{height:auto;flex-wrap:wrap;padding:6px 10px 10px}
+  .cmd{height:30px;font-size:11.5px;padding:0 10px}
+  .drawer{max-height:76vh}
+  .top-note{display:none}
+}
+.mnav{display:none;position:fixed;left:0;right:0;bottom:0;height:48px;background:var(--raised);
+  border-top:1px solid var(--border);z-index:45}
+.mnav button{flex:1;font-size:12px;color:var(--soft)}
+.mnav button.on{color:var(--accent);font-weight:700}
+
+/* ══════════════════════════════════════════════════════════════════════
+   方案 3：混合骨架
+   左写 / 中画布 / 右版式 + 底部换皮条 + 命令栏
+   ─────────────────────────────────────────────────────────────────────
+   2026-11-03 按用户反馈换位：版式从「画布下横条」移回右侧栏，
+   配色/字体/玩法从右栏沉到页面最底部。
+   好处：版式仍是竖列、看得清（横条每张只有 60px 且要横向滚）；
+   画布高度也不再被横条吃掉 112px，只被底部两行（换皮 + 命令栏）吃掉。
+   ══════════════════════════════════════════════════════════════════════ */
+body[data-mode="hybrid"]{--R2:360px}
+body[data-mode="hybrid"] .body{
+  display:grid;grid-template-columns:var(--L) minmax(360px,1fr) var(--R2);
+  grid-template-rows:minmax(0,1fr) auto auto;
+  height:calc(100% - var(--top));
+}
+body[data-mode="hybrid"] .col-write{grid-column:1;grid-row:1}
+body[data-mode="hybrid"] .col-main{grid-column:2;grid-row:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+body[data-mode="hybrid"] .col-main .col-canvas{flex:1;min-height:0}
+body[data-mode="hybrid"] .col-side{grid-column:3;grid-row:1}
+body[data-mode="hybrid"] .stylebar{grid-column:1 / -1;grid-row:2}
+body[data-mode="hybrid"] .cmdbar{grid-column:1 / -1;grid-row:3}
+
+/* 底部换皮条：两行，横贯全宽 */
+body[data-mode="hybrid"] .stylebar{
+  border-top:1px solid var(--border);background:var(--surface);
+  padding:6px 14px 8px;display:flex;flex-direction:column;gap:5px;
+}
+body[data-mode="hybrid"] .srow{display:flex;align-items:center;gap:8px;min-width:0}
+body[data-mode="hybrid"] .srow .fbody{flex:0 1 auto;min-width:0}
+body[data-mode="hybrid"] .srow .fbody.grow{flex:1}
+body[data-mode="hybrid"] .flab.sep{margin-left:8px;padding-left:10px;border-left:1px solid var(--border);width:auto}
+/* 配色 chip 压扁：底部只有 34px 一行，标准 26px 高 chip 会把整条撑高 */
+body[data-mode="hybrid"] .pchip{height:22px;font-size:10.5px;padding:0 6px 0 4px}
+body[data-mode="hybrid"] .sw{width:12px;height:12px}
+body[data-mode="hybrid"] .fchip{height:24px;font-size:12.5px}
+body[data-mode="hybrid"] .fchip.sm{height:22px;font-size:11.5px}
+body[data-mode="hybrid"] .srow .wraprow{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+body[data-mode="hybrid"] .srow .wraprow::-webkit-scrollbar{height:4px}
+
+@media (max-width:1280px){
+  body[data-mode="hybrid"]{--L:214px;--R2:300px}
+}
+/* 窄屏：画布吃满，左右栏变全屏面板（mnav 切），底部换皮条与命令栏保留。
+   mnav 留 48px 高度 —— 固定定位的 tab 会盖住命令栏，「历史」点不到。 */
+@media (max-width:980px){
+  body[data-mode="hybrid"] .body{
+    display:flex;flex-direction:column;position:relative;overflow:hidden;
+    /* mnav 是 fixed 48px，不占流 —— 不留这 48px，命令栏会被它盖住。 */
+    padding-bottom:48px;
+  }
+  body[data-mode="hybrid"] .col-main{flex:1;min-height:0}
+  body[data-mode="hybrid"] .col-write,
+  body[data-mode="hybrid"] .col-side{
+    display:none;position:absolute;inset:0;z-index:40;border:0;
+  }
+  body[data-mode="hybrid"] .col-write.on,
+  body[data-mode="hybrid"] .col-side.on{display:flex}
+  body[data-mode="hybrid"] .mnav{display:flex}
+  body[data-mode="hybrid"] #txt{min-height:120px}
+  /* 换皮条：375 下两行会吃掉 90px 画布高度 → 改成**一行横滚**。
+     ⚠️ 不能直接隐藏第二行：那等于窄屏不能换字体/玩法，功能缺失。 */
+  body[data-mode="hybrid"] .stylebar{
+    flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;
+    padding:5px 10px 7px;gap:10px;flex-wrap:nowrap;
+  }
+  body[data-mode="hybrid"] .stylebar::-webkit-scrollbar{height:0}
+  body[data-mode="hybrid"] .srow{flex:none;flex-wrap:nowrap}
+  body[data-mode="hybrid"] .srow .wraprow,
+  body[data-mode="hybrid"] .srow .fchips{flex-wrap:nowrap}
+  body[data-mode="hybrid"] .cmdbar{padding:0 10px 6px;height:auto;min-height:40px}
+}

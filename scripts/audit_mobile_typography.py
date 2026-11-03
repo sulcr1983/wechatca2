@@ -33,7 +33,7 @@ from core.format_engine import convert_markdown_to_wechat_html  # noqa: E402
 THEMES = BASE / "public" / "themes"
 OUT = BASE / "output" / "mobile-audit"
 
-# 手机端判据（依据见 docs/mobile-typography.md）
+# 手机端判据（依据见 docs/engine/mobile-typography.md）
 MIN_BODY_FONT = 15.0
 MAX_BODY_FONT = 17.0
 MIN_LINE_HEIGHT = 1.6
@@ -204,7 +204,7 @@ def browser_issues(theme_id: str, r: dict) -> list[dict]:
     if wrapped:
         # 刊头类（纯文字居中，如 vogue/社论/信笺）是刻意保留的设计语言，
         # 长标题折行只提示不判死；引擎只给「仍居中」的标题加 text-wrap:balance，
-        # 左对齐标题一律默认换行（否则右半行会整块留白，见 docs/mobile-typography.md §5）。
+        # 左对齐标题一律默认换行（否则右半行会整块留白，见 docs/engine/mobile-typography.md §5）。
         issues.append({"id": "B3 居中标题折行", "level": "WARN",
                        "detail": f"{len(wrapped)} 个居中标题折成多行（刊头类设计取舍）"})
     return issues

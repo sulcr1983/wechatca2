@@ -258,9 +258,9 @@
 ### 改动文件
 | 文件 | 改动 |
 |------|------|
-| `docs/wechat-page-redesign.md` | 新增：设计系统 tokens / 交互规范 / 前端契约 / P0-P3 落地顺序 |
-| `docs/prototypes/wechat-redesign.html` | 新增：完整交互原型（单文件零依赖，可点可玩） |
-| `docs/prototypes/first-principles-prototype.html` | 新增：简化多模板原型（方向验证，非落地基准） |
+| `docs/wechat/wechat-page-redesign.md` | 新增：设计系统 tokens / 交互规范 / 前端契约 / P0-P3 落地顺序 |
+| `docs/prototypes/wechat/wechat-redesign.html` | 新增：完整交互原型（单文件零依赖，可点可玩） |
+| `docs/prototypes/legacy/first-principles-prototype.html` | 新增：简化多模板原型（方向验证，非落地基准） |
 | `core/preprocessor.py` | 新增四模式（conservative/longform/tutorial/auto）+ 首句标题规则收紧（290→396 行） |
 | `tests/test_e2e.py` | +4 项自动编辑测试（56/56） |
 | `scripts/walkthrough_autedit.py` | 新增：自动编辑有头走查（3 类输入） |
@@ -356,7 +356,7 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 | 文件 | 改动 |
 |------|------|
 | `docs/pwa-spike/{report.json,0a-pyodide.png,0b-cover.png}` | 新增：验证证据（spike 代码跑完即删，未入库） |
-| `docs/pwa-build-plan.md` | D2 / D5 补「已验证」与实测数字；新增字体自托管的硬约束 |
+| `docs/pwa/pwa-build-plan.md` | D2 / D5 补「已验证」与实测数字；新增字体自托管的硬约束 |
 | `files/TODO.md` | PWA-0a/0b/0c 打勾 |
 | `CLOSURE.md` | 本节 |
 
@@ -401,7 +401,7 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 |------|------|
 | `core/preprocessor.py` | `_SENTENCE_WORDS` 收窄；新增 `_PROSE_PREDICATE` / `_looks_like_prose_line`；短行标题判定按孤立/非孤立分流；`_looks_like_title` 加 `is_first_line` |
 | `tests/test_e2e.py` | 新增 3 项（20 标题全识别 / 首行带逗号提升 H1 / 正文段落不反弹） |
-| `README.md` / `AGENTS.md` / `docs/testing.md` / `docs/pwa-build-plan.md` | 计数 62→65、178→181 |
+| `README.md` / `AGENTS.md` / `docs/testing.md` / `docs/pwa/pwa-build-plan.md` | 计数 62→65、178→181 |
 
 ### 回滚点
 - `git revert <本次提交>`；回滚后 E2E 恢复 62/62。
@@ -494,7 +494,7 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 
 ### 改动文件
 新增：`pwa/src/cover/{index,catalog,templates,render,search}.js`、`pwa/src/cover/cover.css`、`scripts/build_cover_fonts.py`、`scripts/pwa_cover_test.py`、`public/vendor/modern-screenshot.js`、`pwa/public/fonts/cover/*`（4 woff2 + 2 OFL）、`pwa/public/fonts/cover-fonts.css`
-修改：`pwa/index.html`、`pwa/scripts/build.mjs`、`pwa/public/sw.js`、`pwa/version.json`、`pwa/scripts/changelog_milestones.json`、`requirements.txt`、`THIRD_PARTY_NOTICES.md`、`AGENTS.md`、`HANDOVER.md`、`README.md`、`files/TODO.md`、`docs/pwa-consistency-and-speed-plan.md`、`.workbuddy/memory/MEMORY.md`
+修改：`pwa/index.html`、`pwa/scripts/build.mjs`、`pwa/public/sw.js`、`pwa/version.json`、`pwa/scripts/changelog_milestones.json`、`requirements.txt`、`THIRD_PARTY_NOTICES.md`、`AGENTS.md`、`HANDOVER.md`、`README.md`、`files/TODO.md`、`docs/archive/pwa-consistency-and-speed-plan.md`、`.workbuddy/memory/MEMORY.md`
 
 ### 验证（真实执行）
 - `scripts/pwa_cover_test.py` → **16/16**：入口切换、12 风格、模板尺寸禁用、归藏 3 尺寸、模板 1 张、上传底图、Wikimedia 搜图、下载链接、窄屏、**断网生成**、0 JS 报错。
@@ -523,7 +523,7 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 | 触发 | 用户提供自拟的《TXT 自动排版全格式测试文档》，要求「测试模板要用测试文件 + 搜罗更多格式、兼容更多格式」；随后授权「按你的推荐执行」 |
 | 范围 | `core/preprocessor.py` 确定性识别扩展；测试夹具入库；审计脚本断言扩充；`pwa/src/style.css` 一处回归修复 |
 | 完成判据 | 夹具 16 类格式可识别、原文不丢；全量回归绿；164 套渲染审计 164/164 |
-| 不在范围 | Setext 标题、文本清理（pangu/全角）、公式渲染、TSV/CSV、高亮、脚注渲染（理由见 `docs/txt-format-support.md` §5） |
+| 不在范围 | Setext 标题、文本清理（pangu/全角）、公式渲染、TSV/CSV、高亮、脚注渲染（理由见 `docs/archive/txt-format-support.md` §5） |
 
 ### 改动文件
 | 文件 | 改动 |
@@ -533,7 +533,7 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 | `scripts/theme_stress_audit.py` | 夹具路径改为仓库相对路径（原写死 `E:/personal/Downloads/…`）；断言 34→40（新增 S29–S34）；H01 兼容任务清单改写；S23 认 ☐/☑ |
 | `tests/test_e2e.py` | +10 项格式兼容测试（任务清单 / Alerts / admonition / `~~~` / 竖线表 / 空格表 / 括号编号 / 章节标记 / 方括号提示） |
 | `pwa/src/style.css` | `.d-card` min-height 118 → 140（修缩略图被 flex 压回 82px 的回归） |
-| `AGENTS.md` / `HANDOVER.md` / `docs/testing.md` / `docs/pwa-build-plan.md` / `docs/plan-oss-reference.md` / `docs/test-plan-2026-10-18-abc.md` | 测试计数 65→74、181→190 同步 |
+| `AGENTS.md` / `HANDOVER.md` / `docs/testing.md` / `docs/pwa/pwa-build-plan.md` / `docs/archive/plan-oss-reference.md` / `docs/archive/test-plan-2026-10-18-abc.md` | 测试计数 65→74、181→190 同步 |
 | `docs/txt-format-support.md` | **新增**：调研清单 + 决策结论 + 实施结果 |
 | `files/TODO.md` / `CLOSURE.md` | 本任务记录 |
 
@@ -922,12 +922,12 @@ B-1 属 `core/` 改动，与「`pwa` 分支不改 core」的纪律冲突，且�
 | `claude.md` | 删内联旧计数（52/32）与不存在文件的引用，改为「以 AGENTS.md §4 实时口径为准」 |
 | `AI_USAGE.md` | 加澄清头：本文件是「Agent 宪法模板」方法论文档，**不是**产品 AI 功能说明，给出产品 AI 文档指针 |
 | `HANDOVER.md` | 顶部加🛑更正条：历史快照，版本/计数/「未完成」清单全部可能过期；点名 7 项已闭环勿再排期；旧「最新交接」指针划线 |
-| `docs/api-reference.md` | 文首加「仅覆盖弃用 Flask 版」声明；`optimize-stream` 标死链路；render 成功响应改 `{html, markdown, request_id, is_optimized}`（无 success 字段）；92→**164** 套；server-ip 局域网→**公网**；cover-image 字节→`image_url`；social/generate 异步轮询→**同步返回** |
+| `docs/ops/api-reference.md` | 文首加「仅覆盖弃用 Flask 版」声明；`optimize-stream` 标死链路；render 成功响应改 `{html, markdown, request_id, is_optimized}`（无 success 字段）；92→**164** 套；server-ip 局域网→**公网**；cover-image 字节→`image_url`；social/generate 异步轮询→**同步返回** |
 | `docs/overview.md` | 加 PWA 为主提示；「群友免费用（规划）」→已上线；架构图补 PWA 分支；「不复制 core」→构建产物会复制到 `dist/py`；index.html 2100 行→实际 2671（本地版）/203（PWA）；Pyodide 决策「5-10 天可上线」→已上线 |
-| `docs/runbook.md` | §7「发布 PWA：还没做」→**已上线**，重写为构建/部署/发版流程（含凭证现状与回滚）；Python 实测 3.13.12→3.12.1；blcaptain 子项目注明不在仓库；Playwright 参数描述改为如实 |
+| `docs/ops/runbook.md` | §7「发布 PWA：还没做」→**已上线**，重写为构建/部署/发版流程（含凭证现状与回滚）；Python 实测 3.13.12→3.12.1；blcaptain 子项目注明不在仓库；Playwright 参数描述改为如实 |
 | `docs/testing.md` | 补 PWA 15 个专项脚本指针；「三套自起」→四套（e2e 不开端口）；字体断言「必须 rem、写 24px 会挂」→**容错解析 px/rem、断言 ≥16px**；api_e2e 覆盖范围改如实；去掉 `playwright install chromium`（走系统浏览器） |
-| `docs/project-conventions.md` | 分支模型删 `pwa` 分支（现仅 main）；§7 诊断表回填 2026-10-24 进展（task_closure 已归档、旧入口已删、docs 47MB 现状） |
-| `docs/update-handoff.md` | 加 2026-10-24 行为变更条（静默自动升级高于正文）；§3 「用户点立即更新」旧描述标注过时；version 示例 1.3.0→1.5.0 |
+| `docs/ops/project-conventions.md` | 分支模型删 `pwa` 分支（现仅 main）；§7 诊断表回填 2026-10-24 进展（task_closure 已归档、旧入口已删、docs 47MB 现状） |
+| `docs/pwa/update-handoff.md` | 加 2026-10-24 行为变更条（静默自动升级高于正文）；§3 「用户点立即更新」旧描述标注过时；version 示例 1.3.0→1.5.0 |
 | `files/TODO.md` | 「PWA 施工」进度区（D1–D10 全打⬜但实际已完成）替换为已完成记录+指针 |
 | 8 份历史文档 | `pwa-cloudflare-plan` / `pwa-consistency-and-speed-plan` / `pwa-incremental-update-research` / `test-plan-2026-10-18-abc` / `handoff-stress-audit-2026-10-18` / `design-audit` / `handover-2026-10-19-txt-format-exports` / `handover-2026-10-24-image-localize` 统一加🛑历史声明条；`pwa-build-plan` 标 D1–D10 已完成；`wechat-page-redesign` 状态改「已落地」；`txt-format-support` 状态改「已实施（FMT-1）」 |
 
