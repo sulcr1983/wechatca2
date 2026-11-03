@@ -35,11 +35,11 @@
 | `pwa/src/update/changelog.js` | 更新记录面板（`#cl-panel`），从 `changelog.json` 渲染。导出 `createChangelog()` | 改记录面板样式/逻辑时 |
 | `pwa/src/update/update.css` | 更新模块**全部**样式（原 `style.css` 里的 `upd-*` 段已搬来） | 改外观时 |
 | `pwa/public/changelog.json` | 更新记录数据源（**由脚本生成，别手改**） | 一般不动 |
-| `pwa/version.json` | 当前版本（**语义化版本**，现为 `1.8.0`）。必须与更新记录最新版本**一致** | 发版时改 |
+| `pwa/version.json` | 当前版本（**语义化版本**，具体数字见 [`STATE.md`](../../STATE.md)）。**版本边界真源**：其 git 历史决定更新记录的分版本 | 发版时由 `release.py` 自动改 |
 | `pwa/public/sw.js` | SW：三份内联清单（SHELL / ASSETS / DATA）+ 分层缓存 + `PRECACHE_PROGRESS` 进度广播 | 改缓存策略时 |
 | `pwa/scripts/build.mjs` | 构建：**扫描**生成三份清单 + 算 `BUILD_ID` + 注入 `sw.js` | 一般不用动 |
-| `pwa/scripts/changelog_milestones.json` | 版本切点（从新到旧，`until` 为**右闭时刻**、精确到秒，支持同一天切多版） | 发版加新版本时加一条 |
-| `pwa/scripts/gen_changelog.py` | 从 git 历史 + milestones 生成 `changelog.json` 和 `CHANGELOG.md`（**构建时自动跑**，见 §5） | 一般不用手动跑 |
+| `pwa/scripts/changelog_milestones.json` | **文案表**（2026-11-03 起）：`1.x` 只写 `title` / `highlights`，**不要再写 `until`**；`0.x` 仍保留手工切点（Flask 期历史） | 想改文案时（可选） |
+| `pwa/scripts/gen_changelog.py` | 从 git 历史生成 `changelog.json` 和 `CHANGELOG.md`；**版本边界自动取自 `version.json` 的 git 历史**（**构建时自动跑**，见 §5） | 一般不用手动跑 |
 
 > **2026-10-29 起不再需要手工维护文件清单**：`build.mjs` 会扫描 `src/**/*.{js,css}` + `index.html` + `manifest` + `fonts/*.css`
 > 生成 `SHELL_MANIFEST`，扫描 `icons/ brand/ samples/ cover-templates/ vendor/ fonts/*.woff2` 生成 `ASSETS_MANIFEST`，
@@ -144,17 +144,49 @@ ASSETS_CACHE / DATA_CACHE / RUNTIME_CACHE / MEDIA_CACHE
 
 ## 4. 怎么加一个新版本 / 改更新说明（操作手册）
 
+> ⚠️ **2026-11-03 大改：版本边界改为全自动推导，不再手工加切点。**
+> 旧流程「发版时去 `changelog_milestones.json` 加一条 until」**已废止**——
+> 它就是上一轮事故的根源（三天没加切点 → 62 个提交全被塞进 1.17.0 卡片，77 条、跨 4 天、自相矛盾）。
+>
+> 现在边界取自 `pwa/version.json` 的 **git 历史**：每次 bump 都是一个精确到秒的时间锚点。
+> 详见 [`review-adversarial-changelog-2026-11-03.md`](review-adversarial-changelog-2026-11-03.md)。
+
 > 更新记录是**声明式生成**的，不要手改 `changelog.json`。
 
-1. 日常开发按 **Conventional Commits** 写 commit（`feat` / `fix` / `docs` / `chore` / `test` / `refactor` / `perf` / `style`；未知类型兜底 `other`，不丢条目）。
-2. 发版时，在 `pwa/scripts/changelog_milestones.json` **加一条**新版本切点（从新到旧排，带 `version` / `date` / `title` / `until`）。`until` 是**右闭时刻**、精确到秒——同一天要切多个版本时靠它区分（脚本用 `--date=iso-strict` 取提交时刻分桶）。
-3. 改 `pwa/version.json` 的 `version` 为本次版本号（语义化，如 `1.4.0`），**并与第 2 步加的那条版本号一致**——运行版本和列表最新版本对齐，「当前版本」高亮与"这次更新了 N 条"判断才对得上。构建会把提交数写进 `build` 字段，仅作展示。
-4. 构建（见 §5，注意 safe-delete 坑）。**构建时会自动跑 `gen_changelog.py` 重新生成 `changelog.json`**，所以不用手动跑；想先预览也可以：
+1. 日常开发按 **Conventional Commits** 写 commit（`feat` / `fix` / `docs` / `chore` / `test` / `refactor` / `perf` / `style` / `revert` / `security`；未知类型兜底 `other`，不丢条目）。
+2. **发版只需要一条命令**：
+   ```bash
+   python scripts/release.py            # 自动判断该升 minor 还是 patch
+   ```
+   它会依次：升版本 → 构建（内含生成更新记录）→ 门禁 → 提交 → 推送 → 部署 → 线上验证。
+   **不用再手工加切点**，也不用改 `milestones`。
+3. （可选，纯文案）想让卡片标题和亮点更好看，在 `pwa/scripts/changelog_milestones.json`
+   给该版本加 `title` / `highlights`（**不要再写 `until`**）。不写也行——
+   脚本会自动从真实条目挑 3 条亮点（方案 B：不强制人工写，避免重蹈「漏了人工动作」的覆辙）。
+4. 想只重新生成更新记录（不构建、不发版）：
    ```bash
    python pwa/scripts/gen_changelog.py         # 写 changelog.json + CHANGELOG.md
    python pwa/scripts/gen_changelog.py --check # 只自检、不写文件
    ```
 5. 本地验证（见 §6），需要时部署（见 `docs/ops/runbook.md`；实际命令是 `bash pwa/scripts/deploy.sh`）。
+
+### 4.1 「未发版」区块是什么
+
+生成器会把**晚于最新版本边界**的提交放进独立的 `unreleased` 桶（对应 Keep a Changelog 的 `[Unreleased]`）：
+
+- 面板顶部显示一个**虚线条**「待发布 · 攒了 N 项改动还没发版」，**默认收起**，用户主视图不受干扰
+- 发版后自动变成新版本卡片，桶清空
+- 它的价值：让「攒了几天没发版」**可见**，而不是像以前那样悄悄塞进上一版卡片
+
+### 4.2 条数口径（2026-11-03 修正）
+
+| 位置 | 报什么 |
+|---|---|
+| 版本卡头部 | **用户可见条数**，另标「另有 N 条细节」 |
+| 开发者细节折叠区 | `dev=true` 的条目（test/chore/docs + 工程 scope） |
+| 底部「共 N 条」 | 当前筛选下可见的条目数 |
+
+> 原实现报**全量**，导致 1.17.0 卡头写「77 条」而用户主视图只看到 23 条——数字和眼睛对不上。
 
 ---
 

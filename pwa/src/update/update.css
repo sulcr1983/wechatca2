@@ -449,6 +449,61 @@ body.cover-open .upd-btn { display: none; }
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 未发版区块（2026-11-03 新增）──────────────────────────────
+ * 默认收起；虚线边框 + 弱化配色，与「已发版」的实线卡片区分开。
+ * 存在的意义：让「攒了几天没发版」这件事可见，而不是被静默塞进上一版卡片。 */
+#cl-panel .cl-unreleased .cl-unrel-sum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px dashed var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+}
+
+#cl-panel .cl-unreleased .cl-unrel-sum::-webkit-details-marker { display: none; }
+#cl-panel .cl-unreleased .cl-unrel-sum::marker { content: ''; }
+
+/* 展开指示三角：收起时朝右、展开时朝下 */
+#cl-panel .cl-unreleased .cl-unrel-sum::before {
+  content: '▸';
+  flex: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  transition: transform .15s;
+}
+
+#cl-panel .cl-unreleased[open] .cl-unrel-sum::before { transform: rotate(90deg); }
+#cl-panel .cl-unreleased[open] .cl-unrel-sum {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-style: dashed dashed solid;
+}
+
+#cl-panel .cl-unreleased .cl-rel-ver { color: var(--text-soft); }
+#cl-panel .cl-unreleased .cl-rel-date { color: var(--text-muted); }
+
+#cl-panel .cl-unreleased .cl-rel-body {
+  border: 1px dashed var(--border-hi);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: none;
+  padding-top: 8px;
+}
+
+#cl-panel .cl-unreleased .cl-unrel-tip {
+  margin: 0 0 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* ── 分组 ─────────────────────────────────────────────────────── */
 #cl-panel .cl-group { padding-top: 12px; }
 

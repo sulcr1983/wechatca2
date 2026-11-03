@@ -289,8 +289,10 @@ def plan(args, new_ver: str) -> None:
     for n, name, cmd in rows:
         say(f"  {n:>2}. {name:<16} {cmd}")
     say("")
-    say(f"  ℹ️  第 3 步会自动在 pwa/scripts/changelog_milestones.json 补 v{new_ver} 的切点；")
-    say("     想让更新记录好看，发版前把它的 title 与 highlights（3 条人话）填上。")
+    say(f"  ℹ️  版本边界全自动：第 2 步构建时会从 pwa/version.json 的 git 历史推导 v{new_ver} 的切点，")
+    say("     未发版的改动会自动归入这个版本卡片 —— 不需要再手工加切点。")
+    say("     （可选）想让文案更好看，可在 pwa/scripts/changelog_milestones.json 给该版本填")
+    say("     title / highlights；不填则由脚本从真实条目自动挑 3 条。")
     say("")
     if args.skip_tests:
         say("  ⚠️  已指定 --skip-tests：门禁不跑，风险自负。")

@@ -25,6 +25,9 @@ const TYPE_LABELS = {
 /* 固定展示顺序：chip 与分组都按这个顺序，避免类型顺序随数据抖动。 */
 const TYPE_ORDER = ['added', 'changed', 'deprecated', 'removed', 'fixed', 'security', 'other'];
 
+/* 未发版区块的占位版本键（不能与真实版本号冲突，用双下划线约定）。 */
+const UNRELEASED_KEY = '__unreleased__';
+
 /* 把 "v1.2.3-beta.1" 拆成 [1,2,3,'beta',1]。
  * 预发布号按字符串比较，对更新记录这种场景足够了。 */
 function parseVersion(v) {
@@ -58,13 +61,17 @@ function cmpVersion(a, b) {
   return 0;
 }
 
-/* 版本总计条数：优先数 groups 里的真实 items，退回 counts 求和。 */
-function countEntries(rel) {
+/* 版本总计条数：优先数 groups 里的真实 items，退回 counts 求和。
+ * ⚠️ 2026-11-03：默认只数**用户可见**条目（排除 dev）。
+ *    原来数全量，导致 1.17.0 卡头写「77 条」而用户主视图只看到 23 条 —— 数字和眼睛对不上。
+ *    需要全量时传 { includeDev: true }。 */
+function countEntries(rel, { includeDev = false } = {}) {
   if (!rel) return 0;
   if (Array.isArray(rel.groups)) {
     let n = 0;
     for (const g of rel.groups) {
-      if (g && Array.isArray(g.items)) n += g.items.length;
+      if (!g || !Array.isArray(g.items)) continue;
+      n += includeDev ? g.items.length : g.items.filter((it) => it && !it.dev).length;
     }
     return n;
   }
@@ -315,14 +322,16 @@ export function createChangelog(options = {}) {
     state.view = [];
     state.totalEntries = 0;
 
-    /* chips：按数据里真实出现过的 type 动态生成 */
+    /* chips：按数据里真实出现过的 type 动态生成（含未发版桶的类型） */
     const labels = new Map();
-    for (const rel of releases) {
-      for (const g of (rel && rel.groups) || []) {
+    const collectLabels = (groups) => {
+      for (const g of groups || []) {
         if (!g || !g.type || !Array.isArray(g.items) || !g.items.length) continue;
         if (!labels.has(g.type)) labels.set(g.type, g.label || '');
       }
-    }
+    };
+    for (const rel of releases) collectLabels(rel && rel.groups);
+    if (data.unreleased) collectLabels(data.unreleased.groups);
     const types = [...labels.keys()].sort((a, b) => typeRank(a) - typeRank(b));
 
     // 数据换了之后，原来选中的类型可能已不存在，退回「全部」
@@ -337,6 +346,17 @@ export function createChangelog(options = {}) {
 
     /* 时间线：DocumentFragment 一次性插入 */
     const frag = document.createDocumentFragment();
+
+    // ★ 未发版桶（2026-11-03 新增）：放在最上面、默认折叠。
+    //   它解决的问题：原来「几天没发版」的提交会被静默塞进最新版本卡片，
+    //   导致卡片越滚越大且自相矛盾。现在它们有独立位置，用户看不到混乱，
+    //   维护者一眼知道「攒了 N 项还没发」。
+    const rvUnrel = buildUnreleased(data.unreleased);
+    if (rvUnrel) {
+      state.view.push(rvUnrel);
+      frag.append(rvUnrel.node);
+    }
+
     releases.forEach((rel, index) => {
       const rv = buildRelease(rel, index);
       state.view.push(rv);
@@ -348,6 +368,94 @@ export function createChangelog(options = {}) {
     applyFilter();
     applyHighlights();
     updateBanner();
+  }
+
+  /** 未发版区块：默认收起；没有未发版内容时返回 null（不渲染）。 */
+  function buildUnreleased(u) {
+    if (!u || !Array.isArray(u.groups) || !u.groups.length) return null;
+    const visN = Number(u.visibleCount) || 0;
+    const allN = Number(u.count) || 0;
+
+    const node = el('details', 'cl-rel cl-unreleased');
+    node.dataset.version = UNRELEASED_KEY;
+
+    const sum = el('summary', 'cl-unrel-sum');
+    // 文案不重复：左边一个状态徽标，右边一句人话
+    const verEl = el('span', 'cl-rel-ver', '待发布');
+    const titleEl = el('span', 'cl-rel-title',
+      visN > 0 ? `攒了 ${visN} 项改动还没发版` : '本期只有内部改动');
+    const devN = Math.max(0, allN - visN);
+    const countEl = el('span', 'cl-rel-count',
+      visN === 0 && devN > 0 ? `${devN} 条细节`
+        : devN > 0 ? `${visN} 条 · 另有 ${devN} 条细节`
+          : `${visN} 条`);
+    sum.append(verEl, titleEl, countEl);
+    node.append(sum);
+
+    const body = el('div', 'cl-rel-body');
+    // 发版提示：告诉维护者「该发版了」——这正是它存在的意义
+    body.append(el('p', 'cl-unrel-tip',
+      '这些改动已在仓库里，但还没有发版（用户暂时看不到）。下次发版会自动进新版本卡片。'));
+
+    const highlights = Array.isArray(u.highlights) ? u.highlights.filter(Boolean) : [];
+    if (highlights.length) {
+      const hl = el('ul', 'cl-highlights');
+      for (const t of highlights) hl.append(el('li', null, String(t)));
+      body.append(hl);
+    }
+
+    const groups = [];
+    const devPool = [];
+    for (const g of u.groups) {
+      if (!g) continue;
+      const all = Array.isArray(g.items) ? g.items.filter(Boolean) : [];
+      const type = String(g.type || 'other');
+      const items = all.filter((it) => !it.dev);
+      for (const it of all) if (it.dev) devPool.push({ type, label: g.label || TYPE_LABELS[type] || type, item: it });
+      if (!items.length) continue;
+
+      const groupEl = el('div', 'cl-group');
+      groupEl.dataset.type = type;
+      const groupHead = el('div', 'cl-group-head');
+      const gdot = el('i', 'cl-gdot');
+      gdot.dataset.type = type;
+      gdot.setAttribute('aria-hidden', 'true');
+      groupHead.append(gdot, el('span', 'cl-group-label', g.label || TYPE_LABELS[type] || type),
+        el('span', 'cl-group-count', String(items.length)));
+      const list = el('ul', 'cl-items');
+      const entries = [];
+      for (const item of items) {
+        const entry = buildItem(item, type, '');
+        entries.push(entry);
+        list.append(entry.el);
+        state.totalEntries += 1;
+      }
+      groupEl.append(groupHead, list);
+      body.append(groupEl);
+      groups.push({ type, el: groupEl, entries });
+    }
+
+    if (devPool.length) {
+      const det = el('details', 'cl-dev');
+      const dsum = el('summary', 'cl-dev-sum');
+      dsum.append(el('span', null, '开发者细节'), el('span', 'cl-dev-n', `${devPool.length} 条`));
+      det.append(dsum);
+      const list = el('ul', 'cl-items cl-dev-items');
+      const entries = [];
+      for (const d of devPool) {
+        const entry = buildItem(d.item, d.type, '');
+        entry.el.classList.add('is-dev');
+        entries.push(entry);
+        list.append(entry.el);
+        state.totalEntries += 1;
+      }
+      det.append(list);
+      body.append(det);
+      groups.push({ type: 'dev', el: det, entries, isDev: true });
+    }
+
+    node.append(body);
+    return { version: UNRELEASED_KEY, node, groups, release: u, isUnreleased: true };
   }
 
   function renderChips(types, labels) {
@@ -390,7 +498,17 @@ export function createChangelog(options = {}) {
     const latestTag = el('span', 'cl-latest-tag', '最新');
     latestTag.hidden = !isLatest;
 
-    const countEl = el('span', 'cl-rel-count', `${countEntries(release)} 条`);
+    // 条数口径：只报用户可见条数，另附开发者细节数（2026-11-03 修正，
+    // 原来报全量导致「卡头 77 条 / 实际只看到 23 条」对不上）
+    const visN = countEntries(release);
+    const devN = countEntries(release, { includeDev: true }) - visN;
+    // 边界：可见 0 条但有细节时，不要显示「0 条 · 另有 N 条细节」（读起来像空卡）
+    let countText;
+    if (visN === 0 && devN > 0) countText = `${devN} 条细节`;
+    else if (devN > 0) countText = `${visN} 条 · 另有 ${devN} 条细节`;
+    else countText = `${visN} 条`;
+    const countEl = el('span', 'cl-rel-count', countText);
+    countEl.title = devN > 0 ? `用户可见 ${visN} 条，开发者细节 ${devN} 条（默认折叠）` : '';
 
     head.append(verEl, dateEl, titleEl, latestTag, countEl);
     body.append(head);
@@ -533,10 +651,12 @@ export function createChangelog(options = {}) {
     // update 模式但没有 since（首次安装后升级）：退化为高亮最新一个版本
     const onlyNewest = state.mode === 'update' && !since;
 
+    // 未发版桶永远不算「本次更新」；「无 since」时高亮打到第一个**真实版本**上
+    const newestIdx = state.view.findIndex((rv) => !rv.isUnreleased);
     state.view.forEach((rv, index) => {
-      const isNew = since
-        ? cmpVersion(rv.version, since) > 0
-        : (onlyNewest && index === 0);
+      const isNew = rv.isUnreleased
+        ? false
+        : (since ? cmpVersion(rv.version, since) > 0 : (onlyNewest && index === newestIdx));
       rv.isNew = isNew;
       for (const group of rv.groups) {
         for (const entry of group.entries) {
@@ -555,7 +675,8 @@ export function createChangelog(options = {}) {
     const hasHighlight = (Boolean(state.since) && !sameAsCurrent) || state.mode === 'update';
 
     const n = state.view.reduce(
-      (sum, rv) => sum + (rv.isNew ? countEntries(rv.release) : 0),
+      // 未发版桶不算「本次更新」——它还没发布，用户当前版本里没有这些内容
+      (sum, rv) => sum + (!rv.isUnreleased && rv.isNew ? countEntries(rv.release) : 0),
       0,
     );
 
