@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>方案 1 · 三栏常驻（26 套版式全在右栏）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23A83A26'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./app.css">
+</head>
+<body data-mode="three">
+
+<header class="top">
+  <div class="brand"><i></i>封面工坊</div>
+  <span class="mtag">方案 1</span>
+  <nav class="nav">
+    <a class="on" href="./concept-a-three-col.html">三栏</a>
+    <a href="./concept-b-canvas.html">单画布</a>
+  </nav>
+  <span class="top-note">左写 · 中看 · 右换</span>
+  <span class="sp"></span>
+  <button class="icon-btn" id="hist-open" title="历史记录">↺</button>
+  <button class="icon-btn" id="mi-open" title="这一版做了什么选择">?</button>
+  <button class="btn-save" id="save-top">保存大图</button>
+</header>
+
+<div class="body">
+  <!-- ══ 左：写 + 素材 ══ -->
+  <aside class="col-write" id="col-w">
+    <div class="blk">
+      <div class="blk-h"><span class="blk-t">文案</span><span class="cnt" id="cnt">0 / 500</span></div>
+      <textarea id="txt" maxlength="500" placeholder="第一行是大标题，第二行起是小字"></textarea>
+      <div class="mini">
+        <button id="use-main">用正文</button>
+        <button id="demo">示例</button>
+        <button id="clear">清空</button>
+      </div>
+    </div>
+
+    <div class="blk">
+      <div class="blk-h"><span class="blk-t">配图</span><span class="cnt" data-pic-hint>—</span></div>
+      <div class="seg" id="seg">
+        <button data-m="search">搜图</button>
+        <button data-m="upload">传一张</button>
+        <button data-m="color">不要图</button>
+      </div>
+      <div class="pic-cur" id="pic-cur" hidden>
+        <div class="pic-th"><img id="pic-img" alt=""></div>
+        <div class="pic-meta">
+          <div class="pic-nm" id="pic-nm">—</div>
+          <div class="pic-src" id="pic-src">—</div>
+          <div class="mini" style="margin-top:5px">
+            <button id="pic-change">换一张</button>
+            <button id="pic-none" class="ghost">去掉</button>
+          </div>
+        </div>
+      </div>
+      <div class="pic-empty" id="pic-empty">
+        现在没有底图<br>选一张就会解锁 8 套图文版式
+      </div>
+      <div class="recent" id="recent"></div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+
+    <div class="blk" id="judge-blk" hidden>
+      <div class="blk-h"><span class="blk-t">底图可读性</span><span class="cnt" id="judge-v">—</span></div>
+      <div class="jbar"><i id="judge-fill" style="width:0"></i></div>
+      <div class="jnote" id="judge-note">—</div>
+    </div>
+
+    <div class="blk">
+      <div class="blk-h"><span class="blk-t">尺寸</span></div>
+      <div class="chips" data-sizes></div>
+    </div>
+
+    <div class="blk">
+      <div class="blk-h"><span class="blk-t">署名</span></div>
+      <input class="field" id="sign" maxlength="16" placeholder="可留空">
+    </div>
+
+    <details class="tips">
+      <summary>三个小贴士</summary>
+      <div class="tips-body">
+        <p><b>第一行是大标题</b><br>回车后的行会变成小字，最多 3 行。</p>
+        <p><b>写 7 个字最容易排</b><br>4–9 字都能一行放满，超过会自动缩字号。</p>
+        <p><b>清单版式要 2 条以上</b><br>用「·」分隔小字，凑够两条才会亮起来。</p>
+      </div>
+    </details>
+  </aside>
+
+  <!-- ══ 中：画布 ══ -->
+  <main class="col-canvas">
+    <div class="stage" id="stage">
+      <div id="cv-wrap"><div id="cv-art"></div></div>
+    </div>
+    <div class="meta">
+      <b id="dim">1080 × 1440</b><span class="dot">·</span>
+      <span id="vd">—</span><span class="dot">·</span>
+      <span class="badge" id="layname">—</span>
+    </div>
+    <div class="bar">
+      <div class="info">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3.2 3.2L13 5"/></svg>
+        <span id="bar-info">已就绪</span>
+      </div>
+      <button class="cb" id="btn-copy">复制</button>
+      <button class="cb" id="btn-nine">九宫格</button>
+      <button class="cb-primary" id="btn-save">保存大图</button>
+    </div>
+  </main>
+
+  <!-- ══ 右：版式（26 套全量，一屏放得下） ══ -->
+  <aside class="col-side" id="col-s">
+    <div class="side-h">
+      <span class="side-t">版式</span>
+      <span class="side-n" id="lay-n">—</span>
+      <button class="needpill" id="lay-need" hidden></button>
+      <button class="side-n link" id="ov-open">全部 ↗</button>
+      <div class="dens" id="dens">
+        <button data-d="5" class="on" title="紧凑">▦</button>
+        <button data-d="4" title="舒适">▥</button>
+      </div>
+    </div>
+
+    <div class="lay-scroll" id="lay-scroll">
+      <div class="lay-grid d5" id="lays"></div>
+    </div>
+
+    <div class="side-f">
+      <div class="frow">
+        <span class="flab">配色</span>
+        <div class="fbody"><div class="wraprow" data-pals></div></div>
+      </div>
+      <div class="frow">
+        <span class="flab">字体</span>
+        <div class="fbody"><div class="fchips" data-fonts></div></div>
+      </div>
+      <div class="frow">
+        <span class="flab">玩法</span>
+        <div class="fbody"><div class="wraprow" data-tmodes></div></div>
+      </div>
+      <div class="frow">
+        <span class="flab">位置</span>
+        <div class="fbody" style="display:flex;align-items:center;gap:8px">
+          <div class="hs" data-vpos style="flex:1"></div>
+          <label class="sw2"><input type="checkbox" id="frost"><span>磨砂</span></label>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<nav class="mnav">
+  <button data-p="w" class="on">文案</button>
+  <button data-p="c">画布</button>
+  <button data-p="s">样式</button>
+</nav>
+
+<!-- 出片托盘 -->
+<div class="tray" id="tray">
+  <div class="tray-th" id="tray-th"></div>
+  <div class="tray-m">
+    <div class="tray-t">已生成 · 可以下载了</div>
+    <div class="tray-s" id="tray-s">—</div>
+  </div>
+  <div class="tray-b">
+    <button id="tray-copy">复制</button>
+    <button class="pri" id="tray-dl">下载 PNG</button>
+  </div>
+  <button class="sheet-x" id="tray-x">×</button>
+</div>
+
+<div id="toast"></div>
+
+<!-- 搜图 -->
+<div class="mask" id="search" hidden>
+  <div class="sheet" style="width:min(660px,calc(100vw - 40px))">
+    <div class="sheet-h">
+      <div>
+        <div class="sheet-t">搜一张好图</div>
+        <div class="sheet-s">关键词从标题自动猜，可以改</div>
+      </div>
+      <button class="sheet-x" id="search-x">×</button>
+    </div>
+    <div class="sheet-b">
+      <div class="keytip">原型用本地 6 张示例图 · 落地接 Pexels（用户自己填免费 Key）</div>
+      <div class="srch">
+        <input id="kw" placeholder="输入关键词，如 beach / 咖啡 / 山">
+        <button id="search-go">搜索</button>
+      </div>
+      <div class="sgrid" id="sgrid"></div>
+      <div class="snote" id="snote"></div>
+    </div>
+    <div class="sheet-f">
+      <span class="sp" style="flex:1"></span>
+      <button class="cb" id="upload-here">改用我自己的图</button>
+    </div>
+  </div>
+</div>
+
+<!-- 九宫格 -->
+<div class="mask" id="nine" hidden>
+  <div class="sheet" style="width:min(520px,calc(100vw - 40px))">
+    <div class="sheet-h">
+      <div>
+        <div class="sheet-t">九宫格</div>
+        <div class="sheet-s" id="nine-sub">把这张切成 3 × 3</div>
+      </div>
+      <button class="sheet-x" id="nine-x">×</button>
+    </div>
+    <div class="sheet-b">
+      <div class="nine-warn" id="nine-warn" hidden>
+        <span id="nine-warn-t">—</span>
+        <button id="nine-fix">把标题放大铺满</button>
+      </div>
+      <div class="ngrid" id="ngrid"></div>
+      <div class="snote">按 1 → 9 顺序发。每张 360 × 480，正好是 1080 × 1440 的三分之一。</div>
+    </div>
+    <div class="sheet-f">
+      <span style="flex:1"></span>
+      <button class="cb-primary" id="nine-dl">下载 9 张</button>
+    </div>
+  </div>
+</div>
+
+<!-- 全部版式 -->
+<div class="mask" id="ov" hidden>
+  <div class="sheet" style="width:min(1180px,calc(100vw - 40px));height:min(820px,calc(100vh - 40px))">
+    <div class="sheet-h">
+      <div>
+        <div class="sheet-t">全部版式</div>
+        <div class="sheet-s" id="ov-sub">—</div>
+      </div>
+      <button class="sheet-x" id="ov-x">×</button>
+    </div>
+    <div class="sheet-b"><div class="ov-grid" id="ov-grid"></div></div>
+  </div>
+</div>
+
+<!-- 历史记录（C-8：方案 1 收在顶栏，不占版面） -->
+<div class="mask" id="history" hidden>
+  <div class="sheet" style="width:min(880px,calc(100vw - 40px))">
+    <div class="sheet-h">
+      <div>
+        <div class="sheet-t">历史记录</div>
+        <div class="sheet-s" id="hist-sub">—</div>
+      </div>
+      <button class="sheet-x" id="hist-x">×</button>
+    </div>
+    <div class="sheet-b"><div class="hist" id="hist"></div></div>
+  </div>
+</div>
+
+<!-- 这一版做了什么选择 -->
+<div class="mask" id="modeinfo" hidden>
+  <div class="sheet" style="width:min(680px,calc(100vw - 40px))">
+    <div class="sheet-h">
+      <div>
+        <div class="sheet-t" id="mi-t">—</div>
+        <div class="sheet-s">评审用 · 这一版在 C-1 / C-2 / C-7 / C-8 上各选了什么</div>
+      </div>
+      <button class="sheet-x" id="mi-x">×</button>
+    </div>
+    <div class="sheet-b">
+      <p id="mi-lead" style="margin:0 0 12px;font-size:12.5px;color:var(--soft);line-height:1.7"></p>
+      <table id="mi-rows" style="width:100%;border-collapse:collapse;font-size:12px"></table>
+      <style>
+        #mi-rows th{text-align:left;white-space:nowrap;padding:7px 10px 7px 0;color:var(--muted);font-weight:600;
+          border-top:1px solid var(--border);vertical-align:top;width:92px}
+        #mi-rows td{padding:7px 0;border-top:1px solid var(--border);line-height:1.65}
+      </style>
+    </div>
+  </div>
+</div>
+
+<script src="../v2/xhs-ux-core.js"></script>
+<script src="../v2/v2-data.js"></script>
+<script src="./shared.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

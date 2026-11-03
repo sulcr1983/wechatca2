@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书长图文 · 下一阶段原型（可交互）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23AF3E2B'/%3E%3C/svg%3E">
+<style>
+/* ════════════════════════════════════════════════════════════════
+   0. 设计系统变量 —— 与 pwa/src/style.css :root 逐值一致
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --bg-canvas:#F7F4EE; --bg-surface:#FAF9F5; --bg-raised:#FFFFFF; --bg-hover:#F0EDE8;
+  --border:#EAE6DD; --border-hi:#D8D2C6;
+  --text:#191713; --text-soft:#6E6759; --text-muted:#9B9484;
+  --accent:#AF3E2B; --accent-dim:#96331F;
+  --accent-soft:rgba(175,62,43,.08); --accent-glow:rgba(175,62,43,.12);
+  --success:#5F8F73;
+  --radius-sm:6px; --radius:8px; --radius-lg:12px; --radius-xl:16px;
+  --font:"DM Sans","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:"JetBrains Mono","Cascadia Code",ui-monospace,monospace;
+  --shadow-sm:0 1px 3px rgba(87,76,54,.04);
+  --shadow:0 1px 8px rgba(87,76,54,.06);
+  --shadow-lg:0 4px 16px rgba(87,76,54,.10);
+  --shadow-xl:0 16px 48px rgba(20,18,14,.22);
+  --top-h:56px; --tabs-h:0px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg-canvas);color:var(--text);font-family:var(--font);
+  font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+a{color:var(--accent)}
+
+/* ════════════════════════════════════════════════════════════════
+   1. 顶栏 —— 1:1 复刻 pwa/src/style.css + cover.css（R5 铁律）
+   ════════════════════════════════════════════════════════════════ */
+.top{
+  height:var(--top-h);padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg-raised);border-bottom:1px solid var(--border);
+  position:relative;z-index:20;
+}
+.top-left{display:flex;align-items:center;gap:8px;min-width:0}
+.brand-mark{width:24px;height:24px;border-radius:6px;flex:none;display:block;
+  box-shadow:0 0 0 1px rgba(20,18,14,.10)}
+.brand{font-size:15px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.brand-tail{font-weight:400;font-size:12.5px;color:var(--text-soft);margin-left:4px}
+.brand-sub{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-right{display:flex;align-items:center;gap:8px;position:relative}
+.engine-badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;
+  border-radius:99px;font-size:12px;color:var(--text-soft);
+  background:var(--bg-surface);border:1px solid var(--border);white-space:nowrap}
+.engine-badge i{width:6px;height:6px;border-radius:50%;background:var(--text-muted);transition:background .3s}
+.engine-badge[data-state="ready"] i{background:var(--success)}
+.icon-btn{width:30px;height:30px;border-radius:var(--radius);color:var(--text-soft);
+  font-size:16px;line-height:1;display:grid;place-items:center;transition:background .15s,color .15s}
+.icon-btn:hover{background:var(--bg-hover);color:var(--text)}
+
+/* 三模块导航（cover.css .cover-btn 原样） */
+.cover-btn{
+  height:32px;padding:0 12px;border-radius:var(--radius);
+  color:var(--accent);font-size:12.5px;font-weight:600;white-space:nowrap;
+  border:1px solid rgba(175,62,43,.28);background:var(--accent-soft);
+  display:inline-flex;align-items:center;gap:5px;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.cover-btn::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.cover-btn:hover{background:rgba(175,62,43,.14);border-color:var(--accent)}
+.cover-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.cover-btn[aria-pressed="true"]::before{background:#fff}
+
+/* ════════════════════════════════════════════════════════════════
+   2. 舞台 —— 三栏（cover.css .cv-stage 原样尺寸）
+   ════════════════════════════════════════════════════════════════ */
+#longform-root{height:calc(100% - var(--top-h));background:var(--bg-canvas);overflow:hidden}
+.cv-stage{
+  height:100%;display:grid;
+  grid-template-columns:clamp(280px,21vw,320px) minmax(0,1fr) clamp(460px,34.5vw,520px);
+  min-height:0;
+}
+.cv-col{min-height:0;display:flex;flex-direction:column}
+.cv-col-left{border-right:1px solid var(--border);overflow-y:auto}
+.cv-col-mid{border-right:1px solid var(--border);overflow:hidden}
+.cv-col-right{overflow:hidden}
+
+.cv-sec{padding:14px 16px;border-bottom:1px solid var(--border)}
+.cv-sec:last-child{border-bottom:0}
+.cv-sec-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cv-sec-t{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text-soft);text-transform:uppercase}
+.cv-sec-n{font-size:11px;color:var(--text-muted);margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* 左栏：文章输入 */
+#art{width:100%;min-height:210px;resize:vertical;padding:10px 12px;border-radius:var(--radius);
+  border:1px solid var(--border-hi);background:var(--bg-raised);color:var(--text);
+  font-family:var(--font);font-size:16px;line-height:1.75;outline:none}
+#art:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.art-preview{max-height:150px;overflow:hidden;border-radius:var(--radius);
+  border:1px solid var(--border);background:var(--bg-raised);padding:10px 12px;font-size:16px;line-height:1.7;
+  color:var(--text-muted);margin-top:8px}
+.art-preview b{color:var(--text);font-weight:600}
+
+/* 配图三态 */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mode{height:44px;border-radius:var(--radius);border:1px solid var(--border-hi);
+  background:var(--bg-raised);font-size:12.5px;color:var(--text-soft);
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+.mode:hover{border-color:var(--accent);color:var(--accent)}
+.mode[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.mode.wide{grid-column:1/-1}
+
+/* 导出按钮 */
+.btn-primary{width:100%;height:42px;border-radius:var(--radius);background:var(--accent);
+  color:#fff;font-size:13.5px;font-weight:600;transition:.15s}
+.btn-primary:hover{background:var(--accent-dim)}
+.btn-primary small{font-weight:400;opacity:.85;margin-left:4px}
+.btn-ghost{height:34px;border-radius:var(--radius);border:1px solid var(--border-hi);
+  background:var(--bg-raised);font-size:12.5px;color:var(--text-soft);transition:.15s}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.status-line{margin-top:8px;font-size:12px;color:var(--text-muted);min-height:18px}
+.status-line b{color:var(--success);font-weight:600}
+
+/* ══ 中栏：整套预览（只有一个呈现 — 已去掉重复画廊） ══ */
+.cv-mid-head{display:flex;align-items:center;gap:8px;padding:12px 16px 8px}
+.cv-mid-head .t{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text-soft);text-transform:uppercase}
+.pill{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg-hover);color:var(--text-soft)}
+.deck-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 16px 20px}
+.deck{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 2px 12px}
+.slot{margin:0;flex:none;scroll-snap-align:start;width:210px}
+.slot .card{width:224px;height:299px;border-radius:10px;overflow:hidden;position:relative;
+  box-shadow:var(--shadow-lg);cursor:zoom-in;transition:transform .15s}
+/* 卡面内部一律裁切：预览卡是「一张图」，文字超出卡面就等于出片会丢内容 */
+.slot .card > *{min-height:0;overflow:hidden}
+.deck-body{flex:1;min-height:0;overflow:hidden}
+.deck-foot{flex:none;margin-top:6px;padding-top:6px;font-size:5.6px;opacity:.55;
+  display:flex;justify-content:space-between;border-top:1px solid currentColor}
+.deck-foot span{border-top:0}
+.slot .card:hover{transform:translateY(-3px)}
+.slot figcaption{font-size:11px;color:var(--text-muted);margin-top:6px;display:flex;gap:6px;align-items:center}
+.slot figcaption .role{color:var(--accent);font-weight:600}
+
+/* 自检条：正常态静默 */
+.selfcheck{margin:0 16px 12px;padding:9px 12px;border-radius:var(--radius);
+  border:1px solid #E9C9C1;background:#FDF5F3;font-size:12px;color:#8C3324;line-height:1.6}
+.selfcheck:empty{display:none}
+.selfcheck.ok{border-color:#CFE0D5;background:#F2F8F4;color:#3F6B54}
+
+/* ══ 右栏：模板 / 色板 / 选项（模板区独立滚动） ══ */
+.cv-col-right{display:flex;flex-direction:column;min-height:0}
+.rt-head{display:flex;align-items:center;gap:8px;padding:12px 16px 8px;flex:none}
+.rt-head .t{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text-soft);text-transform:uppercase}
+.undo{height:26px;padding:0 10px;border-radius:99px;border:1px solid var(--border-hi);
+  background:var(--bg-raised);font-size:11.5px;color:var(--text-soft);
+  display:inline-flex;align-items:center;gap:4px;transition:.15s}
+.undo:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.undo:disabled{opacity:.4;cursor:default}
+
+/* 模板区：独立滚动 + 4 列 —— 12 套一屏看全（这是 LF-TPL-5 的核心） */
+.tpls-scroll{flex:1;min-height:0;overflow-y:auto;padding:0 16px 10px;
+  border-bottom:1px solid var(--border);scrollbar-width:thin}
+.tpls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tpl{border-radius:8px;border:1.5px solid var(--border);background:var(--bg-raised);
+  padding:0;overflow:hidden;text-align:left;transition:.15s;position:relative}
+.tpl:hover{border-color:var(--border-hi);transform:translateY(-1px)}
+.tpl[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.tpl .thumb{width:100%;aspect-ratio:3/4;display:block;overflow:hidden;position:relative}
+.tpl .nm{display:block;font-size:10.5px;padding:3px 5px 4px;color:var(--text-soft);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid var(--border)}
+.tpl[aria-pressed="true"] .nm{color:var(--accent);font-weight:600}
+.tpl .lock{position:absolute;right:3px;top:3px;font-size:8.5px;padding:1px 4px;border-radius:99px;
+  background:rgba(255,255,255,.86);color:#8A8175;border:1px solid rgba(0,0,0,.06)}
+
+/* 迷你缩略图内部（真实渲染色/字比，不是文字卡） */
+.mini{position:absolute;inset:0;padding:9% 8%;display:flex;flex-direction:column;
+  font-size:6.2px;line-height:1.55;overflow:hidden}
+.mini .bar{height:2px;width:22%;margin-bottom:5px;flex:none}
+.mini .h{font-weight:700;font-size:9.6px;line-height:1.35;margin-bottom:4px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.mini .p{opacity:.8;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.mini .ft{margin-top:auto;padding-top:4px;font-size:5.4px;opacity:.5;
+  display:flex;justify-content:space-between;flex:none}
+.mini .blk{background:currentColor;opacity:.10;border-radius:2px;height:9px;margin-bottom:3px}
+.mini .num{font-size:15px;font-weight:800;line-height:1;opacity:.22;margin-bottom:1px}
+
+/* 色板 */
+.pals{display:flex;gap:9px;padding:0 16px 12px;flex-wrap:wrap;transition:opacity .2s}
+.pals.locked{opacity:.34;pointer-events:none}
+.pal{width:26px;height:26px;border-radius:50%;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);transition:.15s;position:relative}
+.pal[aria-pressed="true"]{border-color:var(--text);transform:scale(1.1)}
+.pal-hint{padding:0 16px 10px;font-size:11px;color:var(--text-muted);min-height:16px}
+
+/* 版式选项 */
+.opts{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-soft)}
+.opt .sw{width:34px;height:19px;border-radius:99px;background:var(--border-hi);
+  position:relative;transition:.2s;flex:none}
+.opt .sw::after{content:"";position:absolute;left:2px;top:2px;width:15px;height:15px;
+  border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.opt[aria-pressed="true"] .sw{background:var(--accent)}
+.opt[aria-pressed="true"] .sw::after{transform:translateX(15px)}
+.opt input{width:88px;margin-left:auto;height:26px;padding:0 8px;border-radius:6px;
+  border:1px solid var(--border-hi);background:var(--bg-raised);font-size:12px;font-family:inherit}
+
+/* ══ 灯箱 ══ */
+.lb{position:fixed;inset:0;z-index:120;background:rgba(20,18,14,.82);
+  display:grid;place-items:center;padding:32px}
+.lb img,.lb .big{max-width:min(560px,86vw);max-height:86vh;border-radius:8px;box-shadow:var(--shadow-xl)}
+.lb-close{position:absolute;right:22px;top:18px;width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.16);color:#fff;font-size:18px;display:grid;place-items:center}
+
+/* ══ 出片托盘 ══ */
+.tray{position:fixed;right:24px;bottom:24px;z-index:110;width:330px;border-radius:var(--radius-xl);
+  background:var(--bg-raised);box-shadow:var(--shadow-xl);border:1px solid var(--border);
+  padding:16px;animation:slide .22s ease}
+@keyframes slide{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.tray h4{margin:0 0 10px;font-size:13.5px}
+.tray .row{display:flex;justify-content:space-between;font-size:12.5px;
+  color:var(--text-soft);padding:5px 0;border-bottom:1px dashed var(--border)}
+.tray .row b{color:var(--text);font-variant-numeric:tabular-nums}
+.tray .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+
+/* ══ 评审面板（待决策项） ══ */
+.review{position:fixed;left:16px;bottom:16px;z-index:100}
+.review-btn{height:34px;padding:0 14px;border-radius:99px;background:var(--text);color:#fff;
+  font-size:12px;font-weight:600;box-shadow:var(--shadow-lg)}
+.review-panel{position:absolute;left:0;bottom:44px;width:400px;max-height:62vh;overflow-y:auto;
+  background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-xl);padding:14px}
+.review-panel h4{margin:0 0 4px;font-size:13px}
+.review-panel .sub{font-size:11.5px;color:var(--text-muted);margin:0 0 10px;line-height:1.6}
+.review-panel .c{border-top:1px solid var(--border);padding:9px 0}
+.review-panel .c:first-of-type{border-top:0}
+.review-panel .c .q{font-size:12px;font-weight:600;margin-bottom:5px}
+.review-panel .c .o{display:flex;gap:6px;flex-wrap:wrap}
+.review-panel .c .o button{height:26px;padding:0 9px;border-radius:6px;
+  border:1px solid var(--border-hi);background:var(--bg-surface);font-size:11px;color:var(--text-soft)}
+.review-panel .c .o button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;
+  background:var(--text);color:#fff;font-size:12.5px;padding:9px 16px;border-radius:99px;
+  box-shadow:var(--shadow-lg);animation:slide .2s ease}
+
+/* ══ 响应式：与 cover.css 同三档 ══ */
+@media (max-width:1179px){
+  .cv-stage{grid-template-columns:clamp(280px,30vw,340px) minmax(0,1fr)}
+  .cv-col-right{display:none}
+  .brand-sub{display:none}
+}
+@media (max-width:640px){
+  /* 顶栏：三个全称 tab 在 375 下会撑破（实测 right=381 > 375）。
+     缩的是周围元素，不是按钮文案 —— R6 全称不缩词。 */
+  .top{padding:0 8px}
+  .top-left{gap:4px;min-width:0}
+  .brand{display:none}
+  .cover-btn{font-size:10px;padding:0 5px;height:30px}
+  .brand-tail,.brand-sub,.engine-badge{display:none}
+  .top-right{gap:2px;flex:none}
+  #longform-root{height:auto;overflow-y:auto}
+  .cv-stage{display:flex;flex-direction:column;height:auto}
+  .cv-col{border-right:0;overflow:visible;min-width:0}
+  .cv-col-right{display:flex}
+  .cv-col-mid{min-width:0;overflow:hidden}
+  .deck-wrap{overflow-x:hidden}
+  .deck{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tpls-scroll{max-height:none;overflow:visible}
+  .slot{width:150px}
+  .slot .card{width:150px;height:200px}
+  .review-panel{width:calc(100vw - 32px)}
+  /* 触控目标 ≥44（ux-spec C15）：只作用于长文页内控件 */
+  #longform-root .mode,
+  #longform-root .btn-ghost,
+  #longform-root .btn-primary,
+  #longform-root .undo,
+  #longform-root .pal{min-height:44px}
+  #longform-root .pal{width:32px;height:44px;border-radius:12px}
+  #longform-root .opt{min-height:44px}
+  #longform-root .opt input{height:36px;font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ 顶栏：1:1 复用真实系统 header.top（R5） ══════════ -->
+<header class="top">
+  <div class="top-left">
+    <img class="brand-mark" alt=""
+         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23AF3E2B'/%3E%3Ctext x='12' y='17' font-size='13' font-family='sans-serif' font-weight='700' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+    <span class="brand">SuperSu<span class="brand-tail">公众号编辑器</span></span>
+    <button class="cover-btn" id="btn-editor" aria-pressed="false"
+            title="公众号文章排版（164 套主题）">公众号排版</button>
+    <button class="cover-btn" id="btn-cover" aria-pressed="false"
+            title="小红书标题图：一句话，配张图，出封面（3 种尺寸）">小红书标题图</button>
+    <button class="cover-btn" id="btn-longform" aria-pressed="true"
+            title="小红书长图文：一整篇文章，出一套图文（封面 + 内页）">小红书长图文</button>
+    <span class="brand-sub">本地排版 · 数据不出浏览器</span>
+  </div>
+  <div class="top-right">
+    <span class="engine-badge" id="engine-badge" data-state="ready">
+      <i></i><span>引擎就绪</span>
+    </span>
+    <button class="icon-btn" title="导出与分发（原型）">▾</button>
+    <button class="icon-btn" title="AI 工具（原型）">AI</button>
+    <button class="icon-btn" title="更多（原型）">⋯</button>
+  </div>
+</header>
+
+<div id="longform-root">
+<div class="cv-stage">
+
+  <!-- ══════════ 左栏：① 整篇文章 → ② 封面配图 → 导出 ══════════ -->
+  <section class="cv-col cv-col-left">
+    <div class="cv-sec">
+      <div class="cv-sec-h">
+        <span class="cv-sec-t">① 整篇文章</span>
+        <span class="cv-sec-n" id="cnt">0 字</span>
+      </div>
+      <textarea id="art" spellcheck="false"></textarea>
+      <div class="art-preview" id="artPreview"></div>
+      <div class="status-line" style="margin-top:6px">
+        首行 = 封面标题 · 单独一行 <code>---</code> 强制分页
+      </div>
+    </div>
+
+    <div class="cv-sec">
+      <div class="cv-sec-h"><span class="cv-sec-t">② 封面配图</span></div>
+      <div class="modes">
+        <button class="mode" data-mode="search" aria-pressed="false">搜图</button>
+        <button class="mode" data-mode="upload" aria-pressed="false">传一张</button>
+        <button class="mode wide" data-mode="none" aria-pressed="true">不要图（纯色）</button>
+      </div>
+      <div class="status-line" id="modeHint">纯色底：用当前模板的纸色，最稳。</div>
+    </div>
+
+    <div class="cv-sec">
+      <button class="btn-primary" id="btnExport">导出一整套 <small id="expN">4 张 PNG</small></button>
+      <div class="btn-row">
+        <button class="btn-ghost" id="btnZip">打包 ZIP</button>
+        <button class="btn-ghost" id="btnDemo">示例文章</button>
+      </div>
+      <div class="status-line" id="status">还没有正文 —— 贴上文章立刻看到分页。</div>
+    </div>
+  </section>
+
+  <!-- ══════════ 中栏：整套实时预览（唯一呈现，已去重） ══════════ -->
+  <section class="cv-col cv-col-mid">
+    <div class="cv-mid-head">
+      <span class="t">整套实时预览</span>
+      <span class="pill" id="deckCount">4 张</span>
+      <span class="pill" id="deckTpl">editorial</span>
+      <span class="pill" style="margin-left:auto;background:transparent;color:var(--text-muted)">
+        点任意一页放大
+      </span>
+    </div>
+    <div class="deck-wrap">
+      <div class="deck" id="deck"></div>
+      <div class="selfcheck" id="selfcheck"></div>
+      <div style="padding:0 16px 24px;font-size:11.5px;line-height:1.8;color:var(--text-muted)">
+        <b style="color:var(--text-soft)">本原型改动点</b>：
+        ① 模板缩略图是<b>真实页面渲染</b>（不是文字卡）、<b>12 套一屏看全</b>（4 列 × 3 行）、模板区独立滚动；
+        ② 中栏只保留这一处预览（原「整套图文结果」画廊已去掉，单张下载能力移到灯箱）；
+        ③ 右上角有「↺ 撤销」，只撤模板/色板/开关，不撤正文。
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 右栏：模板（独立滚动）→ 色板 → 版式选项 ══════════ -->
+  <section class="cv-col cv-col-right">
+    <div class="rt-head">
+      <span class="t">长文模板 · 12 套</span>
+      <button class="undo" id="btnUndo" disabled title="撤销上一次模板/色板/开关切换">↺ 撤销</button>
+    </div>
+    <div class="tpls-scroll" id="tplsScroll"><div class="tpls" id="tpls"></div></div>
+
+    <div class="cv-sec-h" style="padding:12px 16px 8px;margin:0">
+      <span class="cv-sec-t">色板</span>
+      <span class="cv-sec-n" id="palN">8 套</span>
+    </div>
+    <div class="pals" id="pals"></div>
+    <div class="pal-hint" id="palHint"></div>
+
+    <div class="cv-sec-h" style="padding:4px 16px 8px;margin:0">
+      <span class="cv-sec-t">版式选项</span>
+    </div>
+    <div class="opts">
+      <button class="opt" id="optPn" aria-pressed="true"><span class="sw"></span>显示页码</button>
+      <button class="opt" id="optBg" aria-pressed="false"><span class="sw"></span>内页背景图</button>
+      <label class="opt" style="gap:6px">签名
+        <input id="sign" maxlength="16" placeholder="不上签名" spellcheck="false">
+      </label>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<!-- 灯箱 -->
+<div class="lb" id="lb" hidden>
+  <button class="lb-close" id="lbClose" aria-label="关闭">✕</button>
+  <div id="lbBody"></div>
+</div>
+
+<!-- 评审面板 -->
+<div class="review">
+  <div class="review-panel" id="revPanel" hidden>
+    <h4>待你拍板的项（C-1 … C-9）</h4>
+    <p class="sub">点一下就记下你的选择，右侧原型会跟着变（能变的才变）。这是评审用的记录板，不影响产品代码。</p>
+    <div id="revList"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn-ghost" style="flex:1;height:30px" id="revCopy">复制选择清单</button>
+      <button class="btn-ghost" style="flex:1;height:30px" id="revReset">全部清空</button>
+    </div>
+  </div>
+  <button class="review-btn" id="revBtn">☑ 评审：待拍板 9 项</button>
+</div>
+
+<div id="toastRoot"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   数据：12 套长文模板（与 cards.js LONG_TPLS 同名同序）+ 8 套色板
+   follows=true 的三套跟随色板；其余锁色（palette 固定）
+   ════════════════════════════════════════════════════════════════ */
+const PALS = {
+  dune:     { paper:'#F4EFE6', paper2:'#EAE2D4', ink:'#221E18', muted:'#6B6154', accent:'#9C6B3F', line:'#D9CFBE' },
+  forest:   { paper:'#EDF0E8', paper2:'#DFE5D6', ink:'#1C2419', muted:'#5D6854', accent:'#3F6B4A', line:'#CBD3C0' },
+  indigo:   { paper:'#EEEDF5', paper2:'#E0DFEE', ink:'#1B1A2B', muted:'#5B5975', accent:'#4A4A8C', line:'#CFCEDF' },
+  kraft:    { paper:'#F2E9DC', paper2:'#E7DAC7', ink:'#241C13', muted:'#6E604C', accent:'#8A5A31', line:'#D8C7AE' },
+  midnight: { paper:'#171A21', paper2:'#1F2430', ink:'#EDEEF2', muted:'#A6ACBB', accent:'#7E93C9', line:'#2C3341' },
+  ikb:      { paper:'#E9EDF8', paper2:'#DAE1F4', ink:'#111A33', muted:'#52618A', accent:'#2440B8', line:'#C7D1EC' },
+  lemon:    { paper:'#FBF4DC', paper2:'#F5EAC2', ink:'#241F0F', muted:'#6D6441', accent:'#A98417', line:'#E8DCAF' },
+  orange:   { paper:'#FBEDE4', paper2:'#F6DFD0', ink:'#241611', muted:'#70503F', accent:'#C05A2C', line:'#EFD3C2' },
+};
+
+const TP = [
+  { id:'editorial', nm:'社论',   follows:true,  serif:true,  deco:'rule'  },
+  { id:'swiss',     nm:'瑞士',   follows:true,  serif:false, deco:'grid'  },
+  { id:'notion',    nm:'笔记',   follows:false, serif:false, deco:'dot',    pal:'dune' },
+  { id:'book',      nm:'书页',   follows:false, serif:true,  deco:'chapter',pal:'kraft' },
+  { id:'memo',      nm:'便签',   follows:false, serif:false, deco:'tape',   pal:'lemon' },
+  { id:'polaroid',  nm:'拍立得', follows:false, serif:true,  deco:'frame',  pal:'dune' },
+  { id:'aura',      nm:'光晕',   follows:false, serif:true,  deco:'glow',   pal:'indigo' },
+  { id:'night',     nm:'夜航',   follows:false, serif:false, deco:'star',   pal:'midnight' },
+  { id:'doc',       nm:'公文',   follows:false, serif:false, deco:'stamp',  pal:'ikb' },
+  { id:'film',      nm:'胶片',   follows:false, serif:true,  deco:'sprocket',pal:'orange' },
+  { id:'starry',    nm:'星野',   follows:false, serif:true,  deco:'sky',    pal:'midnight' },
+  { id:'blank',     nm:'留白',   follows:true,  serif:false, deco:'none'  },
+];
+
+const DEMO = `周末去了趟海边，才想明白的三件事
+
+以前总觉得，休息就是什么都不做。后来发现，什么都不做反而更累。
+
+第一件事：把手机留在车里。
+
+走到沙滩上，没有信号也没有通知。头二十分钟很难受，后来就习惯了。
+
+第二件事：慢下来才看得见。
+
+蹲下来看浪退下去的时候，沙子上会留下一层细密的水纹，几秒钟就消失了。
+
+第三件事：回来以后要记得。
+
+所以我把这三点写下来，提醒自己下次别再忘了。
+
+---
+
+如果你也想试试，就挑一个周末，把手机留在车里。
+
+关注 SuperSu，一起把日子过得清楚一点。`;
+
+/* ════════════════════════════════════════════════════════════════
+   状态
+   ════════════════════════════════════════════════════════════════ */
+const state = {
+  tpl: 'editorial',
+  pal: 'dune',
+  pn: true,
+  bg: false,
+  sign: '',
+  body: DEMO,
+  mode: 'none',
+};
+const history = [];   // 只记 tpl/pal/pn/bg/sign —— 不记正文（C-7 方案 A）
+const MAX_HIST = 20;
+
+const snap = () => ({ tpl:state.tpl, pal:state.pal, pn:state.pn, bg:state.bg, sign:state.sign });
+/* 单栈模型：每次「改动前」压一条旧快照，撤销就弹出并套用。
+   不在启动时压基线 —— 否则一进来按钮就可点，却撤不出任何变化。 */
+function pushHist(){
+  const cur = snap();
+  const last = history[history.length-1];
+  if (last && JSON.stringify(last) === JSON.stringify(cur)) return;
+  history.push(cur);
+  if (history.length > MAX_HIST) history.shift();
+  syncUndo();
+}
+function undo(){
+  if (!history.length) return;
+  const prev = history.pop();
+  Object.assign(state, prev);
+  syncUndo(); renderAll();
+  toast('已撤销回「' + tplName(state.tpl) + ' · ' + state.pal + '」');
+}
+function syncUndo(){ document.getElementById('btnUndo').disabled = history.length === 0; }
+
+const palOf = (t) => t.follows ? PALS[state.pal] : PALS[t.pal];
+const tplName = (id) => (TP.find(t => t.id === id) || TP[0]).nm;
+const curTpl = () => TP.find(t => t.id === state.tpl) || TP[0];
+
+/* ════════════════════════════════════════════════════════════════
+   文章解析（极简版 buildLong：首行=标题，--- 分页，段落装箱）
+   ════════════════════════════════════════════════════════════════ */
+function parseBody(txt){
+  const title = (txt.split('\n').find(l => l.trim()) || '').trim().slice(0, 40);
+  const rest = txt.split('\n').slice(txt.split('\n').indexOf(txt.split('\n').find(l => l.trim())||'') + 1);
+  const segs = rest.join('\n').split(/^\s*-{3,}\s*$/m);
+  const paras = (s) => s.split(/\n\s*\n/).map(x => x.replace(/\n/g,'').trim()).filter(Boolean);
+  return { title, segs: segs.map(paras) };
+}
+
+function buildPages(){
+  const { title, segs } = parseBody(state.body);
+  if (!title) return [];
+  const pages = [{ role:'cover', h:title, p:'' }];
+  segs.forEach((ps, si) => {
+    if (!ps.length) return;
+    let buf = [];
+    const flush = () => { if (buf.length) { pages.push({ role:'dense', h: buf[0], p: buf.slice(1).join(' ') }); buf = []; } };
+    ps.forEach((para, i) => {
+      if (si === 0 && i === 0 && pages.length === 1) {
+        pages.push({ role:'opening', h: para, p: ps[i+1] || '' });
+        return;
+      }
+      if (buf.join('').length + para.length > 130) flush();
+      buf.push(para);
+    });
+    flush();
+  });
+  if (pages.length > 1) {
+    const last = pages[pages.length-1];
+    if (last.role === 'dense') { last.role = 'closing'; }
+  }
+  return pages.slice(0, 6);   // STORY_MAX_PAGES
+}
+
+/* ════════════════════════════════════════════════════════════════
+   迷你缩略图（真实渲染色/字比 —— 这是本原型要说服人的地方）
+   ════════════════════════════════════════════════════════════════ */
+function miniHTML(t, pal, title, small){
+  const serif = t.serif ? 'Georgia,"Songti SC","Noto Serif CJK SC",serif' : 'var(--font)';
+  const base = `background:${pal.paper};color:${pal.ink};font-family:${serif};`;
+  let deco = '';
+  if (t.deco === 'rule')   deco = `<div class="bar" style="background:${pal.accent}"></div>`;
+  if (t.deco === 'grid')   deco = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px">
+                                    <div class="bar" style="background:${pal.accent};width:100%"></div>
+                                    <div class="bar" style="background:${pal.muted};width:60%"></div></div>`;
+  if (t.deco === 'dot')    deco = `<div style="display:flex;gap:3px;margin-bottom:4px">
+                                    <i style="width:4px;height:4px;border-radius:50%;background:${pal.accent};display:block"></i>
+                                    <i style="width:4px;height:4px;border-radius:50%;background:${pal.line};display:block"></i></div>`;
+  if (t.deco === 'chapter')deco = `<div class="num" style="color:${pal.accent}">01</div>`;
+  if (t.deco === 'tape')   deco = `<div style="position:absolute;left:22%;top:0;width:26%;height:6px;
+                                    background:${pal.accent};opacity:.35;transform:rotate(-3deg)"></div>`;
+  if (t.deco === 'frame')  deco = `<div style="position:absolute;inset:5%;border:1px solid ${pal.line}"></div>`;
+  if (t.deco === 'glow')   deco = `<div style="position:absolute;inset:0;pointer-events:none;
+                                    background:radial-gradient(58% 42% at 82% 12%,${pal.accent}33,transparent 70%)"></div>`;
+  if (t.deco === 'star')   deco = `<div style="position:absolute;right:8%;top:6%;width:3px;height:3px;
+                                    border-radius:50%;background:${pal.accent};box-shadow:
+                                    8px 5px 0 -.5px ${pal.muted},-5px 9px 0 -.5px ${pal.muted}"></div>`;
+  if (t.deco === 'stamp')  deco = `<div style="position:absolute;right:6%;top:5%;padding:1px 3px;
+                                    border:1px solid ${pal.accent};color:${pal.accent};font-size:5px;opacity:.8">公文</div>`;
+  if (t.deco === 'sprocket')deco = `<div style="position:absolute;left:0;right:0;top:0;height:5px;
+                                    background:repeating-linear-gradient(90deg,${pal.ink}22 0 3px,transparent 3px 7px)"></div>`;
+  if (t.deco === 'sky')    deco = `<div style="position:absolute;inset:0;background:
+                                    radial-gradient(1.4px 1.4px at 24% 18%,${pal.accent}88,transparent),
+                                    radial-gradient(1px 1px at 70% 30%,${pal.muted}77,transparent),
+                                    radial-gradient(1.2px 1.2px at 48% 62%,${pal.muted}55,transparent)"></div>`;
+  const bodyTxt = small || '把手机留在车里，走到沙滩上，没有信号也没有通知。头二十分钟很难受，后来就习惯了。';
+  return `<div class="mini" style="${base}">
+    ${deco}
+    <div class="h">${title || '文章标题'}</div>
+    <div class="p">${bodyTxt}</div>
+    <div class="ft"><span>${state.sign ? '@'+state.sign : ''}</span><span>${state.pn ? '02' : ''}</span></div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   渲染
+   ════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+
+function renderTpls(){
+  const { title } = parseBody(state.body);
+  const box = $('tpls');
+  box.innerHTML = TP.map(t => {
+    const pal = palOf(t);
+    return `<button class="tpl" data-tpl="${t.id}" aria-pressed="${t.id===state.tpl}"
+              title="${t.nm}${t.follows?' · 跟随色板':' · 自带配色'}">
+      <span class="thumb">${miniHTML(t, pal, title)}</span>
+      ${t.follows ? '' : '<span class="lock">锁色</span>'}
+      <span class="nm">${t.nm}</span>
+    </button>`;
+  }).join('');
+  box.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => {
+    if (state.tpl === b.dataset.tpl) return;
+    pushHist(); state.tpl = b.dataset.tpl; renderAll();
+  });
+}
+
+function renderPals(){
+  const t = curTpl();
+  const box = $('pals');
+  box.className = 'pals' + (t.follows ? '' : ' locked');
+  box.innerHTML = Object.entries(PALS).map(([k, p]) =>
+    `<button class="pal" data-pal="${k}" aria-pressed="${k===state.pal}"
+       style="background:linear-gradient(135deg,${p.paper} 0 55%,${p.accent} 55% 100%)"
+       title="${k}"></button>`).join('');
+  box.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => {
+    if (state.pal === b.dataset.pal) return;
+    pushHist(); state.pal = b.dataset.pal; renderAll();
+  });
+  $('palHint').textContent = t.follows
+    ? `「${t.nm}」跟随色板 —— 换色板整页换色。`
+    : `「${t.nm}」自带配色，色板不参与。`;
+}
+
+function renderDeck(){
+  const pages = buildPages();
+  const t = curTpl();
+  const deck = $('deck');
+  if (!pages.length){
+    deck.innerHTML = `<div style="padding:32px 8px;color:var(--text-muted);font-size:13px">
+      还没有正文 —— 左栏贴一篇文章，立刻在这里看到分页结果（不点生成）。</div>`;
+    $('selfcheck').textContent = '';
+    $('deckCount').textContent = '0 张';
+    $('expN').textContent = '0 张 PNG';
+    return;
+  }
+  const ROLE_NM = { cover:'封面', opening:'开篇', dense:'正文', closing:'结尾' };
+  deck.innerHTML = pages.map((p, i) => {
+    const pal = palOf(t);
+    return `<figure class="slot" data-idx="${i}">
+      <div class="card"><div class="mini" style="background:${pal.paper};color:${pal.ink};
+        font-family:${t.serif?'Georgia,serif':'var(--font)'};padding:9% 8%;
+        display:flex;flex-direction:column;font-size:6.6px;line-height:1.6;overflow:hidden">
+        <div style="font-size:${p.role==='cover'?15:p.role==='opening'?11:10}px;font-weight:700;
+          line-height:1.3;margin-bottom:7px;flex:none;color:${p.role==='cover'?pal.accent:pal.ink};
+          display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">${p.h||''}</div>
+        <div class="deck-body" style="opacity:.82;display:-webkit-box;
+          -webkit-line-clamp:${p.role==='cover'?3:7};-webkit-box-orient:vertical;overflow:hidden">${p.p||''}</div>
+        <div class="deck-foot">
+          <span>${state.sign?'@'+state.sign:''}</span>
+          <span>${state.pn?(i+1)+' / '+pages.length:''}</span>
+        </div>
+      </div></div>
+      <figcaption><span class="role">${ROLE_NM[p.role]||'正文'}</span>·
+        <span>${i+1}/${pages.length}</span></figcaption>
+    </figure>`;
+  }).join('');
+  deck.querySelectorAll('.slot').forEach(el => el.onclick = () => openLB(pages[+el.dataset.idx], t));
+  $('deckCount').textContent = pages.length + ' 张';
+  $('deckTpl').textContent = t.nm;
+  $('expN').textContent = pages.length + ' 张 PNG';
+
+  const sc = $('selfcheck');
+  const segs = (state.body.split(/^\s*-{3,}\s*$/m).length - 1);
+  if (pages.length >= 6) {
+    sc.className = 'selfcheck';
+    sc.innerHTML = `✗ 产物自检 · 已到 6 页上限，超出部分已截断。建议删减正文或加 <code>---</code> 重排。`;
+  } else if (segs > 0) {
+    sc.className = 'selfcheck ok';
+    sc.innerHTML = `✓ 全部落版 · 手动分页符 ${segs} 处 · ${pages.length} 页`;
+  } else {
+    sc.className = 'selfcheck';
+    sc.textContent = '';
+  }
+}
+
+function openLB(p, t){
+  const pal = palOf(t);
+  $('lbBody').innerHTML = `<div class="big" style="background:${pal.paper};color:${pal.ink};
+    width:min(380px,80vw);aspect-ratio:3/4;padding:9% 8%;display:flex;flex-direction:column;
+    font-family:${t.serif?'Georgia,serif':'var(--font)'}">
+    <div style="font-size:22px;font-weight:700;line-height:1.35;margin-bottom:14px;
+      color:${p.role==='cover'?pal.accent:pal.ink}">${p.h||''}</div>
+    <div style="font-size:13.5px;line-height:1.85;opacity:.86">${p.p||''}</div>
+    <div style="margin-top:auto;font-size:11px;opacity:.55;display:flex;justify-content:space-between">
+      <span>${state.sign?'@'+state.sign:''}</span><span>${state.pn?'2 / 4':''}</span></div>
+  </div>
+  <div style="text-align:center;margin-top:14px;display:flex;gap:8px;justify-content:center">
+    <button class="btn-ghost" style="height:32px;padding:0 14px">下载这一张</button>
+    <button class="btn-ghost" style="height:32px;padding:0 14px" id="lbPrev">上一页</button>
+    <button class="btn-ghost" style="height:32px;padding:0 14px" id="lbNext">下一页</button>
+  </div>`;
+  $('lb').hidden = false;
+}
+
+function renderAll(){ renderTpls(); renderPals(); renderDeck(); renderOpts(); renderArt(); }
+
+function renderOpts(){
+  $('optPn').setAttribute('aria-pressed', String(state.pn));
+  $('optBg').setAttribute('aria-pressed', String(state.bg));
+  $('sign').value = state.sign;
+}
+
+function renderArt(){
+  const lines = state.body.split('\n').filter(l => l.trim());
+  const title = lines[0] || '';
+  const n = state.body.replace(/\s/g,'').length;
+  $('cnt').textContent = n + ' 字';
+  $('artPreview').innerHTML = title
+    ? `<b>${title}</b><br>${lines[1] || '…'}`
+    : '还没有正文';
+  $('status').innerHTML = title
+    ? `<b>✓</b> ${buildPages().length} 页已排好（封面 1 + 内页 ${Math.max(0,buildPages().length-1)}）· 全文 ${n} 字`
+    : '还没有正文 —— 贴上文章立刻看到分页。';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   交互
+   ════════════════════════════════════════════════════════════════ */
+$('art').value = DEMO;
+$('art').oninput = (e) => { state.body = e.target.value; renderAll(); };
+
+$('optPn').onclick = () => { pushHist(); state.pn = !state.pn; renderAll(); };
+$('optBg').onclick = () => {
+  const t = curTpl();
+  if (!t.follows) { toast(`「${t.nm}」自带背景元素，内页背景图不参与`); return; }
+  pushHist(); state.bg = !state.bg; renderAll();
+};
+$('sign').oninput = (e) => {
+  const v = e.target.value.trim();
+  if (v === state.sign) return;
+  state.sign = v; renderDeck(); renderTpls();
+};
+
+$('btnUndo').onclick = undo;
+
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  state.mode = b.dataset.mode;
+  $('modeHint').textContent = state.mode === 'search' ? '按标题自动提关键词，搜 Pexels 真图（需自备免费 Key）。'
+    : state.mode === 'upload' ? '上传一张自己的图，封面用它；内页不受影响。'
+    : '纯色底：用当前模板的纸色，最稳。';
+});
+
+$('btnDemo').onclick = () => { state.body = DEMO; $('art').value = DEMO; renderAll(); toast('已载入示例文章'); };
+
+/* 出片托盘（B3-1 的形态演示） */
+$('btnExport').onclick = () => {
+  const n = buildPages().length;
+  if (!n) { toast('先贴正文'); return; }
+  if (document.querySelector('.tray')) return;
+  const t = curTpl();
+  const tray = document.createElement('div');
+  tray.className = 'tray';
+  tray.innerHTML = `<h4>确认导出</h4>
+    <div class="row"><span>张数</span><b>${n} 张（封面 1 + 内页 ${n-1}）</b></div>
+    <div class="row"><span>尺寸</span><b>1080 × 1440（3:4）</b></div>
+    <div class="row"><span>模板 / 色板</span><b>${t.nm} · ${t.follows?state.pal:'锁色'}</b></div>
+    <div class="row"><span>预估体积</span><b>约 ${(n*0.42).toFixed(1)} MB</b></div>
+    <div class="acts">
+      <button class="btn-ghost" id="trayCancel" style="height:36px">取消</button>
+      <button class="btn-primary" id="trayOk" style="height:36px">开始下载</button>
+    </div>`;
+  document.body.appendChild(tray);
+  tray.querySelector('#trayCancel').onclick = () => tray.remove();
+  tray.querySelector('#trayOk').onclick = () => { tray.remove(); toast(`已打包 ${n} 张 PNG（原型，不真下载）`); };
+};
+$('btnZip').onclick = () => toast('打包整套 ZIP（原型，不真下载）');
+
+$('lbClose').onclick = () => $('lb').hidden = true;
+$('lb').onclick = (e) => { if (e.target.id === 'lb') $('lb').hidden = true; };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('lb').hidden = true; });
+
+/* 顶部三 tab：原型里只有长图文可用，点了给提示（真实产品是三页互斥） */
+$('btn-editor').onclick = () => toast('原型只演示「小红书长图文」，另两个 tab 在真实产品里');
+$('btn-cover').onclick = () => toast('原型只演示「小红书长图文」，另两个 tab 在真实产品里');
+
+function toast(msg){
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  $('toastRoot').appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   评审面板：C-1 … C-9
+   ════════════════════════════════════════════════════════════════ */
+const CS = [
+  { id:'C-1', q:'页面比例：只出 3:4，还是补竞品的 3 种比例？',
+    o:['只出 3:4（现状）','补长文 500×750','补 9:16 竖长条','三种都补'] },
+  { id:'C-2', q:'模板缩略图：真实渲染 / 文字卡 / 混排？',
+    o:['真实渲染（本原型）','保持文字卡','前 3 张真实 + 其余文字'] },
+  { id:'C-3', q:'封面：必出，还是加「启用封面」开关？',
+    o:['必出（现状）','加开关','默认开、可关'] },
+  { id:'C-4', q:'12 套模板要不要分组？',
+    o:['平铺 12 套（现状）','分 3 组×4 套','按纸感/暗夜/强背景分组'] },
+  { id:'C-5', q:'分页可干预度？',
+    o:['纯自动 + ---（现状）','加逐页手动调整','自动 + 单页重排'] },
+  { id:'C-6', q:'中栏下方的「整套图文结果」画廊？',
+    o:['删掉，只留预览（本原型）','保留画廊','预览条 + 画廊'] },
+  { id:'C-7', q:'撤销的范围？',
+    o:['只撤模板/色板/开关（本原型）','连正文一起撤','撤销 + 重做'] },
+  { id:'C-8', q:'水印 / 社交图标要不要补？',
+    o:['不补（签名够用）','补水印','补社交图标','两个都补'] },
+  { id:'C-9', q:'steps（步骤页）死代码怎么办？',
+    o:['接上产出（第X步独立成页）','删掉死分支','先留着不动'] },
+];
+const picks = {};
+
+function renderReview(){
+  $('revList').innerHTML = CS.map(c => `<div class="c">
+    <div class="q">${c.id} · ${c.q}</div>
+    <div class="o">${c.o.map(o =>
+      `<button data-c="${c.id}" data-o="${o}" aria-pressed="${picks[c.id]===o}">${o}</button>`).join('')}</div>
+  </div>`).join('');
+  $('revList').querySelectorAll('button[data-c]').forEach(b => b.onclick = () => {
+    picks[b.dataset.c] = b.dataset.o;
+    renderReview();
+    // C-2 / C-6 能当场看效果
+    if (b.dataset.c === 'C-2') document.querySelectorAll('.tpl .thumb').forEach(t => {
+      t.style.opacity = b.dataset.o === '保持文字卡' ? '.35' : '1';
+    });
+    if (b.dataset.c === 'C-6') {
+      document.querySelector('.deck-wrap > div:last-child').style.opacity =
+        b.dataset.o === '保留画廊' ? '1' : '.5';
+    }
+    $('revBtn').textContent = `☑ 评审：已选 ${Object.keys(picks).length} / ${CS.length} 项`;
+  });
+}
+
+$('revBtn').onclick = () => { $('revPanel').hidden = !$('revPanel').hidden; };
+$('revCopy').onclick = () => {
+  const txt = CS.map(c => `${c.id} ${c.q}\n   → ${picks[c.id] || '（未选）'}`).join('\n');
+  navigator.clipboard?.writeText(txt).then(() => toast('已复制选择清单'), () => toast('复制失败，请手动选'));
+};
+$('revReset').onclick = () => { for (const k in picks) delete picks[k]; renderReview();
+  $('revBtn').textContent = `☑ 评审：待拍板 ${CS.length} 项`; };
+
+/* 启动 */
+renderAll();
+renderReview();
+syncUndo();   // 无历史 → 撤销置灰（不压基线快照）
+</script>
+</body>
+</html>

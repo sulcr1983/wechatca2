@@ -99,27 +99,39 @@
 
 ## 3. 小红书长图文
 
+> 📌 **2026-11-03 更新：本模块的完整需求台账已独立成 `docs/requirements-xhs-longform.md`**
+> （需求真源 + 源码核对 + 缺口 + 待拍板项）。下面保留本节的板块级速览，
+> **以新文档为准**；两处冲突时按新文档。
+> 本次修正了 3 条过期结论（L-2 / L-3 / L-4），依据是 `python scripts/pwa_longform_test.py` **24/24 通过**。
+
 ### 3.1 现有能力（实测）
 
 | 维度 | 现状 | 数量 |
 |---|---|---|
 | 模板 | `LONG_TPLS`：editorial / swiss / notion / book / memo / polaroid / aura / night / doc / film / starry / blank | **12 套** |
 | 配色 | `PALETTES`：dune / forest / indigo / kraft / midnight / ikb / lemon / orange | **8 套** |
-| 分页 | `buildLong()` 自动分 7 类页型（封面 / 开篇 / 正文 / 金句 / 章节 / 清单 / 收尾） | 7 类 |
+| 分页 | `buildLong()` 实际产出 **6 类页型**：封面 / 开篇 / 清单 / 金句 / 正文 / 结尾（`ROLES` 里还有「步骤」，但 buildLong 从不产出 steps 页，见下注） | 6 类 |
 | 版式选项 | 显示页码 / 签名 / 内页背景图 | 3 项 |
-| 产物 | 成套 PNG + 打包 ZIP | 2 种 |
+| 产物 | 成套 PNG + 打包 ZIP + 逐张下载 | 3 种 |
 | 输入 | 整篇文章（首行 = 封面标题）；「用正文」从排版页导入 | — |
 | 存储 | `supersu.longform.prefs.v1`（longTpl/palKey/longPn/longSign/longBg） | 1 键 |
+
+> ⚠️ **`steps` 角色是死代码（2026-11-03 实测）**：`cards.js: ROLES` 定义了「步骤」，`cardInner` 里有
+> `else if (role === 'steps')` 渲染分支、CSS 也有 `.r-steps`，但 **`buildLong()` 里没有任何
+> `role: 'steps'` 的 push**（只产 opening/points/quote/dense/closing）。原文里「第 X 步」/「①」
+> 这类行会被 `parseBlocks` 标成 `type:'step'`，然后落进 dense 页按普通正文渲染。
+> 详见 `requirements-xhs-longform.md` §8 S-9。
 
 ### 3.2 真实缺口
 
 | # | 缺口 | 证据 | 优先级 |
 |---|---|---|---|
-| **L-1** | 12 套模板**一屏看不全**（960 高下右栏要滚） | 原型已修（模板区独立滚动），产品未落地 | P1 |
-| **L-2** | 配色 8 套里部分**不达 AA 对比度** | `HANDOFF.md` §8.1 第 4 条 | P1 |
-| **L-3** | 分页口径与「填充分档」未对齐 | 有 `pwa_longform_test.py` 产物级断言，但阈值口径在改 | P2 |
-| **L-4** | 内页背景图（上传 / 用作封面 / 清除）**原型未做** | `HANDOFF.md` §8.4 | P2 |
-| **L-5** | 「撤销上一版」没做（切了 15 次想退回） | `HANDOFF.md` §8.4 | P2 |
+| **L-1** | 12 套模板**一屏看不全**（960 高下右栏要滚） | 右栏 `cover.css:171` 为 `repeat(2,1fr)`、宽 ≤520px，12 套 × 2 列仍堆高超出；模板缩略图是**纯文字卡**不是真实渲染 | P1 |
+| ~~L-2~~ | ~~配色 8 套里部分**不达 AA**~~ → **已失效，结论有误** | 2026-11-03 复算：正文 ink 12.81–18.07、次要 muted 4.61–6.22、强调 at 5.59–10.23，**8/8 全部达 AA 4.5:1**。原证据（`HANDOFF.md` §8.1 第 4 条）不可复现 | — |
+| ~~L-3~~ | ~~分页口径与「填充分档」未对齐~~ → **已对齐** | `cards.js: packDense` 走 DOM 实测高度装箱 + 四个实测常量；`pwa_longform_test.py` 已按角色分档断言（dense 90.7% / points 95.7% / closing 87.4% / opening 110.5% / quote 92.1%），**24/24 通过** | — |
+| ~~L-4~~ | ~~内页背景图**原型未做**~~ → **已落地** | `#cv-longbg-pick/cover/clear` 全在；6 套模板可用、6 套禁用并给提示；铺图 + 纸色 85% 蒙层；封面不受影响；门禁有断言 | — |
+| **L-5** | 「撤销上一版」没做（切了 15 次想退回） | 长文模块 `grep undo/撤销` **0 命中**；原型也没有 | P2 |
+| **L-6** | `steps`（步骤页）是**死代码**：`ROLES` 定义了、`cardInner` 有分支、CSS 有 `.r-steps`，但 `buildLong()` 从不产出 steps 页 | `cards.js` 里只有 opening/points/quote/dense/closing 五处 push。原文的「第 X 步」行会落进 dense 按普通正文渲染 | P2 |
 
 **明确不做（已拍板）**：长图文配色**不并入**标题图的 20 套。两者来源不同（`cards.js: PALETTES` vs `catalog.js`），合并会让色卡大面积回落。
 
