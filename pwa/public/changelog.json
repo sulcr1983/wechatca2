@@ -1,7 +1,7 @@
 {
   "version": "1.17.0",
-  "generatedAt": "2026-11-03T11:56:30+08:00",
-  "totalCommits": 352,
+  "generatedAt": "2026-11-03T12:33:03+08:00",
+  "totalCommits": 353,
   "releases": [
     {
       "version": "1.17.0",
@@ -15,7 +15,7 @@
       ],
       "autoCut": false,
       "counts": {
-        "added": 12,
+        "added": 13,
         "changed": 24,
         "fixed": 6,
         "other": 17
@@ -25,6 +25,14 @@
           "type": "added",
           "label": "新增",
           "items": [
+            {
+              "text": "19 套整篇设计改为结构级差异化（19 套 → 19 种骨架）",
+              "scope": "layout",
+              "hash": "e35f5c8",
+              "date": "2026-11-03T12:25:12+08:00",
+              "breaking": false,
+              "dev": false
+            },
             {
               "text": "抽屉拆成「配色主题 / 整篇设计」两个 tab",
               "scope": "pwa",
