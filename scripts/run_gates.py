@@ -11,7 +11,7 @@
                工作区是否脏（只警告）、线上版本（仅 --online 时）
    1 本地层    **默认**：测本地 dist / 进程内源码，断网可跑，结果与当前工作区一一对应
    2 线上层    --online：打 https://supersu.ccwu.cc/，**部署后**验证真环境
-   3 有头层    --ui：164 套模板 × 3 夹具 + 8 版式 + 按钮 + 真实 AI（用本地 dist）
+   3 有头层    --ui：164 套模板 × 3 夹具 + 15 版式 + 按钮 + 真实 AI（用本地 dist）
    4 扩展层    --full：断网/首屏/轻量预览/模板体验/外链图/自动更新（较慢）
 
 用法：
@@ -133,12 +133,14 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
 
 SUITES_ONLINE = [  # 线上层（--online）：部署后用真环境验证
     ("release_card",   [PY, "scripts/pwa_release_card_test.py"],  "发布小票 9（打线上）", "online"),
-    ("online_e2e",     [PY, "scripts/pwa_online_e2e.py"],         "线上全量 97", "online"),
+    # 描述不写死断言总数：断言数会随条件分支（色点数 / 抽屉态）浮动，
+    # 写死就会像原来那样出现「说 97 实际 107」的假描述。真正该看的是日志。
+    ("online_e2e",     [PY, "scripts/pwa_online_e2e.py"],         "线上全量（含版式胶囊 6）", "online"),
 ]
 
 SUITES_UI = [  # 有头层（--ui）：较慢，用本地 dist 测当前代码
     ("headed_ui",      [PY, "scripts/pwa_headed_full_e2e.py", "--local"],
-                       "有头全量 51（164套×3夹具 + 8版式 + 3开关 + 按钮 + AI mock）", "local"),
+                       "有头全量（164套×3夹具 + 15版式 + 3开关 + 按钮 + AI mock）", "local"),
     ("real_ai",        [PY, "scripts/pwa_real_ai_test.py", "--local"],
                        "真实 AI 17（真调 DeepSeek，需 .env 有 Key）", "local"),
 ]

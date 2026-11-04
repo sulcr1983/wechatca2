@@ -280,13 +280,64 @@ def main() -> int:
         check("抽屉卡片已渲染", n0 > 0, "", f"{n0} 张")
         dw = page.eval_on_selector("#drawer", "e => Math.round(e.getBoundingClientRect().width)")
         check("抽屉加宽（桌面 500）", dw >= 480, "", dw)
-        th = page.eval_on_selector(".d-prev", "e => Math.round(e.getBoundingClientRect().height)")
-        check("抽屉缩略图放大", th >= 96, "", th)
+        # 2026-11-04 修：原断言是「缩略图高度 ≥ 96」——那是**固定 height:104px 时代**的标准。
+        # P4-4（定稿 §1.3）已把缩略图改成 aspect-ratio:2/1「裁剪归零」，高度随卡片宽度走：
+        # 144px 宽卡片 → 图高 72，实测 65（含内边距），必然 < 96。
+        # 所以要守的不是「某个像素高度」，而是 P4-4 真正承诺的两件事：
+        #   ① 比例是 2:1（不裁图的立身之本 —— 比例跑偏就会重新裁字）
+        #   ② 没有塌陷（P4-4 注释实测过：min-height 写 0/auto 会让卡片塌到 4px，
+        #      缩略图与标题条双双消失，那才是真故障）
+        box = page.eval_on_selector(
+            ".d-prev",
+            "e => { const r = e.getBoundingClientRect();"
+            " return { w: Math.round(r.width), h: Math.round(r.height) }; }")
+        ratio = box["w"] / box["h"] if box["h"] else 0
+        check("缩略图比例为 2:1（P4-4 不裁图）", abs(ratio - 2) <= 0.2,
+              "2:1", f"{box['w']}×{box['h']} = {ratio:.2f}")
+        check("缩略图未塌陷（高度 ≥ 60）", box["h"] >= 60, "≥60", box["h"])
 
         page.fill("#drawer-search", "商务"); page.wait_for_timeout(500)
         n1 = drawer_count(page)
         check("抽屉搜索过滤", 0 < n1 < n0, f"{n0}", f"{n1}")
         page.fill("#drawer-search", ""); page.wait_for_timeout(500)
+
+        # ── 3b. 版式胶囊（2026-11-04 补：线上层原来是盲区）────────────
+        # 背景：2026-11-03 版式入口 8 → 15（新增 7 个报刊版式）。
+        # 本地专项 pwa_magazine_layout_test.py 守着渲染层，但**线上没人守** ——
+        # dist 构错、部署漏文件、缓存发错版本，线上少几个胶囊或点了没反应都发现不了。
+        lay_chips = page.locator("#drawer-layouts .dl-chip")
+        check("版式胶囊 15 个（线上）", lay_chips.count() == 15, 15, lay_chips.count())
+        lay_groups = page.locator("#drawer-layouts .dl-group").count()
+        check("版式分「通用/报刊」两段", lay_groups == 2, 2, lay_groups)
+        lay_names = lay_chips.all_inner_texts()
+        MAG_NEW = ["朱丝栏", "天头", "鱼尾", "乌丝栏", "版心", "算经", "三道"]
+        missing = [n for n in MAG_NEW if n not in lay_names]
+        check("7 个报刊版式都在线上", not missing, "7/7",
+              "缺 " + str(missing) if missing else "7/7")
+
+        def lay_sig(pg) -> str:
+            """预览签名：srcdoc 长度 + 颜色数（预览是 iframe，读 innerHTML 恒为空）"""
+            return pg.evaluate(
+                "(() => { const f=document.getElementById('preview');"
+                " const s = f ? (f.srcdoc || '') : '';"
+                " const c = (s.match(/#[0-9a-fA-F]{6}/g) || []).length;"
+                " return s.length + ':' + c; })()")
+
+        # 抽 3 个真点（15 个全点太慢），确认线上产物真的跟着变而不是「点了没反应」
+        base_sig = lay_sig(page)
+        for lay_id, lay_name in (("time", "朱丝栏"), ("vogue", "版心"), ("adidas", "三道")):
+            page.click(f'#drawer-layouts .dl-chip[data-layout="{lay_id}"]')
+            page.wait_for_timeout(1600)
+            on = page.evaluate(
+                f"() => document.querySelector('#drawer-layouts .dl-chip[data-layout=\"{lay_id}\"]')"
+                ".classList.contains('on')")
+            sig = lay_sig(page)
+            check(f"报刊版式「{lay_name}」线上生效", bool(on) and sig != base_sig,
+                  f"≠{base_sig}", f"{sig} 选中={on}")
+            base_sig = sig
+        # 回到默认，避免把 layout 覆盖留给后面的模板断言
+        page.click('#drawer-layouts .dl-chip[data-layout=""]')
+        page.wait_for_timeout(1200)
 
         chips = page.locator(".fchip").count()
         n2 = drawer_count(page)
