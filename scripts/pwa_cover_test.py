@@ -93,7 +93,11 @@ def main() -> int:
 
             # ── 入口切换 ──
             page.click("#btn-cover")
-            page.wait_for_selector("#title-root:not([hidden])", timeout=10000)
+            # ⚠️ 2026-11-04：10s → 30s。封面页是**按需加载**（cover/index.js 动态 import
+            # + 依赖 Pyodide 引擎就绪），冷启动实测常超 10s，于是「标题图页打开」
+            # 时红时绿（同一份代码 322s 过、也有 10s 直接崩）。这里等的是
+            # 「页面模块加载完」不是业务结果，放宽超时不影响断言强度。
+            page.wait_for_selector("#title-root:not([hidden])", timeout=30000)
             check("标题图页打开", page.is_visible("#title-root"))
 
             # 2026-10-27 三栏改版：左栏不再有标签，所有控件同屏可见，
@@ -641,10 +645,18 @@ def main() -> int:
             # 「断网」用例自己会制造网络错误（Playwright set_offline 在本地 dist 下
             # 报的是 504 (Offline)，不是 ERR_INTERNET_DISCONNECTED）——这三类属预期，不算 JS 异常。
             # ⚠️ 只放行这三条精确特征，不放行全部 Failed to load resource（真 404 仍要红）。
+            #
+            # 2026-11-04 补第四种：`net::ERR_CONNECTION_REFUSED`。
+            # 断网瞬间对本地静态服务的在途请求会被拒，实测会冒 1~3 条，数量随
+            # 网络时序浮动 —— 原来没放行，于是这一项时红时绿（同一份代码 60s 过、281s 红）。
+            # 但**不能无条件放行**：只有出现在断网区间内的才放行，
+            # 正常阶段若连接被拒（服务挂了 / 端口错）必须仍然报红。
+            offline_set = set(offline_errors)
             real_errors = [e for e in errors
                            if "Failed to fetch" not in e
                            and "net::ERR_INTERNET_DISCONNECTED" not in e
-                           and "504 (Offline)" not in e]
+                           and "504 (Offline)" not in e
+                           and not ("net::ERR_CONNECTION_REFUSED" in e and e in offline_set)]
             check("无 JS 控制台报错", not real_errors, "; ".join(real_errors[:3]))
             if offline_errors:
                 print(f"  （断网阶段另有 {len(offline_errors)} 条网络错误，已归入预期）", flush=True)
