@@ -55,6 +55,7 @@
     <button class="icon-btn" id="btn-ai" aria-label="AI 工具" title="AI 工具（自备 API Key）">AI</button>
     <button class="icon-btn" id="btn-more" aria-label="更多" aria-expanded="false">⋯</button>
     <div class="menu" id="menu" hidden>
+      <button data-act="settings">设置</button>
       <button data-act="export-menu">导出与分发</button>
       <button data-act="ai-tools">AI 工具</button>
       <button data-act="draft">恢复草稿</button>
@@ -286,14 +287,9 @@
     <button class="ghost-btn df-reset" id="df-reset" type="button">原样</button>
     <span class="df-note" id="df-note">按各套设计等比缩放，标题一起缩放</span>
   </div>
-  <!-- 自定义配色（最小版）：三个原生取色器，改完立即生效并存本机 -->
-  <div class="drawer-custom" id="drawer-custom">
-    <span class="dc-label">自定义配色</span>
-    <label class="dc-item">底色<input type="color" id="dc-bg" aria-label="背景色"></label>
-    <label class="dc-item">正文<input type="color" id="dc-text" aria-label="正文色"></label>
-    <label class="dc-item">强调<input type="color" id="dc-accent" aria-label="强调色"></label>
-    <button class="ghost-btn dc-reset" id="dc-reset" type="button">恢复</button>
-  </div>
+  <!-- 配色微调已迁入「设置」弹窗（2026-11-03 P4-2，定稿 §3.2「低频项进弹窗」）。
+       这里只留一个指向弹窗的提示，避免用户在抽屉里找不到。 -->
+  <div class="drawer-custom" id="drawer-custom" hidden></div>
 </aside>
 
 <!-- ── 关于 ───────────────────────────────────────────────────── -->
@@ -314,6 +310,65 @@
       <span>·</span>
       <a href="https://github.com/sulcr1983/wechatca2/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">第三方许可</a>
     </p>
+  </div>
+</div>
+
+<!-- ── 设置弹窗（低频项，2026-11-03 P4-2，定稿 §3.2）──────────────
+     设计依据：高频/中频（配色主题 / 整篇设计 / 版式 / 段落强调 / 字号）留抽屉，
+     低频（配色微调 / 页尾 / 数据）收进这里，抽屉就只剩「选什么风格」这件事。 -->
+<div class="dialog-mask" id="settings-mask" hidden></div>
+<div class="dialog" id="settings-dlg" hidden role="dialog" aria-modal="true">
+  <div class="dialog-head">
+    <div class="dialog-title"><b>设置</b></div>
+    <button class="icon-btn" id="btn-settings-close" aria-label="关闭">×</button>
+  </div>
+  <div class="dialog-body">
+    <div class="set-sec">
+      <div class="set-h">排版</div>
+      <div class="set-row set-col">
+        <div class="set-l">
+          <b>背景</b>
+          <em id="set-bg-note">只改整页底色，不动标题/正文/列表样式，与配色自由组合。</em>
+        </div>
+        <div class="tw-bgs" id="set-grid-bg"></div>
+      </div>
+      <div class="set-row">
+        <div class="set-l">
+          <b>配色微调</b>
+          <em>临时改当前主题的底色 / 正文 / 强调色，不影响已保存的主题。切换主题后恢复。</em>
+        </div>
+        <div class="set-ctl">
+          <label class="dc-item">底色<input type="color" id="dc-bg" aria-label="背景色"></label>
+          <label class="dc-item">正文<input type="color" id="dc-text" aria-label="正文色"></label>
+          <label class="dc-item">强调<input type="color" id="dc-accent" aria-label="强调色"></label>
+          <button class="ghost-btn dc-reset" id="dc-reset" type="button">恢复</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-h">内容</div>
+      <div class="set-row set-col">
+        <label class="set-sw">
+          <input type="checkbox" id="tail-on">
+          <span><b>附加页尾内容</b>
+            <em>独立于正文，自动附在末尾。支持 Markdown。</em></span>
+        </label>
+        <textarea id="tail-md" class="set-ta" rows="4"
+          placeholder="**关于作者**&#10;&#10;专注公众号排版与内容设计。&#10;&#10;**如果觉得有价值，请点赞、分享或收藏。**"></textarea>
+      </div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-h">数据</div>
+      <div class="set-row set-col">
+        <div class="set-btns">
+          <button class="ghost-btn" id="set-backup" type="button">备份 / 恢复</button>
+          <button class="ghost-btn" id="set-clear" type="button">清除本地数据</button>
+        </div>
+        <p class="set-note">设置与草稿都存在本机浏览器，不上传服务器。</p>
+      </div>
+    </div>
   </div>
 </div>
 
