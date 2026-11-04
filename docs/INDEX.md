@@ -308,8 +308,8 @@ docs/prototypes/
 | **E-5** | `docs/prototypes/data/` 与 `xhs/v2/assets/` 未入库，新 clone 缺缩略图与字体 | 🟡 已知，需重跑脚本 |
 | **E-6** | 线上层原来**完全没覆盖版式胶囊**（`grep dl-chip` = 0），版式扩项上线无人守 | ✅ 2026-11-04 补 6 项（15 个胶囊 / 分两段 / 7 个报刊名 / 抽点 3 个验产物） |
 | **E-7** | `online_e2e` 的「缩略图高度 ≥96」是固定 104px 时代的旧标准；P4-4 改 `aspect-ratio:2/1` 后必然 65 | ✅ 2026-11-04 改守「比例 2:1 + 未塌陷 ≥60」（定稿 §1.3 的真正承诺） |
-| **E-8** | `pwa_auto_update_test.py` 有 1 条真 FAIL：改写 BUILD_ID 后 90s 内未自动刷新（3/4） | 🔴 待查，**归属更新模块那轮**，非版式改动 |
-| **E-9** | `run_gates --full` 会挂死超 30 分钟（本地层跑完后卡在扩展层，4 python + 8 chrome 全空转） | 🔴 待查；单独跑各扩展套件均正常（offline 10/10 · s1s3 9/9 · light_preview 6/6 · template_ux 5/5） |
+| **E-8** | `pwa_auto_update_test.py` 有 1 条真 FAIL：改写 BUILD_ID 后 90s 内未自动刷新（3/4） | 🔴 待查，**归属更新模块那轮**（`pwa/src/update/*` 正由另一条线在改，不擅自碰） |
+| **E-9** | `run_gates --full` 挂死超 30 分钟 | ✅ 2026-11-04 已修（三条根因叠加） | ① 默认超时 1800s + 收集完才写日志 = 「静默 30 分钟」；② `PARALLEL_SAFE={cover,theme_drawer}` 抢 Pyodide → cover 18s 假红（单跑 322s 通过）；③ 超时丢输出 + 只杀直接子进程（chrome 残留）。已清空并行组、超时 900s、保留死前输出、按进程树杀、加 PYTHONUNBUFFERED |
 
 ---
 
