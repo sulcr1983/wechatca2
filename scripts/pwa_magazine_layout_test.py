@@ -96,15 +96,21 @@ def ui_labels() -> dict[str, str]:
 
 
 def render(md: str, theme_id: str, layout: str) -> str:
+    """用固定探针文件渲染（**覆盖写，绝不删除**）。
+
+    ⚠️ 2026-11-04 血的教训：原写法每次渲染都 `tmp.unlink()`，一个套件要渲染
+    13 版式 × 3 主题 + 若干次 = 50 多次删除。而执行环境有「累计删除」保护
+    （阈值 50），超了直接抛 SAFE_DELETE_BULK_CONFIRM_REQUIRED —— 表现是
+    **所有断言都 PASS，但进程退出码 1**，门禁判成 FAIL，且报错里看不出跟
+    断言有关（和 pwa_auto_update_test.py 注释里记的是同一个坑）。
+    改成固定文件覆盖写：不产生任何删除操作，output/ 已被 gitignore。
+    """
     th = json.loads((THEMES / f"{theme_id}.json").read_text(encoding="utf-8"))
     th["layout"] = layout
     tmp = ROOT / "output" / "_mag_layout_probe.json"
     tmp.parent.mkdir(parents=True, exist_ok=True)
     tmp.write_text(json.dumps(th, ensure_ascii=False), encoding="utf-8")
-    try:
-        return convert_markdown_to_wechat_html(md, str(tmp))
-    finally:
-        tmp.unlink(missing_ok=True)
+    return convert_markdown_to_wechat_html(md, str(tmp))
 
 
 def plain(html: str) -> str:

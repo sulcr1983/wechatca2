@@ -207,12 +207,16 @@ def main() -> int:
             page.fill("#input", RICH)
             page.wait_for_timeout(1100)
             page.click("#btn-themes")
-            page.wait_for_timeout(400)
+            # ⚠️ 2026-11-04 修 flaky：原来固定等 400ms 就数 chip，抽屉渲染 183 套网格
+            # 慢于 400ms 时 chip 还是 0 个 → 「家族筛选条 0 个」假红（门禁里偶发、
+            # 单跑几乎不复现，典型时序抖动）。改成**等元素真出现**（禁止固定 sleep 判定）。
+            page.wait_for_selector("#drawer-filters .fchip", timeout=20000)
 
             chips = page.locator("#drawer-filters .fchip").count()
             check("家族筛选条有 9 个 chip（全部/收藏/7 类）", chips == 9, f"{chips} 个")
 
             # ① 全部视图：族代表卡 → 进入族视图
+            page.wait_for_selector(".d-family-card", timeout=20000)
             reps = page.locator(".d-family-card").count()
             check("全部视图有 7 张族代表卡", reps == 7, f"{reps} 张")
             page.locator(".d-family-card").first.click()
@@ -268,32 +272,49 @@ def main() -> int:
             check("七族全部色调可点可切换", applied == sum(FAMILIES.values()),
                   f"{applied}/{sum(FAMILIES.values())}")
 
-            # ③ 全部 164 套：搜索逐个应用，确认没有点不动的模板
-            #    --smoke 跳过这一段：164 次搜索+点击+断言是本套件的主要耗时来源
+            # ③ 全部模板：搜索逐个应用，确认没有点不动的模板
+            #    --smoke 跳过这一段：183 次搜索+点击+断言是本套件的主要耗时来源
             #    （单跑约 167s）。结构与族/色逻辑已在上面验过，日常前端改动用
             #    --smoke 足够；完整遍历留给 --full-gates。
+            #
+            # ⚠️ 2026-11-04 修（两处过期）：
+            #   1) 原来在「配色主题」tab 下拿**全部 183 个 id** 去搜 —— 但搜索只在
+            #      当前 tab 的池子里（app.js 的 poolThemes()），19 套 kit 的 id（mg-*）
+            #      在配色池里永远搜不到，必然 19 条假红。实测 164/183 就是这 19 套。
+            #      → 按 tab 分组：配色池搜 su-*，整篇设计池搜 mg-*。
+            #   2) 文案「164 套」是旧数字（kit 从 15 涨到 19 后就变 183 了）。
             if args.smoke:
-                print("  SKIP  164 套逐个应用（--smoke，完整验证请去掉该参数）", flush=True)
-                bad = []
-            else:
-                bad = []
+                print("  SKIP  全模板逐个应用（--smoke，完整验证请去掉该参数）", flush=True)
             page.click("#drawer-filters .fchip[data-fam='all']")
             page.wait_for_timeout(250)
-            for tid in ([] if args.smoke else all_ids):
-                page.fill("#drawer-search", tid)
-                page.wait_for_timeout(90)
-                card = page.locator(f".d-card[data-id='{tid}']")
-                if card.count() == 0:
-                    bad.append(f"{tid}:搜索无结果")
+            palette_ids = [i for i in all_ids if not i.startswith("mg-")]
+            kit_ids = [i for i in all_ids if i.startswith("mg-")]
+            for tab, ids, label in (("palette", palette_ids, "配色主题"),
+                                    ("kit", kit_ids, "整篇设计")):
+                if args.smoke:
                     continue
-                card.first.click()
-                page.wait_for_timeout(120)
-                if active(page) != tid:
-                    bad.append(f"{tid}:未切换")
-            check("全部 164 套模板逐个可应用", not bad,
-                  f"{len(all_ids) - len(bad)}/{len(all_ids)}" + (f" · 失败 {bad[:3]}" if bad else ""))
-            page.fill("#drawer-search", "")
-            page.wait_for_timeout(200)
+                page.click(f'.mode-tab[data-mode="{tab}"]')
+                page.wait_for_timeout(300)
+                bad: list = []
+                for tid in ids:
+                    page.fill("#drawer-search", tid)
+                    page.wait_for_timeout(90)
+                    card = page.locator(f".d-card[data-id='{tid}']")
+                    if card.count() == 0:
+                        bad.append(f"{tid}:搜索无结果")
+                        continue
+                    card.first.click()
+                    page.wait_for_timeout(120)
+                    if active(page) != tid:
+                        bad.append(f"{tid}:未切换")
+                check(f"{label}全部 {len(ids)} 套逐个可应用", not bad,
+                      f"{len(ids) - len(bad)}/{len(ids)}"
+                      + (f" · 失败 {bad[:3]}" if bad else ""))
+            if not args.smoke:
+                # 切回配色 tab（后续断言都按配色池的口径）
+                page.click('.mode-tab[data-mode="palette"]')
+                page.fill("#drawer-search", "")
+                page.wait_for_timeout(200)
 
             # ③b 搜索空态必须有出口（U-8，2026-10-24）：不能是死空白
             page.fill("#drawer-search", "zzz不存在的主题zzz")

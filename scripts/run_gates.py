@@ -158,10 +158,18 @@ ALL_SUITES = SUITES_LOCAL + SUITES_ONLINE + SUITES_UI + SUITES_FULL
 QUICK = {"ai_preset", "ai_format", "layout_compat"}
 
 # 可以同时跑的套件：彼此端口/浏览器/临时目录互不干扰。
-# 挑的是耗时最大的两个（实测 cover 约 280s、theme_drawer 约 170s，合计占本地层 75%）。
-# ⚠️ 只放「起自己的静态服务 + 自己的 Playwright 实例」的套件；
-#    端口已经改为系统分配（bind 0），所以并行不会撞端口。
-PARALLEL_SAFE = {"cover", "theme_drawer"}
+#
+# ⚠️ 2026-11-04 实测后**清空**：并行确实不撞端口（都 bind 0 了），但会**抢 Pyodide**。
+#  cover 与 theme_drawer 同时起有头浏览器，各自加载 27MB Pyodide，引擎在 10 秒内
+#  根本进不了 ready —— cover 卡在 `#title-root` 的 10s 超时上，18 秒就 rc=1 假红；
+#  单独跑同一个 cover 是 322 秒、50/50 通过。并行本想省时间，实际换来的是假红 +
+#  更长的排障时间，一点不划算。
+#  更要命的是它把 --full 拖成"30 分钟不动"：cover 在并发下跑满 run_step 的默认
+#  1800s 超时，而超时又把已收集输出全丢了（见 run_step），看起来就像永久挂死。
+#
+# 结论：**保持空集**。真要让重 E2E 快起来，正确方向是让它们各自少跑几套模板，
+# 不是让两个 E2E 抢同一台机器的 CPU。
+PARALLEL_SAFE: set[str] = set()
 
 
 # ── 有头（E2E）套件：只在**真的改了前端**时才跑 ────────────────────
@@ -334,7 +342,23 @@ def now() -> str:
 _LOG_LOCK = threading.Lock()
 
 
-def run_step(name: str, cmd: list, desc: str, target: str, log, timeout: int = 1800):
+def _kill_tree(pid: int) -> None:
+    """按进程树杀子进程（Windows）。
+
+    ⚠️ subprocess 超时只会 kill 直接子进程；套件自己拉起的 Chrome 是**孙进程**，
+    会原地留一堆空转窗口（2026-11-04 实测：一次 --full 超时留下 8 个 chrome）。
+    """
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
+                           capture_output=True, timeout=30)
+        else:
+            os.kill(pid, 9)
+    except Exception:
+        pass
+
+
+def run_step(name: str, cmd: list, desc: str, target: str, log, timeout: int = 900):
     with _LOG_LOCK:
         log.write(f"\n{'=' * 64}\n[{now()}] {name} — {desc}（{target}）\n"
                   f"  $ {' '.join(str(c) for c in cmd)}\n")
@@ -349,14 +373,29 @@ def run_step(name: str, cmd: list, desc: str, target: str, log, timeout: int = 1
     # 单跑全过，就是这一个原因。
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
+    # ⚠️ 2026-11-04：必须关掉子进程的输出缓冲。走管道时 Python 是块缓冲，
+    # 套件跑到一半卡住时日志里**一个字都没有**，根本没法判断它卡在哪一步
+    # （那次 --full「30 分钟零日志」就是这么来的）。
+    env["PYTHONUNBUFFERED"] = "1"
+    out = ""
+    ok = False
+    # 用 Popen 而不是 subprocess.run：超时时要拿到 **PID** 才能按进程树杀
+    # （run 只 kill 直接子进程，套件拉起的 Chrome 会留成孤儿子进程）。
+    proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+                            errors="replace")
     try:
-        r = subprocess.run(cmd, cwd=ROOT, env=env, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT, text=True, encoding="utf-8",
-                           errors="replace", timeout=timeout)
-        out = r.stdout or ""
-        ok = r.returncode == 0
+        out, _ = proc.communicate(timeout=timeout)
+        ok = proc.returncode == 0
     except subprocess.TimeoutExpired:
-        out, ok = "", False
+        _kill_tree(proc.pid)
+        # 杀完再收一次尾，把死前已写进管道的内容捞出来
+        try:
+            out, _ = proc.communicate(timeout=20)
+        except Exception:
+            out = ""
+        out = (out or "") + f"\n[门禁] ⛔ 超时 {timeout}s，已强制终止（以上为死前输出）\n"
+        ok = False
     dur = time.time() - t0
     with _LOG_LOCK:
         log.write(out[-20000:] + f"\n[{now()}] {name} → {'PASS' if ok else 'FAIL'}（{dur:.0f}s）\n")
