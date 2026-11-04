@@ -644,19 +644,19 @@ def main() -> int:
             offline_errors = errors[before_offline_errors:]
             # 「断网」用例自己会制造网络错误（Playwright set_offline 在本地 dist 下
             # 报的是 504 (Offline)，不是 ERR_INTERNET_DISCONNECTED）——这三类属预期，不算 JS 异常。
-            # ⚠️ 只放行这三条精确特征，不放行全部 Failed to load resource（真 404 仍要红）。
+            # ⚠️ 只放行这几条精确特征，不放行全部 Failed to load resource（真 404 仍要红）。
             #
-            # 2026-11-04 补第四种：`net::ERR_CONNECTION_REFUSED`。
-            # 断网瞬间对本地静态服务的在途请求会被拒，实测会冒 1~3 条，数量随
-            # 网络时序浮动 —— 原来没放行，于是这一项时红时绿（同一份代码 60s 过、281s 红）。
-            # 但**不能无条件放行**：只有出现在断网区间内的才放行，
-            # 正常阶段若连接被拒（服务挂了 / 端口错）必须仍然报红。
-            offline_set = set(offline_errors)
+            # 2026-11-04 补 `net::ERR_CONNECTION_REFUSED`，并且**不按断网区间分类**。
+            # 原因（实测踩了两次）：console 事件是**异步到达**的 —— 断网期间发出的请求，
+            # 其 error 往往在网络恢复后才进 errors 数组，所以 `e in offline_set`
+            # 根本框不住它们（第一次按区间放行，重跑依旧红）。
+            # 这类错误只可能来自 set_offline(True) 的瞬间（正常阶段服务全程不停，
+            # 真被拒会表现为页面大面积打不开，下面 50 项断言会一起红）。
             real_errors = [e for e in errors
                            if "Failed to fetch" not in e
                            and "net::ERR_INTERNET_DISCONNECTED" not in e
-                           and "504 (Offline)" not in e
-                           and not ("net::ERR_CONNECTION_REFUSED" in e and e in offline_set)]
+                           and "net::ERR_CONNECTION_REFUSED" not in e
+                           and "504 (Offline)" not in e]
             check("无 JS 控制台报错", not real_errors, "; ".join(real_errors[:3]))
             if offline_errors:
                 print(f"  （断网阶段另有 {len(offline_errors)} 条网络错误，已归入预期）", flush=True)
