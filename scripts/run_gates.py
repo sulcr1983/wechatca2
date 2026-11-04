@@ -397,13 +397,13 @@ def run_step(name: str, cmd: list, desc: str, target: str, log, timeout: int = 9
         out = (out or "") + f"\n[门禁] ⛔ 超时 {timeout}s，已强制终止（以上为死前输出）\n"
         ok = False
     dur = time.time() - t0
-    if not ok:
-        # ⚠️ 2026-11-04：**失败后立刻清残留浏览器**。
-        # 原来只在整轮结束时清一次，于是「一个套件崩了 → 它的 Chrome 还在抢 CPU
-        # 和内存 → 后面的套件全变慢 → 等超时 → 又崩一个」形成雪崩。
-        # 实测一次 --full 里滚到 28 个 chrome，longform 从 20s 变成 74s、
-        # ppmode 从 15s 变成 112s，全线假红。这不是套件本身有问题，是被前一个拖死的。
-        _cleanup_stray()
+    # ⚠️ 2026-11-04：**每个套件跑完都清一次残留浏览器**（成功也清）。
+    # 只清「失败后」不够 —— 成功的套件也可能留下自己的 Chrome（套件内部有多个
+    # page/context 时不一定全关干净），而残留会占 CPU/内存，让**后续**套件变慢到超时。
+    # 实测：ai_preset 成功(16s) → ai_format 却 262s 失败(「引擎还没就绪」)，
+    # 但 ai_format 单跑 27/27、26s 通过 —— 就是被上一个的残留拖死的。
+    # 用 kill_test_processes --browsers-only，只杀测试专用浏览器，不碰用户自己开的。
+    _cleanup_stray()
     with _LOG_LOCK:
         log.write(out[-20000:] + f"\n[{now()}] {name} → {'PASS' if ok else 'FAIL'}（{dur:.0f}s）\n")
         log.flush()
