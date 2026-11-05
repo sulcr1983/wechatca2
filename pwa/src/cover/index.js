@@ -25,6 +25,15 @@ function showPage(page) {
   if (!['editor', 'title', 'longform'].includes(page)) return;
   currentPage = page;
   const editor = page === 'editor';
+  /* 风格库属于公众号排版页；切到标题图/长图文时必须一起收起，
+     否则右侧「公众号全部风格」会盖在新页面上（2026-11-06 反馈）。 */
+  if (!editor) {
+    const dr = $('drawer');
+    const dm = $('drawer-mask');
+    if (dr) dr.hidden = true;
+    if (dm) dm.hidden = true;
+    document.body.classList.remove('browsing');
+  }
   $('stage').hidden = !editor;
   $('tabs').hidden = !editor;
   const tr = $('title-root');
