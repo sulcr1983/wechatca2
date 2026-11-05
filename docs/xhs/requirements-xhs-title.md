@@ -198,7 +198,7 @@
 | T-OUT-4 | 托盘不自动消失（约 9 秒），且画布必须让位（`padding-bottom`） | 待落地 | 同 §3 |
 | T-OUT-5 | 九宫格打开即逐格算内容覆盖率，不足 3 格出黄条预警 | 待落地（`pwa/src/nine.js` 目前无覆盖率判定） | `design-xhs-studio-final.md` §9 |
 | T-OUT-6 | 「把标题放大铺满」一键复用 `tmode = poster`，不新造九宫格版式 | 待落地 | 同 §9 |
-| T-OUT-7 | 九宫格专用版式（切出 9 张都好看）是否需要 | 待决策（用户曾表示「要专用版式」） | `wechat/requirements-three-modules.md` T-2、`review-xhs-studio-adversarial.md` §7 第 3 条 |
+| T-OUT-7 | 九宫格专用版式（切出 9 张都好看）是否需要 | ✅ 2026-11-06 已实现：`nine` 版式 + 逐格预警（10 版式 / 28 配色） | `wechat/requirements-three-modules.md` T-2、`review-xhs-studio-adversarial.md` §7 第 3 条 |
 | T-OUT-8 | 空标题时不输出占位文字图（禁用或提示） | 待验收 | `ux-spec-xhs-studio.md` C23 |
 | T-OUT-9 | 导出/保存任何时刻都在 1 次滚动范围内；手机端常驻底部 | 待验收 | 同 C8 |
 
