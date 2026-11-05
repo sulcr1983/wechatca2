@@ -208,7 +208,7 @@ python scripts/pwa_update_panel_test.py   # 更新面板 11/11（本地 dist 真
                                           # 点「立即重启」自动完成并刷新 → 更新记录「本次 N 条」N>0 → 反馈入口指向邮箱）
 python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG / HTML 自包含 / Markdown / 图片 ZIP / 移动端不溢出）
 python scripts/pwa_image_localize_test.py # PWA 外链图本地化 12/12（渲染后抓取转 data URI；失败必给原因）
-python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 12 风格 / 3 尺寸 / 上传 / 搜图 / 断网生成
+python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 10 种版式 / 28 种配色 / 3 尺寸 / 上传 / 搜图 / 断网生成
 python scripts/pwa_nine_test.py           # PWA 九宫格切图 15/15（真下载 ZIP 解包读像素：裁剪/顺序/间距/移动端）
 python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 97 项（2026-10-24 实测 94 PASS + 3 SKIP；含 AI 平台预设 3 断言）
 python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排查离线可用性用）
@@ -284,7 +284,7 @@ python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排
 # · 轻量即时预览：引擎未就绪时用 marked(12KB br) + 主题 styles 出近似排版，badge 标「快速预览」，
 #   **复制按钮锁到精确结果**；引擎空闲时启动，就绪后原地替换。
 # · 小红书封面（2026-10-19）：`pwa/src/cover/*` + `public/cover-templates`（构建时清洗 10 套）
-#   + `public/vendor/modern-screenshot.js`（MIT，离屏 iframe → PNG）。12 风格 =
+#   + `public/vendor/modern-screenshot.js`（MIT，离屏 iframe → PNG）。28 种配色 / 10 种版式 =
 #   归藏 2（editorial/swiss，3 尺寸 3:4 / 1:1 / 21:9）+ 模板 10（仅 3:4）。
 #   底图三选一：纯色 / 上传 / 联网搜图（Pexels 单源，需用户填免费 Key；
 #   中文关键词走内置场景词表映射成英文，国内不可达时提示改用上传）。

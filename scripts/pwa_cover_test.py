@@ -1,6 +1,6 @@
 """PWA 封面有头测试：起静态服务 → 系统 Chrome 跑完整封面链路。
 
-覆盖：入口切换 / 9 个版式 + 25 种配色 / 3 尺寸 / 归藏与模板与新版式出图 / 上传底图 /
+覆盖：入口切换 / 10 个版式 + 28 种配色 / 3 尺寸 / 归藏与模板与新版式出图 / 上传底图 /
       联网搜图（仅 Pexels，验无 Key 指引 + 真实搜索）/ 下载链接 / 窄屏布局 / 断网生成。
 
 用法：.venv/Scripts/python.exe scripts/pwa_cover_test.py
@@ -186,9 +186,9 @@ def main() -> int:
             n_single = page.evaluate(
                 "() => [...document.querySelectorAll('.cv-style')]"
                 ".filter(c => !c.querySelector('.cv-dot')).length")
-            check("9 个版式卡（结构不同）", n_cards == 9, f"{n_cards} 张")
-            check("25 种配色 = 22 个色点 + 3 张单色卡",
-                  n_dots + n_single == 25 and n_single == 3,
+            check("10 个版式卡（结构不同）", n_cards == 10, f"{n_cards} 张")
+            check("28 种配色 = 25 个色点 + 3 张单色卡",
+                  n_dots + n_single == 28 and n_single == 3,
                   f"色点 {n_dots} + 单色卡 {n_single}")
             thumb_ratio = page.evaluate(
                 "() => { const i = document.querySelector('.cv-style-thumb');"

@@ -54,7 +54,7 @@ export const TEMPLATE_STYLES = [
   { id: 'swiss-safety-orange', name: '安全橙', group: '模板', layout: 'swiss-tpl', paletteName: '安全橙', sizes: ['xhs'], swatch: '#fafaf8', accent: '#FF6B35', thumb: './cover-thumbs/swiss-safety-orange.png' },
 ];
 
-/* 新增 4 个版式（2026-10-29）：从 references/layout-recipes.md 的 28 条配方里
+/* 新增 5 个版式（2026-10-29 四个 + 2026-11-06 九宫格）：从 references/layout-recipes.md 的 28 条配方里
  * 挑使用频率最高的四条先落地 —— 图文封面(M16/S08)、金句(M04)、编号大字、清单(M05)。
  * 每个版式配 3 套色板，卡内可换色；只出 3:4（与 10 套模板一致，先不给方图/横版）。 */
 export const LAYOUT_PALETTES = [
@@ -79,6 +79,7 @@ const LAYOUT_DEFS = [
   { id: 'image-led', name: '图文封面', note: '标题压在图上，最像小红书爆款' },
   { id: 'quote', name: '金句', note: '居中大字 + 署名，适合观点' },
   { id: 'number', name: '编号大字', note: '超大编号当主视觉，适合「5 个方法」' },
+  { id: 'nine', name: '九宫格', note: '3×3 网格，切成九张每张都有内容' },
   { id: 'list', name: '清单', note: '编号条目，干货与推荐' },
 ];
 
@@ -110,6 +111,7 @@ export const LAYOUTS = [
   { id: 'bigtype', name: '大字版', note: '纯文字，不用底图也成立' },
   { id: 'list', name: '清单', note: '编号条目，干货与推荐' },
   { id: 'number', name: '编号大字', note: '超大编号当主视觉' },
+  { id: 'nine', name: '九宫格', note: '3×3 网格，切成九张每张都有内容' },
   { id: 'swiss', name: '瑞士封面', note: '白纸细体大字，克制有力' },
   { id: 'magazine-tpl', name: '杂志模板', note: '6 套官方杂志配色' },
   { id: 'swiss-tpl', name: '瑞士模板', note: '4 套强调色，仅 3:4' },

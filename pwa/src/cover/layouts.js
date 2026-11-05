@@ -279,11 +279,55 @@ function buildList({ pal, title, lead, author, image, analysis, textPos }) {
   return shell({ pal, cls: 'ly-list', css, body, hasImage, analysis, textPos });
 }
 
+/* ── 5. 九宫格（3×3 专用版式）────────────────────────────────────────
+   图片会先居中裁成 1080×1080，再切 3×3；所以内容必须落在中间的
+   1080×1080 区域，并且 9 个 360×360 格子里都要有可见内容。
+   每格 = 序号 + 标题里的一个字 + 小标签；中间格用强调色区分。 */
+function buildNine({ pal, title, lead, author }) {
+  const chars = [...String(title || '封面').replace(/\s+/g, '')];
+  const n = Math.max(1, chars.length);
+  const cells = Array.from({ length: 9 }, (_, i) => {
+    const ch = chars[Math.min(n - 1, Math.floor((i * n) / 9))] || '封';
+    const num = String(i + 1).padStart(2, '0');
+    const label = i === 0 ? '封面' : (i === 8 ? String(author || '完').slice(0, 6) : num);
+    const accent = i === 4 ? ' nc-a' : '';
+    return `<div class="nc${accent}"><span class="nn">${num}</span>`
+      + `<span class="nt">${esc(ch)}</span><span class="nl">${esc(label)}</span></div>`;
+  }).join('');
+  const body = `
+  <div class="nine-head"><span>九宫格 · 3×3</span><span>{{DATE}}</span></div>
+  <div class="nine-grid">${cells}</div>
+  <div class="nine-foot"><span>SuperSu</span><span data-author>By {{AUTHOR}}</span></div>`;
+  const css = `
+  .poster.ly-nine{background:var(--paper)}
+  .nine-head,.nine-foot{position:absolute;left:64px;right:64px;z-index:3;
+    display:flex;justify-content:space-between;align-items:center;
+    font:400 16px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .nine-head{top:64px}
+  .nine-foot{bottom:64px}
+  .nine-grid{position:absolute;left:0;top:180px;width:1080px;height:1080px;z-index:2;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+  .nc{display:flex;flex-direction:column;justify-content:space-between;padding:24px;
+    border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);
+    background:var(--paper)}
+  .nc:nth-child(3n){border-right:none}
+  .nc:nth-child(n+7){border-bottom:none}
+  .nc-a{background:var(--accent);color:var(--accent-on)}
+  .nn{font:600 15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;opacity:.72}
+  .nt{font-size:118px;line-height:1;font-weight:600;text-align:center;margin:auto 0;letter-spacing:-.03em}
+  .nl{font:500 15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;opacity:.72}
+  `;
+  return shell({ pal, cls: 'ly-nine', css, body, hasImage: false, analysis: null, textPos: 'auto' });
+}
+
 const BUILDERS = {
   'image-led': buildImageLed,
   quote: buildQuote,
   number: buildNumber,
   list: buildList,
+  nine: buildNine,
 };
 
 /**
