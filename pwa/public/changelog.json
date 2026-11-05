@@ -1,8 +1,220 @@
 {
-  "version": "1.18.0",
-  "generatedAt": "2026-11-06T03:07:57+08:00",
-  "totalCommits": 392,
+  "version": "1.19.0",
+  "generatedAt": "2026-11-06T03:35:53+08:00",
+  "totalCommits": 394,
   "releases": [
+    {
+      "version": "1.19.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "切换小红书页面时收起公众号风格库",
+        "外链转脚注开关、移动端表格/代码块、STATE与门禁覆盖",
+        "新增九宫格专用版式（10 版式 / 28 配色）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1,
+        "changed": 5,
+        "fixed": 12,
+        "other": 3
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "新增九宫格专用版式（10 版式 / 28 配色）",
+              "scope": "cover",
+              "hash": "e0edea9",
+              "date": "2026-11-06T02:55:17+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "发版前同步 STATE/更新记录与审计结论",
+              "scope": "",
+              "hash": "bfe82ea",
+              "date": "2026-11-06T03:11:22+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "E-10 定性为环境（引擎就绪时间随机器浮动），E-11 结清 nine 噪声误判；STATE 同步 11-05 门禁 18/23",
+              "scope": "",
+              "hash": "06d97e9",
+              "date": "2026-11-05T19:56:07+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "E-9 四层根因收口，新增 E-10（连续跑浏览器套件变慢的已知问题）",
+              "scope": "",
+              "hash": "61c6668",
+              "date": "2026-11-04T18:14:30+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "E-9 结清（--full 挂死三条根因已修），E-8 标注归属更新模块",
+              "scope": "",
+              "hash": "3d1d8ec",
+              "date": "2026-11-04T16:31:49+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "结清 W-1/W-2/W-4/W-6 四项欠账，新增 E-6~E-9 线上测试发现的问题",
+              "scope": "",
+              "hash": "a13bb79",
+              "date": "2026-11-04T14:12:32+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "切换小红书页面时收起公众号风格库",
+              "scope": "ui",
+              "hash": "882fdd8",
+              "date": "2026-11-06T03:09:53+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "外链转脚注开关、移动端表格/代码块、STATE与门禁覆盖",
+              "scope": "",
+              "hash": "85a3e69",
+              "date": "2026-11-06T03:07:50+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "步骤单独成页、清空回空态、截断提供复制出口",
+              "scope": "longform",
+              "hash": "b19127e",
+              "date": "2026-11-06T02:45:55+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "整篇设计背景锁定、九宫格空白预警与 21:9 字号缩放",
+              "scope": "ui",
+              "hash": "8d4ee1d",
+              "date": "2026-11-06T02:45:52+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "修复 forbes 图片标签被拆坏、表格空 style 与 h2 语义丢失",
+              "scope": "engine",
+              "hash": "3cbf5d8",
+              "date": "2026-11-06T02:45:50+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "nine 不再把「浏览器取消在途请求」当 JS 报错",
+              "scope": "test",
+              "hash": "79dacc3",
+              "date": "2026-11-05T19:55:36+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "每个套件结束都清残留浏览器（不只失败时清）—— 成功的残留同样会拖死下一个",
+              "scope": "gates",
+              "hash": "43df6f5",
+              "date": "2026-11-04T17:47:54+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "套件失败后立刻清残留浏览器，打断「越跑越红」的雪崩",
+              "scope": "gates",
+              "hash": "0f11bc9",
+              "date": "2026-11-04T17:37:11+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "ERR_CONNECTION_REFUSED 不按断网区间分类（console 事件是异步到达的）",
+              "scope": "cover",
+              "hash": "12e0f15",
+              "date": "2026-11-04T17:05:13+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "修两处让 cover 时红时绿的时序问题",
+              "scope": "cover",
+              "hash": "d53e9d3",
+              "date": "2026-11-04T16:48:15+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "修掉 --full「卡死 30 分钟」的根因 + 三个连带假红",
+              "scope": "gates",
+              "hash": "a857339",
+              "date": "2026-11-04T16:31:25+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "补回设置弹窗 DOM，修复线上整站 JS 崩溃（P0 热修）",
+              "scope": "pwa",
+              "hash": "e85da65",
+              "date": "2026-11-04T11:54:27+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "STATE 同步收尾验证（线上层 3/3，含版式胶囊 6 项）",
+              "scope": "build",
+              "hash": "c80c542",
+              "date": "2026-11-05T20:01:33+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "同步 STATE（线上层 3/3 全过，本地/线上均 b429）",
+              "scope": "build",
+              "hash": "2729a93",
+              "date": "2026-11-04T14:04:29+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "补线上层的版式胶囊覆盖 + 修正缩略图断言（线上层原为盲区）",
+              "scope": "online",
+              "hash": "92d5c62",
+              "date": "2026-11-04T13:26:44+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.18.0",
       "date": "2026-11-03",
@@ -4139,197 +4351,5 @@
       ]
     }
   ],
-  "unreleased": {
-    "count": 19,
-    "visibleCount": 11,
-    "groups": [
-      {
-        "type": "added",
-        "label": "新增",
-        "items": [
-          {
-            "text": "新增九宫格专用版式（10 版式 / 28 配色）",
-            "scope": "cover",
-            "hash": "e0edea9",
-            "date": "2026-11-06T02:55:17+08:00",
-            "breaking": false,
-            "dev": false
-          }
-        ]
-      },
-      {
-        "type": "changed",
-        "label": "调整",
-        "items": [
-          {
-            "text": "E-10 定性为环境（引擎就绪时间随机器浮动），E-11 结清 nine 噪声误判；STATE 同步 11-05 门禁 18/23",
-            "scope": "",
-            "hash": "06d97e9",
-            "date": "2026-11-05T19:56:07+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "E-9 四层根因收口，新增 E-10（连续跑浏览器套件变慢的已知问题）",
-            "scope": "",
-            "hash": "61c6668",
-            "date": "2026-11-04T18:14:30+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "E-9 结清（--full 挂死三条根因已修），E-8 标注归属更新模块",
-            "scope": "",
-            "hash": "3d1d8ec",
-            "date": "2026-11-04T16:31:49+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "结清 W-1/W-2/W-4/W-6 四项欠账，新增 E-6~E-9 线上测试发现的问题",
-            "scope": "",
-            "hash": "a13bb79",
-            "date": "2026-11-04T14:12:32+08:00",
-            "breaking": false,
-            "dev": true
-          }
-        ]
-      },
-      {
-        "type": "fixed",
-        "label": "修复",
-        "items": [
-          {
-            "text": "外链转脚注开关、移动端表格/代码块、STATE与门禁覆盖",
-            "scope": "",
-            "hash": "85a3e69",
-            "date": "2026-11-06T03:07:50+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "步骤单独成页、清空回空态、截断提供复制出口",
-            "scope": "longform",
-            "hash": "b19127e",
-            "date": "2026-11-06T02:45:55+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "整篇设计背景锁定、九宫格空白预警与 21:9 字号缩放",
-            "scope": "ui",
-            "hash": "8d4ee1d",
-            "date": "2026-11-06T02:45:52+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "修复 forbes 图片标签被拆坏、表格空 style 与 h2 语义丢失",
-            "scope": "engine",
-            "hash": "3cbf5d8",
-            "date": "2026-11-06T02:45:50+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "nine 不再把「浏览器取消在途请求」当 JS 报错",
-            "scope": "test",
-            "hash": "79dacc3",
-            "date": "2026-11-05T19:55:36+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "每个套件结束都清残留浏览器（不只失败时清）—— 成功的残留同样会拖死下一个",
-            "scope": "gates",
-            "hash": "43df6f5",
-            "date": "2026-11-04T17:47:54+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "套件失败后立刻清残留浏览器，打断「越跑越红」的雪崩",
-            "scope": "gates",
-            "hash": "0f11bc9",
-            "date": "2026-11-04T17:37:11+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "ERR_CONNECTION_REFUSED 不按断网区间分类（console 事件是异步到达的）",
-            "scope": "cover",
-            "hash": "12e0f15",
-            "date": "2026-11-04T17:05:13+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "修两处让 cover 时红时绿的时序问题",
-            "scope": "cover",
-            "hash": "d53e9d3",
-            "date": "2026-11-04T16:48:15+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "修掉 --full「卡死 30 分钟」的根因 + 三个连带假红",
-            "scope": "gates",
-            "hash": "a857339",
-            "date": "2026-11-04T16:31:25+08:00",
-            "breaking": false,
-            "dev": false
-          },
-          {
-            "text": "补回设置弹窗 DOM，修复线上整站 JS 崩溃（P0 热修）",
-            "scope": "pwa",
-            "hash": "e85da65",
-            "date": "2026-11-04T11:54:27+08:00",
-            "breaking": false,
-            "dev": false
-          }
-        ]
-      },
-      {
-        "type": "other",
-        "label": "其他",
-        "items": [
-          {
-            "text": "STATE 同步收尾验证（线上层 3/3，含版式胶囊 6 项）",
-            "scope": "build",
-            "hash": "c80c542",
-            "date": "2026-11-05T20:01:33+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "同步 STATE（线上层 3/3 全过，本地/线上均 b429）",
-            "scope": "build",
-            "hash": "2729a93",
-            "date": "2026-11-04T14:04:29+08:00",
-            "breaking": false,
-            "dev": true
-          },
-          {
-            "text": "补线上层的版式胶囊覆盖 + 修正缩略图断言（线上层原为盲区）",
-            "scope": "online",
-            "hash": "92d5c62",
-            "date": "2026-11-04T13:26:44+08:00",
-            "breaking": false,
-            "dev": true
-          }
-        ]
-      }
-    ],
-    "counts": {
-      "added": 1,
-      "changed": 4,
-      "fixed": 11,
-      "other": 3
-    },
-    "highlights": [
-      "外链转脚注开关、移动端表格/代码块、STATE与门禁覆盖",
-      "新增九宫格专用版式（10 版式 / 28 配色）",
-      "步骤单独成页、清空回空态、截断提供复制出口"
-    ]
-  }
+  "unreleased": null
 }
