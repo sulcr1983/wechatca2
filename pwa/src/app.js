@@ -2320,7 +2320,7 @@ function applyPageBg(html) {
 function renderBgGrid() {
   const grid = $('set-grid-bg');
   if (!grid) return;
-  const locked = !!(themeMeta(activeId) || {}).kind === 'kit';
+  const locked = (themeMeta(activeId) || {}).kind === 'kit';
   const cur = bgCurrent();
   grid.innerHTML = BGS.map((b) => {
     const on = b.id === cur;

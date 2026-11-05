@@ -445,7 +445,9 @@ async function regenerateNine() {
     releaseTiles(nineState.tiles);
     nineState.tiles = r.tiles;
     renderNineGrid();
-    setNineStatus(`${r.tiles.length} 张 · 每张 ${r.cell}×${r.cell}px（按 ${r.side}×${r.side} 居中裁剪）`);
+    const weak = r.weak || 0;
+    const warn = weak ? ` · ⚠️ ${weak} 格内容过少，建议放大标题或换版式` : '';
+    setNineStatus(`${r.tiles.length} 张 · 每张 ${r.cell}×${r.cell}px（按 ${r.side}×${r.side} 居中裁剪）${warn}`, weak > 0);
   } catch (err) {
     releaseTiles(nineState.tiles);
     nineState.tiles = [];

@@ -103,16 +103,32 @@ export async function splitGrid(source, opts = {}) {
           sx0 + c * (cell + gap), sy0 + r * (cell + gap), cell, cell,
           0, 0, cell, cell,
         );
+        // 逐格墨迹覆盖率（2026-11-06）：用亮度标准差判断「这一格是不是几乎空白」。
+        // 只采样 1/4 像素，9 格合计约 7 万次计算，可忽略。
+        const px = ctx.getImageData(0, 0, cell, cell).data;
+        let sum = 0, sum2 = 0, n = 0;
+        for (let y = 0; y < cell; y += 4) {
+          for (let x = 0; x < cell; x += 4) {
+            const o = (y * cell + x) * 4;
+            const lum = 0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2];
+            sum += lum;
+            sum2 += lum * lum;
+            n += 1;
+          }
+        }
+        const mean = sum / n;
+        const std = Math.sqrt(Math.max(0, sum2 / n - mean * mean));
         const blob = await new Promise((resolve) => {
           canvas.toBlob((b) => resolve(b), 'image/png');
         });
         if (!blob) throw new Error('第 ' + seq + ' 张生成失败（Canvas 导出为空）');
-        tiles.push({ seq, name: `nine-${pad2(seq)}.png`, blob });
+        tiles.push({ seq, name: `nine-${pad2(seq)}.png`, blob, std: Math.round(std * 10) / 10 });
       }
     }
     tiles.sort((a, b) => a.seq - b.seq);
     for (const t of tiles) t.url = URL.createObjectURL(t.blob);
-    return { tiles, side, cell, gap };
+    const weak = tiles.filter((t) => t.std < 2).length;
+    return { tiles, side, cell, gap, weak };
   } finally {
     release();
   }

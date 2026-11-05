@@ -448,13 +448,20 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   // 大字版（2026-10-28）：不用底图 + 垂直居中 + 强调色块压题，跟编辑风拉开距离
   const isBig = style === 'bigtype';
 
+  /* 21:9 不是 3:4 的等比放大，但字号也不能沿用 3:4。
+     2026-11-06 实测：96px 标题在 2100×900 上只有画布的 ~1/9 高，
+     「大字版」名不副实。按宽度比例放大标题/正文/元信息，仍留安全边距。 */
+  const wideTitle = 154;
+  const wideBody = Math.round(f.bodySize * 1.35);
+  const wideMeta = Math.round(f.metaSize * 1.2);
+
   const layoutCss = isWide ? `
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
-    .content { padding: 80px 120px; }
-    .wide-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; height:100%; align-items:center; }
-    .wide-title { font-size:96px; line-height:1.1; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.03em'}; margin:0 0 24px; }
+    .content { padding: 64px 100px; }
+    .wide-layout { display:grid; grid-template-columns:1fr 1fr; gap:96px; height:100%; align-items:center; }
+    .wide-title { font-size:${wideTitle}px; line-height:1.1; font-weight:${f.titleWeight}; letter-spacing:${f.titleTracking || '.03em'}; margin:0 0 24px; }
     .wide-img { width:100%; height:100%; object-fit:cover; border-radius:4px; }
-    .lead { max-width: 720px; }
+    .lead { max-width: 820px; }
   ` : isSquare ? `
     .poster { width: ${dim.w}px; height: ${dim.h}px; }
     .content { padding:88px; justify-content:center; align-items:center; text-align:center; }
@@ -504,8 +511,8 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   // 署名（2026-10-25 新增）：归藏两套原来完全没有署名字段，用户填了也不显示。
   // 空署名时不渲染，避免留下孤儿分隔符。
   const hasAuthor = String(author || '').trim().length > 0;
-  const authorLine = (extra = '') => (hasAuthor
-    ? `<p class="gz-author" style="font-family:monospace;font-size:${f.metaSize}px;`
+  const authorLine = (extra = '', size = f.metaSize) => (hasAuthor
+    ? `<p class="gz-author" style="font-family:monospace;font-size:${size}px;`
       + `letter-spacing:${f.metaLetter};color:${c.muted};margin:18px 0 0;${extra}">`
       + `By ${esc(author)}</p>`
     : '');
@@ -537,14 +544,14 @@ export function buildGuizangHtml({ style, size, title, lead, author, image, base
   const body = isWide ? `
     <div class="wide-layout">
       <div>
-        <p class="kicker" style="font-size:21px;letter-spacing:.22em;color:${c.accent};margin:0 0 24px;">封面 · Cover</p>
+        <p class="kicker" style="font-size:30px;letter-spacing:.22em;color:${c.accent};margin:0 0 24px;">封面 · Cover</p>
         <h1 class="wide-title">{{TITLE}}</h1>
-        <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
-        ${authorLine()}
+        <p class="lead" style="font-size:${wideBody}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
+        ${authorLine('', wideMeta)}
       </div>
       ${useImg ? '<div><img class="wide-img" src="{{IMAGE}}" alt=""></div>' : ''}
     </div>` : isSquare ? `
-    <div class="issue-row" style="font-family:monospace;font-size:${f.metaSize}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 · ${date}</div>
+    <div class="issue-row" style="font-family:monospace;font-size:${wideMeta}px;letter-spacing:${f.metaLetter};color:${c.muted};">Vol. 01 · ${date}</div>
     <h1 class="square-title">{{TITLE}}</h1>
     <p class="lead" style="font-size:${f.bodySize}px;line-height:${f.bodyLine};color:${c.ink};margin:0;">{{LEAD}}</p>
     ${authorLine()}` : (isBig ? xhsBig : xhsNormal);
