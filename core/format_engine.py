@@ -2042,12 +2042,15 @@ def _rewrite_h2_as_row(block: str, badge: str, badge_style: str) -> str:
     if not m:
         return block
     font_size, font_weight, color = _heading_style_parts(m.group(1))
+    # 保留 <h2> 语义（2026-11-06）：原来整段替换成 section>span+span，
+    # 视觉正常但标题层级丢失，公众号端结构识别与无障碍都受影响。
+    # 现在外层就是 h2，徽标与标题都放在 h2 内部；字号/字重/颜色从原 h2 继承。
     row = (
-        f'<section style="display:flex;align-items:baseline;margin-bottom:16px">'
+        f'<h2 style="display:flex;align-items:baseline;margin:0 0 16px;padding:0;'
+        f'font-size:{font_size};font-weight:{font_weight};color:{color};line-height:1.3">'
         f'<span style="{badge_style}">{badge}</span>'
-        f'<span style="font-size:{font_size};font-weight:{font_weight};'
-        f'color:{color};line-height:1.3">{m.group(2)}</span>'
-        f'</section>'
+        f'<span>{m.group(2)}</span>'
+        f'</h2>'
     )
     return row + block[m.end():]
 
@@ -2412,7 +2415,9 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
             if i == 0:
                 continue  # 表头行跳过（th 已有样式）
             bg = _zebra_bg if i % 2 == 0 else ''
-            new = f'<tr style="{bg}">{row_content}</tr>'
+            # 空 bg 不要写成 style=""（2026-11-06：183 套主题的表格都留了空 style 残渣）
+            new = (f'<tr style="{bg}">{row_content}</tr>' if bg
+                   else f'<tr>{row_content}</tr>')
             result = result.replace(old, new, 1)
         return result
     html = re.sub(r'<table[^>]*>.*?</table>', add_zebra_stripes, html, flags=re.DOTALL)

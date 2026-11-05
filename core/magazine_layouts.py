@@ -684,19 +684,28 @@ def layout_forbes(html: str, theme: dict) -> str:
     # 正文里的大数字（百分比/金额/倍数）就地放大。
     # ⚠️ 不能只匹配「整段就是一个数字」——真实文章里几乎没有这种段落，
     # 实测夹具 0 命中，版式等于没生效。改为在段落内部找「带单位/百分号」的数字。
-    def _big_num(m):
-        num = m.group(2)
-        return (m.group(1)
-                + f'<span style="font-size:30px;font-weight:800;line-height:1.2;'
-                  f'color:{accent}">{num}</span>')
+    # ⚠️ 必须在**文本节点**里替换：早年直接对整段 HTML 做正则，
+    # 会把 <img style="max-width:100%"> 属性里的 100% 也换掉，
+    # 导致图片标签被拆开、alt/src 变成正文文字（mg-forbes 实测）。
+    _num_re = re.compile(r"(\d[\d,\.]*\s*(?:%|％|万|亿|倍))(?![\d])")
 
-    out = re.sub(
-        r"(<p\b[^>]*>(?:(?!</p>).)*?)"
-        r"(\d[\d,\.]*\s*(?:%|％|万|亿|倍))(?![\d])",
-        _big_num,
-        out,
-        flags=re.DOTALL,
-    )
+    def _big_num_text(text: str) -> str:
+        return _num_re.sub(
+            lambda m: f'<span style="font-size:30px;font-weight:800;line-height:1.2;'
+                      f'color:{accent}">{m.group(1)}</span>',
+            text,
+        )
+
+    def _big_num_p(m):
+        open_tag, inner = m.group(1), m.group(2)
+        parts = re.split(r"(<[^>]+>)", inner)
+        for i, seg in enumerate(parts):
+            if seg.startswith("<") and seg.endswith(">"):
+                continue
+            parts[i] = _big_num_text(seg)
+        return open_tag + "".join(parts) + "</p>"
+
+    out = re.sub(r"(<p\b[^>]*>)(.*?)</p>", _big_num_p, out, flags=re.DOTALL)
 
     out = style_quotes(out, {
         "margin": "18px 0", "padding": "0 0 0 12px",
