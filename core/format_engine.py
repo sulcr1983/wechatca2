@@ -919,6 +919,16 @@ def _ensure_text_wrap(style_map: dict) -> None:
     同时把表格单元格的左右内边距压到 ≤16px：3 套主题用了 20px 28px 的
     「桌面级」内边距，5 列表格光内边距就吃掉 280px，375px 下必然溢出。
     """
+    # 表格：375px 下必须能压缩到容器宽（2026-11-06 移动端体检暴露：
+    # 早期主题的 5 列表格 min-content 宽 486–544px，直接横向撑破）。
+    # table-layout:fixed + width:100% 让列宽按容器均分，td/th 已有 break-word 兜底。
+    t = style_map.get("table")
+    if t:
+        d = _style_dict(t)
+        d.setdefault("table-layout", "fixed")
+        d.setdefault("width", "100%")
+        style_map["table"] = _style_str(d)
+
     for tag in _WRAP_TAGS:
         s = style_map.get(tag)
         if not s:
@@ -2461,6 +2471,22 @@ def inject_inline_styles(html: str, theme: dict, skip_wrapper: bool = False) -> 
     elif _layout in LAYOUT_REGISTRY:
         html = LAYOUT_REGISTRY[_layout](html, theme)
 
+    # === 8.05 移动端：代码块不得撑破 375px ===
+    # 2026-11-06 移动端体检暴露：19 套 kit 的杂志版式会给 <pre> 写死桌面内边距/宽度，
+    # 长代码行在 375px 下把页面撑到 734px。统一补 max-width/横向滚动（不改字号）。
+    def _clamp_pre(m):
+        attrs = m.group(1) or ""
+        if "max-width:100%" in attrs:
+            return m.group(0)
+        extra = "max-width:100%;overflow-x:auto;word-break:break-word;"
+        if 'style="' in attrs:
+            attrs = re.sub(r'style="([^"]*)"',
+                           lambda mm: f'style="{extra}{mm.group(1)}"', attrs, count=1)
+        else:
+            attrs += f' style="{extra}"'
+        return f"<pre{attrs}>"
+    html = re.sub(r"<pre(\s[^>]*)?>", _clamp_pre, html)
+
     # === 8.1 处理 wrapper（整体背景色，用于 dark/retro 等主题）===
     if "wrapper" in style_map and not skip_wrapper:
         if theme.get("layout") == "card":
@@ -3538,7 +3564,8 @@ def main():
 
 
 def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str,
-                                    font_size: float | None = None) -> str:
+                                    font_size: float | None = None,
+                                    footnotes: bool = False) -> str:
     """将 Markdown 文本转为微信公众号兼容的内联样式 HTML
 
     Args:
@@ -3546,9 +3573,8 @@ def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str,
         theme_path: 主题 JSON 文件的完整路径
         font_size: 目标正文字号 px（可选）。None = 不改字号，产物与旧版逐字节一致；
                    给了值则按「产物实测基准」等比缩放全篇（见 apply_font_scale）。
-
-    Returns:
-        带内联样式的 HTML 字符串（微信兼容格式）
+        footnotes: 是否把正文外链收成文末「参考链接」（2026-11-06 PWA 开关接线）。
+                   False = 与旧版逐字节一致。
     """
     with open(theme_path, encoding="utf-8") as f:
         theme = json.load(f)
@@ -3572,7 +3598,13 @@ def convert_markdown_to_wechat_html(markdown_text: str, theme_path: str,
     text = re.sub(r'~~(.+?)~~', r'<del>\1</del>', text)
 
     html = md_to_html(text)
+    fn_html = ""
+    if footnotes:
+        html, fn_html = extract_links_as_footnotes(html)
     html = inject_inline_styles(html, theme)
+    if fn_html:
+        fn_html = inject_inline_styles(fn_html, theme, skip_wrapper=True)
+        html += fn_html
     html = convert_image_captions(html, theme)
 
     # 字号缩放必须在**所有**版式与注入之后（版式函数会写死 font-size，

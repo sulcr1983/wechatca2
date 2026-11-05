@@ -68,7 +68,8 @@ self.onmessage = async (e) => {
       // fontSize（可选）：正文字号 px，null/缺省 = 不改字号（产物与旧版一致）
       const out = JSON.parse(renderFn(payload.text, THEME_PATH,
                                       payload.mode || 'auto',
-                                      payload.fontSize || null));
+                                      payload.fontSize || null,
+                                      payload.footnotes === true));
       post('rendered', {
         id: payload.id,
         html: out.html,
@@ -141,15 +142,16 @@ import preprocessor
 import format_engine
 
 
-def _render(raw_text, theme_path, mode='auto', font_size=None):
+def _render(raw_text, theme_path, mode='auto', font_size=None, footnotes=False):
     """纯文本 → Markdown → 微信内联 HTML。与本地 app.py 的调用链一致。
 
     mode 可选 auto/conservative/longform/tutorial（2026-10-31 UI 接线）；
     font_size 可选正文字号 px（2026-11-03 UI 接线；None = 不改字号）；
+    footnotes：外链转脚注（2026-11-06 UI 接线；False = 产物与旧版一致）；
     返回 effective = auto 实际判定的模式，前端用于「已按 xx 处理」反馈。"""
     eff = preprocessor._resolve_mode(raw_text, mode)
     md = preprocessor.preprocess(raw_text, mode)
-    html = format_engine.convert_markdown_to_wechat_html(md, theme_path, font_size)
+    html = format_engine.convert_markdown_to_wechat_html(md, theme_path, font_size, footnotes)
     return json.dumps({'html': html, 'markdown': md, 'mode': eff}, ensure_ascii=False)
 
 

@@ -434,6 +434,23 @@ def main() -> int:
         page.click("#btn-update"); page.wait_for_timeout(400); page.click("#cl-mask", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
         check("更新面板关闭（遮罩）", page.is_hidden("#cl-panel"), "visible", "hidden")
 
+        # ── 5.5 长图文（2026-11-06 补线上层盲区）──────────────
+        page.click("#btn-longform")
+        page.wait_for_selector("#cv-long-text", state="visible", timeout=30000)
+        check("长图文页打开", page.is_visible("#cv-long-text"))
+        page.fill("#cv-long-text", "线上长文标题\n\n第一段内容。\n\n第二段内容。\n\n## 小节\n\n- 条目一\n- 条目二")
+        page.wait_for_function(
+            "() => document.querySelectorAll('#cv-deck .cv-slot').length >= 2",
+            timeout=30000)
+        check("长图文自动分页", page.locator("#cv-deck .cv-slot").count() >= 2,
+              "", f"{page.locator('#cv-deck .cv-slot').count()} 页")
+        page.click("#cv-gen-story")
+        page.wait_for_function("() => !document.getElementById('cv-gen-story').disabled",
+                               timeout=120000)
+        page.wait_for_timeout(400)
+        check("长图文整套生成", page.locator("#lf-gallery .cv-card").count() >= 2,
+              "", f"{page.locator('#lf-gallery .cv-card').count()} 张")
+
         # ── 6. 封面页 ──────────────────────────────────────────
         page.click("#btn-cover"); page.wait_for_timeout(500)
         check("标题图页打开 / 排版页隐藏", page.is_visible("#title-root") and page.is_hidden("#stage"),

@@ -135,7 +135,7 @@ python scripts/test_all.py       # ★ **一键全测入口**（推荐给日常�
                                   #   all ~35min（+扩展套件 + 线上层）
 python scripts/preflight.py      # ★ **前置检查**（门禁第 0 步，也可单独跑）：dist 是否包含最近一次代码改动（阻断）
                                   # + 工作区是否脏（--deploy 才阻断）+ 线上版本对齐（--online）
-python scripts/release.py        # ★ **一键发版**（10 步串联）：前置检查 → 升版本 → 生成更新记录 → 构建
+python scripts/release.py        # ★ **一键发版**（文档 10 步 / 代码 8 步）：前置检查 → 升版本 → 生成更新记录 → 构建
                                   # → 本地层门禁 → 提交生成物 → preflight --deploy → 推送 → 部署 → 线上验证
                                   # ⚠️ 先跑 --dry-run 演练；--no-deploy 只提交推送不部署
 python scripts/gen_state.py      # 生成 **STATE.md**（单一状态源）：版本/构建号/git/线上版本/测试结果，

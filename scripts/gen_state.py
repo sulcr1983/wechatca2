@@ -148,7 +148,11 @@ def latest_gate() -> tuple[str, str, str]:
 
 
 def suite_inventory() -> list[tuple[str, str, str]]:
-    """从 run_gates.py 读套件清单（唯一真源），返回 (层, 名称, 说明)"""
+    """从 run_gates.py 读套件清单（唯一真源），返回 (层, 名称, 说明)
+
+    ⚠️ 2026-11-06：原实现逐行匹配单行元组，跨行书写的套件（命令数组换行）
+    会被漏掉 —— STATE 只报了 11/22 个本地套件。改为按 SUITES_* 块整体解析。
+    """
     p = ROOT / "scripts" / "run_gates.py"
     if not p.exists():
         return []
@@ -157,19 +161,18 @@ def suite_inventory() -> list[tuple[str, str, str]]:
     except Exception:
         return []
     rows: list[tuple[str, str, str]] = []
-    layer = ""
-    for line in src.splitlines():
-        m = re.match(r"^(SUITES_\w+)\s*=", line.strip())
-        if m:
-            layer = {"SUITES_LOCAL": "本地层（默认）",
-                     "SUITES_ONLINE": "线上层（--online）",
-                     "SUITES_UI": "有头层（--ui）",
-                     "SUITES_FULL": "扩展层（--full）"}.get(m.group(1), m.group(1))
-            continue
-        m2 = re.match(r'^\s*\("(\w+)",\s*\[.*?\],\s*"([^"]+)"', line)
-        if m2 and layer:
-            rows.append((layer, m2.group(1), m2.group(2)))
+    layer_names = {
+        "SUITES_LOCAL": "本地层（默认）",
+        "SUITES_ONLINE": "线上层（--online）",
+        "SUITES_UI": "有头层（--ui）",
+        "SUITES_FULL": "扩展层（--full）",
+    }
+    for blk in re.finditer(r"^(SUITES_\w+)\s*=\s*\[(.*?)^\]", src, re.M | re.S):
+        layer = layer_names.get(blk.group(1), blk.group(1))
+        for t in re.finditer(r'\("(\w+)",\s*\[.*?\],\s*"([^"]+)"', blk.group(2), re.S):
+            rows.append((layer, t.group(1), t.group(2)))
     return rows
+
 
 
 def build_state(allow_net: bool) -> str:
@@ -282,16 +285,23 @@ def main() -> int:
         # ⚠️ 只比对**本地可确定**的字段（版本号 / 本地 dist 构建号 / 主题数）。
         #    线上构建号**故意不比对**：build.mjs 生成 STATE 时用 --no-online（不联网），
         #    而校验时可能联网，两边必然不同 —— 比它只会造成永远红的假警报（2026-10-25 实测）。
-        keys = ("| 版本号", "| 本地 dist 构建号", "| 主题数")
+        keys = ("| 版本号", "| 本地 dist 构建号", "| 主题数", "| HEAD", "| 工作区")
         diff = [k for k in keys
                 if (k in old) != (k in content)
                 or _line_of(old, k) != _line_of(content, k)]
-        if diff:
+        # 门禁套件清单也必须一致（2026-11-06：原实现漏掉跨行元组，11/22 也报「一致」）
+        def _suite_names(text: str) -> set[str]:
+            return set(re.findall(r"^\|\s*`([a-z0-9_]+)`\s*\|", text, re.M))
+        suite_diff = _suite_names(old) ^ _suite_names(content)
+        if diff or suite_diff:
             print("⛔ STATE.md 已过期，以下项与实际不符：")
             for k in diff:
                 print(f"   {k.strip('| ')}")
                 print(f"     文档：{_line_of(old, k)}")
                 print(f"     实际：{_line_of(content, k)}")
+            if suite_diff:
+                print("   门禁套件清单")
+                print(f"     差异：{'、'.join(sorted(suite_diff))}")
             print("\n修复：python scripts/gen_state.py")
             return 1
         print("✅ STATE.md 与实际一致")

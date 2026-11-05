@@ -229,6 +229,20 @@ def main() -> int:
             check("关闭按钮收起弹窗", page.is_hidden("#cv-nine"))
             check("关闭后预览清空", page.locator("#cv-nine-grid img").count() == 0)
 
+            # ⑥.5 九宫格专用版式：切成 9 格后每格都有内容（2026-11-06）
+            page.fill("#cv-text", "九宫格测试")
+            page.locator('.cv-style-pick[data-style="nine-paper"]').first.click()
+            page.wait_for_timeout(500)
+            page.click("#cv-gen")
+            page.wait_for_function("() => !document.getElementById('cv-gen').disabled", timeout=120000)
+            page.wait_for_timeout(400)
+            page.locator(".cv-card button.cv-dl").first.click()
+            page.wait_for_selector("#cv-nine:not([hidden])", timeout=30000)
+            wait_tiles(page)
+            st = page.inner_text("#cv-nine-status")
+            check("九宫格专用版式 9 格均有内容（无预警）", "内容过少" not in st, st[:100])
+            page.click("#cv-nine-x")
+
             # ⑦ 移动端：弹窗不能横向溢出
             m = ctx.new_page()
             m.set_viewport_size({"width": 390, "height": 844})

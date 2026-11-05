@@ -24,6 +24,7 @@ const LS = {
   kitReturn: 'supersu.pwa.kit.return',  // 进整篇设计前用的那套配色主题（退出时回这里）
   fontSize: 'supersu.pwa.fontsize',     // 正文字号 px（2026-11-03 接线；null/缺省 = 用该套原值）
   bg: 'supersu.pwa.pagebg',             // 整页背景预设（2026-11-03 P4-2；缺省 plain = 不包外层）
+  footnotes: 'supersu.pwa.footnotes',    // 外链转脚注（2026-11-06；缺省关）
 };
 
 const DEFAULT_THEME = 'su-biz-azure';
@@ -183,6 +184,11 @@ function ppMode() {
   return ['auto', 'conservative', 'longform', 'tutorial'].includes(v) ? v : 'auto';
 }
 
+/** 外链转脚注（2026-11-06）：开关存本机，缺省关；关时产物与旧版逐字节一致。 */
+function footnoteOn() {
+  return !!lsGet(LS.footnotes, false);
+}
+
 /* 正文字号（2026-11-03）：null = 用该套主题自己的原值（产物零变化）；
    给了值则由引擎按「产物实测基准」等比缩放全篇（见 format_engine.apply_font_scale）。
    范围 14–18，与已定案的 §7.2 一致。 */
@@ -239,7 +245,7 @@ async function doRender() {
   try {
     const json = themeJsonCache.get(activeId) || await loadThemeJson(activeId);
     await engine.setTheme(activeId, json);
-    const out = await engine.render(text, ppMode(), fontSizePx());
+    const out = await engine.render(text, ppMode(), fontSizePx(), footnoteOn());
     if (mySeq !== renderSeq) return;          // 有更新的请求，丢弃本次结果
     lastHtml = out.html;
     lastRawHtml = out.html;
@@ -1525,7 +1531,7 @@ async function initAi() {
       }
     }
 
-    const local = await engine.render(text, ppMode(), fontSizePx());
+    const local = await engine.render(text, ppMode(), fontSizePx(), footnoteOn());
     if (!local || !local.markdown) throw new Error('本地排版也失败了，请刷新重试');
     aiUndoText = text;
     syncUndo();
@@ -2057,6 +2063,10 @@ function bindUI() {
   const onTailChange = () => { lsSet(LS_TAIL, tailPayload()); scheduleRender(); };
   if ($('tail-on')) $('tail-on').addEventListener('change', onTailChange);
   if ($('tail-md')) $('tail-md').addEventListener('input', onTailChange);
+  if ($('footnotes-on')) $('footnotes-on').addEventListener('change', (e) => {
+    lsSet(LS.footnotes, !!e.target.checked);
+    scheduleRender();
+  });
   syncTailUi();
   /* 整页背景（2026-11-03 P4-2）：点卡片即换背景，存本机 + 重渲染 */
   const bgGrid = $('set-grid-bg');
@@ -2251,6 +2261,7 @@ function openSettings() {
   if ($('dc-text')) $('dc-text').value = c.text || '#333333';
   if ($('dc-accent')) $('dc-accent').value = c.accent || '#888888';
   syncTailUi();
+  if ($('footnotes-on')) $('footnotes-on').checked = footnoteOn();
   renderBgGrid();
 }
 function closeSettings() {

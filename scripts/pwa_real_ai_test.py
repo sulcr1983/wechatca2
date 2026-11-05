@@ -259,6 +259,8 @@ def main() -> int:
                 pass
 
             # ② 点「测试连接」→ 真请求 DeepSeek
+            if page.locator("#drawer").is_visible():
+                page.click("#btn-drawer-close")
             page.click("#btn-ai")
             page.wait_for_timeout(900)
             if page.locator("#ai-test").count() == 1:

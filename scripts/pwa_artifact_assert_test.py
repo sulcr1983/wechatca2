@@ -157,6 +157,45 @@ def main() -> int:
                           "周末去海边" in html, f"含标题={'周末去海边' in html}")
                     (OUT / "clipboard.html").write_text(html, encoding="utf-8")
 
+            # ── P1d：多主题 × 版式剪贴板（2026-11-06 补 X-05 覆盖）──
+            for tid, lay in (("aurora", "hero"), ("su-dusk-amber", "timeline"),
+                             ("su-minimal-azure", "outline")):
+                try:
+                    page.click("#btn-themes")
+                    page.wait_for_selector("#drawer", state="visible", timeout=10000)
+                    page.click('#drawer-mode-tabs .mode-tab[data-mode="palette"]')
+                    page.fill("#drawer-search", tid)
+                    page.wait_for_selector(f'#drawer-grid .d-card[data-id="{tid}"]', timeout=15000)
+                    page.click(f'#drawer-grid .d-card[data-id="{tid}"]')
+                    chip = f'#drawer-layouts .dl-chip[data-layout="{lay}"]'
+                    page.wait_for_selector(chip, timeout=10000)
+                    page.click(chip)
+                    page.click("#btn-drawer-close")
+                    page.wait_for_function(
+                        "() => { const b=document.getElementById('btn-copy'); return b && !b.disabled; }",
+                        timeout=60000)
+                    page.wait_for_timeout(500)
+                    page.click("#btn-copy")
+                    page.wait_for_timeout(900)
+                    c = page.evaluate("""async () => {
+                        try {
+                            const items = await navigator.clipboard.read();
+                            let h = '';
+                            for (const it of items) {
+                                if (it.types.includes('text/html')) {
+                                    h = await (await it.getType('text/html')).text();
+                                }
+                            }
+                            return { ok: true, html: h };
+                        } catch (e) { return { ok: false, err: String(e) }; }
+                    }""")
+                    h = c.get("html") or ""
+                    check(f"P1d {tid}/{lay} 剪贴板产物",
+                          bool(c.get("ok")) and 'style="' in h and "周末去海边" in h,
+                          f"{len(h)} 字符")
+                except Exception as e:  # noqa: BLE001
+                    check(f"P1d {tid}/{lay} 剪贴板产物", False, str(e)[:120])
+
             # ── P2：导出文件真实字节 ───────────────────────────────
             page.wait_for_timeout(600)
 

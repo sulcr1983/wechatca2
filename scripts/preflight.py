@@ -55,6 +55,7 @@ CODE_PATHS = [
     "pwa/version.json",
     "core/format_engine.py",
     "core/preprocessor.py",
+    "core/magazine_layouts.py",
     "public/themes",
     "public/brand",
 ]
