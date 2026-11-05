@@ -282,6 +282,7 @@ function renderStoryResults() {
 /* ── 整套实时预览：buildLong 分页 → 卡片 DOM → 横滑 deck ──
    正常态自检静默（ux-spec C2），只有空态（友好提示）与异常（未落版/截断）才显示。 */
 let longSeq = 0;
+let lastDroppedText = '';
 
 async function updateLongPreview() {
   if (!root || root.hidden) return;   // 页不可见时不做无用功
@@ -290,6 +291,25 @@ async function updateLongPreview() {
   if (seq !== longSeq) return;
 
   const full = $('cv-long-text').value;
+  if (!full.trim()) {
+    /* 2026-11-06：清空后回到空态，不再留一个空白封面槽 */
+    state.results = [];
+    renderStoryResults();
+    const deck = $('cv-deck');
+    if (deck) deck.innerHTML = '';
+    const sc = $('cv-selfcheck');
+    if (sc) {
+      sc.hidden = false;
+      sc.className = 'cv-selfcheck';
+      sc.innerHTML = '<b>还没有正文</b> · 把文章粘到上面，这里会自动分页成一套图文';
+    }
+    const gen = $('cv-gen-story');
+    if (gen) { gen.disabled = false; gen.innerHTML = '导出一整套 <small>0 张 PNG</small>'; }
+    const zip = $('cv-zip-story');
+    if (zip) zip.hidden = true;
+    lastDroppedText = '';
+    return;
+  }
   const { title, lead } = extractStory(full);
   const body = full.split(/\r?\n/).slice(1).join('\n').trim();
   const tpl = currentLongTpl();
@@ -301,6 +321,7 @@ async function updateLongPreview() {
   } catch { pages = []; }
   if (seq !== longSeq) return;
   const truncated = pages.truncated || 0;
+  lastDroppedText = pages.droppedText || '';
   const total = pages.length + 1;   // + 封面
   const scale = 255 / 1080;
 
@@ -363,8 +384,9 @@ async function updateLongPreview() {
       sc.hidden = false;
       sc.className = 'cv-selfcheck bad';
       sc.innerHTML = `<b>✗ 产物自检</b> · ${missing}/${pieces} 句未落版`
-        + (truncated ? ` · 已截断 ${truncated} 字` : '')
-        + (pages.manualBreaks ? ` · 手动分页符 ${pages.manualBreaks} 处` : '');
+        + (truncated ? ` · 已截断 ${truncated} 字（可先导出本套，再复制剩余正文做第二套）` : '')
+        + (pages.manualBreaks ? ` · 手动分页符 ${pages.manualBreaks} 处` : '')
+        + (lastDroppedText ? ' <button class="cv-mini-btn" id="cv-long-split" type="button">复制剩余正文</button>' : '');
     } else {
       sc.hidden = true;   // 正常态静默（C2）
       console.info(`[longform] ${total} 页 · ${roles} · ${pieces} 句全部落版`
@@ -569,6 +591,16 @@ export function mountLongformPage(rootEl) {
     schedulePreview(0);
   });
   $('cv-gen-story').addEventListener('click', generateStory);
+  /* 截断出口（2026-11-06）：复制被 6 页上限截掉的正文，用户可粘贴回来做第二套 */
+  $('cv-selfcheck').addEventListener('click', async (e) => {
+    if (!e.target.closest('#cv-long-split')) return;
+    try {
+      await navigator.clipboard.writeText(lastDroppedText);
+      toast('已复制剩余正文，粘贴到上方即可生成第二套', 'ok');
+    } catch {
+      toast('复制失败，请手动选中剩余正文', 'err');
+    }
+  });
   const zipBtn = $('cv-zip-story');
   if (zipBtn) zipBtn.addEventListener('click', downloadStoryZip);
 }

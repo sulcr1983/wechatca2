@@ -858,6 +858,18 @@ export function buildLong(text, { tpl = LONG_TPLS[0], pal = PALETTES[0] } = {}) 
     while (j < seg.length) {
       const b = seg[j];
 
+      if (b.type === 'step') {
+        /* 2026-11-06：steps 角色此前是死代码 —— parseBlocks 会产出 step 块，
+           但分页循环只把 li/quote 单独成页，步骤全被并进 dense。
+           现在连续步骤单独成页，每页最多 5 步（避免撑破）。 */
+        const group = [];
+        while (j < seg.length && seg[j].type === 'step') { group.push(seg[j]); j++; }
+        for (let k = 0; k < group.length; k += 5) {
+          out.push({ role: 'steps', blocks: group.slice(k, k + 5) });
+        }
+        continue;
+      }
+
       if (b.type === 'li') {
         const group = [];
         while (j < seg.length && seg[j].type === 'li') { group.push(seg[j]); j++; }
@@ -887,7 +899,8 @@ export function buildLong(text, { tpl = LONG_TPLS[0], pal = PALETTES[0] } = {}) 
 
       /* 正文页：按实测 DOM 高度装箱（packDense）；无 DOM 降级为字数包络 */
       const dp = [];
-      while (j < seg.length && seg[j].type !== 'li' && seg[j].type !== 'quote') {
+      while (j < seg.length && seg[j].type !== 'li' && seg[j].type !== 'quote'
+             && seg[j].type !== 'step') {
         dp.push(seg[j]); j++;
       }
       if (dp.length) {
@@ -932,6 +945,7 @@ export function buildLong(text, { tpl = LONG_TPLS[0], pal = PALETTES[0] } = {}) 
   /* 页数上限：超限**先合并、后截断**，truncated 供自检提示。
      合并 = 相邻两个 dense 页按实测高度验算装得下才合（不静默丢内容）。 */
   let truncated = 0;
+  let droppedBlocks = [];
   while (pages.length > STORY_MAX_INNER) {
     let merged = false;
     for (let k = 0; k < pages.length - 1; k++) {
@@ -950,9 +964,15 @@ export function buildLong(text, { tpl = LONG_TPLS[0], pal = PALETTES[0] } = {}) 
     if (!merged) {
       const dropped = pages.pop();
       truncated += charSum(dropped.blocks);
+      // 记录被截掉的正文，供「复制剩余正文做第二套」出口使用（2026-11-06）
+      droppedBlocks = dropped.blocks.concat(droppedBlocks);
     }
   }
   Object.defineProperty(pages, 'truncated', { value: truncated, enumerable: false });
+  Object.defineProperty(pages, 'droppedText', {
+    value: droppedBlocks.map((b) => b.text || '').filter(Boolean).join('\n\n'),
+    enumerable: false,
+  });
   /* 自检条要写「手动分页符 X 处」（design §12.3 规则③） */
   Object.defineProperty(pages, 'manualBreaks', { value: manualBreaks, enumerable: false });
   return pages;
