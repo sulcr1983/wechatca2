@@ -690,7 +690,13 @@ function renderModeTabs() {
 /** 整篇设计 tab 的网格：19 套平铺，每张卡都自带版式+配色。 */
 function renderKitPane(fav) {
   const list = themes.filter((t) => t.kind === 'kit');
-  $('drawer-grid').innerHTML = `
+  const grid = $('drawer-grid');
+  /* ⚠️ 2026-11-06：抽屉容器本身是 grid（auto-fill 142px）。整篇设计面板里
+     又嵌了一层 .d-grid，会被当成单个 149px 宽的 grid item，导致 kit 卡
+     在抽屉里排成单列、右侧一大片空白（用户反馈）。这里让容器退回 block，
+     内层 .d-grid-kit 才能按两列铺满抽屉宽度。 */
+  if (grid) grid.classList.add('is-kit');
+  grid.innerHTML = `
     <div class="d-sec"><b>整篇设计 ${list.length} 套</b>
       <span>版式与配色一起套用，选中即整篇生效</span></div>
     <div class="d-grid d-grid-kit">${list.map((t) => drawerCard(t, fav)).join('')}</div>`;
@@ -1071,6 +1077,8 @@ function renderDrawer() {
   renderModeTabs();
   renderLayouts();
   renderBlockToggles();
+  const grid = $('drawer-grid');
+  if (grid) grid.classList.remove('is-kit');
   applyKitLock();   // 每次重渲染后重新上锁（innerHTML 重建会丢 disabled / 置灰）
   const fav = new Set(favList());
   const q = drawerQ.trim().toLowerCase();

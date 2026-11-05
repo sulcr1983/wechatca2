@@ -380,8 +380,12 @@ body.browsing .drawer-mask { display: none; }
   box-shadow: 0 1px 2px rgba(0, 0, 0, .07);
 }
 .mode-tabs .mode-tab.on em { background: var(--accent-soft, rgba(0, 0, 0, .06)); color: var(--accent); }
-/* 整篇设计网格：19 套按 4:3 缩略图排，比配色主题的 2 列更宽一档 */
-.d-grid-kit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* 整篇设计网格：19 套按 4:3 缩略图排两列。
+   ⚠️ 2026-11-06：必须写成 `.d-grid.d-grid-kit`（特异性 0,2,0）。
+   原来只写 `.d-grid-kit`（0,1,0），被后面的 `.d-grid` 同权重覆盖成
+   `repeat(auto-fill, minmax(142px,1fr))`，实测在抽屉里退化成单列、
+   右侧留出一大片空白（用户反馈「为啥单列摆放」）。 */
+.d-grid.d-grid-kit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .parse-body { display: contents; }
 
@@ -405,6 +409,9 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
   gap: 10px; align-content: start;
 }
+/* 整篇设计面板：容器退回 block，内层 .d-grid-kit 才能铺满抽屉 */
+.drawer-grid.is-kit { display: block; }
+.drawer-grid.is-kit .d-grid { width: 100%; }
 
 .d-card {
   /* 2026-11-03 重算（P4-4）：缩略图改为 aspect-ratio（2:1 / kit 4:3），高度随卡片宽度变化。
