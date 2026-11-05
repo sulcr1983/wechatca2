@@ -243,7 +243,18 @@ def main() -> int:
             check("移动端弹窗不横向溢出", sw <= iw and panel[0] >= 0 and panel[1] <= iw,
                   f"scrollWidth={sw}/{iw} panel={panel}")
 
-            check("无 JS 控制台报错", not errors, errors[0][:140] if errors else "")
+            # 2026-11-05 修：本断言原来把**所有** console error 都算失败，
+            # 但套件末尾浏览器会主动取消在途请求（页面卸载 / 跳转），
+            # 本地 http.server 于是抛 ConnectionResetError [WinError 10054]，
+            # 页面侧表现是 `Failed to load resource: net::ERR_CONNECTION_REFUSED`
+            # —— 属正常网络噪声，不是 JS 异常。本套件是各专项里唯一没过滤它的，
+            # 于是「九宫格」偶发假红（是否命中取决于请求是否在途，典型时序 flaky）。
+            # 只放行网络层错误（含 net::ERR_）：真 404/500 报的是
+            # 「the server responded with a status of 404」，不带 net::ERR_，仍会报红；
+            # JS 逻辑错误走 pageerror，同样不受影响。
+            real_errors = [e for e in errors if "net::ERR_" not in e]
+            check("无 JS 控制台报错", not real_errors,
+                  real_errors[0][:140] if real_errors else "")
             browser.close()
     finally:
         srv.shutdown()
