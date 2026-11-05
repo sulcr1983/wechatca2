@@ -1,8 +1,37 @@
 {
-  "version": "1.19.0",
-  "generatedAt": "2026-11-06T03:35:53+08:00",
-  "totalCommits": 394,
+  "version": "1.19.1",
+  "generatedAt": "2026-11-06T03:55:14+08:00",
+  "totalCommits": 395,
   "releases": [
+    {
+      "version": "1.19.1",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "整篇设计改为两列铺满抽屉（修复单列留白）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "整篇设计改为两列铺满抽屉（修复单列留白）",
+              "scope": "ui",
+              "hash": "ee2d22a",
+              "date": "2026-11-06T03:55:08+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.19.0",
       "date": "2026-11-06",
