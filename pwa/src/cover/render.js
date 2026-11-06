@@ -5,6 +5,7 @@
 import { COVER_SIZES, GUIZANG_STYLES, styleById, isLayoutStyle } from './catalog.js';
 import { buildGuizangHtml, prepareTemplateHtml } from './templates.js';
 import { buildLayoutHtml } from './layouts.js';
+import { buildV3Html, isV3Style } from './v3-templates.js';
 import { applyTextStyle } from './textmode.js';
 
 const BASE = new URL('../../', import.meta.url).href;
@@ -49,7 +50,11 @@ export async function buildCoverHtml({ style, size = 'xhs', title, lead = '', au
     analysis, textPos, frosted,
   };
   let html;
-  if (GUIZANG_STYLES.some((s) => s.id === style)) {
+  if (isV3Style(style)) {
+    // 2026-11-06：8 套核心版式换成高保真模板（用户拍板「AI 设计模板 + 运行时只调参数」）。
+    // 放在最前，归藏的 editorial / swiss / bigtype 也走这套（它们就是杂志/瑞士/大字版的主卡）。
+    html = buildV3Html({ style, size: realSize, ...opts });
+  } else if (GUIZANG_STYLES.some((s) => s.id === style)) {
     html = buildGuizangHtml({ style, size: realSize, ...opts });
   } else if (isLayoutStyle(style)) {
     // 2026-10-29 新增的 4 个版式：骨架渲染（只出 3:4）

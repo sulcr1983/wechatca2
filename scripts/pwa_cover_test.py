@@ -450,7 +450,7 @@ def main() -> int:
                         # 三类容器都要认：模板用 .inner-content / .content，
                         # 新版式骨架用 .ly-body（2026-10-30 加，否则选到新版式就取不到）
                         " const c = f.contentDocument.querySelector("
-                        "   '.inner-content, .content, .ly-body');"
+                        "   '.inner-content, .content, .ly-body, .v3-body');"
                         " if (!c) return null;"
                         " const r = c.getBoundingClientRect();"
                         " return Math.round(r.top); }")

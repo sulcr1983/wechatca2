@@ -42,16 +42,16 @@ export const GUIZANG_STYLES = [
 
 // 10 套模板（public/cover-templates，AGPL-3.0，见 THIRD_PARTY_NOTICES）：只有 3:4
 export const TEMPLATE_STYLES = [
-  { id: 'editorial-dune', name: '沙丘暖纸', group: '模板', layout: 'magazine-tpl', paletteName: '沙丘暖纸', sizes: ['xhs'], swatch: '#f0e6d2', accent: '#8f7650', thumb: './cover-thumbs/editorial-dune.png' },
-  { id: 'editorial-forest-ink', name: '森林墨绿', group: '模板', layout: 'magazine-tpl', paletteName: '森林墨绿', sizes: ['xhs'], swatch: '#f5f1e8', accent: '#2e6b4f', thumb: './cover-thumbs/editorial-forest-ink.png' },
-  { id: 'editorial-indigo-porcelain', name: '靛蓝瓷白', group: '模板', layout: 'magazine-tpl', paletteName: '靛蓝瓷白', sizes: ['xhs'], swatch: '#f2f4f5', accent: '#315d93', thumb: './cover-thumbs/editorial-indigo-porcelain.png' },
-  { id: 'editorial-ink-classic', name: '经典墨色', group: '模板', layout: 'magazine-tpl', paletteName: '经典墨色', sizes: ['xhs'], swatch: '#f3f0e8', accent: '#111111', thumb: './cover-thumbs/editorial-ink-classic.png' },
-  { id: 'editorial-kraft-paper', name: '牛皮纸', group: '模板', layout: 'magazine-tpl', paletteName: '牛皮纸', sizes: ['xhs'], swatch: '#eedfc7', accent: '#9b5a2e', thumb: './cover-thumbs/editorial-kraft-paper.png' },
-  { id: 'editorial-midnight-ink', name: '午夜墨金', group: '模板', layout: 'magazine-tpl', paletteName: '午夜墨金', sizes: ['xhs'], swatch: '#0e0d0c', accent: '#d4a04a', thumb: './cover-thumbs/editorial-midnight-ink.png' },
-  { id: 'swiss-ikb', name: '克莱因蓝', group: '模板', layout: 'swiss-tpl', paletteName: '克莱因蓝', sizes: ['xhs'], swatch: '#fafaf8', accent: '#002FA7', thumb: './cover-thumbs/swiss-ikb.png' },
-  { id: 'swiss-lemon-green', name: '柠檬绿', group: '模板', layout: 'swiss-tpl', paletteName: '柠檬绿', sizes: ['xhs'], swatch: '#fafaf8', accent: '#C5E803', thumb: './cover-thumbs/swiss-lemon-green.png' },
-  { id: 'swiss-lemon-yellow', name: '柠檬黄', group: '模板', layout: 'swiss-tpl', paletteName: '柠檬黄', sizes: ['xhs'], swatch: '#fafaf8', accent: '#FFD500', thumb: './cover-thumbs/swiss-lemon-yellow.png' },
-  { id: 'swiss-safety-orange', name: '安全橙', group: '模板', layout: 'swiss-tpl', paletteName: '安全橙', sizes: ['xhs'], swatch: '#fafaf8', accent: '#FF6B35', thumb: './cover-thumbs/swiss-safety-orange.png' },
+  { id: 'editorial-dune', name: '沙丘暖纸', group: '模板', layout: 'magazine-tpl', paletteName: '沙丘暖纸', sizes: ['xhs'], swatch: '#f0e6d2', accent: '#8f7650', paper: '#f0e6d2', ink: '#1f1a14', muted: '#6f6557', thumb: './cover-thumbs/editorial-dune.png' },
+  { id: 'editorial-forest-ink', name: '森林墨绿', group: '模板', layout: 'magazine-tpl', paletteName: '森林墨绿', sizes: ['xhs'], swatch: '#f5f1e8', accent: '#2e6b4f', paper: '#f5f1e8', ink: '#16251b', muted: '#5d665d', thumb: './cover-thumbs/editorial-forest-ink.png' },
+  { id: 'editorial-indigo-porcelain', name: '靛蓝瓷白', group: '模板', layout: 'magazine-tpl', paletteName: '靛蓝瓷白', sizes: ['xhs'], swatch: '#f2f4f5', accent: '#315d93', paper: '#f2f4f5', ink: '#0a1f3d', muted: '#5f6d78', thumb: './cover-thumbs/editorial-indigo-porcelain.png' },
+  { id: 'editorial-ink-classic', name: '经典墨色', group: '模板', layout: 'magazine-tpl', paletteName: '经典墨色', sizes: ['xhs'], swatch: '#f3f0e8', accent: '#111111', paper: '#f3f0e8', ink: '#0a0a0b', muted: '#68625a', thumb: './cover-thumbs/editorial-ink-classic.png' },
+  { id: 'editorial-kraft-paper', name: '牛皮纸', group: '模板', layout: 'magazine-tpl', paletteName: '牛皮纸', sizes: ['xhs'], swatch: '#eedfc7', accent: '#9b5a2e', paper: '#eedfc7', ink: '#2a1e13', muted: '#755f49', thumb: './cover-thumbs/editorial-kraft-paper.png' },
+  { id: 'editorial-midnight-ink', name: '午夜墨金', group: '模板', layout: 'magazine-tpl', paletteName: '午夜墨金', sizes: ['xhs'], swatch: '#0e0d0c', accent: '#d4a04a', paper: '#0e0d0c', ink: '#ece2cf', muted: '#9a8c75', dark: true, thumb: './cover-thumbs/editorial-midnight-ink.png' },
+  { id: 'swiss-ikb', name: '克莱因蓝', group: '模板', layout: 'swiss-tpl', paletteName: '克莱因蓝', sizes: ['xhs'], swatch: '#fafaf8', accent: '#002FA7', paper: '#fafaf8', ink: '#0a0a0a', muted: '#6b6b66', thumb: './cover-thumbs/swiss-ikb.png' },
+  { id: 'swiss-lemon-green', name: '柠檬绿', group: '模板', layout: 'swiss-tpl', paletteName: '柠檬绿', sizes: ['xhs'], swatch: '#fafaf8', accent: '#C5E803', paper: '#fafaf8', ink: '#0a0a0a', muted: '#6b6b66', thumb: './cover-thumbs/swiss-lemon-green.png' },
+  { id: 'swiss-lemon-yellow', name: '柠檬黄', group: '模板', layout: 'swiss-tpl', paletteName: '柠檬黄', sizes: ['xhs'], swatch: '#fafaf8', accent: '#FFD500', paper: '#fafaf8', ink: '#0a0a0a', muted: '#6b6b66', thumb: './cover-thumbs/swiss-lemon-yellow.png' },
+  { id: 'swiss-safety-orange', name: '安全橙', group: '模板', layout: 'swiss-tpl', paletteName: '安全橙', sizes: ['xhs'], swatch: '#fafaf8', accent: '#FF6B35', paper: '#fafaf8', ink: '#0a0a0a', muted: '#6b6b66', thumb: './cover-thumbs/swiss-safety-orange.png' },
 ];
 
 /* 新增 5 个版式（2026-10-29 四个 + 2026-11-06 九宫格）：从 references/layout-recipes.md 的 28 条配方里
