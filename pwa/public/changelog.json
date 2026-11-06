@@ -1,8 +1,37 @@
 {
-  "version": "1.22.0",
-  "generatedAt": "2026-11-06T09:57:04+08:00",
-  "totalCommits": 408,
+  "version": "1.23.0",
+  "generatedAt": "2026-11-06T10:47:14+08:00",
+  "totalCommits": 409,
   "releases": [
+    {
+      "version": "1.23.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "7 套核心版式换成高保真模板（AI 设计 + 运行时只调参数）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "7 套核心版式换成高保真模板（AI 设计 + 运行时只调参数）",
+              "scope": "cover",
+              "hash": "7851c52",
+              "date": "2026-11-06T10:47:00+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.22.0",
       "date": "2026-11-06",
