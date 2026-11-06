@@ -546,18 +546,18 @@ def main() -> int:
                   page.inner_text("#cv-status").strip()[:60], snap(page, "cover-search-nokey"))
 
         page.click("#cv-gen")
-        page.wait_for_function("document.querySelectorAll('.cv-card').length === 3", timeout=180000)
-        page.wait_for_function("[...document.querySelectorAll('.cv-card img')].every(i => i.naturalWidth > 0)", timeout=60000)
-        dims = page.eval_on_selector_all(".cv-card img", "els => els.map(e => [e.naturalWidth, e.naturalHeight])")
+        page.wait_for_function("document.querySelectorAll('.cv-tray-item').length === 3", timeout=180000)
+        page.wait_for_function("[...document.querySelectorAll('.cv-tray-item img')].every(i => i.naturalWidth > 0)", timeout=60000)
+        dims = page.eval_on_selector_all(".cv-tray-item img", "els => els.map(e => [e.naturalWidth, e.naturalHeight])")
         check("生成归藏 3 尺寸", dims == [[1080, 1440], [1080, 1080], [2100, 900]], "", str(dims),
               snap(page, "cover-result"))
         check("每张都有下载链接", page.locator("a.cv-dl").count() == 3, "", page.locator("a.cv-dl").count())
 
-        page.locator(".cv-card img").first.click()
+        page.locator(".cv-tray-item img").first.click()
         check("灯箱打开", page.is_visible("#cv-lightbox"), "hidden", "visible", snap(page, "lightbox"))
         page.click("#cv-lightbox-close")
         check("灯箱关闭（X）", page.is_hidden("#cv-lightbox"), "visible", "hidden")
-        page.locator(".cv-card img").first.click(); page.wait_for_timeout(200)
+        page.locator(".cv-tray-item img").first.click(); page.wait_for_timeout(200)
         page.click("#cv-lightbox", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
         check("灯箱关闭（点背景）", page.is_hidden("#cv-lightbox"), "visible", "hidden")
 

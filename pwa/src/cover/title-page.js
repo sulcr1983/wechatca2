@@ -356,8 +356,10 @@ function clearResults() {
     if (r.url) URL.revokeObjectURL(r.url);
   }
   state.results = [];
-  const gal = $('cv-gallery');
-  if (gal) { gal.textContent = ''; gal.hidden = true; }
+  const tray = $('cv-tray');
+  if (tray) tray.hidden = true;
+  const items = $('cv-tray-items');
+  if (items) items.textContent = '';
   const empty = $('cv-empty');
   if (empty) empty.hidden = false;
 }
@@ -387,10 +389,10 @@ async function generate() {
       });
       const url = URL.createObjectURL(r.blob);
       state.results.push({ ...r, url });
-      renderGallery();
+      renderTray();
     }
     /* 「保存大图」要真的是「存下来」——生成完直接落盘（归藏 3 尺寸只自动存当前选中）*/
-    const want = document.querySelector(`.cv-card a.cv-dl[download$="-${state.size}.png"]`);
+    const want = document.querySelector(`.cv-tray-item a.cv-dl[download$="-${state.size}.png"]`);
     let saved = false;
     if (want) { want.click(); saved = true; }
     setStatus(saved ? `已保存到下载文件夹（${COVER_SIZES[state.size].label}）` : `已生成 ${state.results.length} 张`);
@@ -404,31 +406,39 @@ async function generate() {
   }
 }
 
-function renderGallery() {
-  const gal = $('cv-gallery');
+/* 出片托盘（2026-11-06 V3-A3，design §4.3 / C-7）：
+ * 原来中栏下方还有一块「标题图结果」画廊，和画布重复展示同一张图。
+ * 现在保存后只从底部托盘出片：缩略图 / 尺寸 / 复制入口 / 下载 / 九宫格 / 关闭。 */
+function renderTray() {
+  const tray = $('cv-tray');
+  const items = $('cv-tray-items');
   const empty = $('cv-empty');
-  if (!gal) return;
-  gal.textContent = '';
-  if (!state.results.length) { gal.hidden = true; if (empty) empty.hidden = false; return; }
-  gal.hidden = false;
+  if (!tray || !items) return;
+  items.textContent = '';
+  if (!state.results.length) {
+    tray.hidden = true;
+    if (empty) empty.hidden = false;
+    return;
+  }
+  tray.hidden = false;
   if (empty) empty.hidden = true;
   for (const r of state.results) {
     const fig = document.createElement('figure');
-    fig.className = 'cv-card';
+    fig.className = 'cv-tray-item';
     const img = document.createElement('img');
-    img.className = 'cv-card-img';
+    img.className = 'cv-tray-thumb';
     img.src = r.url;
     img.alt = `${styleById(r.style).name} 封面`;
     img.addEventListener('click', () => openLightbox(r.url));
     const foot = document.createElement('figcaption');
-    foot.className = 'cv-card-foot';
+    foot.className = 'cv-tray-cap';
     const label = document.createElement('span');
-    label.className = 'cv-card-label';
+    label.className = 'cv-tray-label';
     label.textContent = `${COVER_SIZES[r.size].hint} · ${styleById(r.style).name}`;
     label.title = label.textContent;
     // 按钮包一层容器（2026-10-25）：避免长标签把两个按钮挤到换行
     const acts = document.createElement('div');
-    acts.className = 'cv-card-acts';
+    acts.className = 'cv-tray-acts';
     const nine = document.createElement('button');
     nine.type = 'button';
     nine.className = 'cv-dl';
@@ -442,7 +452,12 @@ function renderGallery() {
     acts.append(nine, dl);
     foot.append(label, acts);
     fig.append(img, foot);
-    gal.appendChild(fig);
+    items.appendChild(fig);
+  }
+  const meta = $('cv-tray-meta');
+  if (meta) {
+    const total = state.results.reduce((n, r) => n + (r.blob ? r.blob.size : 0), 0);
+    meta.textContent = `${state.results.length} 张 · 纯前端生成 · 约 ${(total / 1024 / 1024).toFixed(1)}MB`;
   }
 }
 
@@ -710,11 +725,16 @@ export function mountTitlePage(rootEl) {
         <div class="cv-preview-box">
           <div class="cv-preview-scaler" id="cv-preview"></div>
         </div>
-        <div class="cv-out-head">
-          <span class="cv-out-title">标题图结果</span>
-          <span class="cv-out-sub">纯前端生成 · 内容不上传</span>
+        <!-- 出片托盘（2026-11-06 V3-A3）：保存后从画布下方出现。
+             原来的「标题图结果」画廊已删除 —— 画布即结果，同一张图不在页面展示两次。 -->
+        <div id="cv-tray" class="cv-tray" hidden>
+          <div class="cv-tray-head">
+            <span class="cv-tray-title">出片</span>
+            <span class="cv-tray-meta" id="cv-tray-meta"></span>
+            <button class="cv-tray-x" id="cv-tray-x" type="button" aria-label="关闭出片托盘">✕</button>
+          </div>
+          <div class="cv-tray-items" id="cv-tray-items"></div>
         </div>
-        <div id="cv-gallery" class="cv-gallery" hidden></div>
         <div id="cv-empty" class="cv-empty">
           <b>文案 + 风格 = 标题图</b>
           <span>左边写文案、右边选版式，预览就是成品；点「保存大图」存成 PNG。<br>归藏两套一次出 3 个尺寸，其余版式出 3:4。</span>
@@ -826,6 +846,8 @@ export function mountTitlePage(rootEl) {
     updateCount();
   });
   $('cv-gen').addEventListener('click', generate);
+  /* 出片托盘关闭（2026-11-06 V3-A3）：关掉即回收 blob，画布不受影响。 */
+  $('cv-tray-x')?.addEventListener('click', clearResults);
   // 空态示例成品（U-9）：点一张 = 选中该风格 + 焦点落文案框
   $('cv-samples').addEventListener('click', (e) => {
     const b = e.target.closest('.cv-sample');

@@ -97,7 +97,14 @@ def main() -> int:
             # + 依赖 Pyodide 引擎就绪），冷启动实测常超 10s，于是「标题图页打开」
             # 时红时绿（同一份代码 322s 过、也有 10s 直接崩）。这里等的是
             # 「页面模块加载完」不是业务结果，放宽超时不影响断言强度。
-            page.wait_for_selector("#title-root:not([hidden])", timeout=30000)
+            # ⚠️ 2026-11-06：app.js 是 module 异步加载，按钮元素先出现、监听后绑定；
+            # 第一次点可能落在「还没绑定」的空档（30 张版式卡后加载更慢）。
+            # 点空不算产品缺陷 —— 重试一次，失败仍然会让下面那条断言变红。
+            try:
+                page.wait_for_selector("#title-root:not([hidden])", timeout=8000)
+            except Exception:
+                page.click("#btn-cover")
+                page.wait_for_selector("#title-root:not([hidden])", timeout=30000)
             check("标题图页打开", page.is_visible("#title-root"))
 
             # 2026-10-27 三栏改版：左栏不再有标签，所有控件同屏可见，
@@ -250,14 +257,14 @@ def main() -> int:
                 page.click("#cv-gen")
                 try:
                     page.wait_for_function(
-                        "document.querySelectorAll('.cv-card').length === 1", timeout=60000)
+                        "document.querySelectorAll('.cv-tray-item').length === 1", timeout=60000)
                     page.wait_for_function(
-                        "document.querySelector('.cv-card img').naturalWidth > 0", timeout=20000)
+                        "document.querySelector('.cv-tray-item img').naturalWidth > 0", timeout=20000)
                     # 2026-10-25 改：不再只看底色。规范里 4 套 Swiss 共用同一个
                     # 纸色 #fafaf8，只靠强调色区分 → 底assert「底色互不相同」会误报。
                     # 改为取「纸色 + 最饱和像素（强调色）」组合，断言组合唯一。
                     sig = page.evaluate("""() => {
-                        const img = document.querySelector('.cv-card img');
+                        const img = document.querySelector('.cv-tray-item img');
                         const cv = document.createElement('canvas');
                         cv.width = 40; cv.height = 54;
                         const ctx = cv.getContext('2d');
@@ -294,11 +301,11 @@ def main() -> int:
                 page.click("#cv-gen")
                 try:
                     page.wait_for_function(
-                        "document.querySelectorAll('.cv-card').length === 1", timeout=60000)
+                        "document.querySelectorAll('.cv-tray-item').length === 1", timeout=60000)
                     page.wait_for_function(
-                        "document.querySelector('.cv-card img').naturalWidth === 1080", timeout=20000)
+                        "document.querySelector('.cv-tray-item img').naturalWidth === 1080", timeout=20000)
                     new_sigs[lid] = page.evaluate("""() => {
-                        const img = document.querySelector('.cv-card img');
+                        const img = document.querySelector('.cv-tray-item img');
                         const cv = document.createElement('canvas');
                         cv.width = 40; cv.height = 54;
                         const ctx = cv.getContext('2d');
@@ -342,9 +349,11 @@ def main() -> int:
             page.click(".cv-chip[data-font='auto']")
             page.click(".cv-chip[data-textmode='rainbow']")
             page.click("#cv-gen")
-            page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=60000)
+            page.wait_for_function("document.querySelectorAll('.cv-tray-item').length === 1", timeout=60000)
             page.wait_for_timeout(600)
-            page.click(".cv-card")
+            # 托盘在中栏底部，点它时可能被 sticky 预览条挡住（Playwright 的坐标点击会撞上），
+            # 用 JS 直接触发点击 —— 这条用例验的是「点缩略图能开灯箱」，不验坐标命中。
+            page.eval_on_selector(".cv-tray-item img", "el => el.click()")
             page.wait_for_timeout(900)
             if page.is_visible("#cv-lightbox"):
                 page.click("#cv-lightbox-close")
@@ -356,9 +365,9 @@ def main() -> int:
             page.fill("#cv-text", TEXT)
             page.fill("#cv-author", "阿苏")
             page.click("#cv-gen")
-            page.wait_for_function("document.querySelectorAll('.cv-card').length === 3", timeout=120000)
-            page.wait_for_function("[...document.querySelectorAll('.cv-card img')].every(i => i.naturalWidth > 0)", timeout=30000)
-            dims = page.eval_on_selector_all(".cv-card img", "els => els.map(e => [e.naturalWidth, e.naturalHeight])")
+            page.wait_for_function("document.querySelectorAll('.cv-tray-item').length === 3", timeout=120000)
+            page.wait_for_function("[...document.querySelectorAll('.cv-tray-item img')].every(i => i.naturalWidth > 0)", timeout=30000)
+            dims = page.eval_on_selector_all(".cv-tray-item img", "els => els.map(e => [e.naturalWidth, e.naturalHeight])")
             check("归藏一次出 3 个尺寸", dims == [[1080, 1440], [1080, 1080], [2100, 900]], str(dims))
             check("每张都有下载链接", page.locator("a.cv-dl").count() == 3)
 
@@ -375,9 +384,9 @@ def main() -> int:
             tab("style")
             page.click('.cv-dot[data-style="editorial-dune"]')
             page.click("#cv-gen")
-            page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
-            page.wait_for_function("document.querySelector('.cv-card img').naturalWidth === 1080", timeout=30000)
-            check("模板出一张 1080×1440", page.eval_on_selector(".cv-card img", "e => [e.naturalWidth, e.naturalHeight]") == [1080, 1440])
+            page.wait_for_function("document.querySelectorAll('.cv-tray-item').length === 1", timeout=120000)
+            page.wait_for_function("document.querySelector('.cv-tray-item img').naturalWidth === 1080", timeout=30000)
+            check("模板出一张 1080×1440", page.eval_on_selector(".cv-tray-item img", "e => [e.naturalWidth, e.naturalHeight]") == [1080, 1440])
             # 2026-10-27：按钮语义是「保存」，点一次就要有文件，不能只出卡片再让用户点下载
             check("点「保存大图」直接落盘（无需二次点击）",
                   len(downloads) >= 1,
@@ -403,8 +412,8 @@ def main() -> int:
                       page.inner_text(".cv-bg-meta").replace("\n", " | "))
                 page.wait_for_selector(".cv-bg-preview img", timeout=15000)
                 page.click("#cv-gen")
-                page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
-                page.wait_for_function("document.querySelector('.cv-card img').naturalWidth > 0", timeout=30000)
+                page.wait_for_function("document.querySelectorAll('.cv-tray-item').length === 1", timeout=120000)
+                page.wait_for_function("document.querySelector('.cv-tray-item img').naturalWidth > 0", timeout=30000)
                 check("上传底图可生成", True, page.inner_text(".cv-bg-meta").replace("\n", " | "))
 
                 # ── 底图可读性（2026-10-30）──────────────────────────
@@ -647,8 +656,8 @@ def main() -> int:
                     page.wait_for_selector("#title-root:not([hidden])", timeout=10000)
                 page.fill("#cv-text", TEXT)
                 page.click("#cv-gen")
-                page.wait_for_function("document.querySelectorAll('.cv-card').length === 1", timeout=120000)
-                page.wait_for_function("document.querySelector('.cv-card img').naturalWidth > 0", timeout=30000)
+                page.wait_for_function("document.querySelectorAll('.cv-tray-item').length === 1", timeout=120000)
+                page.wait_for_function("document.querySelector('.cv-tray-item img').naturalWidth > 0", timeout=30000)
                 check("断网后封面仍可生成（缓存命中）", True)
             except Exception as e:
                 check("断网后封面仍可生成（缓存命中）", False, str(e)[:120])

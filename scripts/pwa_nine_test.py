@@ -236,7 +236,8 @@ def main() -> int:
             page.click("#cv-gen")
             page.wait_for_function("() => !document.getElementById('cv-gen').disabled", timeout=120000)
             page.wait_for_timeout(400)
-            page.locator(".cv-card button.cv-dl").first.click()
+            # 托盘在中栏底部，坐标点击会被 sticky 预览条挡住 → JS 直接触发（验的是链路不是命中）
+            page.eval_on_selector(".cv-tray-item button.cv-dl", "el => el.click()")
             page.wait_for_selector("#cv-nine:not([hidden])", timeout=30000)
             wait_tiles(page)
             st = page.inner_text("#cv-nine-status")
