@@ -1,8 +1,52 @@
 {
-  "version": "1.35.0",
-  "generatedAt": "2026-11-06T21:45:12+08:00",
-  "totalCommits": 434,
+  "version": "1.36.0",
+  "generatedAt": "2026-11-06T22:28:54+08:00",
+  "totalCommits": 436,
   "releases": [
+    {
+      "version": "1.36.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "渐变真跨色相 + 描边色按对比度反推"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "changed": 1,
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "longform-art 条目更新为工作台 V6 口径",
+              "scope": "index",
+              "hash": "9b5ace0",
+              "date": "2026-11-06T22:26:51+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "渐变真跨色相 + 描边色按对比度反推",
+              "scope": "cover",
+              "hash": "c297ffa",
+              "date": "2026-11-06T22:23:47+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.35.0",
       "date": "2026-11-06",
