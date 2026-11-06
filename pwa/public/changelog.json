@@ -1,8 +1,69 @@
 {
-  "version": "1.20.0",
-  "generatedAt": "2026-11-06T09:03:46+08:00",
-  "totalCommits": 402,
+  "version": "1.21.0",
+  "generatedAt": "2026-11-06T09:25:35+08:00",
+  "totalCommits": 406,
   "releases": [
+    {
+      "version": "1.21.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "V3-A3 删除重复结果画廊，改走出片托盘",
+        "V3-A2 右栏改 30 套版式（全量可见、需图/未接入置灰）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 2,
+        "changed": 2
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "V3-A3 删除重复结果画廊，改走出片托盘",
+              "scope": "cover",
+              "hash": "21783f5",
+              "date": "2026-11-06T09:25:05+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "V3-A2 右栏改 30 套版式（全量可见、需图/未接入置灰）",
+              "scope": "cover",
+              "hash": "d57fdc8",
+              "date": "2026-11-06T09:16:05+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "回写 V3-A3 完成状态（阶段 A 收口）",
+              "scope": "state",
+              "hash": "97bf57b",
+              "date": "2026-11-06T09:25:25+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "回写 V3-A2 完成状态（INDEX X-2 / 交接文档 / STATE）",
+              "scope": "state",
+              "hash": "6699d68",
+              "date": "2026-11-06T09:16:36+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.20.0",
       "date": "2026-11-06",
