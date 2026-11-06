@@ -173,7 +173,10 @@ def main() -> int:
                 check("切风格预览实时换色（不用生成）", True, "")
             except Exception as e:
                 check("切风格预览实时换色（不用生成）", False, str(e)[:70])
-            page.click('.cv-style-pick[data-style="editorial"]')
+            # 2026-11-06 V3-A2：卡片的 data-style 是「该卡当前选中的配色」，
+            # 点过色点后会变成 editorial-midnight-ink，不能再按 data-style 点卡。
+            # 统一走 pick_style（色点在就点色点），与 114 行同一口径。
+            pick_style('editorial')
 
             # ── 版式卡 + 色点（2026-10-29 改版）──
             # 改版前：13 张卡里 10 张是同一套 HTML 换色，缩略图压成 78px 横条，
@@ -181,15 +184,24 @@ def main() -> int:
             # 卡内一排色点 = 色板，缩略图恢复 3:4 全幅。
             tab("style")
             n_cards = page.locator(".cv-style").count()
+            n_impl = page.locator('.cv-style[data-implemented="1"]').count()
+            n_pending = page.locator('.cv-style[data-implemented="0"]').count()
             n_dots = page.locator(".cv-dot").count()
-            # 归藏三套各自只有一套配色，卡片本身就是那一种，不需要色点
+            # 已实现 7 套里只有「大字版」是单色卡（1 个 style），其余 6 套共 24 个色点。
+            # ⚠️ 统计单色卡时必须限定已实现卡 —— 待接入的 23 套同样没有色点，
+            #    不限定的话会把它们算成 24 张单色卡（2026-11-06 V3-A2）。
             n_single = page.evaluate(
-                "() => [...document.querySelectorAll('.cv-style')]"
+                "() => [...document.querySelectorAll('.cv-style[data-implemented=\"1\"]')]"
                 ".filter(c => !c.querySelector('.cv-dot')).length")
-            check("10 个版式卡（结构不同）", n_cards == 10, f"{n_cards} 张")
-            check("28 种配色 = 25 个色点 + 3 张单色卡",
-                  n_dots + n_single == 28 and n_single == 3,
+            n_needimg_off = page.locator('.cv-style[data-needimg="1"].cv-style-off').count()
+            check("30 套版式全量显示（不按有无图隐藏）", n_cards == 30, f"{n_cards} 张")
+            check("已实现 7 套 + 待接入 23 套",
+                  n_impl == 7 and n_pending == 23, f"{n_impl} + {n_pending}")
+            check("25 个配色 = 24 个色点 + 1 张单色卡",
+                  n_dots == 24 and n_single == 1,
                   f"色点 {n_dots} + 单色卡 {n_single}")
+            check("无图时 10 套需图版式置灰（保留不隐藏）",
+                  n_needimg_off == 10, f"{n_needimg_off} 张")
             thumb_ratio = page.evaluate(
                 "() => { const i = document.querySelector('.cv-style-thumb');"
                 " if (!i) return 0; const r = i.getBoundingClientRect();"
@@ -223,7 +235,9 @@ def main() -> int:
             # 10 套模板的 --accent 各不相同，底色必须互不相同。
             style_ids = page.eval_on_selector_all(
                 ".cv-dot, .cv-style-pick",
-                "els => [...new Set(els.map(e => e.dataset.style))]")
+                # 2026-11-06 V3-A2：待接入的 23 套没有 data-style（不给假 styleId），
+                # 不过滤会在下面 startswith 处炸 None。
+                "els => [...new Set(els.map(e => e.dataset.style).filter(Boolean))]")
             tab("content")
             page.fill("#cv-text", "周末去海边\n\n两天的沉默之后，我重新听见了海浪。")
             bg_of = {}
@@ -302,7 +316,7 @@ def main() -> int:
             check("4 个新版式画面互不相同",
                   len(set(new_sigs.values())) == 4, f"{len(set(new_sigs.values()))} 种")
 
-            page.click('.cv-style-pick[data-style="editorial"]')
+            pick_style('editorial')
 
             # ── 字体与文字玩法（2026-10-25 新增）──
             tab("text")

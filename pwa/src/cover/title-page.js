@@ -6,7 +6,8 @@
  * 底图选择用 bg-picker 工厂实例（状态独立，与长图长文互不串台）。
  */
 
-import { ALL_STYLES, COVER_SIZES, styleById, LAYOUTS } from './catalog.js';
+import { ALL_STYLES, COVER_SIZES, styleById } from './catalog.js';
+import { LAYOUT_REGISTRY, implementedLayouts } from './layout-registry.js';
 import { renderCoverBlob, buildCoverHtml } from './render.js';
 import { TEXT_MODES, TEXT_FONTS } from './textmode.js';
 import { autoKeyword } from './search.js';
@@ -173,8 +174,11 @@ function renderTextModes() {
   }
 }
 
-/* 版式卡（2026-10-29 改版）：卡片身份 = 版式（结构不同），卡内小圆点 = 色板。
-   点缩略图选当前色；点色点同版式内换色；每张卡记住上次选的色（layoutPick）。 */
+/* 版式卡（2026-11-06 V3-A2）：数据源换成 layout-registry 的 30 套单一真源。
+ * 规则来自 design-xhs-title-v3-all.md §5.1 / C-2 / C-3：
+ *   · 30 套始终显示，不按「有没有图」隐藏；
+ *   · 需图版式无图时置灰但保留，点它给原因而不是静默无反应；
+ *   · 渲染器还没接入的 23 套同样置灰、用条纹占位，不拿别的版式的缩略图冒充（不给假卡）。 */
 function renderStyles() {
   const box = $('cv-styles');
   if (!box) return;
@@ -182,45 +186,73 @@ function renderStyles() {
   const grid = document.createElement('div');
   grid.className = 'cv-style-grid';
 
-  for (const card of LAYOUTS) {
-    if (!card.members.length) continue;
-    const active = card.members.includes(state.style);
-    const curId = active ? state.style : (state.layoutPick[card.id] || card.members[0]);
-    const cur = styleById(curId);
+  const hasImg = !!(state.picker && state.picker.getState().image);
+
+  for (const entry of LAYOUT_REGISTRY) {
+    const active = entry.styles.includes(state.style);
+    const curId = active ? state.style : (state.layoutPick[entry.id] || entry.styles[0] || '');
+    const cur = curId ? styleById(curId) : null;
+    const needImgBlocked = entry.needImg && !hasImg;
+    const off = !entry.implemented || needImgBlocked;
 
     const wrap = document.createElement('div');
-    wrap.className = 'cv-style';
-    wrap.dataset.layout = card.id;
+    wrap.className = `cv-style${off ? ' cv-style-off' : ''}`;
+    wrap.dataset.layout = entry.id;
     wrap.dataset.style = curId;
+    wrap.dataset.needimg = entry.needImg ? '1' : '0';
+    wrap.dataset.implemented = entry.implemented ? '1' : '0';
     wrap.setAttribute('aria-pressed', String(active));
-    wrap.title = card.note;
+    wrap.title = !entry.implemented
+      ? `${entry.name}（配方 ${entry.code}）尚未接入`
+      : (needImgBlocked ? `${entry.name}：这套要一张底图` : entry.desc);
 
     const pick = document.createElement('button');
     pick.type = 'button';
     pick.className = 'cv-style-pick';
-    pick.dataset.style = curId;
-    pick.setAttribute('aria-label', `使用「${card.name}」${cur.paletteName || ''}`);
-    const img = document.createElement('img');
-    img.className = 'cv-style-thumb';
-    img.src = cur.thumb;
-    img.alt = '';
-    img.loading = 'lazy';
-    // 缩略图缺失时用色板渐变兜底，别出现破图
-    img.addEventListener('error', () => {
-      img.remove();
-      const sw = document.createElement('span');
-      sw.className = 'cv-style-swatch';
-      sw.style.background = `linear-gradient(135deg, ${cur.swatch} 0 56%, ${cur.accent} 56% 100%)`;
-      pick.insertBefore(sw, pick.firstChild);
-    }, { once: true });
-    pick.appendChild(img);
-    if (onlyXhs(cur)) {
-      const bd = document.createElement('span');
-      bd.className = 'cv-style-badge';
-      bd.textContent = '3:4';
-      pick.appendChild(bd);
+    pick.dataset.layout = entry.id;
+    if (curId) pick.dataset.style = curId;
+    pick.setAttribute('aria-disabled', String(off));
+    pick.setAttribute('aria-label', entry.implemented
+      ? `使用「${entry.name}」${cur?.paletteName || ''}`
+      : `${entry.name}（未接入）`);
+
+    if (entry.implemented && cur) {
+      const img = document.createElement('img');
+      img.className = 'cv-style-thumb';
+      img.src = cur.thumb;
+      img.alt = '';
+      img.loading = 'lazy';
+      // 缩略图缺失时用色板渐变兜底，别出现破图
+      img.addEventListener('error', () => {
+        img.remove();
+        const sw = document.createElement('span');
+        sw.className = 'cv-style-swatch';
+        sw.style.background = `linear-gradient(135deg, ${cur.swatch} 0 56%, ${cur.accent} 56% 100%)`;
+        pick.insertBefore(sw, pick.firstChild);
+      }, { once: true });
+      pick.appendChild(img);
+      if (onlyXhs(cur)) {
+        const bd = document.createElement('span');
+        bd.className = 'cv-style-badge';
+        bd.textContent = '3:4';
+        pick.appendChild(bd);
+      }
+    } else {
+      const ph = document.createElement('span');
+      ph.className = 'cv-style-ph';
+      ph.textContent = entry.code === '—' ? '待接入' : entry.code;
+      pick.appendChild(ph);
     }
+
     pick.addEventListener('click', () => {
+      if (!entry.implemented) {
+        toast(`${entry.name}还没接入，先用已上线的 ${implementedLayouts().length} 套`);
+        return;
+      }
+      if (needImgBlocked) {
+        toast(`「${entry.name}」需要一张底图：在左边选一张，或换纯文字版式`);
+        return;
+      }
       if (curId !== state.style) selectStyle(curId);
     });
     wrap.appendChild(pick);
@@ -229,20 +261,22 @@ function renderStyles() {
     metaRow.className = 'cv-style-meta';
     const nm = document.createElement('span');
     nm.className = 'cv-style-name';
-    nm.textContent = card.name;
+    nm.textContent = entry.name;
     metaRow.appendChild(nm);
-    if (card.members.length > 1) {
+    if (entry.implemented && entry.styles.length > 1) {
       const pal = document.createElement('span');
       pal.className = 'cv-style-pal';
-      pal.textContent = cur.paletteName || '';
+      pal.textContent = cur?.paletteName || '';
       metaRow.appendChild(pal);
     }
     wrap.appendChild(metaRow);
 
-    if (card.members.length > 1) {
+    /* 卡内色点只给已实现的版式：未实现的 23 套还没有色板映射，
+       画一排点会让人以为「能换色但其实不能」。 */
+    if (entry.implemented && entry.styles.length > 1) {
       const dots = document.createElement('div');
       dots.className = 'cv-dots';
-      for (const mid of card.members) {
+      for (const mid of entry.styles) {
         const m = styleById(mid);
         const d = document.createElement('button');
         d.type = 'button';
@@ -264,8 +298,8 @@ function renderStyles() {
 
   const hint = $('cv-style-hint');
   if (hint) {
-    const n = LAYOUTS.filter((c) => c.members.length).length;
-    hint.textContent = `${n} 个版式 · ${ALL_STYLES.length} 种配色`;
+    const ok = implementedLayouts().length;
+    hint.textContent = `${LAYOUT_REGISTRY.length} 套 · ${ok} 套可用`;
   }
 }
 
@@ -749,7 +783,7 @@ export function mountTitlePage(rootEl) {
     keywordSource: () => $('cv-text').value,
     zoneOf,
     onStatus: setStatus,
-    onChange: () => { syncTextPosUI(); schedulePreview(0); },
+    onChange: () => { renderStyles(); syncTextPosUI(); schedulePreview(0); },
     onBusy: (b) => { const g = $('cv-gen'); if (g) g.disabled = b; },
     textPosPanel: $('cv-textpos'),
     onTextPosSync: syncTextPosUI,

@@ -119,7 +119,7 @@
 
 /* ── 风格卡 ── */
 .cv-group-label { font-size: 11px; color: var(--text-muted); margin: 10px 0 6px; }
-.cv-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cv-style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .cv-style {
   display: flex; flex-direction: column;
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -142,20 +142,33 @@
   gap: 6px; padding: 6px 8px 0;
 }
 .cv-style-name {
-  font-size: 12px; font-weight: 600; color: var(--text); min-width: 0;
+  font-size: 10.5px; font-weight: 600; color: var(--text); min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .cv-style-pal {
-  flex: none; max-width: 46%; font-size: 10.5px; color: var(--text-muted);
+  flex: none; max-width: 46%; font-size: 9.5px; color: var(--text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 版式卡状态（2026-11-06 V3-A2，design §5.1 / C-2 / C-3）：
+   · 30 套始终显示，不按「有没有图」隐藏；
+   · 需图但无图、或渲染器还没接入 → 置灰保留，点击给原因（不给假卡、不给假缩略图）。 */
+.cv-style.cv-style-off { opacity: .5; }
+.cv-style.cv-style-off .cv-style-pick { cursor: not-allowed; }
+.cv-style-ph {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 3 / 4;
+  background: repeating-linear-gradient(135deg, var(--bg-hover) 0 6px, var(--bg-raised) 6px 12px);
+  border-bottom: 1px dashed var(--border);
+  color: var(--text-muted); font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .04em;
 }
 /* 卡内色点（2026-10-29）：一个版式一张卡，颜色降级为小圆点 */
 .cv-dots {
-  display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 8px 8px;
-  min-height: 44px; align-content: flex-start;
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 5px 6px 6px;
+  min-height: 22px; align-content: flex-start;
 }
 .cv-dot {
-  width: 14px; height: 14px; border-radius: 50%; padding: 0; flex: none;
+  width: 10px; height: 10px; border-radius: 50%; padding: 0; flex: none;
   border: 1px solid rgba(0, 0, 0, .16);
   transition: box-shadow .12s, transform .12s;
 }
@@ -588,9 +601,8 @@
 @media (min-width: 1180px) {
   .cv-col-left .cv-sec { margin-bottom: 14px; }
   .cv-text { height: 116px; }
-  .cv-style-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-  .cv-dots { padding: 6px 7px 7px; gap: 4.5px; }
-  .cv-dot { width: 13px; height: 13px; }
+  /* 版式卡网格与色点尺寸统一由基础规则给（2026-11-06 V3-A2：右栏 30 套 5 列）。
+     这里原本另写一套 130px/13px，会把 5 列覆盖成 3 列（实测 157px×3，与设计 §5.1 不符）。 */
   .cv-preview-box { height: min(78vh, 880px); }
   .cv-samples { margin-top: 20px; }
   .cv-samples-label { margin-bottom: 10px; font-size: 12px; }
