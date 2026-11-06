@@ -466,8 +466,8 @@ def main() -> int:
         n_dots = page.locator(".cv-dot").count()
         # 2026-11-06：版式 30 → 53（30 配方 + 20 刺激风 + 3 结构型），全部有渲染器。
         # 与 pwa_cover_test.py / cover_registry_unit.mjs 同一口径。
-        check("53 套版式全量显示", n_cards == 53, "", f"{n_cards} 张")
-        check("53 套全部已实现（无待接入）", n_impl == 53 and n_pending == 0, "", f"{n_impl}+{n_pending}")
+        check("56 套版式全量显示", n_cards == 56, "", f"{n_cards} 张")
+        check("56 套全部已实现（无待接入）", n_impl == 56 and n_pending == 0, "", f"{n_impl}+{n_pending}")
         check("色点数量覆盖全部已实现版式", n_dots >= 100, "", f"{n_dots} 个")
 
         page.click('.cv-dot[data-style="editorial-dune"]')

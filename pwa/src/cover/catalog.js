@@ -166,6 +166,11 @@ const LAYOUT_DEFS = [
   { id: 'text-wrap', name: '图文互嵌', note: '文字真的绕着图片流，图片下方恢复全宽' },
   { id: 'multi-column', name: '多栏正文', note: '标题跨栏，正文分 3 栏流动，首字下沉' },
   { id: 'bleed-overlap', name: '出血压边', note: '大图出血到版心外，标题压在交界' },
+  /* 2026-11-06 第二批结构型 3 套：语法在现有 53 套里使用次数都为 0，
+     且都过了导出 PNG 对照实验（见 v3-structural.js 各自的注释）。 */
+  { id: 'gradient-title', name: '光谱渐变字', note: '标题上渐变，色相从 accent 过渡到墨色' },
+  { id: 'span-column', name: '栏间通栏', note: '正文分栏流动，刊头横跨所有栏' },
+  { id: 'outline-type', name: '描边大字', note: '空心描边标题 + 实心反白引语条' },
 ];
 
 export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => (

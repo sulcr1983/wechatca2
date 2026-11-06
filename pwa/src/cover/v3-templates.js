@@ -563,6 +563,11 @@ export function buildV3Html({
       `<div class="cols">${items.map((t, i) => (
         `<p>${i === 0 ? flFirst(t) : esc(t)}</p>`
       )).join('')}</div>`);
+    /* X5 栏间通栏（2026-11-06）：.rest 是跨栏刊头之后的正文流。
+       ⚠️ 必须登记，否则 `<div class="rest" data-lead-list></div>` 原样留在页面里，
+       正文区一片空白（本文件其它结构型模板都靠这条精确匹配填充）。 */
+    html = html.replace('<div class="rest" data-lead-list></div>',
+      `<div class="rest">${items.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`);
   } else {
     /* 切不出条目（用户只写了标题）：把占位整块清空，别留空框。
        ⚠️ 只有一道 lead 时，用它兜底灌进第一个条目位，避免「一片空白」。 */

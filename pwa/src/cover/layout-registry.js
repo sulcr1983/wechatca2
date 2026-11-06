@@ -98,6 +98,10 @@ const DEFS = [
   { id: 'text-wrap', name: '图文互嵌', code: 'X1', needImg: false, group: 'structural', desc: '文字绕着图片流，图片下方恢复全宽' },
   { id: 'multi-column', name: '多栏正文', code: 'X2', needImg: false, group: 'structural', desc: '标题跨栏 + 正文分栏流动 + 首字下沉' },
   { id: 'bleed-overlap', name: '出血压边', code: 'X3', needImg: false, group: 'structural', desc: '大图出血到版心外，标题压交界' },
+  /* 第二批结构型 3 套（2026-11-06）：语法在现有 53 套里使用次数都是 0。 */
+  { id: 'gradient-title', name: '光谱渐变字', code: 'X4', needImg: false, group: 'structural', desc: 'background-clip:text 渐变标题' },
+  { id: 'span-column', name: '栏间通栏', code: 'X5', needImg: false, group: 'structural', desc: 'column-span:all 刊头横跨所有栏' },
+  { id: 'outline-type', name: '描边大字', code: 'X6', needImg: false, group: 'structural', desc: '-webkit-text-stroke 空心描边标题' },
 ];
 
 /** styleId → 版式 id（`magazine-tpl` / `swiss-tpl` 归到主卡）。 */

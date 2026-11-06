@@ -188,8 +188,131 @@ export function tplBleedOverlap(pal, dim, hasImage) {
   .foot{margin-top:${Math.round(t.padY * 0.5)}px;border-color:rgba(128,128,128,.3)}`);
 }
 
+/* ── 4. 光谱渐变字：标题用 background-clip:text 上渐变 ─────────────────
+ * 语法背景：background-clip:text 在 53 套里使用次数为 **0**。
+ * 导出实测（2026-11-06 对照实验）：文字区饱和度 96/255，PNG 里保留了渐变；
+ * 而 clip-path 在同批实验里 LOST（底行比顶行还宽），所以不用 clip-path。
+ *
+ * ⚠️ 有底图时必须退化成实心字：本语法靠 color:transparent，
+ *    而可读性门禁会跳过 alpha < 0.15 的文字元素 —— 有图时若仍用渐变，
+ *    门禁会「跳过而不检查」，等于给了一个假绿灯，字烂在照片上也测不出来。 */
+export function tplGradientTitle(pal, dim, hasImage) {
+  const t = tokens(dim);
+  const grad = hasImage
+    ? `color:#fff`
+    : `color:transparent;-webkit-background-clip:text;background-clip:text;
+       background-image:linear-gradient(100deg,${pal.accent} 0%,${pal.ink} 42%,
+       ${pal.accent} 74%,${pal.muted} 100%)`;
+  return shell(pal, dim, `
+    <div class="top"><span class="kick">SPECTRUM</span><span class="issue">{{DATE}}</span></div>
+    <div class="stage">
+      <h1 class="h-display grad">{{TITLE}}</h1>
+      <div class="filler" data-lead-list></div>
+    </div>
+    <div class="foot"><span data-author>{{AUTHOR}}</span><span class="pn">{{DATE}}</span></div>`, `
+  .wrap{padding:${t.padY}px ${t.padX}px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    padding-bottom:${Math.round(t.gap * 1.3)}px;border-bottom:1px solid rgba(128,128,128,.28)}
+  .kick{font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;
+    letter-spacing:.34em;color:${pal.accent}}
+  .issue{font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;
+    letter-spacing:.2em;color:${pal.muted}}
+  .stage{flex:1;min-height:0;display:flex;flex-direction:column;
+    justify-content:center;gap:${Math.round(t.gap * 3)}px}
+  .h-display{${grad};line-height:1.06;letter-spacing:-.025em}
+  .filler{font-size:var(--fs-lead,${t.lead}px);line-height:1.8;color:${pal.muted}}
+  .filler p{margin:0 0 ${Math.round(t.gap * 1.6)}px;padding-left:${Math.round(t.gap * 2.6)}px;
+    border-left:${t.rule}px solid ${pal.accent}}
+  .filler p:last-child{margin-bottom:0}
+  .foot{margin-top:auto;padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
+  .pn{opacity:.75}`);
+}
+
+/* ── 5. 栏间通栏：正文分栏流动，标题用 column-span:all 横跨所有栏 ──────
+ * 与 X2「多栏正文」的区别：X2 是标题在上、正文整体分栏；
+ * 本套是**多栏正文中途插入通栏刊头**，栏流从标题下方继续 ——
+ * 真报纸/期刊的排版手法。column-span:all 在 53 套里使用次数为 0。
+ * 导出实测：标题墨迹宽度占画布 81%（若语法丢失会被关在 1/3 栏内）。 */
+export function tplSpanColumn(pal, dim, hasImage) {
+  const t = tokens(dim);
+  const cols = t.isWide ? 3 : 2;
+  return shell(pal, dim, `
+    <div class="cols">
+      <h1 class="h-display span">{{TITLE}}</h1>
+      <p class="lead span-lead">{{LEAD}}</p>
+      <div class="rest" data-lead-list></div>
+    </div>
+    <div class="foot"><span data-author>{{AUTHOR}}</span><span>{{DATE}}</span></div>`, `
+  .wrap{padding:${t.padY}px ${t.padX}px}
+  /* column-count 让正文按栏流动；标题与引语用 column-span:all 跳出栅格 */
+  .cols{flex:1;min-height:0;column-count:${cols};column-gap:${Math.round(t.gap * 3)}px;
+    column-rule:1px solid rgba(128,128,128,.24);
+    font-size:var(--fs-body,${t.body}px);line-height:1.78;color:${pal.ink}}
+  .h-display{column-span:all;line-height:1.08;margin:0 0 ${Math.round(t.gap * 1.4)}px}
+  .lead{column-span:all;margin:0 0 ${Math.round(t.gap * 2.4)}px;
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.7;color:${pal.muted};
+    border-left:${Math.round(t.rule * 1.6)}px solid ${pal.accent};
+    padding-left:${Math.round(t.gap * 1.6)}px}
+  .rest p{margin:0 0 ${Math.round(t.gap * 1.4)}px;break-inside:avoid}
+  .foot{margin-top:${Math.round(t.gap * 2)}px;padding-top:${t.meta}px;
+    border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}`);
+}
+
+/* ── 6. 描边大字：-webkit-text-stroke 空心字，冲击力强 ────────────────
+ * 语法背景：-webkit-text-stroke 在 53 套里使用次数为 **0**。
+ * 导出实测：描边区饱和度 61，PNG 里保留了描边（同批实验里 clip-path 是 LOST）。
+ *
+ * ⚠️ 有底图时同样必须退化成实心字（理由同 X4）：
+ *    空心字靠 color:transparent，而门禁跳过 alpha<0.15 的元素 →
+ *    有图时若仍空心，门禁看不见它，导致「字在照片上糊掉」也测不出来。 */
+export function tplOutlineType(pal, dim, hasImage) {
+  const t = tokens(dim);
+  const strokeW = Math.max(2, Math.round(t.titleMax * 0.022));
+  const outline = hasImage
+    ? `color:#fff`
+    : `color:transparent;-webkit-text-stroke:${strokeW}px ${pal.accent}`;
+  const solid = hasImage ? 'color:#fff' : `color:${pal.ink}`;
+  return shell(pal, dim, `
+    <div class="top"><span class="kick">OUTLINE</span><span>{{DATE}}</span></div>
+    <h1 class="h-display out">{{TITLE}}</h1>
+    <div class="mid">
+      <div class="solid-line">{{LEAD}}</div>
+      <div class="filler" data-lead-list></div>
+    </div>
+    <div class="foot"><span data-author>{{AUTHOR}}</span><span class="big-num">__NUM__</span></div>`, `
+  .wrap{padding:${t.padY}px ${t.padX}px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+    color:${pal.accent};margin-bottom:${Math.round(t.gap * 2)}px}
+  .out{${outline};line-height:1.02;letter-spacing:-.03em;font-weight:900}
+  .mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
+    gap:${Math.round(t.gap * 2)}px;margin-top:${Math.round(t.padY * 0.3)}px}
+  /* 引语做成实心反白条：与空心标题形成「空心 vs 实心」的对比 */
+  .solid-line{${solid};background:${hasImage ? 'rgba(12,12,14,.42)' : pal.ink};
+    padding:${Math.round(t.gap * 1.6)}px ${Math.round(t.gap * 2)}px;
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.62;
+    ${hasImage ? '' : `color:${pal.paper}`}}
+  .filler{font-size:var(--fs-body,${t.body}px);line-height:1.8;color:${pal.muted}}
+  .filler p{margin:0 0 ${Math.round(t.gap * 1.5)}px}
+  .filler p:last-child{margin-bottom:0}
+  .foot{margin-top:auto;padding-top:${t.meta}px;border-top:${t.rule}px solid ${pal.accent};
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
+  .big-num{font-size:var(--fs-meta,${t.meta}px);color:${pal.accent};letter-spacing:.1em}`);
+}
+
 export const STRUCT_TEMPLATES = {
   'text-wrap': tplTextWrap,
   'multi-column': tplMultiColumn,
   'bleed-overlap': tplBleedOverlap,
+  /* 2026-11-06 第二批结构型（用户「继续加新的结构语法」）：
+     这 3 套用的语法在现有 53 套里使用次数都是 0，且都经过导出 PNG 对照实验
+     验证会被保留（见文件头注释与各自函数注释）。 */
+  'gradient-title': tplGradientTitle,
+  'span-column': tplSpanColumn,
+  'outline-type': tplOutlineType,
 };
