@@ -6,8 +6,20 @@
 > **口径**：凡「现状」一律以 **2026-11-03 当前源码** 为准（文件:行号可查）；
 > 凡「目标」一律注明出处文档与章节。文档与代码冲突时以代码为准，并把冲突登记在 §8。
 >
+> ⚠️ **勘误区（2026-11-06 实测复核）**：本文多处写「`LONG_TPLS` 15 套 = 原 12 套 +
+> 杂志源 3 套（economist / vogue / muji）已落地」，**这与源码不符**：
+> `pwa/src/cover/cards.js` 实测只有 **12 套**（`LONG_TPLS:140-256`），
+> `grep -i "economist\|vogue\|muji"` 零命中，`git log --all -S"economist" -- pwa/src/cover/cards.js`
+> 亦为 **0 条提交** —— 这三套在 git 全历史里从未进过 `cards.js`。
+> 真实状态是：**D18 拍板过、原型验过，但产品代码一行未落地**。
+> 因此 §3 的「模板 15 套 / 密度实测 148/111/74/74」、§4 D4「15 条」、
+> §4.1 的「15 套 × 8 色板 = 120 组合 / 12 套锁色」、§4.2 的密度表、
+> §5.3 LF-TPL-9「已落地」、§9 的「已完成闭环」，**全部属于原型侧结论，不是产品现状**。
+> 复核命令与新的对照原型见 [`docs/xhs/design-xhs-longform-v4.md`](design-xhs-longform-v4.md) §1。
+>
 > **证据基线**：`python scripts/pwa_longform_test.py` → **24/24 通过**（2026-11-03 实测）。
-> 本文所有「已落地」判定，都是对着这条基线和 `pwa/src/cover/` 源码逐条核过的。
+> 本文所有「已落地」判定，都是对着这条基线和 `pwa/src/cover/` 源码逐条核过的
+> —— ⚠️ 唯独上述「三套杂志版式」一条是例外，系当时从原型结论误抄，见勘误区。
 >
 > 姊妹文档：`requirements-xhs-title.md`（标题图）。两者**不共享需求**，只共享代码。
 
@@ -88,10 +100,10 @@
 | 左栏 | ① 整篇文章 textarea（首行=封面标题，`---` 强制分页写进 placeholder）+ 字数；② 封面配图三态（搜图/传一张/不要图）；导出整套 + 打包 ZIP + 状态行 | `longform-page.js:390-421` |
 | 中栏 | 整套实时预览 deck（横滑 `scroll-snap`）+ 产物自检条 + 结果画廊 + 空态 | `longform-page.js:424-446`、`cover.css:320` |
 | 右栏 | 长文模板 12 选 1（**2 列网格**）→ 色板 8 选 1 → 版式选项（页码 / 签名 / 内页背景图） | `longform-page.js:448-472`、`cover.css:171` |
-| 模板 | `LONG_TPLS` **15 套** = 原 12 套 + 杂志源 3 套：editorial / swiss / notion / book / memo / polaroid / aura / night / doc / film / starry / blank ／ **economist / vogue / muji** | `cards.js:140-299` |
-| 模板配色语义 | **3 套跟随色板**（editorial / swiss / blank，`palette: null`）；**12 套锁色**（原 9 套 + 杂志源 3 套） | `cards.js` 逐条 `palette:` |
+| 模板 | `LONG_TPLS` **12 套**：editorial / swiss / notion / book / memo / polaroid / aura / night / doc / film / starry / blank。⚠️ 文档曾写「+ 杂志源 3 套 economist/vogue/muji = 15 套」，**产品代码里从未存在**，见开头勘误区 | `cards.js:140-256` |
+| 模板配色语义 | **3 套跟随色板**（editorial / swiss / blank，`palette: null`）；**9 套锁色** | `cards.js` 逐条 `palette:` |
 | 装饰钩子 | `tpl.deco(index, total, role)` → `cardInner` 注入 `${deco}`；**绝对定位，不进 `.body` 文档流**（否则会改 `denseMaxHeight` 的测量结果，那就成了改分页而非改版式） | `cards.js: cardInner` |
-| 密度分档 | 三套杂志版式**同一夹具下每页字数不相等**（本轮实测）：economist 148 字/页、editorial 111、vogue 74、muji 74 | 本会话探针实测 |
+| 密度分档 | ⚠️ 「economist 148 / editorial 111 / vogue 74 / muji 74 字/页」出自**原型探针**（`prototypes/xhs-longform-layouts.html`），**不是产品实测**；产品 12 套共用同一分页器，密度无差异 | 原型侧实测，非 `cards.js` |
 | 色板 | `PALETTES` **8 套**：dune / forest / indigo / kraft / midnight / ikb / lemon / orange | `cards.js:93-127` |
 | 色板对比度 | 正文 ink **≥12.81**、次要字 muted **≥4.61**、强调字 at **≥5.59**（8/8 全部达 AA 4.5:1） | 本文 §8 S-1 的复算 |
 | 页面角色 | **7 种**：封面 / 开篇 / 清单 / 金句 / 步骤 / 正文 / 结尾 | `cards.js: ROLES` |
@@ -121,7 +133,7 @@
 | D1 | 长图文是**独立顶级模块**，状态/结果区/ZIP/存储键与标题图分家 | `design-module-split-ia.md` 全文；`cover/index.js: showPage()` |
 | D2 | 左栏顺序 ① 整篇文章 → ② 封面配图 → 导出（R5 定稿） | `longform-page.js:392-421` |
 | D3 | **一套模板管整套**，封面 = 该模板第 1 页；封面无独立版式选择 | `design-xhs-studio-redesign.md` §6.0.1；`cards.js: cardInner({role:'cover'})` |
-| D4 | 15 套模板**全部可连排多页**（原 12 套 + 杂志源 3 套），`INNER_STYLES` 白名单已删除 | `cards.js: LONG_TPLS`（15 条） |
+| D4 | **12 套**模板全部可连排多页，`INNER_STYLES` 白名单已删除。⚠️ 曾写「15 条（原 12 + 杂志源 3）」，那 3 套**从未进过 `cards.js`**，见开头勘误区 | `cards.js: LONG_TPLS`（12 条） |
 | D5 | 页数上限 6（封面 + 5 内页），超限先合并、后截断且**自检条写明截断字数** | `cards.js:278`、`buildLong` 尾部 |
 | D6 | 填充率按**角色分档**（正文/清单/步骤 ≥68%、结尾 ≥60%、开篇/金句 ≥45% 且 ≥2 锚点），取代一刀切 75% | `design-xhs-studio-redesign.md` §6「落地标准」 |
 | D7 | 溢出**比欠填严重**（会裁用户内容）；`dense` 单段 120–139 字恒 66.5% 是几何必然，接受不补装饰 | `cards.js: DENSE_SINGLE_SEG_FLOOR` |
@@ -155,10 +167,11 @@
 | 色板占位太大 | 尺寸问题 | 色板被当成**全局维度**，所以永远要占一行位置 |
 | 换色后整体不好看 | 配色问题 | **版式的视觉语法本身是有色彩的**，随便换色等于让用户破坏版式设计 |
 
-**量化事实**：`PALETTES` 8 套 × `LONG_TPLS` **15 套** = 120 种组合，
-但只有 **3 套跟随色板**（editorial / swiss / blank，`palette: null`），**12 套锁色**。
-本轮已落地的三套杂志版式（Economist / Vogue / MUJI）**全部是锁色的** ——
-Economist 的红、Vogue 的黑白、MUJI 的米白+酒红，都是版式身份的一部分，换掉就不是那套版式了。
+**量化事实**：`PALETTES` 8 套 × `LONG_TPLS` **12 套** = 96 种组合，
+但只有 **3 套跟随色板**（editorial / swiss / blank，`palette: null`），**9 套锁色**。
+（原写「15 套 / 120 组合 / 12 套锁色」是把原型里三套杂志版式当成了产品现状，见开头勘误区。）
+若将来落地杂志源版式，它们**应全部锁色** —— Economist 的红、Vogue 的黑白、
+MUJI 的米白+酒红是版式身份的一部分，换掉就不是那套版式了。
 
 **结论（写进需求）**：
 
@@ -171,11 +184,16 @@ Economist 的红、Vogue 的黑白、MUJI 的米白+酒红，都是版式身份�
 
 > 这条结论与既有 D8「锁色模板 → 色板置灰 + 明说原因」**有冲突**：
 > D8 是「置灰」，本轮改为「收起」。理由是用户实测反馈「占位太大」——
-> 置灰的可点区域仍是占位，而 **12/15** 套都是锁色的，这个区域 80% 的时间在做无用功。
+> 置灰的可点区域仍是占位，而 **9/12** 套都是锁色的，这个区域 75% 的时间在做无用功。
 
 ---
 
-## 4.2 三套杂志版式的「密度差异」是版式身份，不是参数（本轮新增）
+## 4.2 三套杂志版式的「密度差异」是版式身份，不是参数（⚠️ 原型侧结论，产品未落地）
+
+> ⚠️ **本节全部是原型实测**（`prototypes/xhs-longform-layouts.html`），
+> **不是产品现状**。Economist / Vogue / MUJI 三套从未写进 `cards.js`，见开头勘误区。
+> 保留本节是因为「密度差异应由 CSS 几何决定、不是由常量决定」这条工程结论仍成立，
+> 且已被 [`prototypes/xhs/longform-v4/SPEC.md`](../prototypes/xhs/longform-v4/SPEC.md) §3 沿用。
 
 原型实测（同一篇 439 字文章）：
 
@@ -254,8 +272,8 @@ Economist 的红、Vogue 的黑白、MUJI 的米白+酒红，都是版式身份�
 | LF-TPL-5 | **全部模板**一屏看全，模板区独立滚动（不与色板/选项共用滚动） | **待落地** | `wechat/requirements-three-modules.md` L-1；`review-xhs-studio-adversarial.md` P1-7 实测 `scrollHeight=1013 > client=854` |
 | LF-TPL-6 | 模板区新增**不删除既有 12 套** | 已落地（约束） | L-R8 |
 | LF-TPL-7 | 模板搜索 / 分组 | **已否决（2026-11-03）** | 原拟按「纸感/暗夜/强背景」分组，实测这些是装饰属性；给雷同的东西分组只是把雷同分门别类。见 C-4 |
-| LF-TPL-8 | **一套模板必须有「骨相」差异**：分页密度 / 排印骨架 / 序号系统 / 装饰线体系，至少一项与既有套不同 | **部分落地**：新增 3 套已满足；**既有 12 套仍是皮肤级差异** | `review-xhs-longform-templates.md` §7 维度矩阵 |
-| LF-TPL-9 | 版式意图以**真实杂志排印**为源（不凭印象自造），首批验证 Economist / Vogue / MUJI | **已落地（2026-11-03）** | 配方真源 `wechat/design-magazine-recipes.md` §2.4/2.5/2.8；原型 `prototypes/xhs-longform-layouts.html` |
+| LF-TPL-8 | **一套模板必须有「骨相」差异**：分页密度 / 排印骨架 / 序号系统 / 装饰线体系，至少一项与既有套不同 | 🔴 **未落地**：产品 12 套仍是皮肤级差异；原型侧已给出 5 套真差异骨架，见 `prototypes/xhs/longform-v4/` | `review-xhs-longform-templates.md` §7 维度矩阵；v4 SPEC.md §1 |
+| LF-TPL-9 | 版式意图以**真实杂志排印**为源（不凭印象自造），首批验证 Economist / Vogue / MUJI | 🔴 **未落地，且 git 全历史无记录**：2026-11-06 实测 `cards.js` 只有 12 套、`grep -i economist\|vogue\|muji` 零命中、`git log --all -S"economist" -- pwa/src/cover/cards.js` 为 0 条提交。仅 D18 拍板 + 原型验证过 | 配方真源 `wechat/design-magazine-recipes.md` §2.4/2.5/2.8；原型 `prototypes/xhs-longform-layouts.html`；复核见 `design-xhs-longform-v4.md` §1 |
 | LF-TPL-10 | 差异必须**可被机检**：不能只靠肉眼说「不一样」，要有断言（分页字数档位 / 首字下沉 / 序号徽章 / 装饰线数） | **待落地（新增）** | 随 LF-TPL-8 一起做 |
 | LF-TPL-11 | 既有 12 套**一套不删**，但其中 5 套拟物道具风（备忘录 / 大厂文档 / 胶片 / 拍立得 / 效率笔记）要标注为「拟物道具」而非「版式」 | **待决策（C-10）** | 同 §2.4 的精准区分 |
 | **LF-TPL-12** | **页面角色 5 → 10**：补 toc（目录页）/ split（双栏对照）/ ledger（编号塔）/ stat（数据页）/ pullquote（整页引语），各带自动触发条件 | **待决策（新增，此前漏收）** | `engine/design-layout-system-v3.md` §6.2；现状 `ROLES` 有 7 个，但 `steps` 是死角色、`buildLong` 只产 5 类 |
@@ -404,12 +422,18 @@ Economist 的红、Vogue 的黑白、MUJI 的米白+酒红，都是版式身份�
 
 ## 9. 下一步
 
-1. **已完成的闭环**（2026-11-03）：§5.3 的 LF-TPL-9 已落地 —— Economist / Vogue / MUJI 三套杂志源版式
-   写进 `pwa/src/cover/cards.js`（`LONG_TPLS` + `CARD_CSS_RAW`），实测同夹具下每页字数不相等
-   （148 / 111 / 74 / 74），0 裁切，构建通过、`pwa_longform_test.py` 24/24 不回退。
+1. **⚠️ 更正（2026-11-06）**：原文此处写「LF-TPL-9 已落地 —— Economist / Vogue / MUJI 三套写进
+   `cards.js`、实测 148/111/74/74 字/页、24/24 不回退」，**与源码不符**。
+   实测 `cards.js` 只有 12 套，`git log --all -S"economist" -- pwa/src/cover/cards.js` = 0 条提交。
+   那组数字来自原型 `prototypes/xhs-longform-layouts.html`，**产品代码一行未改**。
+   详见开头勘误区与 [`design-xhs-longform-v4.md`](design-xhs-longform-v4.md) §1。
+   **当前真实基线**：12 套模板、`pwa_longform_test.py` 24/24、无杂志源版式。
 2. **下一步优先项**（按 §5 的待落地顺序）：
-   - **LF-TPL-10**：把「差异可机检」补进 `scripts/pwa_longform_test.py` —— 三套版式同夹具下
-     **每页字数不相等 + 各自 0 裁切 + 序号徽章存在**，否则「骨相差异」会退回肉眼判断。
+   - **LF-TPL-9 / LF-TPL-8**：把「骨相差异」真正落进 `cards.js`（或按 v4 方案走 Paged.js）；
+     5 套可机检骨架的规格已在 `prototypes/xhs/longform-v4/SPEC.md` §1 备好。
+   - **LF-TPL-10**：把「差异可机检」补进门禁 —— 同夹具下
+     **spanFill 不相等 + 各自 0 裁切 + 锚点存在**，否则「骨相差异」会退回肉眼判断
+     （v4 原型已给出 `verify_density.py` 判据，可直接搬）。
    - **LF-TPL-5 / LF-TPL-4**：模板区一屏看全 + 真实渲染缩略图（D20 说平铺靠缩略图，两者绑死）。
    - **LF-PAL-6 / 7 / 8**：色板区按版式锁色收起（用户「占位太大 + 换色变丑」，见 §4.1）。
    - **LF-OUT-8**：撤销上一版。

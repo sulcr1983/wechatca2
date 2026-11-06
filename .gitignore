@@ -87,3 +87,8 @@ scripts/snippets/
 
 # （2026-11-03 清理）kit-previews/ 与生成它的 scripts/render_kit_previews.py 均已删除，
 # 原忽略规则一并移除。整篇设计的预览改看 docs/prototypes/wechat/wechat-v7.html。
+
+# 原型 longform-v4 的字体副本（2026-11-06）
+# 与上面 v2 的处置一致：字体 canonical 在 pwa/public/fonts/cover/，不重复入库。
+# 原型要跑时把 pwa/public/fonts/cover/*.woff2 拷进 assets/fonts/ 即可。
+docs/prototypes/xhs/longform-v4/assets/

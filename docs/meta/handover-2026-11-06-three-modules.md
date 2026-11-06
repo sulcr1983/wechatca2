@@ -405,6 +405,15 @@ SCALE = {
 
 ### 2.3.1 `cards.js` —— 长图文渲染引擎（1135 行 / 63KB）
 
+> ⚠️ **交叉勘误（2026-11-06）**：`docs/xhs/requirements-xhs-longform.md` 曾多处写
+> 「`LONG_TPLS` 15 套 = 原 12 套 + 杂志源 3 套（economist / vogue / muji）已落地」，
+> **与本节及源码不符**。实测 `cards.js` 只有 **12 套**，
+> `git log --all -S"economist" -- pwa/src/cover/cards.js` = **0 条提交**（git 全历史从未存在）。
+> 那三套只在原型 `prototypes/xhs-longform-layouts.html` 里验证过，产品代码一行未改。
+> 需求文档已加勘误区并逐条更正，详见
+> [`docs/xhs/design-xhs-longform-v4.md`](../xhs/design-xhs-longform-v4.md) §1。
+> **本文的「12 套」口径正确，不要改成 15 套。**
+
 四大块：
 
 1. **解析层**（`:23-90`）

@@ -99,7 +99,8 @@ docs/
 | 文档 | 状态 | 说明 |
 |---|---|---|
 | [`requirements-xhs-title.md`](xhs/requirements-xhs-title.md) | 🟢 需求真源 | 标题图需求台账 |
-| [`requirements-xhs-longform.md`](xhs/requirements-xhs-longform.md) | 🟢 需求真源 | 长图文需求台账（含 D1–D20 决策） |
+| [`requirements-xhs-longform.md`](xhs/requirements-xhs-longform.md) | 🟢 需求真源（⚠️ 开头有勘误区） | 长图文需求台账（含 D1–D20 决策）。**2026-11-06 实测更正**：LF-TPL-9「三套杂志版式已落地」是误记，`cards.js` 只有 12 套 |
+| [`design-xhs-longform-v4.md`](xhs/design-xhs-longform-v4.md) | 🟢 **长图文目标设计真源（2026-11-06）** | 实现建议（重点原型图）：现状代码级复核 + 开源调研（归藏 7.9k / Paged.js / heti / Satori）+ 5 套骨相原型 + Paged.js 闸门实测 + 迁移路径。⚠️ 内含一处重要勘误：三套杂志版式从未落地 |
 | [`design-xhs-studio-final.md`](xhs/design-xhs-studio-final.md) | 🟡 版式/骨架已被取代 | Studio 方案 V2（26 套）；搜图/亮度/九宫格章节仍有效 |
 | [`design-xhs-title-v3-all.md`](xhs/design-xhs-title-v3-all.md) | 🟢 **目标设计真源** | v3 方案 1 三栏常驻 + 30 套全量；按钮/状态/输出/验收 |
 | [`plan-xhs-title-v3-all.md`](xhs/plan-xhs-title-v3-all.md) | 🟢 **实施入口** | 差距、分阶段改造、输出契约、风险与 DoD |
@@ -172,7 +173,7 @@ docs/
 | 文档 | 说明 |
 |---|---|
 | [`open-tasks-2026-11-01.md`](meta/open-tasks-2026-11-01.md) | **未完成任务台账**（每条有证据出处，做完一条改一条） |
-| [`handover-2026-11-06-three-modules.md`](meta/handover-2026-11-06-three-modules.md) | 🟢 **三板块交接文档**（2026-11-06）—— 公众号排版 / 小红书标题图 / 小红书长图文；含实测复核过的遗留项、坑清单、待确认清单 |
+| [`handover-2026-11-06-three-modules.md`](meta/handover-2026-11-06-three-modules.md) | 🟢 **三板块交接文档**（2026-11-06）—— 公众号排版 / 小红书标题图 / 小红书长图文；含实测复核过的遗留项、坑清单、待确认清单。§2.3.1 有 2026-11-06 交叉勘误（长图文模板 12 套口径） |
 | [`handover-2026-11-06-title-v3.md`](meta/handover-2026-11-06-title-v3.md) | 🟢 **标题图 V3 交接文档**（2026-11-06）—— 当前 git/线上/未跟踪状态、V3 阶段 A–E 未完成任务、已停掉的公众号与线上 E2E、下一步顺序 |
 | [`audit-plan-2026-11-06-three-modules.md`](meta/audit-plan-2026-11-06-three-modules.md) | 🟢 **三模块审计方案**（2026-11-06）—— 审计口径、链路完成度、逐项证据采集方式；是上述报告的配套方案 |
 | [`audit-2026-11-06-three-modules.md`](meta/audit-2026-11-06-three-modules.md) | 🟢 **三模块全面清查报告**（2026-11-06）—— 产物级审计：183 套渲染 / 9 组剪贴板 / 19 套 kit 目视 / 25 style 出图 / 长图文分页与导出 / 工程交叉核对 |
@@ -249,6 +250,7 @@ docs/prototypes/
 | `xhs/ux-longform.html` | 🟡 过程 | 长图文 UX（77KB） |
 | `xhs/ux-a-three-col.html` / `ux-b-rail.html` / `ux-c-dual-band.html` | 🟡 过程 | A 三栏 / B 侧轨 / C 双带 |
 | `xhs/three-module-ia.html` | 🟢 参考 | **三模块 IA 原型**（77KB） |
+| **`xhs/longform-v4/`** | 🟢 **长图文 V4 对照原型（2026-11-06）** | 自包含目录：`render.html`（Paged.js 单页/总览）+ `fixture.js`（与产品门禁同一篇夹具）+ `skeletons.js`（5 套骨相）+ `SPEC.md`（可机检规格）+ `vendor/`（Paged.js / modern-screenshot）。产物 `output/longform-v4/overview.png`。设计见 `docs/xhs/design-xhs-longform-v4.md` |
 
 **自包含子目录**：
 
