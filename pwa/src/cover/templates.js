@@ -204,14 +204,38 @@ const OVERRIDE_CSS = `
 /* 本地渲染覆盖 */
 *,*::before,*::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-body.has-img .kicker, body.has-img .h-display, body.has-img .h-sub,
-body.has-img .lead, body.has-img .issue-row, body.has-img .issue-strip span,
-body.has-img .h-statement, body.has-img .t-meta, body.has-img .t-cat,
-body.has-img .square-title, body.has-img .wide-title {
+/* ⚠️ 2026-11-06 修「有图时文字全部消失」#1：
+   未被模板自己定位的 .cover-img 是 position:static，会占据文档流，
+   把整块文字顶到画布之外（实测 h1 top=1912 > 画布 1440）——用户看到「图在、字没了」。
+   这里统一给有底图的 .cover-img 绝对定位铺满，文字回到原位。
+   z-index:0 压在 .poster 背景之上、文字层（z-index ≥1）之下。 */
+body.has-img .cover-img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  z-index: 0 !important;
+}
+/* ⚠️ 2026-11-06 #2：下面这组白字规则原本**无条件**命中所有模板的标题/正文。
+   但 V3 模板（body.gz）自带纸底色块（金句的米纸、森系的豆绿块），白字压上去等于消失。
+   改为只在**没有 .gz 标记**的旧模板上生效——V3/归藏模板自己管文字颜色。 */
+body.has-img:not(.gz) .kicker,
+body.has-img:not(.gz) .h-display,
+body.has-img:not(.gz) .h-sub,
+body.has-img:not(.gz) .lead,
+body.has-img:not(.gz) .issue-row,
+body.has-img:not(.gz) .issue-strip span,
+body.has-img:not(.gz) .h-statement,
+body.has-img:not(.gz) .t-meta,
+body.has-img:not(.gz) .t-cat,
+body.has-img:not(.gz) .square-title,
+body.has-img:not(.gz) .wide-title {
   color: rgba(255,255,255,.95) !important;
   text-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
-body.has-img .h-sub, body.has-img .lead { color: rgba(255,255,255,.86) !important; }
+body.has-img:not(.gz) .h-sub,
+body.has-img:not(.gz) .lead { color: rgba(255,255,255,.86) !important; }
 
 /* 无底图（纯色纸底）：模板原本靠底图撑满画布，改为内容垂直居中。
    ⚠️ 全部加 :not(.gz) —— 归藏两套（body.gz）自带完整排版与浅色纸底，
@@ -424,8 +448,89 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl, an
   const readable = image ? readableCss(analysis, textPos) : '';
   const frostCss = image ? frostedCss(frosted, (analysis?.zone || [0.55, 1])[0]) : '';
   const frostEl = (image && frosted) ? '<div class="cv-frost"></div>' : '';
+  /* ⚠️ 2026-11-06 修「有图时文字全部消失」#3：V3 模板（body.gz）自带纸底/色块，
+     有底图时文字与色块都会叠在照片上，必须先压暗再统一刷白字。
+     固定下限 0.55（analysis 说需要更多就加），宁照片暗一点，也不让字消失。 */
+  const gzImgCss = (() => {
+    if (!image) return '';
+    const tint = analysis
+      ? (analysis.unfit ? 0.62 : Math.max(0.55, Math.min(0.78, analysis.tintPeak + 0.3)))
+      : 0.62;
+    return `
+    body.gz.has-img .poster::after{
+      content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+      background:linear-gradient(180deg,
+        rgba(8,8,10,${(tint * 0.55).toFixed(3)}) 0%,
+        rgba(8,8,10,${(tint * 0.8).toFixed(3)}) 45%,
+        rgba(8,8,10,${tint.toFixed(3)}) 100%)}
+    body.gz.has-img .wrap,
+    body.gz.has-img .pad { position: relative; z-index: 2; }
+    body.gz.has-img .poster *:not(.cover-img) {
+      color: #ffffff !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 14px rgba(0,0,0,.55) !important;
+    }
+    /* 文字块自带的纸底/色块在照片上要去掉，否则变成「不透明纸压着照片」 */
+    body.gz.has-img .h-display,
+    body.gz.has-img .lead,
+    body.gz.has-img .h-sub,
+    body.gz.has-img .kick,
+    body.gz.has-img .tag,
+    body.gz.has-img .blk,
+    body.gz.has-img .strip,
+    body.gz.has-img .ticker,
+    body.gz.has-img .banner,
+    body.gz.has-img .wn,
+    body.gz.has-img .card { background: transparent !important; }
+    /* 容器块（浏览器框的白窗口、色块分割的纸色条、矩阵格）改半透明压暗 */
+    body.gz.has-img .win,
+    body.gz.has-img .view,
+    body.gz.has-img .band,
+    body.gz.has-img .obj,
+    body.gz.has-img .kv,
+    body.gz.has-img .n3,
+    body.gz.has-img .n1,
+    body.gz.has-img .n2,
+    body.gz.has-img .frame,
+    body.gz.has-img .inner,
+    body.gz.has-img .box,
+    body.gz.has-img .cell,
+    body.gz.has-img .c,
+    body.gz.has-img .row,
+    body.gz.has-img .it,
+    body.gz.has-img .bw,
+    body.gz.has-img .mq,
+    body.gz.has-img .tg,
+    body.gz.has-img .vrow,
+    body.gz.has-img .vtitle,
+    body.gz.has-img .vmeta {
+      background: rgba(12,12,14,.42) !important;
+      border-color: rgba(255,255,255,.45) !important;
+    }
+    /* .wrap 是铺满整页的根容器，必须完全透明——bands 的 .wrap 自带白底 */
+    body.gz.has-img .wrap { background: transparent !important; }
+    /* 格内编号用 accent 色，有底图时要跟主体一起刷白 */
+    body.gz.has-img .cell i,
+    body.gz.has-img .cell .ctx,
+    body.gz.has-img .c i,
+    body.gz.has-img .c .ctx {
+      color: #fff !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 14px rgba(0,0,0,.55) !important;
+    }
+    /* 细线/色条在白照片上会消失，给半透明白 */
+    body.gz.has-img .mark,
+    body.gz.has-img .ln { background: rgba(255,255,255,.75) !important; }
+    /* vertical-impact 底部撞色条：白字压在上面，必须压深 */
+    body.gz.has-img .bar {
+      background: rgba(10,10,12,.62) !important;
+      border-color: rgba(255,255,255,.45) !important;
+    }
+    body.gz.has-img .foot,
+    body.gz.has-img .top,
+    body.gz.has-img .rule { border-color: rgba(255,255,255,.5) !important; }`;
+  })();
   const head = `<link rel="stylesheet" href="${baseUrl}fonts/cover-fonts.css">`
-    + `<style>:root{--cover-ink:${inkColor}}</style><style>${OVERRIDE_CSS}${readable}${frostCss}</style>`;
+    + `<style>:root{--cover-ink:${inkColor}}</style>`
+    + `<style>${OVERRIDE_CSS}${readable}${frostCss}${gzImgCss}</style>`;
   if (/<\/head>/i.test(html)) html = html.replace(/<\/head>/i, `${head}</head>`);
   else html = head + html;
   if (frostEl) {

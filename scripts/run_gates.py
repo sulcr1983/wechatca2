@@ -96,7 +96,14 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     # 守：30 条 / 10 套需图 / id 唯一 / styles 全部能解析 / nine 不算版式。
     # 为什么必须有这道：版式清单此前散在 catalog.LAYOUTS、layouts.BUILDERS、render.js 三处，
     # 每改一次右栏就多一套真源；注册表与设计文档 §5.2 漂移必须是红的，不能是哑的。
-    ("cover_registry", [str(NODE), "scripts/cover_registry_unit.mjs"], "版式注册表 30 套", "in-process"),
+    ("cover_registry", [str(NODE), "scripts/cover_registry_unit.mjs"], "版式注册表 50 套", "in-process"),
+    # 2026-11-06 接入：标题图「有底图时文字可读性」——用户实测「有图的话很多模板的字
+    # 都不出现了」。根因是 .cover-img 未定位时占据文档流把文字顶出画布（h1 top=1912
+    # > 画布 1440），以及 OVERRIDE_CSS 里无条件的白字规则压在模板自带浅色块上。
+    # 判据是真实渲染 + 真实像素（取文字色与该区域底色中位数算对比度），深/浅两张
+    # 真实照片各测一遍。反向验证：把 .cover-img 定位改回 static → 12/12 立刻变红。
+    ("cover_image", [PY, "scripts/pwa_cover_image_contrast_test.py"],
+     "有底图时文字可读性 104", "in-process"),
     # 2026-10-29 接入：封面风格规范校验（对比度/字号/字重字距/遮罩峰值）。
     # 此前这把尺子存在但没进门禁 → 10 套模板遮罩峰值 0.70（超规范 2.3 倍）躺了很久。
     # --src pwa = 只看在用的资产（public/cover-templates + pwa/src/cover）；
