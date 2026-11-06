@@ -100,7 +100,9 @@ docs/
 |---|---|---|
 | [`requirements-xhs-title.md`](xhs/requirements-xhs-title.md) | 🟢 需求真源 | 标题图需求台账 |
 | [`requirements-xhs-longform.md`](xhs/requirements-xhs-longform.md) | 🟢 需求真源 | 长图文需求台账（含 D1–D20 决策） |
-| [`design-xhs-studio-final.md`](xhs/design-xhs-studio-final.md) | 🟢 方案 V2 | Studio 定稿 |
+| [`design-xhs-studio-final.md`](xhs/design-xhs-studio-final.md) | 🟡 版式/骨架已被取代 | Studio 方案 V2（26 套）；搜图/亮度/九宫格章节仍有效 |
+| [`design-xhs-title-v3-all.md`](xhs/design-xhs-title-v3-all.md) | 🟢 **目标设计真源** | v3 方案 1 三栏常驻 + 30 套全量；按钮/状态/输出/验收 |
+| [`plan-xhs-title-v3-all.md`](xhs/plan-xhs-title-v3-all.md) | 🟢 **实施入口** | 差距、分阶段改造、输出契约、风险与 DoD |
 | [`design-xhs-canvas-ux.md`](xhs/design-xhs-canvas-ux.md) | 🟢 单画布 UX | 标题图 / 长图文单画布方案 |
 | [`design-xhs-photo-luminance.md`](xhs/design-xhs-photo-luminance.md) | 🟢 实测规则 | 搜图底图文字保护（亮度判定） |
 | [`ux-spec-xhs-studio.md`](xhs/ux-spec-xhs-studio.md) | 🟢 体验规范 | Phase 2 体验规格 |
@@ -251,7 +253,7 @@ docs/prototypes/
 | 目录 | 状态 | 内容 |
 |---|---|---|
 | `xhs/v2/` | 🟡 过程（已入库） | `index.html` / `title.html` / `longform.html` + 数据层 + 内核副本。**自带 `assets/`（13MB 字体与示例图，已 gitignore）** |
-| `xhs/v3/` | 🟡 **会话停止时进行中** | `index.html` + 三概念稿（`concept-a-three-col` / `concept-b-canvas` / `concept-c-hybrid`）。⚠️ **工作区有未提交改动** |
+| `xhs/v3/` | 🟢 **方案 1 已选定** | `index.html` + 三概念稿；方案 1 `concept-a-three-col` 已定为标题图目标骨架（30 套全量）。设计见 `docs/xhs/design-xhs-title-v3-all.md` |
 
 ### 4.5 封面工坊原型
 
@@ -301,7 +303,7 @@ docs/prototypes/
 | # | 事项 | 状态 | 证据 |
 |---|---|---|---|
 | **X-1** | 9 个文件是未提交改动（含 `pwa/src/cover/cards.js` +133 行） | ✅ **已失效** | **2026-11-06 实测**：`git status --porcelain -uall` 为空、`git log --numstat` 无任何 `+133` 提交；该声明停留在 2026-11-03 的文档归组提交，**已失效**；当前工作区有构建生成物与文档改动未提交 |
-| **X-2** | 标题图 UX V2（三栏骨架）未落地 | 🔴 待做 | `pwa/src` 零改动，只有原型 |
+| **X-2** | 标题图 UX V2（三栏骨架）未落地 | 🟡 **方案已定，代码未落地** | **2026-11-06 拍板**：v3 方案 1 三栏常驻 + 30 套全量可见；设计 `docs/xhs/design-xhs-title-v3-all.md`，实施 `docs/xhs/plan-xhs-title-v3-all.md`；`pwa/src` 尚未按新方案改造 |
 | **X-3** | 九宫格专用版式（用户已拍板要） | ✅ 2026-11-06 已实现（10 版式 / 28 配色） | `requirements-xhs-title.md` T-2 |
 | **X-4** | 长图文 `steps` 角色是死代码 | 🟡 待修 | **2026-11-06 复测确认**：`buildLong()` 从不产出 `role:'steps'`（grep 全 `pwa/src/cover/` 零命中），死分支 `cards.js:1046-1051` + 死 CSS `:583-598`。⚠️ **但内容没丢**：step 块被并入 dense 页降级成一行文字（`cards.js:1073`），只是走不到专用步骤版式 |
 | **X-5** | 长图文模板区一屏看不全 | 🟡 待修 | ⚠️ **2026-11-06 复核**：`scrollHeight=1013 > client=854` 出自**审计快照** `docs/xhs/review-xhs-studio-adversarial.md:189`（不是原型 HTML）；**现行右栏实测 844/844，不滚**，现行 `pwa/src` 里没有 `.side-scroll` 容器（grep `pwa/` = 0 命中），对应结构是 `aside.cv-col.cv-col-right`（`cover.css:489-505`，`.cv-ltpls` 为 2 列）。**问题性质成立，但数字需重新实测** |
