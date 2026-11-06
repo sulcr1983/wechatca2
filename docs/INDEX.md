@@ -305,7 +305,7 @@ docs/prototypes/
 | # | 事项 | 状态 | 证据 |
 |---|---|---|---|
 | **X-1** | 9 个文件是未提交改动（含 `pwa/src/cover/cards.js` +133 行） | ✅ **已失效** | **2026-11-06 实测**：`git status --porcelain -uall` 为空、`git log --numstat` 无任何 `+133` 提交；该声明停留在 2026-11-03 的文档归组提交，**已失效**；当前工作区有构建生成物与文档改动未提交 |
-| **X-2** | 标题图 V3（三栏骨架 + 30 套版式）未落地 | 🟡 **A1/A2 已落地，A3 未做** | **2026-11-06 拍板**方案 1；设计 `docs/xhs/design-xhs-title-v3-all.md`，实施 `docs/xhs/plan-xhs-title-v3-all.md`。**A1**：`layout-registry.js` 30 套单一真源（`cover_registry` 套件）。**A2**：右栏换 30 套全量（7 套可用 + 23 套置灰待接入；需图 10 套无图置灰；5 列网格；九宫格不再占版式卡位）。**未做**：结果画廊 `#cv-gallery` 仍在（A3） |
+| **X-2** | 标题图 V3（三栏骨架 + 30 套版式）未落地 | 🟡 **阶段 A 已落地，B–E 未做** | **2026-11-06 拍板**方案 1；设计 `docs/xhs/design-xhs-title-v3-all.md`，实施 `docs/xhs/plan-xhs-title-v3-all.md`。**A1**：`layout-registry.js` 30 套单一真源。**A2**：右栏 30 套全量（7 可用 + 23 置灰；需图 10 套无图置灰；5 列）。**A3**：删「标题图结果」画廊，改走出片托盘。**未做**：23 套配方渲染（V3-B）、输出契约收口（V3-C）、响应式/可访问性（V3-D）、线上基线（V3-E） |
 | **X-3** | 九宫格专用版式（用户已拍板要） | ✅ 2026-11-06 已实现（10 版式 / 28 配色） | `requirements-xhs-title.md` T-2 |
 | **X-4** | 长图文 `steps` 角色是死代码 | 🟡 待修 | **2026-11-06 复测确认**：`buildLong()` 从不产出 `role:'steps'`（grep 全 `pwa/src/cover/` 零命中），死分支 `cards.js:1046-1051` + 死 CSS `:583-598`。⚠️ **但内容没丢**：step 块被并入 dense 页降级成一行文字（`cards.js:1073`），只是走不到专用步骤版式 |
 | **X-5** | 长图文模板区一屏看不全 | 🟡 待修 | ⚠️ **2026-11-06 复核**：`scrollHeight=1013 > client=854` 出自**审计快照** `docs/xhs/review-xhs-studio-adversarial.md:189`（不是原型 HTML）；**现行右栏实测 844/844，不滚**，现行 `pwa/src` 里没有 `.side-scroll` 容器（grep `pwa/` = 0 命中），对应结构是 `aside.cv-col.cv-col-right`（`cover.css:489-505`，`.cv-ltpls` 为 2 列）。**问题性质成立，但数字需重新实测** |
