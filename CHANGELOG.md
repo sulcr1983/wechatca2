@@ -4,6 +4,15 @@
 > 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 > 版本边界自动取自 `pwa/version.json` 的 git 历史（2026-11-03 起），无需手工维护切点。
 
+## [1.30.0] - 2026-11-06
+
+**本次亮点**
+
+- 设计令牌层 + 逐字变色改用 !important（不再靠选择器补丁）
+
+### 调整
+- 设计令牌层 + 逐字变色改用 !important（不再靠选择器补丁） (702f5ae)
+
 ## [1.29.0] - 2026-11-06
 
 **本次亮点**

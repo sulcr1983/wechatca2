@@ -1,8 +1,37 @@
 {
-  "version": "1.29.0",
-  "generatedAt": "2026-11-06T14:47:08+08:00",
-  "totalCommits": 416,
+  "version": "1.30.0",
+  "generatedAt": "2026-11-06T15:29:02+08:00",
+  "totalCommits": 417,
   "releases": [
+    {
+      "version": "1.30.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "设计令牌层 + 逐字变色改用 !important（不再靠选择器补丁）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "changed": 1
+      },
+      "groups": [
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "设计令牌层 + 逐字变色改用 !important（不再靠选择器补丁）",
+              "scope": "cover",
+              "hash": "702f5ae",
+              "date": "2026-11-06T15:28:48+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.29.0",
       "date": "2026-11-06",
