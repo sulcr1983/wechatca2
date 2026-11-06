@@ -181,10 +181,12 @@ License 纪律：AGPL 项目只允许「看效果、自己想实现」，新增�
 
 ### 3.6 三条「看起来全绿、产物是错的」陷阱（写进规格）
 
-1. **`::first-letter` 在 DOM 生效、在 PNG 里失效**：实测 computed `114.4px / 44px = 2.6`、
-   `float:left`、accent 色全部生效，但导出的 PNG 里首字仍是正常字号 ——
-   `modern-screenshot` 不渲染该伪元素。**落地必须改为真实 `<span class="fl">` 包首字**，
-   由 `cardInner` 产出 DOM 节点，CSS 挂在 `.fl` 上。
+1. **`::first-letter` 在浏览器生效、在导出 PNG 里失效**：实测 computed `114.4px / 44px = 2.6`、
+   `float:left`、accent 色全部生效，浏览器截图目视也能看到放大的首字；
+   但 `modern-screenshot` 导出的 PNG 里首字仍是正常字号 ——
+   **丢失发生在截图管线，不是 Paged.js 分页**。
+   **落地必须改为真实 `<span class="fl">` 包首字**，由 `cardInner` 产出 DOM 节点、
+   CSS 挂在 `.fl` 上，让浏览器与导出 PNG 两条路径都成立。
 2. **PNG 带 alpha**：`modern-screenshot` 出的背景透明，直接 `convert("RGB")` 会把透明区变黑
    （总览图首版 5 页全黑）。必须先 `Image.alpha_composite` 到纸色底。
 3. **就绪信号**：`pagedjs:rendered` 事件**从不触发**（监听 window/document 均收不到）；

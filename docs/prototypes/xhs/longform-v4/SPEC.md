@@ -58,15 +58,18 @@
 `modern-screenshot` 出的 PNG 背景是透明的。直接 `convert("RGB")` 会把透明区变黑
 （总览图首版 5 页全黑）。必须先 `Image.alpha_composite` 到纸色底再缩放 / 判墨色。
 
-### 2.3 `::first-letter` 在 DOM 生效、在 PNG 里失效
+### 2.3 `::first-letter` 在浏览器生效、在导出 PNG 里失效
 
 实测 `getComputedStyle(p,'::first-letter')` = `114.4px / base 44px = 2.6`、`float:left`、
-`color:rgb(143,118,80)` 全部生效，但导出的 PNG 里首字仍是正常字号 ——
-**modern-screenshot 不渲染 `::first-letter` 伪元素**。
+`color:rgb(143,118,80)` 全部生效，**浏览器里目视也能看到放大的首字**
+（2026-11-06 用 `browser_read what=screenshot` 复核确认）；
+但 `modern-screenshot` 导出的 PNG 里首字仍是正常字号 ——
+**丢失发生在截图管线，不是 Paged.js 分页**（别把锅记到 polyfill 头上）。
 
 **落地时必须改**：不要用伪元素做首字下沉，改用真实 DOM 包首字：
 `<p class="drop"><span class="fl">两</span>天的沉默之后…</p>`，
-CSS 挂在 `.fl` 上。这条是「看起来全绿、产物是错的」的典型，和本项目 §11 反复踩过的坑同源。
+CSS 挂在 `.fl` 上。这样浏览器与导出 PNG 两条路径都成立。
+这条是「界面看起来正常、产物是错的」的典型，和本项目 §11 反复踩过的坑同源。
 
 ### 2.4 Paged.js 的两个陷阱（详见 `docs/xhs/design-xhs-longform-v4.md` §闸门）
 
