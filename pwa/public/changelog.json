@@ -1,8 +1,37 @@
 {
-  "version": "1.23.0",
-  "generatedAt": "2026-11-06T10:47:14+08:00",
-  "totalCommits": 409,
+  "version": "1.24.0",
+  "generatedAt": "2026-11-06T12:02:53+08:00",
+  "totalCommits": 410,
   "releases": [
+    {
+      "version": "1.24.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "标题图扩到 50 套版式 + 刺激风专属色板"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "标题图扩到 50 套版式 + 刺激风专属色板",
+              "scope": "cover",
+              "hash": "6485218",
+              "date": "2026-11-06T12:02:34+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.23.0",
       "date": "2026-11-06",
