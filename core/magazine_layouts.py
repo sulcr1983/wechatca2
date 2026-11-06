@@ -261,7 +261,31 @@ def caption_style(html: str, color: str) -> str:
 
 def _guard(original: str, out: str) -> str:
     """出口闸门：文字变少就放弃改造，原样返回。"""
-    return out if plain_len(out) >= plain_len(original) else original
+    if plain_len(out) < plain_len(original):
+        return original
+    return _fix_strong_in_headings(out)
+
+
+def _fix_strong_in_headings(html: str) -> str:
+    """标题里的 <strong> 必须继承标题色（2026-11-06 用户反馈修复）。
+
+    为什么：15 个版式都会 `style_all(out, "strong", {...})` 给**正文**强调色 ——
+    mori 是深绿 #507150、ukiyoe 是赭红 #8C3A2E、note 还会垫荧光底。
+    这些颜色一旦落在**标题自带底色**上（mori 的豆绿书签块、ukiyoe 的靛蓝印章块），
+    就是同色系叠同色系 —— 用户看到的是「小标题颜色和字体颜色一样，看不清」。
+
+    标题带 strong 很常见：用户手动加粗、AI 排版给标题加粗都会产生。
+    正文的强调色不变，只把标题内的 strong 恢复成继承。
+    """
+    def fix(m):
+        open_tag, inner, close_tag = m.group(1), m.group(2), m.group(3)
+        inner = re.sub(
+            r"<strong\b[^>]*>",
+            '<strong style="color:inherit;background:transparent">',
+            inner,
+        )
+        return open_tag + inner + close_tag
+    return re.sub(r"(<h[1-6]\b[^>]*>)(.*?)(</h[1-6]>)", fix, html, flags=re.DOTALL)
 
 
 def wrap_block(html: str, tag: str, style: str, *, inner: bool = False) -> str:
@@ -1168,7 +1192,9 @@ def layout_deepread(html: str, theme: dict) -> str:
     # h1：26px + 上方「深度阅读」微标
     out = re.sub(
         r"<h1\b[^>]*>(.*?)</h1>",
-        lambda m: eyebrow("深度阅读", accent, 12)
+        # 2026-11-06：微标是 12px 小字，accent 原色在白底只有 3.31:1（低于正文 4.5）→
+        # 压深 28% 保色相（赤陶仍是赤陶），对比度提到约 4.9。
+        lambda m: eyebrow("深度阅读", mix(accent, "#000000", 0.28), 12)
                   + style_tag("<h1>", {
                       "font-size": "26px", "line-height": "1.3", "color": brown,
                       "margin": "0 0 20px", "background": "transparent",

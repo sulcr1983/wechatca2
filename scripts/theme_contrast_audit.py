@@ -52,7 +52,7 @@ MD = """# 产品需求文档 PRD V1.0
 
 本文说明这一版要解决的问题、边界和验收口径，读完这段你应该知道要不要继续看。
 
-## 一、产品概述
+## 一、**产品概述**
 
 这是一个测试段落，用来验证默认版式下不会自动插入目录，也不会被切成卡片。
 
@@ -94,6 +94,11 @@ def _decl(style: str, key: str) -> str:
 def audit_theme(path: str) -> list[tuple[str, str, float]]:
     """返回该主题所有不达标的 (tag, 颜色, 对比度)"""
     theme = json.loads(Path(path).read_text(encoding="utf-8"))
+    # 2026-11-06：19 套整篇设计（mg-*）只声明 locked_layout，真实渲染时引擎会先把它
+    # 归一化成 layout（convert_markdown_to_wechat_html）。不归一化的话版式函数一次都不会
+    # 被调用 —— 这里测到的就不是用户看到的产物（标题色块、标题内 strong 全测不到）。
+    if not theme.get("layout") and theme.get("locked_layout"):
+        theme = {**theme, "layout": theme["locked_layout"]}
     page = _parse_color((theme.get("colors") or {}).get("background") or "#ffffff")
     page_rgb = page[:3] if page else (255, 255, 255)
     page_hex = "#%02x%02x%02x" % page_rgb
@@ -127,6 +132,28 @@ def audit_theme(path: str) -> list[tuple[str, str, float]]:
         if worst < BODY_MIN:
             bad.append(("p", str(fg), round(worst, 2)))
             break
+
+    # 标题里的 <strong>：各版式会给**正文**强调色（mori 深绿 #507150、ukiyoe 赭红 #8C3A2E），
+    # 一旦落在标题自带底色上（豆绿书签块 / 靛蓝印章块）就是同色系叠同色系 ——
+    # 用户实测「小标题颜色和字体颜色一样，看不清」（2026-11-06）。
+    # 判定按真实对比度（标题自带底色优先，否则页面底色），不搞「非 inherit 一律报」——
+    # 那样会把「黑字压白底的普通标题」也误判成问题。
+    for m in re.finditer(r"<(h[1-6])\b([^>]*)>(.*?)</\1>", html, re.S):
+        tag, attrs, inner = m.group(1), m.group(2), m.group(3)
+        am = re.search(r'style="([^"]*)"', attrs)
+        hstyle = am.group(1) if am else ""
+        hstops = _stops(_decl(hstyle, "background") or _decl(hstyle, "background-color"),
+                        page_rgb) or [page_rgb]
+        for sm in re.finditer(r'<strong\b[^>]*style="([^"]*)"', inner):
+            decl = _decl(sm.group(1), "color").strip().lower()
+            if not decl or decl in ("inherit", "currentcolor"):
+                continue
+            fg = _parse_color(decl)
+            if not fg:
+                continue
+            worst = min(_contrast_ratio(fg[:3], s) for s in hstops)
+            if worst < HEADING_MIN:
+                bad.append(("strong-in-%s" % tag, decl, round(worst, 2)))
     return bad
 
 
