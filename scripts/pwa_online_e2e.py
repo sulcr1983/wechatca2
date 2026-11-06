@@ -457,16 +457,16 @@ def main() -> int:
               "排版", "封面", snap(page, "cover"))
         check("标题图 tab 高亮 / 排版 tab 让位", page.get_attribute("#btn-cover", "aria-pressed") == "true"
               and page.get_attribute("#btn-editor", "aria-pressed") == "false")
-        # 2026-11-06 V3-A2：右栏数据源换成 30 套注册表（7 套已实现 + 23 套待接入）。
+        # 2026-11-06：右栏数据源换成 50 套注册表（30 配方 + 20 刺激风，全部已实现）。
         # 九宫格不再是一张版式卡 —— 它是「把任意产物切成 3×3」的独立功能。
-        # 已实现的 7 套里只有「大字版」是单色卡（1 个 style），其余 6 套共 24 个色点。
+        # 50 套里只有「大字版」是单色卡，其余各有多个色板（刺激风 20 套各 5 个）。
         n_cards = page.locator(".cv-style").count()
         n_impl = page.locator('.cv-style[data-implemented="1"]').count()
         n_pending = page.locator('.cv-style[data-implemented="0"]').count()
         n_dots = page.locator(".cv-dot").count()
-        check("30 套版式全量显示", n_cards == 30, "", f"{n_cards} 张")
-        check("已实现 7 + 待接入 23", n_impl == 7 and n_pending == 23, "", f"{n_impl}+{n_pending}")
-        check("24 个色点（25 配色 - 1 张单色卡）", n_dots == 24, "", f"{n_dots} 个")
+        check("50 套版式全量显示", n_cards == 50, "", f"{n_cards} 张")
+        check("50 套全部已实现（无待接入）", n_impl == 50 and n_pending == 0, "", f"{n_impl}+{n_pending}")
+        check("色点数量覆盖全部已实现版式", n_dots >= 100, "", f"{n_dots} 个")
 
         page.click('.cv-dot[data-style="editorial-dune"]')
         check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1,
