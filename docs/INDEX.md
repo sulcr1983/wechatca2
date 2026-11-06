@@ -250,6 +250,7 @@ docs/prototypes/
 | `xhs/ux-longform.html` | 🟡 过程 | 长图文 UX（77KB） |
 | `xhs/ux-a-three-col.html` / `ux-b-rail.html` / `ux-c-dual-band.html` | 🟡 过程 | A 三栏 / B 侧轨 / C 双带 |
 | `xhs/three-module-ia.html` | 🟢 参考 | **三模块 IA 原型**（77KB） |
+| **`xhs/longform-art/`** | 🟢 **长图文编辑器原型（2026-11-06）** | 自包含：`editor.html`（任意长文自动分页 + 195 套模板 + PNG/ZIP/Markdown 导出）、`index.html`（12 套 × 5 页画廊）、`paginate.js`（DOM 实测装箱）、`audit.js`（零丢字/裁切/字号自检）、`themes-index.js`（**生成物**，由 `scripts/gen_longform_theme_index.py` 从 183 套主题 JSON 提取）。说明见目录内 `README.md` |
 | **`xhs/longform-v4/`** | 🟢 **长图文 V4 对照原型（2026-11-06）** | 自包含目录：`render.html`（Paged.js 单页/总览）+ `fixture.js`（与产品门禁同一篇夹具）+ `skeletons.js`（5 套骨相）+ `SPEC.md`（可机检规格）+ `vendor/`（Paged.js / modern-screenshot）。产物 `output/longform-v4/overview.png`。设计见 `docs/xhs/design-xhs-longform-v4.md` |
 
 **自包含子目录**：
