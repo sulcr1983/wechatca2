@@ -240,7 +240,24 @@ License 纪律：AGPL 项目只允许「看效果、自己想实现」，新增�
 
 ---
 
-## 5. 迁移建议（只写方案，不动 `pwa/src`）
+## 5. 迁移建议（原稿口径：只写方案，不动 `pwa/src`）
+
+> ⚠️ **2026-11-06 落地更正（本节写于原型阶段，不代表现状）**：用户后续拍板
+> 「做可开关的试验入口」，已在产品内落地 —— `pwa/src/cover/v6/` + `mount.js` 挂进
+> `#longform-root`，开关 `supersu.longform.v6` **默认关**、老 `buildLong` 路径主体零删除。
+> 分页真源按拍板在**开启态**换为原型自研 `paginate.js`（DOM 实测装箱），灰度转正式需另行拍板。
+>
+> **技术路线的取舍（不静默替换，显式记录）**：原拍板是「引入 Paged.js 重做分页管线」，
+> 闸门实测通过后仍带三条约束（欠填页后处理 / 不能实时重渲 / vendor 体积），且
+> `pagedjs:rendered` 从不触发、running header 是伪元素、`position:fixed` 被重写。
+> 最终**未把 Paged.js 带入产品**，改用原型自研分页器，复用 `cards.js` 已验证的
+> 「离屏 DOM 实测高度装箱 + 句读回退」思路；代价是拿不到 CSS Paged Media 的
+> 原生 `break-*` / running header 语义，收益是零新依赖、零闸门约束、产物级零丢字可机检。
+> 若后续仍要 Paged.js，需重新拍板并接回 §4.3 三条约束。
+>
+> 构建 / 门禁 / 开关两态端到端 / 两条管线逐句比对的实测证据见
+> [`docs/prototypes/xhs/longform-art/README.md`](../prototypes/xhs/longform-art/README.md) §9。
+> 下面 §5.1–§5.5 保留**原稿方案与调研结论**，供回溯。
 
 ### 5.1 路线（推荐 C → B）
 

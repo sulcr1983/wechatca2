@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>长图文 · 单页</title>
+<script type="module">
+import { byId, PAGE_KEYS, TEMPLATES } from './templates.js';
+
+const q = new URLSearchParams(location.search);
+const id = q.get('id') || TEMPLATES[0].id;
+const page = Math.max(0, Math.min(PAGE_KEYS.length - 1, parseInt(q.get('page') || '0', 10) || 0));
+const tpl = byId(id);
+const html = tpl.renderPage(page);
+
+/* 用 blob URL 载入完整 HTML 文档，保证 @font-face / SVG filter 与文档同源 */
+const abs = new URL('./vendor/modern-screenshot.js', location.href).href;
+const doc = html.replace('./vendor/modern-screenshot.js', abs)
+  .replaceAll('./assets/fonts/', new URL('./assets/fonts/', location.href).href);
+location.replace(URL.createObjectURL(new Blob([doc], { type: 'text/html' })));
+</script>
+</head><body></body></html>

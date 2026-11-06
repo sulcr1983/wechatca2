@@ -13,6 +13,23 @@ import { buildStorySet } from './story.js';
 import { zipTiles } from '../nine.js';
 import { createBgPicker, fileToDataUrl } from './bg-picker.js';
 import { toast, openLightbox, extractStory } from './ui.js';
+/* ── V6 试验入口（2026-11-06）────────────────────────────────────────
+ * ⚠️ 必须用**动态 import()**，不能静态 import：
+ *   cover/index.js 在 ES module 加载后才绑定 #btn-longform 的 tab 事件；
+ *   门禁 pwa_longform_test.py 在 #btn-longform 一出现（DOMContentLoaded）就点击。
+ *   静态 import 会把 v6/ 的 11 个模块挂进启动依赖图、拖慢绑定 → 点击落空
+ *   → #longform-root 一直 hidden → 门禁超时（浏览器实测的真实回归）。
+ *   动态 import 让「默认关」时零 V6 加载、依赖图与改动前逐字一致。
+ * ⚠️ V6_KEY 必须与 v6/mount.js 的 V6_KEY 一致（开关判断的 owner 在本文件）。
+ */
+const V6_KEY = 'supersu.longform.v6';
+let v6mod = null;                       // 动态加载后的模块缓存（默认关时恒为 null）
+function v6Enabled() {
+  try { return localStorage.getItem(V6_KEY) === '1'; } catch { return false; }
+}
+function loadV6() {
+  return import('./v6/mount.js').then((m) => { v6mod = m; return m; });
+}
 
 const $ = (id) => document.getElementById(id);
 const BASE = new URL('../../', import.meta.url).href;
@@ -408,6 +425,23 @@ let root = null;
 export function mountLongformPage(rootEl) {
   root = rootEl;
   if (!root) return;
+  /* ── V6 试验入口分派（默认关、零负担）──────────────────────────
+     开启时：动态加载 V6 → 老 DOM 完全不注入（#cv-* 门禁 id 不重复）；
+     关闭时：仅当 V6 曾加载过才清场（v6mod 为 null 时连函数都不调）。
+     ⚠️ 老路径下面的主体代码一行未改。 */
+  if (v6Enabled()) {
+    loadV6().then((m) => {
+      if (!root) return;
+      m.disposeV6();
+      m.mountV6(root, { onBack: () => {
+        const d = m.getDraft();
+        mountLongformPage(root);
+        if (d) { const t = $('cv-long-text'); if (t) { t.value = d; updateLongCount(); schedulePreview(0); } }
+      } });
+    });
+    return;
+  }
+  if (v6mod) v6mod.disposeV6();
   root.innerHTML = `
     <main class="cv-stage">
       <aside class="cv-col cv-col-left">
@@ -497,6 +531,9 @@ export function mountLongformPage(rootEl) {
             <button class="cv-mini-btn" type="button" id="cv-longbg-clear" hidden>清除</button>
           </div>
           <p class="cv-hint cv-longbg-lock" id="cv-longbg-lock" hidden></p>
+          <!-- V6 试验入口（默认关）：开启后整页换成新版工作台，可一键返回 -->
+          <button class="cv-gen cv-gen--soft" id="cv-v6-switch" type="button"
+                  title="试用新版长图文工作台（V6）：61 种格局 + 自动分页 + 成套导出">试用新版工作台 V6</button>
         </section>
       </aside>
     </main>
@@ -603,11 +640,24 @@ export function mountLongformPage(rootEl) {
   });
   const zipBtn = $('cv-zip-story');
   if (zipBtn) zipBtn.addEventListener('click', downloadStoryZip);
+  /* V6 开关：切过去前把正在编辑的文章存进内存 draft，避免丢用户输入。
+     动态加载 V6 模块（默认关时它从未被 import 过）。 */
+  const v6Btn = $('cv-v6-switch');
+  if (v6Btn) v6Btn.addEventListener('click', () => {
+    const text = $('cv-long-text').value;
+    loadV6().then((m) => {
+      m.setDraft(text);
+      m.setV6Enabled(true);
+      mountLongformPage(root);
+    });
+  });
 }
 
 /** 页面可见性切换时刷新（index.js showPage 调） */
 export function onShowLongformPage() {
   if (!root || root.hidden) return;
+  /* V6 开启时交给新模块刷新（老路径不执行）；模块未就绪时跳过，mount 完成后自会刷新 */
+  if (v6Enabled()) { if (v6mod) v6mod.onShowV6(); return; }
   if (!$('cv-long-text').value.trim()) {
     const main = $('input').value.trim();
     if (main) { $('cv-long-text').value = main; updateLongCount(); }

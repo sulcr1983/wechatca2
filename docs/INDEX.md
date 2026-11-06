@@ -250,7 +250,7 @@ docs/prototypes/
 | `xhs/ux-longform.html` | 🟡 过程 | 长图文 UX（77KB） |
 | `xhs/ux-a-three-col.html` / `ux-b-rail.html` / `ux-c-dual-band.html` | 🟡 过程 | A 三栏 / B 侧轨 / C 双带 |
 | `xhs/three-module-ia.html` | 🟢 参考 | **三模块 IA 原型**（77KB） |
-| **`xhs/longform-art/`** | 🟢 **长图文工作台 V6（2026-11-06）** | 自包含：`editor.html`（按 `ui-ux-pro-max` 设计系统重做的三栏编辑出版式工作台 · 任意长文自动分页 · 61 种格局真实渲染卡 · 183 套配色切换 · PNG/ZIP/Markdown 导出 · 语义令牌/焦点环/reduced-motion/四档响应式）、`index.html`（12 套 × 5 页画廊）、`paginate.js`（DOM 实测装箱）、`audit.js`（零丢字/裁切/字号自检）、`themes-index.js`（**生成物**，由 `scripts/gen_longform_theme_index.py` 按格局签名把 183 套主题去重为 49 个代表 + 134 个配色变体）。说明见目录内 `README.md` |
+| **`xhs/longform-art/`** | 🟢 **长图文工作台 V6（2026-11-06）** | 自包含：`editor.html`（按 `ui-ux-pro-max` 设计系统重做的三栏编辑出版式工作台 · 任意长文自动分页 · 61 种格局真实渲染卡 · 183 套配色切换 · PNG/ZIP/Markdown 导出 · 语义令牌/焦点环/reduced-motion/四档响应式）、`index.html`（12 套 × 5 页画廊）、`paginate.js`（DOM 实测装箱）、`audit.js`（零丢字/裁切/字号自检）、`themes-index.js`（**生成物**，由 `scripts/gen_longform_theme_index.py` 按格局签名把 183 套主题去重为 49 个代表 + 134 个配色变体）。说明见目录内 `README.md`。**产品内已接可开关试验入口**：`pwa/src/cover/v6/`（`mount.js` 挂进 `#longform-root`；开关 `supersu.longform.v6` 默认关，老 `buildLong` 路径零删除；开启后共用产品顶栏三 tab / `renderPageDoc` / `zipTiles`） |
 | **`xhs/longform-v4/`** | 🟢 **长图文 V4 对照原型（2026-11-06）** | 自包含目录：`render.html`（Paged.js 单页/总览）+ `fixture.js`（与产品门禁同一篇夹具）+ `skeletons.js`（5 套骨相）+ `SPEC.md`（可机检规格）+ `vendor/`（Paged.js / modern-screenshot）。产物 `output/longform-v4/overview.png`。设计见 `docs/xhs/design-xhs-longform-v4.md` |
 
 **自包含子目录**：
@@ -312,6 +312,7 @@ docs/prototypes/
 | **X-3** | 九宫格专用版式（用户已拍板要） | ✅ 2026-11-06 已实现（10 版式 / 28 配色） | `requirements-xhs-title.md` T-2 |
 | **X-4** | 长图文 `steps` 角色是死代码 | 🟡 待修 | **2026-11-06 复测确认**：`buildLong()` 从不产出 `role:'steps'`（grep 全 `pwa/src/cover/` 零命中），死分支 `cards.js:1046-1051` + 死 CSS `:583-598`。⚠️ **但内容没丢**：step 块被并入 dense 页降级成一行文字（`cards.js:1073`），只是走不到专用步骤版式 |
 | **X-5** | 长图文模板区一屏看不全 | 🟡 待修 | ⚠️ **2026-11-06 复核**：`scrollHeight=1013 > client=854` 出自**审计快照** `docs/xhs/review-xhs-studio-adversarial.md:189`（不是原型 HTML）；**现行右栏实测 844/844，不滚**，现行 `pwa/src` 里没有 `.side-scroll` 容器（grep `pwa/` = 0 命中），对应结构是 `aside.cv-col.cv-col-right`（`cover.css:489-505`，`.cv-ltpls` 为 2 列）。**问题性质成立，但数字需重新实测** |
+| **X-6** | 长图文 V6 工作台接入产品（可开关试验入口） | ✅ 2026-11-06 已落地（默认关） | `pwa/src/cover/v6/` 模块 + `mount.js` 挂进 `#longform-root`；`longform-page.js` 为纯插入分派（老路径主体零删除），**动态 `import()`** 保证默认关零加载，并修掉静态 import 拖慢 tab 事件绑定的真实回归。验证：`build.mjs` 断言全过 · `pwa_longform_test.py` 全绿 · 开启态端到端（格局卡 / 零丢字 / PNG / ZIP / 切回无残留 / 零 JS 报错）· 两条分页管线逐句产物一致。详见 [`docs/prototypes/xhs/longform-art/README.md`](prototypes/xhs/longform-art/README.md) §9 |
 
 ### 5.3 工程 / 文档
 
