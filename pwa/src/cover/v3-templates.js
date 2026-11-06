@@ -14,6 +14,7 @@
 
 import { COVER_SIZES, styleById } from './catalog.js';
 import { prepareCoverHtml } from './templates.js';
+import { tokens, cssVars } from './design-tokens.js';
 import * as RECIPES from './v3-recipes.js';
 import { BOLD_TEMPLATES } from './v3-bold.js';
 import { BOLD_EXTRA } from './v3-bold-extra.js';
@@ -34,12 +35,12 @@ function paletteOf(meta) {
   };
 }
 
-/** 版心内边距按尺寸缩放（3:4 与 1:1 用同一比例，21:9 单独收窄）。 */
+/** 版心内边距 —— 统一走设计令牌，按画布缩放（2026-11-06）。
+ *  原来写死三档绝对值（92/88、88/80、96/64），21:9 下比例失衡；
+ *  现在由 design-tokens 按 min(w/1080, h/1440) 缩放，三种尺寸视觉比例一致。 */
 function padOf(dim) {
-  const ratio = dim.w / dim.h;
-  if (ratio > 1.9) return { x: 96, y: 64 };      // 21:9
-  if (ratio > 1.05) return { x: 88, y: 80 };     // 1:1
-  return { x: 92, y: 88 };                        // 3:4
+  const t = tokens(dim);
+  return { x: t.padX, y: t.padY };
 }
 
 /* ── 1. 杂志封面：顶栏双线 + 衬线大标题 + 底部版权区 ───────────────── */
@@ -63,7 +64,7 @@ function tplMagazine(pal, dim, hasImage) {
   .rule{height:10px;background:${pal.accent};margin-top:22px}
   .mid{margin-top:auto;margin-bottom:auto;padding:40px 0}
   .h-display{margin:0;font-size:__HSIZE__px;line-height:.98;letter-spacing:-.02em;font-weight:700;text-wrap:balance}
-  .lead{margin:44px 0 0;font-size:30px;line-height:1.72;color:${pal.muted};max-width:78%}
+  .lead{margin:44px 0 0;font-size:var(--fs-lead,30px);line-height:1.72;color:${pal.muted};max-width:78%}
   .mark{display:block;width:110px;height:5px;background:currentColor;margin-top:52px}
   .foot{border-top:1px solid rgba(128,128,128,.34);padding-top:20px;
     display:flex;align-items:baseline;justify-content:space-between;
@@ -108,7 +109,7 @@ function tplQuote(pal, dim) {
   .q{font:700 190px/0.5 Georgia,serif;color:${pal.accent};height:104px}
   .h-display{margin:36px 0 0;font-size:__HSIZE__px;line-height:1.32;font-weight:600;letter-spacing:.01em;text-wrap:balance}
   .rule{width:84px;height:4px;background:${pal.accent};margin-top:58px}
-  .lead{margin:52px 0 0;font-size:29px;line-height:1.8;color:${pal.muted};max-width:82%}
+  .lead{margin:52px 0 0;font-size:var(--fs-lead,29px);line-height:1.8;color:${pal.muted};max-width:82%}
   .sign{margin-top:80px;font:400 21px/1 ui-monospace,Menlo,monospace;letter-spacing:.36em;color:${pal.muted}}
   </style></head><body class="gz">
   <section class="poster">
@@ -140,7 +141,7 @@ function tplBigtype(pal, dim) {
   .kicker{display:inline-block;align-self:flex-start;background:${pal.accent};color:${pal.accentOn};
     font:800 23px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;padding:9px 15px}
   .h-display{margin:auto 0 0;font-size:__HSIZE__px;line-height:.94;font-weight:900;letter-spacing:-.03em;text-wrap:balance}
-  .lead{margin:60px 0 0;font-size:32px;line-height:1.6;color:${sub};max-width:80%}
+  .lead{margin:60px 0 0;font-size:var(--fs-body,32px);line-height:1.6;color:${sub};max-width:80%}
   .tag{display:inline-block;align-self:flex-start;margin-top:64px;padding:12px 20px;
     border:3px solid ${fg};font:600 21px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em}
   .foot{margin-top:auto;font:400 20px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;color:${sub}}
@@ -175,7 +176,7 @@ function tplImageLed(pal, dim, hasImage) {
   .mid{margin-top:auto}
   .h-display{margin:0;font-size:__HSIZE__px;line-height:1.02;font-weight:800;letter-spacing:-.02em;text-wrap:balance;
     text-shadow:0 2px 18px rgba(0,0,0,.34)}
-  .lead{margin:34px 0 0;font-size:30px;line-height:1.66;color:rgba(255,255,255,.9);max-width:84%}
+  .lead{margin:34px 0 0;font-size:var(--fs-lead,30px);line-height:1.66;color:rgba(255,255,255,.9);max-width:84%}
   .foot{margin-top:44px;padding-top:18px;border-top:1px solid rgba(255,255,255,.42);
     display:flex;justify-content:space-between;
     font:400 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:rgba(255,255,255,.86)}
@@ -216,7 +217,7 @@ function tplList(pal, dim) {
     border-top:1px solid rgba(128,128,128,.3)}
   .it:last-child{border-bottom:1px solid rgba(128,128,128,.3)}
   .no{flex:none;font:700 26px/1 ui-monospace,Menlo,monospace;color:${pal.accent};letter-spacing:.06em}
-  .tx{font-size:36px;line-height:1.5;color:${pal.ink}}
+  .tx{font-size:var(--fs-body,36px);line-height:1.5;color:${pal.ink}}
   .foot{margin-top:auto;padding-top:26px;display:flex;justify-content:space-between;
     font:400 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
   </style></head><body class="gz">
@@ -243,7 +244,7 @@ function tplNumber(pal, dim) {
   .side{writing-mode:vertical-rl;font:400 19px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.34em;color:${pal.muted};margin-top:6px}
   .h-display{margin:56px 0 0;font-size:__HSIZE__px;line-height:1.14;font-weight:800;letter-spacing:-.01em;max-width:86%;text-wrap:balance}
-  .lead{margin:30px 0 0;font-size:28px;line-height:1.7;color:${pal.muted};max-width:80%}
+  .lead{margin:30px 0 0;font-size:var(--fs-lead,28px);line-height:1.7;color:${pal.muted};max-width:80%}
   /* 2026-11-06 修：标题+引语原来贴在上半部、下半屏全空。
      给标题块之后加弹性留白（.spacer），把内容自然推向上下两端。 */
   .spacer{flex:1;min-height:24px}
@@ -274,7 +275,7 @@ function tplSwiss(pal, dim) {
   .idx{font:700 21px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:${pal.accent}}
   .h-display{margin:120px 0 0;font-size:__HSIZE__px;line-height:1.04;font-weight:300;letter-spacing:-.03em;text-wrap:balance;
     position:relative;z-index:2;background:${pal.paper};padding-bottom:6px}
-  .lead{margin:44px 0 0;font-size:27px;line-height:1.66;color:${pal.muted};max-width:74%}
+  .lead{margin:44px 0 0;font-size:var(--fs-lead,27px);line-height:1.66;color:${pal.muted};max-width:74%}
   /* 2026-11-06 修填充率 46%：footer 原来没有 margin-top:auto，
      整块内容悬在上半部、下半屏全空。 */
   .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;
@@ -346,18 +347,22 @@ const BASE_SIZE = {
   magazine: 190, quote: 168, bigtype: 210, 'image-led': 180, list: 150, number: 160, swiss: 170,
 };
 
-/** 标题字号：按「可用宽度 ÷ 每行字数」反算，base 作为上限（2026-11-06 用户反馈「字体不够大」）。
+/** 标题字号：按「可用宽度 ÷ 每行字数」反算，base 作为上限。
  *
- *  原来用「固定基准 × 字数系数」（13 字只给 118×0.66=78px），小红书封面上显得空。
- *  现在改成先定行数、再按物理宽度反算：中文全角字宽 ≈ 字号，所以
- *  字号 ≈ 可用宽 / 每行字数，短标题自然撑满，长标题自动缩到刚好放下。
+ *  2026-11-06 二次修正：原实现只按宽度反算，导致 21:9（宽 2100）下
+ *  字号被推到 168–190px，而画布只有 900 高 → 标题占比 0.187（3:4 是 0.086，
+ *  整整 2 倍），版面全挤在一起。
+ *  现在 base 由设计令牌按 min(w/1080, h/1440) 缩放并给横版额外收紧，
+ *  三种尺寸的「标题占画布高」保持在 0.08–0.12 区间。
  */
 function titleSize(title, base, availW) {
   const n = [...String(title || '').replace(/\s+/g, '')].length || 1;
   const lines = n <= 6 ? 1 : n <= 16 ? 2 : 3;
   const perLine = Math.ceil(n / lines);
   const fit = Math.floor((availW * 0.97) / perLine);   // 留 3% 余量防贴边
-  return Math.max(56, Math.min(base, fit));
+  /* 下限也按画布缩放：3:4 下 56px，21:9 下约 35px（否则小画布放不下）。 */
+  const floor = Math.max(24, Math.round(56 * (base / 190)));
+  return Math.max(floor, Math.min(base, fit));
 }
 
 /** 清单类版式的条目切分（与 layouts.js 同口径）。 */
@@ -419,7 +424,18 @@ export function buildV3Html({
     if (layout === 'evidence-wall') return Math.round(base * 0.62);
     return base;
   })();
-  html = html.replace(/__HSIZE__/g, String(titleSize(title, BASE_SIZE[layout] || 150, availW)));
+  /* 标题上限按设计令牌缩放（2026-11-06）：BASE_SIZE 是 1440 高下的基准值，
+     21:9（900 高）必须等比收，否则占比翻倍、版面挤成一团。 */
+  const tk = tokens(dim);
+  const baseCap = (BASE_SIZE[layout] || 150) * tk.scale * (tk.isWide ? 0.72 : 1);
+  html = html.replace(/__HSIZE__/g, String(titleSize(title, Math.round(baseCap), availW)));
+
+  /* 设计令牌注入（2026-11-06）：把 --fs-lead / --fs-body / --fs-meta / --fs-micro
+     等变量写进 :root，模板里的 var(--fs-lead,29px) 才能真正按画布缩放。
+     ⚠️ 必须包在 :root{} 里 —— 直接把 "a:1px;b:2px" 拼在 <style> 末尾是无效 CSS，
+     变量不会定义，模板只会一直用 fallback（实测踩到）。
+     没注入时 fallback 是原来的硬编码像素值，不会出现「变量缺失 → 字号 0」。 */
+  html = html.replace('</style>', `:root{${cssVars(tk)}}</style>`);
 
   /* ⚠️ 必须带 id="xhs-cover"：render.js 的 renderCoverBlob / 预览都靠它取节点，
      缺了会直接抛「模板里找不到 #xhs-cover」，预览与导出全废（2026-11-06 实测）。 */

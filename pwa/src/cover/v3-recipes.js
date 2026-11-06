@@ -23,7 +23,7 @@ function shell(pal, dim, p, body, extraCss = '') {
     padding:${p.y}px ${p.x}px}
   .h-display{margin:0;font-size:__HSIZE__px;line-height:1.08;font-weight:800;
     letter-spacing:-.02em;text-wrap:balance}
-  .lead{margin:28px 0 0;font-size:28px;line-height:1.7;color:${pal.muted};max-width:84%}
+  .lead{margin:28px 0 0;font-size:var(--fs-lead,28px);line-height:1.7;color:${pal.muted};max-width:84%}
   .foot{margin-top:auto;padding-top:18px;border-top:1px solid rgba(128,128,128,.3);
     display:flex;justify-content:space-between;align-items:baseline;
     font:400 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
@@ -117,7 +117,7 @@ export function tplEssaySplit(pal, dim, hasImage) {
   .kick{display:block;font:700 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
     color:${pal.accent};margin-bottom:26px}
   .h-display{font-size:__HSIZE__px;line-height:1.08}
-  .lead{margin:0;font-size:30px;line-height:1.9;color:${pal.muted};max-width:100%}
+  .lead{margin:0;font-size:var(--fs-lead,30px);line-height:1.9;color:${pal.muted};max-width:100%}
   .meta{margin-top:30px;padding-top:16px;border-top:1px solid rgba(128,128,128,.3);
     display:flex;justify-content:space-between;
     font:400 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;color:${pal.muted}}`);
@@ -153,8 +153,8 @@ export function tplEvidenceWall(pal, dim, hasImage) {
   .cell .cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cell i{font:700 15px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;color:${pal.accent};
     font-style:normal;position:relative;z-index:1}
-  .ctx{font-size:23px;line-height:1.45;font-weight:600;color:${pal.ink};position:relative;z-index:1}
-  .lead{margin:30px 0 0;font-size:26px;line-height:1.7;color:${pal.muted}}`);
+  .ctx{font-size:var(--fs-body,23px);line-height:1.45;font-weight:600;color:${pal.ink};position:relative;z-index:1}
+  .lead{margin:30px 0 0;font-size:var(--fs-lead,26px);line-height:1.7;color:${pal.muted}}`);
 }
 
 /* ── M10 实证特写：大图占上半 + 底部 3 条要点 ──────────────────────── */
@@ -186,7 +186,7 @@ export function tplFeature(pal, dim, hasImage) {
   .pt:last-child{border-bottom:1px solid rgba(128,128,128,.3)}
   .pn{flex:none;width:26px;height:26px;border-radius:50%;background:${pal.accent};color:${pal.accentOn};
     font:700 14px/26px ui-monospace,Menlo,monospace;text-align:center}
-  .ptx{font-size:25px;line-height:1.55;color:${pal.ink}}
+  .ptx{font-size:var(--fs-lead,25px);line-height:1.55;color:${pal.ink}}
   .foot{margin-top:auto}`);
 }
 
@@ -212,7 +212,7 @@ export function tplAtmosThesis(pal, dim, hasImage) {
     letter-spacing:.34em;color:${pal.accent}}
   .mid{flex:1;display:flex;flex-direction:column;justify-content:center}
   .h-display{font-size:__HSIZE__px;line-height:1.16;font-weight:700}
-  .lead{margin:34px 0 0;font-size:25px;line-height:1.8;color:${pal.paper};opacity:.72;max-width:82%}
+  .lead{margin:34px 0 0;font-size:var(--fs-lead,25px);line-height:1.8;color:${pal.paper};opacity:.72;max-width:82%}
   .foot{margin-top:0;border-color:rgba(255,255,255,.24);color:${pal.paper};opacity:.66}`);
 }
 
@@ -232,7 +232,7 @@ export function tplMarginalia(pal, dim, hasImage) {
   .grid{flex:1;display:grid;grid-template-columns:1fr 176px;gap:34px}
   .main{display:flex;flex-direction:column}
   .h-display{font-size:__HSIZE__px;line-height:1.1}
-  .lead{margin:28px 0 0;font-size:25px;line-height:1.78;color:${pal.muted};max-width:100%}
+  .lead{margin:28px 0 0;font-size:var(--fs-lead,25px);line-height:1.78;color:${pal.muted};max-width:100%}
   .foot{margin-top:auto}
   .side{border-left:1px solid rgba(128,128,128,.34);padding-left:22px;
     display:flex;flex-direction:column;justify-content:center;gap:14px}
@@ -261,12 +261,12 @@ export function tplMatrix(pal, dim, hasImage) {
     justify-content:space-between;border-top:3px solid ${pal.accent};overflow:hidden}
   .c i{font:700 15px/1 ui-monospace,Menlo,monospace;color:${pal.accent};
     letter-spacing:.2em;font-style:normal}
-  .c .ctx{font-size:21px;line-height:1.4;font-weight:600;color:${pal.ink};
+  .c .ctx{font-size:var(--fs-meta,21px);line-height:1.4;font-weight:600;color:${pal.ink};
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .big{margin-top:18px;padding-top:16px;border-top:2px solid ${pal.ink};
     display:flex;align-items:baseline;gap:18px}
   .bn{font:800 40px/1 system-ui,sans-serif;color:${pal.ink};letter-spacing:-.03em}
-  .bl{font-size:23px;line-height:1.5;color:${pal.muted}}`);
+  .bl{font-size:var(--fs-body,23px);line-height:1.5;color:${pal.muted}}`);
 }
 
 /* ── M07 收尾寄语：大标题 + 账本 + 收尾句 ─────────────────────────── */
@@ -287,7 +287,7 @@ export function tplClosingNote(pal, dim, hasImage) {
   .rw{flex:1;display:flex;justify-content:space-between;align-items:center;gap:20px;
     border-top:1px solid rgba(128,128,128,.3)}
   .rw:last-child{border-bottom:1px solid rgba(128,128,128,.3)}
-  .rt{font-size:26px;line-height:1.5;color:${pal.ink}}
+  .rt{font-size:var(--fs-lead,26px);line-height:1.5;color:${pal.ink}}
   .rn{font:400 15px/1 ui-monospace,Menlo,monospace;color:${pal.muted};letter-spacing:.2em}
   .end{margin-top:34px;display:flex;align-items:center;gap:14px;
     font:400 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
@@ -315,7 +315,7 @@ export function tplTallLedger(pal, dim, hasImage) {
   .bk:last-child{border-bottom:1px solid rgba(128,128,128,.32)}
   .bn{flex:none;width:60px;font:800 26px/1 system-ui,sans-serif;color:${pal.accent};
     font-variant-numeric:tabular-nums}
-  .bt{font-size:34px;line-height:1.45;color:${pal.ink}}`);
+  .bt{font-size:var(--fs-body,34px);line-height:1.45;color:${pal.ink}}`);
 }
 
 /* ── M12 章节分隔：Act 编号 + 3–6 字大标题 ─────────────────────────── */
@@ -333,7 +333,7 @@ export function tplSectionDivider(pal, dim, hasImage) {
     color:${pal.accent};margin-bottom:40px}
   .h-display{font-size:__HSIZE__px;line-height:1.16}
   .rule{width:88px;height:3px;background:${pal.ink};margin:52px auto 0;opacity:.32}
-  .lead{margin:44px 0 0;font-size:27px;line-height:1.75;color:${pal.muted};max-width:76%}
+  .lead{margin:44px 0 0;font-size:var(--fs-lead,27px);line-height:1.75;color:${pal.muted};max-width:76%}
   .foot{position:absolute;left:96px;right:96px;bottom:88px;margin-top:0}`);
 }
 
@@ -352,7 +352,7 @@ export function tplHeroQuestion(pal, dim, hasImage) {
     color:${pal.accent};opacity:.10;z-index:1;pointer-events:none}
   .wrap{padding:${p}px;justify-content:center}
   .h-display{font-size:__HSIZE__px;line-height:1.2;font-weight:800}
-  .lead{margin:40px 0 0;font-size:27px;line-height:1.75;color:${pal.muted};max-width:80%}
+  .lead{margin:40px 0 0;font-size:var(--fs-lead,27px);line-height:1.75;color:${pal.muted};max-width:80%}
   .foot{position:absolute;left:${p}px;right:${p}px;bottom:${Math.round(p * 0.75)}px;margin-top:0}`);
 }
 
@@ -373,7 +373,7 @@ export function tplPipeline(pal, dim, hasImage) {
   .st:last-child::before{display:none}
   .sn{flex:none;width:40px;height:40px;border-radius:50%;background:${pal.accent};
     color:${pal.accentOn};font:700 17px/40px ui-monospace,Menlo,monospace;text-align:center;z-index:1}
-  .sx{font-size:28px;line-height:1.5;color:${pal.ink};padding-top:4px}`);
+  .sx{font-size:var(--fs-lead,28px);line-height:1.5;color:${pal.ink};padding-top:4px}`);
 }
 
 /* ── M15 前后对比：上下两块（旧 vs 新）─────────────────────────────── */
@@ -396,7 +396,7 @@ export function tplBeforeAfter(pal, dim, hasImage) {
   .blk.new{background:${pal.ink};color:${pal.paper}}
   .tg{font:700 16px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:${pal.accent}}
   .blk.new .tg{color:${pal.accent}}
-  .tx{font-size:30px;line-height:1.5;font-weight:600}
+  .tx{font-size:var(--fs-lead,30px);line-height:1.5;font-weight:600}
   .mid{align-self:center;background:${pal.accent};color:${pal.accentOn};
     font:800 16px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;
     padding:8px 16px;border-radius:99px;margin:-14px 0;z-index:2}
@@ -420,7 +420,7 @@ export function tplTwoSignals(pal, dim, hasImage) {
   .solid{background:${pal.accent};color:${pal.accentOn}}
   .ghost{border:2px solid ${pal.ink};color:${pal.ink}}
   .solid b,.ghost b{font:800 34px/1.1 system-ui,sans-serif;letter-spacing:.04em}
-  .solid span,.ghost span{font-size:22px;line-height:1.55;opacity:.9}
+  .solid span,.ghost span{font-size:var(--fs-body,22px);line-height:1.55;opacity:.9}
   .foot{margin-top:22px}`);
 }
 
@@ -448,9 +448,9 @@ export function tplDataLayer(pal, dim, hasImage) {
   .kv{display:flex;gap:20px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.16);
     align-items:baseline}
   .kv:last-child{border-bottom:0}
-  .kv i{flex:none;width:88px;font-style:normal;font-size:17px;color:${pal.accent};
+  .kv i{flex:none;width:88px;font-style:normal;font-size:var(--fs-meta,17px);color:${pal.accent};
     letter-spacing:.1em}
-  .kv b{font-size:23px;line-height:1.5;font-weight:400;color:${pal.paper}}
+  .kv b{font-size:var(--fs-body,23px);line-height:1.5;font-weight:400;color:${pal.paper}}
   .foot{margin-top:26px;border-color:rgba(255,255,255,.2);color:${pal.paper};opacity:.6}`);
 }
 
@@ -484,7 +484,7 @@ export function tplImageHero(pal, dim, hasImage) {
   .blk{margin-top:auto;background:rgba(10,10,12,.62);padding:30px 28px;
     border-left:4px solid ${pal.accent}}
   .h-display{font-size:__HSIZE__px;line-height:1.1;color:#fff}
-  .lead{margin:20px 0 0;font-size:25px;line-height:1.65;color:rgba(255,255,255,.86);max-width:100%}
+  .lead{margin:20px 0 0;font-size:var(--fs-lead,25px);line-height:1.65;color:rgba(255,255,255,.86);max-width:100%}
   .foot{margin-top:26px;border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.8)}`);
 }
 
@@ -508,7 +508,7 @@ export function tplTakeaway(pal, dim, hasImage) {
     border-top:1px solid rgba(255,255,255,.2)}
   .tw:last-child{border-bottom:1px solid rgba(255,255,255,.2)}
   .tn{flex:none;font:800 32px/1 system-ui,sans-serif;color:${pal.accent}}
-  .tt{font-size:30px;line-height:1.5;color:${pal.paper}}
+  .tt{font-size:var(--fs-lead,30px);line-height:1.5;color:${pal.paper}}
   .foot{margin-top:24px;border-color:rgba(255,255,255,.22);color:${pal.paper};opacity:.62}`);
 }
 
@@ -529,7 +529,7 @@ export function tplWarning(pal, dim, hasImage) {
   .ws{flex:1;display:flex;flex-direction:column;margin-top:22px;gap:14px}
   .wn{flex:1;position:relative;background:${pal.paper2};padding:22px 24px 22px 30px;
     display:flex;align-items:center;
-    font-size:27px;line-height:1.5;color:${pal.ink}}
+    font-size:var(--fs-lead,27px);line-height:1.5;color:${pal.ink}}
   .wn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;
     background:${pal.accent}}
   .foot{margin-top:24px}`);
@@ -561,10 +561,10 @@ export function tplKpiTower(pal, dim, hasImage) {
   .col:nth-child(2) .bar{background:${pal.ink}}
   .col:nth-child(4) .bar{opacity:.5}
   .val{font:800 26px/1 system-ui,sans-serif;color:${pal.ink};margin-top:10px}
-  .lb{font-size:18px;line-height:1.35;color:${pal.muted};text-align:center;
+  .lb{font-size:var(--fs-meta,18px);line-height:1.35;color:${pal.muted};text-align:center;
     margin:8px 0 14px;max-width:100%;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .lead{margin:26px 0 0;font-size:24px;line-height:1.6;color:${pal.muted}}
+  .lead{margin:26px 0 0;font-size:var(--fs-body,24px);line-height:1.6;color:${pal.muted}}
   .foot{margin-top:18px}`);
 }
 
@@ -596,7 +596,7 @@ export function tplBrowserMock(pal, dim, hasImage) {
   .view{flex:1;display:flex;flex-direction:column;justify-content:flex-start;padding:44px;
     gap:0}
   .h-display{font-size:__HSIZE__px;line-height:1.12;margin-top:auto}
-  .lead{margin:24px 0 0;font-size:25px;line-height:1.7;color:${pal.muted};max-width:100%}
+  .lead{margin:24px 0 0;font-size:var(--fs-lead,25px);line-height:1.7;color:${pal.muted};max-width:100%}
   .cta{margin-top:auto;margin-bottom:auto;align-self:flex-start;
     font:700 17px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.24em;color:${pal.accent}}
@@ -624,9 +624,9 @@ export function tplPipelineArch(pal, dim, hasImage) {
   .sg:nth-child(3){background:${pal.accent};border-color:${pal.accent};color:${pal.accentOn}}
   .no{font:700 15px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;opacity:.6}
   .en{font:800 24px/1 system-ui,sans-serif;letter-spacing:.1em}
-  .cn{font-size:20px;opacity:.8}
+  .cn{font-size:var(--fs-meta,20px);opacity:.8}
   .arw{flex:none;font:400 26px/1 system-ui,sans-serif;color:${pal.muted}}
-  .lead{margin:26px 0 0;font-size:24px;line-height:1.6;color:${pal.muted}}
+  .lead{margin:26px 0 0;font-size:var(--fs-body,24px);line-height:1.6;color:${pal.muted}}
   .foot{margin-top:18px}`);
 }
 
@@ -650,7 +650,7 @@ export function tplHBar(pal, dim, hasImage) {
   .bars{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px}
   .br{display:flex;align-items:center;gap:16px}
   .bn{flex:none;width:34px;font:700 18px/1 ui-monospace,Menlo,monospace;color:${pal.accent}}
-  .bt{flex:none;width:118px;font-size:22px;color:${pal.ink}}
+  .bt{flex:none;width:118px;font-size:var(--fs-body,22px);color:${pal.ink}}
   .bw{flex:1;height:26px;background:${pal.paper2};position:relative}
   .bw i{position:absolute;left:0;top:0;bottom:0;background:${pal.accent};display:block}
   .foot{margin-top:22px}`);
@@ -679,6 +679,6 @@ export function tplStackedLedger(pal, dim, hasImage) {
     font-variant-numeric:tabular-nums}
   .row i{font-style:normal;font:400 18px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.24em;color:${pal.muted}}
-  .lead{margin:24px 0 0;font-size:24px;line-height:1.6;color:${pal.muted}}
+  .lead{margin:24px 0 0;font-size:var(--fs-body,24px);line-height:1.6;color:${pal.muted}}
   .foot{margin-top:18px}`);
 }

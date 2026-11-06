@@ -470,16 +470,16 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl, an
         rgba(8,8,10,${tint.toFixed(3)}) 100%)}
     body.gz.has-img .wrap,
     body.gz.has-img .pad { position: relative; z-index: 2; }
-    /* ⚠️ 2026-11-06 修「逐字变色 / 错位失效」：
-       这条通配规则会把 textmode.js 逐字切出来的 .tm-ch 内联 color 一起刷白
-       （实测有底图时 13 字标题只剩 1 种颜色，用户看到的是纯白）。
-       必须把 .tm-ch 排除在外 —— 玩法自己的颜色优先，投影仍保留保证可读。 */
-    body.gz.has-img .poster *:not(.cover-img):not(.tm-ch) {
+    /* ⚠️ 2026-11-06：这条通配规则把 V3 模板的所有文字刷白 —— 照片上白字才读得清。
+       它曾经把 textmode.js 逐字切出来的 .tm-ch 也刷白，导致「逐字变色 / 错位」失效
+       （实测 13 字只剩 1 种颜色）。
+       **根治办法不在选择器上**：white-list 行不通（实测 50 套模板里有 204 个
+       无 class 的 span / 32 个 i / 16 个 b，漏一个就是「某套模板文字又看不见」）。
+       改为让玩法自己的内联样式带 !important（见 textmode.js 的 wrapChars），
+       由 CSS 优先级天然压过这条规则 —— 以后加新玩法也不会被吃掉。 */
+    body.gz.has-img .poster *:not(.cover-img) {
       color: #ffffff !important;
       text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 14px rgba(0,0,0,.55) !important;
-    }
-    body.gz.has-img .poster .tm-ch {
-      text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 12px rgba(0,0,0,.6) !important;
     }
     /* 文字块自带的纸底/色块在照片上要去掉，否则变成「不透明纸压着照片」 */
     body.gz.has-img .h-display,

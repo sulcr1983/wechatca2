@@ -149,8 +149,12 @@ function wrapChars(text, accentHex) {
     if (ch === '\n') { parts.push('<br>'); continue; }
     if (ch === ' ') { parts.push('<span class="tm-sp">&nbsp;</span>'); continue; }
     const color = palette[i] || palette[0];
-    // --tm-i 供 CSS 做高低错落；style 里的 color 供逐字变色
-    parts.push(`<span class="tm-ch" style="--tm-i:${i};color:${color}">${escHtml(ch)}</span>`);
+    /* ⚠️ 2026-11-06：内联 color 必须带 !important。
+       有底图时 templates.js 的 gzImgCss 会用 `!important` 把文字统一刷白
+       （照片上白字才读得清），而普通内联样式优先级低于带 !important 的规则 →
+       逐字变色会被整片盖掉（实测 13 字只剩 1 种颜色，用户反馈「变色失效」）。
+       带 !important 后，玩法自己的颜色优先，且以后再加新玩法也不会被吃掉。 */
+    parts.push(`<span class="tm-ch" style="--tm-i:${i};color:${color} !important">${escHtml(ch)}</span>`);
     i += 1;
   }
   return parts.join('');

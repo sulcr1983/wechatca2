@@ -28,7 +28,7 @@ export function tplDiagonal(pal, dim, hasImage) {
   .kick{align-self:flex-start;font:900 19px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.32em;color:${pal.accentOn};opacity:.8;margin-bottom:auto}
   .h-display{color:${pal.accentOn};margin-bottom:32px}
-  .lead{margin:0;font-size:30px;line-height:1.55;font-weight:700;
+  .lead{margin:0;font-size:var(--fs-lead,30px);line-height:1.55;font-weight:700;
     color:${pal.accentOn};opacity:.88;max-width:88%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
@@ -61,7 +61,7 @@ export function tplCardStack(pal, dim, hasImage) {
     color:${pal.accentOn};display:flex;flex-direction:column;justify-content:flex-end;
     gap:26px;padding:34px}
   .h-display{color:${pal.accentOn};margin-top:auto}
-  .lead{font-size:28px;line-height:1.5;font-weight:700;color:${pal.accentOn};
+  .lead{font-size:var(--fs-lead,28px);line-height:1.5;font-weight:700;color:${pal.accentOn};
     opacity:.9;display:block}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.ink}`, '', pal.paper2);
@@ -88,7 +88,7 @@ export function tplBands(pal, dim, hasImage) {
   .num{font:900 26px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
     color:${pal.accentOn};opacity:.82}
   .h-display{color:${pal.accentOn}}
-  .lead{font-size:29px;line-height:1.55;font-weight:700;color:${pal.paper}}
+  .lead{font-size:var(--fs-lead,29px);line-height:1.55;font-weight:700;color:${pal.paper}}
   .sig{font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
     color:${pal.paper};opacity:.6}`, '', pal.ink);
 }
@@ -108,7 +108,7 @@ export function tplRingFocus(pal, dim, hasImage) {
   .pad{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;padding:0 84px}
   .h-display{color:${pal.accentOn};text-align:center}
-  .lead{margin:30px 0 0;font-size:27px;line-height:1.55;font-weight:700;
+  .lead{margin:30px 0 0;font-size:var(--fs-lead,27px);line-height:1.55;font-weight:700;
     color:${pal.accentOn};opacity:.9;max-width:88%;text-align:center}
   .foot{position:absolute;left:84px;right:84px;bottom:80px;
     display:flex;justify-content:space-between;align-items:baseline;
@@ -137,7 +137,7 @@ export function tplTagFlow(pal, dim, hasImage) {
   .tg:nth-child(3){background:none;color:${pal.accent};border:3px solid ${pal.accent}}
   .h-display{color:${pal.ink};margin-bottom:28px}
   .strip{background:${pal.accent};color:${pal.accentOn};padding:22px 24px;margin-top:auto}
-  .strip span{font-size:29px;line-height:1.5;font-weight:700;display:block}
+  .strip span{font-size:var(--fs-lead,29px);line-height:1.5;font-weight:700;display:block}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:20px;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.ink}}`, '', pal.paper);
 }
@@ -162,7 +162,7 @@ export function tplFrameHit(pal, dim, hasImage) {
   .kick{font:900 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.34em;
     color:${pal.accentOn};opacity:.85;margin-bottom:auto}
   .h-display{color:${pal.accentOn};margin-bottom:28px}
-  .lead{margin:0;font-size:28px;line-height:1.55;font-weight:700;
+  .lead{margin:0;font-size:var(--fs-lead,28px);line-height:1.55;font-weight:700;
     color:${pal.accentOn};opacity:.9;max-width:90%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
@@ -188,7 +188,7 @@ export function tplCornerNum(pal, dim, hasImage) {
   .top{display:flex;justify-content:flex-start;margin-bottom:auto}
   .kick{font:900 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.32em;color:${pal.accent}}
   .h-display{color:${pal.ink};margin-bottom:28px;max-width:88%}
-  .lead{margin:0;font-size:29px;line-height:1.55;font-weight:700;
+  .lead{margin:0;font-size:var(--fs-lead,29px);line-height:1.55;font-weight:700;
     color:${pal.ink};opacity:.76;max-width:84%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
@@ -217,7 +217,7 @@ export function tplThreeGrid(pal, dim, hasImage) {
   .c2{background:${pal.ink};color:${pal.paper}}
   .c3{background:${pal.paper2};color:${pal.ink};border:3px solid ${pal.accent}}
   .cn{font:900 22px/1 ui-monospace,Menlo,monospace;letter-spacing:.2em;opacity:.8}
-  .ct{font-size:24px;line-height:1.4;font-weight:800}
+  .ct{font-size:var(--fs-body,24px);line-height:1.4;font-weight:800}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:20px;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.ink};opacity:.6}`,
   '', pal.paper);
@@ -240,7 +240,7 @@ export function tplMegaChar(pal, dim, hasImage) {
   .pad{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;padding:${p}px}
   .h-display{color:${pal.paper};margin-top:auto;margin-bottom:22px;
     text-shadow:0 3px 24px rgba(0,0,0,.6)}
-  .lead{margin:0;font-size:27px;line-height:1.55;font-weight:700;
+  .lead{margin:0;font-size:var(--fs-lead,27px);line-height:1.55;font-weight:700;
     color:${pal.paper};opacity:.8;max-width:86%;text-shadow:0 2px 12px rgba(0,0,0,.5)}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:30px;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
@@ -262,7 +262,7 @@ export function tplStickyNotes(pal, dim, hasImage) {
     </div>`, `
   .poster{background:${pal.paper2}}
   .pad{flex:1;position:relative;padding:${p}px;display:flex;flex-direction:column}
-  .n{position:absolute;padding:20px;font-size:22px;line-height:1.4;font-weight:800;
+  .n{position:absolute;padding:20px;font-size:var(--fs-body,22px);line-height:1.4;font-weight:800;
     box-shadow:6px 8px 18px rgba(0,0,0,.16)}
   .n1{left:${p}px;top:${p}px;width:250px;height:150px;background:${pal.accent};
     color:${pal.accentOn};transform:rotate(-4deg);overflow:hidden}
@@ -273,7 +273,7 @@ export function tplStickyNotes(pal, dim, hasImage) {
     display:flex;flex-direction:column;justify-content:flex-end;gap:22px;
     border:3px solid ${pal.ink}}
   .h-display{color:${pal.ink};margin-top:auto}
-  .lead{font-size:26px;line-height:1.5;font-weight:700;color:${pal.ink};opacity:.72;
+  .lead{font-size:var(--fs-lead,26px);line-height:1.5;font-weight:700;color:${pal.ink};opacity:.72;
     display:block}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.ink};opacity:.6}`,
@@ -304,7 +304,7 @@ export function tplMarquee(pal, dim, hasImage) {
   .kick{align-self:flex-start;font:900 18px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.3em;color:${pal.accent};margin-bottom:auto}
   .h-display{color:${pal.ink};margin-bottom:28px}
-  .lead{margin:0;font-size:29px;line-height:1.55;font-weight:700;
+  .lead{margin:0;font-size:var(--fs-lead,29px);line-height:1.55;font-weight:700;
     color:${pal.ink};opacity:.76;max-width:88%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
@@ -332,7 +332,7 @@ export function tplTiltBlock(pal, dim, hasImage) {
     text-shadow:0 2px 0 ${pal.paper2}, 0 -2px 0 ${pal.paper2}}
   .blk{background:${pal.ink};color:${pal.paper};padding:24px 26px;align-self:flex-start;
     max-width:90%;margin-bottom:auto}
-  .blk span{font-size:28px;line-height:1.5;font-weight:700;display:block}
+  .blk span{font-size:var(--fs-lead,28px);line-height:1.5;font-weight:700;display:block}
   .foot{display:flex;justify-content:space-between;align-items:baseline;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
     color:${pal.ink};opacity:.62}`, '', pal.paper2);

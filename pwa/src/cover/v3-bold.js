@@ -52,7 +52,7 @@ export function tplBoldBanner(pal, dim, hasImage) {
   .h-display{color:${fg};margin:0 0 34px}
   .strip{background:${fg};color:${bg};padding:24px 26px;margin-top:auto;
     border-radius:4px;transform:rotate(-1.6deg)}
-  .st{font-size:30px;line-height:1.5;font-weight:700;display:block}
+  .st{font-size:var(--fs-lead,30px);line-height:1.5;font-weight:700;display:block}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:22px;
     font:800 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${fg};opacity:.86}`,
   '', bg);
@@ -78,7 +78,7 @@ export function tplNeonGlow(pal, dim, hasImage) {
     color:${pal.accent};margin-bottom:auto}
   .h-display{color:#fff;margin-bottom:34px;
     text-shadow:0 0 34px ${pal.accent}, 0 0 8px ${pal.accent}}
-  .lead{margin:0;font-size:29px;line-height:1.6;color:rgba(255,255,255,.74);max-width:86%}
+  .lead{margin:0;font-size:var(--fs-lead,29px);line-height:1.6;color:rgba(255,255,255,.74);max-width:86%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:700 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
     color:${pal.accent};opacity:.9}`,
@@ -103,7 +103,7 @@ export function tplStickerBox(pal, dim, hasImage) {
     padding:38px;justify-content:space-between}
   .h-display{color:#0B0B0C}
   .blk{background:#0B0B0C;color:#fff;padding:24px 26px;margin-top:30px}
-  .blk span{font-size:29px;line-height:1.5;font-weight:700;display:block}
+  .blk span{font-size:var(--fs-lead,29px);line-height:1.5;font-weight:700;display:block}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:20px;
     font:800 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:#0B0B0C}`,
   '', pal.paper);
@@ -129,7 +129,7 @@ export function tplSplitClash(pal, dim, hasImage) {
   .h-display{color:${pal.accentOn};margin-top:32px}
   .bot{flex:1;display:flex;flex-direction:column;justify-content:space-between;
     padding:${p}px;background:#0B0B0C;color:#fff}
-  .lead{font-size:31px;line-height:1.55;font-weight:700;max-width:94%}
+  .lead{font-size:var(--fs-lead,31px);line-height:1.55;font-weight:700;max-width:94%}
   .sig{font:700 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
     color:rgba(255,255,255,.7);margin-top:26px}`,
   '', pal.accent);
@@ -154,7 +154,7 @@ export function tplMegaNumber(pal, dim, hasImage) {
   .kick{align-self:flex-start;font:800 18px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.3em;color:${pal.accentOn};opacity:.86;margin-bottom:auto}
   .h-display{color:${pal.accentOn};margin-bottom:30px}
-  .lead{margin:0;font-size:29px;line-height:1.55;font-weight:700;
+  .lead{margin:0;font-size:var(--fs-lead,29px);line-height:1.55;font-weight:700;
     color:${pal.accentOn};opacity:.9;max-width:84%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:700 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
@@ -180,7 +180,7 @@ export function tplHighlighter(pal, dim, hasImage) {
   /* 荧光笔：用渐变在下半截压一条高亮，模拟马克笔 */
   .hl{background:linear-gradient(180deg, transparent 56%, ${pal.accent} 56%,
     ${pal.accent} 92%, transparent 92%);padding:0 6px}
-  .lead{margin:0;font-size:29px;line-height:1.66;color:${pal.ink};opacity:.78;max-width:88%}
+  .lead{margin:0;font-size:var(--fs-lead,29px);line-height:1.66;color:${pal.ink};opacity:.78;max-width:88%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:700 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
     color:${pal.ink};opacity:.55}`,
@@ -211,7 +211,7 @@ export function tplVerticalImpact(pal, dim, hasImage) {
     font:700 16px/1 ui-monospace,Menlo,monospace;letter-spacing:.34em;
     color:${pal.accent}}
   .bar{background:${pal.accent};color:${pal.accentOn};padding:22px 26px}
-  .bar span{font-size:27px;line-height:1.5;font-weight:700;display:block}`,
+  .bar span{font-size:var(--fs-lead,27px);line-height:1.5;font-weight:700;display:block}`,
   '', pal.ink);
 }
 
@@ -235,7 +235,7 @@ export function tplHalfClash(pal, dim, hasImage) {
   .kick{align-self:flex-end;font:800 18px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.3em;color:${pal.accent};margin-bottom:auto}
   .h-display{margin-bottom:32px;color:${pal.ink}}
-  .lead{margin:0;font-size:29px;line-height:1.6;font-weight:600;
+  .lead{margin:0;font-size:var(--fs-lead,29px);line-height:1.6;font-weight:600;
     color:${pal.ink};opacity:.8;max-width:80%}
   .foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;
     font:800 17px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;color:${pal.ink}}`,
