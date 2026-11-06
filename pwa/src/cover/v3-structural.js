@@ -193,16 +193,142 @@ export function tplBleedOverlap(pal, dim, hasImage) {
  * 导出实测（2026-11-06 对照实验）：文字区饱和度 96/255，PNG 里保留了渐变；
  * 而 clip-path 在同批实验里 LOST（底行比顶行还宽），所以不用 clip-path。
  *
+ * ⚠️ 2026-11-06 二次修正「名不副实」：第一版渐变是
+ *    accent → ink → accent → muted，实测四个色标的色相是 **17° / 40° / 17° / 41°**，
+ *    全挤在棕橙色系里 —— 那是「暖调渐变」，不叫光谱。
+ *    现在真正按色相轮转派生（见 spectrumStops），亮底压低明度、暗底抬高明度，
+ *    保证无论纸色深浅，字都落在可读区间。
+ *
  * ⚠️ 有底图时必须退化成实心字：本语法靠 color:transparent，
  *    而可读性门禁会跳过 alpha < 0.15 的文字元素 —— 有图时若仍用渐变，
  *    门禁会「跳过而不检查」，等于给了一个假绿灯，字烂在照片上也测不出来。 */
+
+/** RGB → HSL（0-360, 0-1, 0-1）。本地实现而非复用 textmode.js：
+ *  那里的 hslToHex 是模块私有、未导出；为它加 export 会扩大改动面，
+ *  按最小改动原则在本文件内自带一份，仅服务渐变派生。 */
+function rgbToHsl(r, g, b) {
+  const rr = r / 255; const gg = g / 255; const bb = b / 255;
+  const mx = Math.max(rr, gg, bb); const mn = Math.min(rr, gg, bb);
+  const l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn;
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  let h;
+  if (mx === rr) h = ((gg - bb) / d + (gg < bb ? 6 : 0));
+  else if (mx === gg) h = (bb - rr) / d + 2;
+  else h = (rr - gg) / d + 4;
+  return [h * 60, s, l];
+}
+
+function hslToHex(h, s, l) {
+  const hh = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = l - c / 2;
+  let rgb;
+  if (hh < 60) rgb = [c, x, 0];
+  else if (hh < 120) rgb = [x, c, 0];
+  else if (hh < 180) rgb = [0, c, x];
+  else if (hh < 240) rgb = [0, x, c];
+  else if (hh < 300) rgb = [x, 0, c];
+  else rgb = [c, 0, x];
+  const toHex = (v) => Math.max(0, Math.min(255, Math.round(v * 255)))
+    .toString(16).padStart(2, '0');
+  return '#' + rgb.map((v) => toHex(v + m)).join('');
+}
+
+/** 由强调色派生真正跨色相的渐变停靠点。
+ *
+ *  @param {string} accentHex 基色
+ *  @param {boolean} dark    纸底是否深色
+ *  @returns {string[]} 4 个十六进制色（沿色轮每段 +72°，共跨 216°）
+ *
+ *  为什么跨度是 216° 而不是整圈：整圈会首尾同色，读起来像「绕回去了」；
+ *  216° = 3 段 × 72°，从基色走到「对侧偏暖」的位置，色相差异足够明显
+ *  又不会出现首尾撞色。
+ *  明度取值：**按实测对比度反推，不凭感觉配**。
+ *    标题的最小可读门槛是 WCAG 3.0，而渐变的亮端最难达标 ——
+ *    第一版用 [0.34,0.42,0.48,0.52]（亮底），实测：
+ *      paper 最差 1.97、bold 最差 1.52，都低于 3.0 → 亮端在浅纸上糊掉。
+ *    扫了一组明度数组后选定 [0.24,0.27,0.30,0.34]：
+ *      paper 最差 4.63、bold 最差 3.82，均达标且留余量。
+ *    暗底反向：用 [0.88,0.82,0.78,0.74] 提亮，ink 最差 7.07。
+ *    色相跨度仍是 216°，视觉上的「光谱」不因压暗自损。 */
+function spectrumStops(accentHex, dark) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(accentHex || '').trim());
+  const base = m ? m[1] : 'b4552f';
+  const [h0, s0] = rgbToHsl(
+    parseInt(base.slice(0, 2), 16),
+    parseInt(base.slice(2, 4), 16),
+    parseInt(base.slice(4, 6), 16),
+  );
+  /* 饱和度保底 0.55：低饱和色标在渐变里会发灰，看起来像脏了 */
+  const sat = Math.max(0.55, Math.min(0.9, s0));
+  const light = dark ? [0.88, 0.82, 0.78, 0.74] : [0.24, 0.27, 0.30, 0.34];
+  return light.map((l, i) => hslToHex(h0 + 72 * i, sat, l));
+}
+
+/* ── 对比度工具：把任意色压到「对给定底色可读」为止 ───────────────────
+ *
+ * 为什么需要：描边大字用的是模板 accent 直接当描边色，而 accent 是给
+ * **色块/强调线**设计的，不代表压在纸底上作**文字**可读。
+ * 实测（2026-11-06，从真实渲染产物采样）：
+ *   paper 描边 #b4552f on #efe1d3 = 3.82  ✓
+ *   ink   描边 #d8a24a on #231e15 = 7.25  ✓
+ *   bold  描边 #ff3b1f on #ffe6dc = 2.99  ✗ 差 0.01（亮橙红压近白纸天生不足）
+ * 手调某个色值不可持续（每加一套色板就要重调），所以按对比度反推。 */
+
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return [0, 0, 0];
+  const s = m[1];
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+}
+
+function relLuminance([r, g, b]) {
+  const f = (c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+function contrastRatio(a, b) {
+  const la = relLuminance(a);
+  const lb = relLuminance(b);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** 返回一个与 bgHex 对比度 >= min 的颜色：保持色相/饱和度，只调明度。
+ *  底色偏亮 → 往暗压；底色偏暗 → 往亮提。找不到（极端情况）就返回纯黑/纯白。 */
+function readableAgainst(hex, bgHex, min = 3.0) {
+  const bg = hexToRgb(bgHex);
+  if (contrastRatio(hexToRgb(hex), bg) >= min) return hex;
+  const [h, s, l0] = rgbToHsl(...hexToRgb(hex));
+  const bgLum = relLuminance(bg);
+  const goDark = bgLum > 0.35;
+  const sat = Math.max(0.45, s);
+  const step = 0.02;
+  let l = l0;
+  for (let i = 0; i < 60; i += 1) {
+    l += goDark ? -step : step;
+    if (l <= 0.02 || l >= 0.98) break;
+    const cand = hslToHex(h, sat, l);
+    if (contrastRatio(hexToRgb(cand), bg) >= min) return cand;
+  }
+  return goDark ? '#000000' : '#ffffff';
+}
+
 export function tplGradientTitle(pal, dim, hasImage) {
   const t = tokens(dim);
+  const stops = spectrumStops(pal.accent, !!pal.dark);
   const grad = hasImage
     ? `color:#fff`
     : `color:transparent;-webkit-background-clip:text;background-clip:text;
-       background-image:linear-gradient(100deg,${pal.accent} 0%,${pal.ink} 42%,
-       ${pal.accent} 74%,${pal.muted} 100%)`;
+       background-image:linear-gradient(96deg,${stops[0]} 0%,${stops[1]} 34%,
+       ${stops[2]} 68%,${stops[3]} 100%)`;
   return shell(pal, dim, `
     <div class="top"><span class="kick">SPECTRUM</span><span class="issue">{{DATE}}</span></div>
     <div class="stage">
@@ -288,9 +414,20 @@ export function tplSpanColumn(pal, dim, hasImage) {
 export function tplOutlineType(pal, dim, hasImage) {
   const t = tokens(dim);
   const strokeW = Math.max(2, Math.round(t.titleMax * 0.022));
+  /* 描边色按对比度反推，不直接用 accent。
+     实测（2026-11-06）两件事：
+     ① accent 是给色块/强调线设计的，不代表能当**文字**色 ——
+        bold 的 #ff3b1f 压在近白纸 #fff7ee 上只有 3.36（勉强），
+        而在真实渲染里只剩 2.99（不合格，标题门槛 3.0）。
+     ② 差的那部分来自 **SVG 装饰层**：它叠了径向墨染 + 噪点，
+        把有效底色从 #fff7ee 拉到 #ffe6dc，吃掉约 11–12% 对比度。
+        这个损失无法精确反算（渐变叠加），所以把目标阈值抬高到 4.0
+        （3.0 / 0.89 ≈ 3.37，取 4.0 留余量），吸收装饰层影响。
+     效果：paper #ac512d=4.13、ink #daa652=7.54、bold #eb1d00=3.74，均达标。 */
+  const strokeColor = readableAgainst(pal.accent, pal.paper, 4.0);
   const outline = hasImage
     ? `color:#fff`
-    : `color:transparent;-webkit-text-stroke:${strokeW}px ${pal.accent}`;
+    : `color:transparent;-webkit-text-stroke:${strokeW}px ${strokeColor}`;
   const solid = hasImage ? 'color:#fff' : `color:${pal.ink}`;
   return shell(pal, dim, `
     <div class="top"><span class="kick">OUTLINE</span><span>{{DATE}}</span></div>
