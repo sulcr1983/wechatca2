@@ -1,8 +1,37 @@
 {
-  "version": "1.27.0",
-  "generatedAt": "2026-11-06T14:32:24+08:00",
-  "totalCommits": 414,
+  "version": "1.28.0",
+  "generatedAt": "2026-11-06T14:38:38+08:00",
+  "totalCommits": 415,
   "releases": [
+    {
+      "version": "1.28.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "证据墙有图时标题被挤出画布"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "证据墙有图时标题被挤出画布",
+              "scope": "cover",
+              "hash": "5093cdf",
+              "date": "2026-11-06T14:38:22+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.27.0",
       "date": "2026-11-06",
