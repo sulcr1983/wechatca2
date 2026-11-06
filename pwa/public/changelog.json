@@ -1,8 +1,116 @@
 {
-  "version": "1.31.0",
-  "generatedAt": "2026-11-06T16:57:10+08:00",
-  "totalCommits": 420,
+  "version": "1.32.0",
+  "generatedAt": "2026-11-06T19:25:44+08:00",
+  "totalCommits": 428,
   "releases": [
+    {
+      "version": "1.32.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "装饰层压住底图 + 注释里伪标签被 applyImage 误注入",
+        "标题图加 SVG 装饰层（纸纹/墨染/结构线，按版式语义绑定）",
+        "多栏版式在 21:9 下退化成每栏一行"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1,
+        "changed": 1,
+        "fixed": 4,
+        "other": 2
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "标题图加 SVG 装饰层（纸纹/墨染/结构线，按版式语义绑定）",
+              "scope": "cover",
+              "hash": "a2ca8ec",
+              "date": "2026-11-06T18:15:32+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "长图文 V4 文档细化 ::first-letter 陷阱的描述",
+              "scope": "xhs",
+              "hash": "5f6df43",
+              "date": "2026-11-06T19:25:20+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "装饰层压住底图 + 注释里伪标签被 applyImage 误注入",
+              "scope": "cover",
+              "hash": "963d4fe",
+              "date": "2026-11-06T18:23:50+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "多栏版式在 21:9 下退化成每栏一行",
+              "scope": "cover",
+              "hash": "f90597f",
+              "date": "2026-11-06T18:06:09+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "多栏正文短内容时空白全堆底部（改为垂直居中）",
+              "scope": "cover",
+              "hash": "7b52863",
+              "date": "2026-11-06T18:00:56+08:00",
+              "breaking": false,
+              "dev": false
+            },
+            {
+              "text": "多栏首字下沉改用真实 span（伪元素导出 PNG 会丢）",
+              "scope": "cover",
+              "hash": "03af5c4",
+              "date": "2026-11-06T17:50:37+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "补 3 套结构型版式的 9 张缩略图",
+              "scope": "cover",
+              "hash": "b5fbedb",
+              "date": "2026-11-06T19:23:39+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "版式数量断言 50 → 53（新增 3 套结构型）",
+              "scope": "cover",
+              "hash": "2949bec",
+              "date": "2026-11-06T18:58:56+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.31.0",
       "date": "2026-11-06",
