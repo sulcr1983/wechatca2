@@ -130,9 +130,12 @@ export function tplMultiColumn(pal, dim, hasImage) {
     margin:${Math.round(t.padY * 0.4)}px 0 ${Math.round(t.padY * 0.5)}px;width:72px}
   /* ⚠️ column-count 是多栏正文的核心：文字按栏流动，不是手动切 div。
      colswrap 负责「占满剩余高度」，.cols 负责分栏 —— 两层分工，
-     因为 column-count 容器自己撑不开高度（内容少时不会填满）。 */
-  .colswrap{flex:1;min-height:0;display:flex;flex-direction:column}
-  .cols{flex:1;min-height:0;height:100%;column-count:${cols};column-gap:${Math.round(t.gap * 3)}px;
+     因为 column-count 容器自己撑不开高度（内容少时不会填满）。
+     ⚠️ 2026-11-06 实测：4 条内容只占 514–631，页脚在 1315 —— 中间空了 684px
+     （画布的 47%），全堆在顶部、下面一整片空白。柱状多栏天生适合长内容，
+     短内容时靠 justify-content:center 把空白**上下均分**，视觉才成立。 */
+  .colswrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+  .cols{flex:0 1 auto;min-height:0;column-count:${cols};column-gap:${Math.round(t.gap * 3)}px;
     column-rule:1px solid rgba(128,128,128,.28);
     font-size:var(--fs-lead,${t.lead}px);line-height:1.8;color:${pal.ink}}
   .cols p{margin:0 0 ${Math.round(t.gap * 1.3)}px;break-inside:avoid}
