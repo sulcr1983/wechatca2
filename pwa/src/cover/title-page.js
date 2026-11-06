@@ -351,6 +351,10 @@ function syncTextPosUI() {
 }
 
 /* ── 生成 ── */
+/** 出片托盘是否已被用户主动关闭（防止在途异步渲染把它弹回来）。 */
+let trayDismissed = false;
+
+/** 只做「清空结果」，不碰 trayDismissed —— 供 generate 开新一次时调用。 */
 function clearResults() {
   for (const r of state.results) {
     if (r.url) URL.revokeObjectURL(r.url);
@@ -362,6 +366,16 @@ function clearResults() {
   if (items) items.textContent = '';
   const empty = $('cv-empty');
   if (empty) empty.hidden = false;
+}
+
+/** 用户点托盘 X：关闭 + 记住「用户不要它了」，避免在途渲染把它弹回来。
+ *  ⚠️ 2026-11-06：原来把「置 trayDismissed」塞在 clearResults 里，
+ *  导致 generate 调 clearResults 时也把自己复位掉 → 生成完托盘不出现。
+ *  两个职责分开后，调用方语义清晰：generate 用 clearResults，
+ *  X 按钮用 dismissTray。 */
+function dismissTray() {
+  trayDismissed = true;
+  clearResults();
 }
 
 async function generate() {
@@ -379,6 +393,8 @@ async function generate() {
   const btn = $('cv-gen');
   if (btn) btn.disabled = true;
   clearResults();
+  /* 新一次生成 → 允许托盘重新出现（X 按钮关掉的是「上一次」的托盘）。 */
+  trayDismissed = false;
   try {
     for (const size of sizes) {
       setStatus(`正在保存 ${COVER_SIZES[size].label}…`);
@@ -414,6 +430,12 @@ function renderTray() {
   const items = $('cv-tray-items');
   const empty = $('cv-empty');
   if (!tray || !items) return;
+  /* 用户主动关掉托盘后，在途的异步渲染不应再把它弹回来（见 clearResults 注释）。 */
+  if (trayDismissed) {
+    tray.hidden = true;
+    items.textContent = '';
+    return;
+  }
   items.textContent = '';
   if (!state.results.length) {
     tray.hidden = true;
@@ -818,6 +840,17 @@ export function mountTitlePage(rootEl) {
 
   if ($('cv-author')) $('cv-author').addEventListener('input', savePrefs);
   $('cv-text').addEventListener('input', () => { updateCount(); schedulePreview(); });
+  /* ⚠️ 2026-11-06 修「清空文案后空态不出现」：
+     空态（#cv-empty）原来只由 clearResults / renderTray 控制，
+     而它们只在「生成 / 关闭托盘」时被调用 —— 手打清空文案时没人管它。
+     这里让空态跟着「标题是否为空」走：标题为空就显示提示，有内容就隐藏。 */
+  $('cv-text').addEventListener('input', () => {
+    const empty = $('cv-empty');
+    if (!empty) return;
+    const hasTitle = !!extractStory($('cv-text').value).title;
+    const trayOpen = $('cv-tray') && !$('cv-tray').hidden;
+    empty.hidden = hasTitle || trayOpen;
+  });
   /* 关键词自动提取（ux-spec C7）：标题自动填入，可改；手改过（kwTouched）不再覆盖 */
   $('cv-text').addEventListener('input', () => {
     if (state.picker) state.picker.setQueryIfUntouched(autoKeyword($('cv-text').value).query);
@@ -847,7 +880,7 @@ export function mountTitlePage(rootEl) {
   });
   $('cv-gen').addEventListener('click', generate);
   /* 出片托盘关闭（2026-11-06 V3-A3）：关掉即回收 blob，画布不受影响。 */
-  $('cv-tray-x')?.addEventListener('click', clearResults);
+  $('cv-tray-x')?.addEventListener('click', dismissTray);
   // 空态示例成品（U-9）：点一张 = 选中该风格 + 焦点落文案框
   $('cv-samples').addEventListener('click', (e) => {
     const b = e.target.closest('.cv-sample');
