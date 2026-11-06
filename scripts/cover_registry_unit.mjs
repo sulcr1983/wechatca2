@@ -22,7 +22,8 @@ const check = (name, ok, detail = '') => {
   else { fail += 1; console.log(`  FAIL  ${name}${detail ? '  — ' + detail : ''}`); }
 };
 
-/* 设计文档 §5.2 的行序（唯一口径；文档改序这里必须跟着改）。 */
+/* 设计文档 §5.2 的行序 + 刺激风 20 套（2026-11-06 扩容）。
+   文档改序这里必须跟着改——本清单是「注册表 ↔ 文档」漂移的唯一判据。 */
 const EXPECTED_IDS = [
   'image-led', 'magazine', 'quote', 'bigtype', 'list', 'number', 'swiss',
   'field-note', 'essay-split', 'evidence-wall', 'feature', 'atmos-thesis',
@@ -30,24 +31,24 @@ const EXPECTED_IDS = [
   'hero-question', 'pipeline', 'before-after', 'two-signals', 'data-layer',
   'image-hero', 'takeaway', 'warning', 'kpi-tower', 'browser-mock',
   'pipeline-arch', 'h-bar', 'stacked-ledger',
+  /* 刺激风 20 套（B01–B20） */
+  'bold-banner', 'neon-glow', 'sticker-box', 'split-clash', 'mega-number',
+  'highlighter', 'vertical-impact', 'half-clash', 'diagonal', 'card-stack',
+  'bands', 'ring-focus', 'tag-flow', 'frame-hit', 'corner-num', 'three-grid',
+  'mega-char', 'sticky-notes', 'marquee', 'tilt-block',
 ];
 
-/* 文档 §5.2 统计口径点名的 10 套需图版式。 */
+/* 文档 §5.2 统计口径点名的 10 套需图版式（刺激风 20 套全部纯文字，不在此列）。 */
 const EXPECTED_NEED_IMG = [
   'image-led', 'magazine', 'field-note', 'essay-split', 'evidence-wall',
   'feature', 'atmos-thesis', 'marginalia', 'matrix', 'image-hero',
 ];
 
-/* 现有 7 套（产品已能渲染）。 */
-const EXPECTED_IMPLEMENTED = [
-  'image-led', 'magazine', 'quote', 'bigtype', 'list', 'number', 'swiss',
-];
-
 console.log('标题图 V3 版式注册表');
 
 /* ── 1. 数量与顺序 ── */
-check('总数 30 套', LAYOUT_COUNT === 30, `${LAYOUT_COUNT} 套`);
-check('顺序与设计文档 §5.2 一致',
+check('总数 50 套（30 配方 + 20 刺激风）', LAYOUT_COUNT === 50, `${LAYOUT_COUNT} 套`);
+check('顺序与设计文档 §5.2 / 刺激风登记表一致',
   LAYOUT_REGISTRY.map((l) => l.id).join() === EXPECTED_IDS.join(),
   LAYOUT_REGISTRY.map((l) => l.id).join());
 
@@ -59,14 +60,18 @@ check('需图的就是文档点名的 10 套',
   needImgIds.join());
 
 /* ── 3. 必填字段与唯一性 ── */
-check('id 唯一', new Set(LAYOUT_REGISTRY.map((l) => l.id)).size === 30);
+check('id 唯一', new Set(LAYOUT_REGISTRY.map((l) => l.id)).size === 50);
 check('每套都有 name', LAYOUT_REGISTRY.every((l) => typeof l.name === 'string' && l.name.length > 0));
 check('每套都有配方编号字段', LAYOUT_REGISTRY.every((l) => typeof l.code === 'string' && l.code.length > 0));
-check('分组只有 existing / recipe',
-  LAYOUT_REGISTRY.every((l) => ['existing', 'recipe'].includes(l.group)));
-check('现有 7 + 配方 23',
+check('分组只有 existing / recipe / bold',
+  LAYOUT_REGISTRY.every((l) => ['existing', 'recipe', 'bold'].includes(l.group)));
+check('现有 7 + 配方 23 + 刺激风 20',
   LAYOUT_REGISTRY.filter((l) => l.group === 'existing').length === 7
-  && LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length === 23);
+  && LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length === 23
+  && LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length === 20,
+  `existing=${LAYOUT_REGISTRY.filter((l) => l.group === 'existing').length} `
+  + `recipe=${LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length} `
+  + `bold=${LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length}`);
 
 /* ── 4. styles 必须真实可解析 ── */
 const allStyleIds = new Set(ALL_STYLES.map((s) => s.id));
@@ -74,16 +79,21 @@ const badStyles = LAYOUT_REGISTRY.flatMap((l) => l.styles.filter((id) => !allSty
   .map((id) => `${l.id}:${id}`));
 check('每条 styles 都能在 catalog 解析', badStyles.length === 0, badStyles.slice(0, 5).join(', '));
 
-/* ── 5. 已实现 / 未实现 ── */
+/* ── 5. 已实现 / 未实现 ──
+   2026-11-06：50 套全部接入渲染器（30 配方 + 20 刺激风），不再有占位卡。
+   断言从「已实现恰好 7 套」改为「全部已实现」，并保留「未实现必须 styles 为空」
+   这条不变量 —— 将来若再加版式但没写渲染器，这里要能拦住。 */
 const implemented = implementedLayouts().map((l) => l.id);
 const pending = pendingLayouts().map((l) => l.id);
-check('已实现恰好是现有 7 套', implemented.join() === EXPECTED_IMPLEMENTED.join(), implemented.join());
-check('未实现 23 套全部 styles 为空',
+check('50 套全部已实现（无占位卡）', implemented.length === 50, `${implemented.length} 套`);
+check('未实现清单为空', pending.length === 0, pending.join());
+check('未实现的版式必须 styles 为空（不变量）',
   pendingLayouts().every((l) => l.styles.length === 0), pending.join());
 check('已实现版式 renderers 非空',
-  implementedLayouts().every((l) => l.renderers.length > 0));
+  implementedLayouts().every((l) => l.renderers.length > 0),
+  implementedLayouts().filter((l) => !l.renderers.length).map((l) => l.id).join(', '));
 check('registryEntry 对未知 id 返回 null', registryEntry('no-such-layout') === null);
-check('styleIdsOf 对未实现版式返回空数组', styleIdsOf('hero-question').length === 0);
+check('styleIdsOf 对未知版式返回空数组', styleIdsOf('no-such-layout').length === 0);
 
 /* ── 6. 反向映射 ── */
 const unmatched = ALL_STYLES

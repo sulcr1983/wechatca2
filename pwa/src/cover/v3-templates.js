@@ -14,6 +14,9 @@
 
 import { COVER_SIZES, styleById } from './catalog.js';
 import { prepareCoverHtml } from './templates.js';
+import * as RECIPES from './v3-recipes.js';
+import { BOLD_TEMPLATES } from './v3-bold.js';
+import { BOLD_EXTRA } from './v3-bold-extra.js';
 
 /* magazine-tpl / swiss-tpl 是主卡的配色变体，渲染归到主卡结构。 */
 const LAYOUT_ALIAS = { 'magazine-tpl': 'magazine', 'swiss-tpl': 'swiss' };
@@ -208,12 +211,12 @@ function tplList(pal, dim) {
     color:${pal.accent};font:700 20px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.24em;padding:8px 14px;text-transform:uppercase}
   .h-display{margin:38px 0 0;font-size:__HSIZE__px;line-height:1.18;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
-  .items{margin-top:44px;display:flex;flex-direction:column}
-  .it{display:flex;align-items:baseline;gap:22px;padding:22px 0;
+  .items{margin-top:44px;display:flex;flex-direction:column;justify-content:center;flex:1}
+  .it{display:flex;align-items:baseline;gap:22px;padding:30px 0;
     border-top:1px solid rgba(128,128,128,.3)}
   .it:last-child{border-bottom:1px solid rgba(128,128,128,.3)}
-  .no{flex:none;font:700 24px/1 ui-monospace,Menlo,monospace;color:${pal.accent};letter-spacing:.06em}
-  .tx{font-size:31px;line-height:1.5;color:${pal.ink}}
+  .no{flex:none;font:700 26px/1 ui-monospace,Menlo,monospace;color:${pal.accent};letter-spacing:.06em}
+  .tx{font-size:36px;line-height:1.5;color:${pal.ink}}
   .foot{margin-top:auto;padding-top:26px;display:flex;justify-content:space-between;
     font:400 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
   </style></head><body class="gz">
@@ -235,13 +238,16 @@ function tplNumber(pal, dim) {
     font-family:'Noto Sans SC','PingFang SC',system-ui,sans-serif}
   .wrap{height:100%;display:flex;flex-direction:column;padding:${p.y}px ${p.x}px}
   .top{display:flex;align-items:flex-start;justify-content:space-between}
-  .num{font:800 300px/0.8 system-ui,sans-serif;letter-spacing:-.06em;color:${pal.accent};
+  .num{font:800 210px/0.86 system-ui,sans-serif;letter-spacing:-.06em;color:${pal.accent};
     font-variant-numeric:tabular-nums}
   .side{writing-mode:vertical-rl;font:400 19px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.34em;color:${pal.muted};margin-top:6px}
-  .h-display{margin:auto 0 0;font-size:__HSIZE__px;line-height:1.14;font-weight:800;letter-spacing:-.01em;max-width:86%;text-wrap:balance}
+  .h-display{margin:56px 0 0;font-size:__HSIZE__px;line-height:1.14;font-weight:800;letter-spacing:-.01em;max-width:86%;text-wrap:balance}
   .lead{margin:30px 0 0;font-size:28px;line-height:1.7;color:${pal.muted};max-width:80%}
-  .foot{margin-top:34px;padding-top:18px;border-top:1px solid rgba(128,128,128,.34);
+  /* 2026-11-06 修：标题+引语原来贴在上半部、下半屏全空。
+     给标题块之后加弹性留白（.spacer），把内容自然推向上下两端。 */
+  .spacer{flex:1;min-height:24px}
+  .foot{margin-top:auto;padding-top:18px;border-top:1px solid rgba(128,128,128,.34);
     display:flex;justify-content:space-between;
     font:400 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}
   </style></head><body class="gz">
@@ -249,6 +255,7 @@ function tplNumber(pal, dim) {
     <div class="top"><div class="num" data-num>01</div><div class="side">{{DATE}}</div></div>
     <h1 class="h-display">{{TITLE}}</h1>
     <p class="lead">{{LEAD}}</p>
+    <div class="spacer"></div>
     <div class="foot"><span data-author>BY {{AUTHOR}}</span><span>SuperSu</span></div>
   </div></section></body></html>`;
 }
@@ -265,9 +272,12 @@ function tplSwiss(pal, dim) {
   .grid span{position:absolute;top:0;bottom:0;width:1px;background:rgba(128,128,128,.26)}
   .wrap{position:relative;height:100%;display:flex;flex-direction:column;padding:${p.y}px ${p.x}px}
   .idx{font:700 21px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:${pal.accent}}
-  .h-display{margin:auto 0;font-size:__HSIZE__px;line-height:1.06;font-weight:300;letter-spacing:-.03em;text-wrap:balance}
-  .lead{margin:0 0 26px;font-size:27px;line-height:1.66;color:${pal.muted};max-width:74%}
-  .foot{display:flex;justify-content:space-between;align-items:baseline;
+  .h-display{margin:120px 0 0;font-size:__HSIZE__px;line-height:1.04;font-weight:300;letter-spacing:-.03em;text-wrap:balance;
+    position:relative;z-index:2;background:${pal.paper};padding-bottom:6px}
+  .lead{margin:44px 0 0;font-size:27px;line-height:1.66;color:${pal.muted};max-width:74%}
+  /* 2026-11-06 修填充率 46%：footer 原来没有 margin-top:auto，
+     整块内容悬在上半部、下半屏全空。 */
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;
     border-top:1px solid rgba(128,128,128,.34);padding-top:18px;
     font:400 18px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;color:${pal.muted}}
   </style></head><body class="gz">
@@ -290,6 +300,35 @@ const BUILD = {
   list: tplList,
   number: tplNumber,
   swiss: tplSwiss,
+  /* 2026-11-06：配方 23 套（v3-recipes.js），让 30 套不再有灰卡。 */
+  'field-note': RECIPES.tplFieldNote,
+  'essay-split': RECIPES.tplEssaySplit,
+  'evidence-wall': RECIPES.tplEvidenceWall,
+  feature: RECIPES.tplFeature,
+  'atmos-thesis': RECIPES.tplAtmosThesis,
+  marginalia: RECIPES.tplMarginalia,
+  matrix: RECIPES.tplMatrix,
+  'closing-note': RECIPES.tplClosingNote,
+  'tall-ledger': RECIPES.tplTallLedger,
+  'section-divider': RECIPES.tplSectionDivider,
+  'hero-question': RECIPES.tplHeroQuestion,
+  pipeline: RECIPES.tplPipeline,
+  'before-after': RECIPES.tplBeforeAfter,
+  'two-signals': RECIPES.tplTwoSignals,
+  'data-layer': RECIPES.tplDataLayer,
+  'image-hero': RECIPES.tplImageHero,
+  takeaway: RECIPES.tplTakeaway,
+  warning: RECIPES.tplWarning,
+  'kpi-tower': RECIPES.tplKpiTower,
+  'browser-mock': RECIPES.tplBrowserMock,
+  'pipeline-arch': RECIPES.tplPipelineArch,
+  'h-bar': RECIPES.tplHBar,
+  'stacked-ledger': RECIPES.tplStackedLedger,
+  /* 2026-11-06「刺激风」8 套（v3-bold.js）：高饱和撞色 / 大字号 / 贴纸感。
+     与上面 30 套「编辑设计风」是两种取向，用户按心情挑。 */
+  ...BOLD_TEMPLATES,
+  /* 2026-11-06 第二批刺激风 12 套（v3-bold-extra.js）。 */
+  ...BOLD_EXTRA,
 };
 
 /** 这些版式已接入 V3 模板（其余仍走旧管线，右栏保持置灰占位）。 */
@@ -302,19 +341,23 @@ export function isV3Style(styleId) {
   return !!BUILD[layout];
 }
 
-/** 各版式的标题基准字号（1440 高画布）。 */
+/** 各版式的标题字号**上限**（1440 高画布）。标题图主打文字，短标题要能撑满。 */
 const BASE_SIZE = {
-  magazine: 118, quote: 96, bigtype: 146, 'image-led': 112, list: 78, number: 86, swiss: 104,
+  magazine: 190, quote: 168, bigtype: 210, 'image-led': 180, list: 150, number: 160, swiss: 170,
 };
 
-/** 标题字号分档：字数越多缩得越多，避免长标题把结尾挤成单字一行。 */
-function titleSize(title, base) {
-  const n = [...String(title || '').replace(/\s+/g, '')].length;
-  if (n <= 8) return base;
-  if (n <= 12) return Math.round(base * 0.82);
-  if (n <= 18) return Math.round(base * 0.66);
-  if (n <= 26) return Math.round(base * 0.54);
-  return Math.round(base * 0.44);
+/** 标题字号：按「可用宽度 ÷ 每行字数」反算，base 作为上限（2026-11-06 用户反馈「字体不够大」）。
+ *
+ *  原来用「固定基准 × 字数系数」（13 字只给 118×0.66=78px），小红书封面上显得空。
+ *  现在改成先定行数、再按物理宽度反算：中文全角字宽 ≈ 字号，所以
+ *  字号 ≈ 可用宽 / 每行字数，短标题自然撑满，长标题自动缩到刚好放下。
+ */
+function titleSize(title, base, availW) {
+  const n = [...String(title || '').replace(/\s+/g, '')].length || 1;
+  const lines = n <= 6 ? 1 : n <= 16 ? 2 : 3;
+  const perLine = Math.ceil(n / lines);
+  const fit = Math.floor((availW * 0.97) / perLine);   // 留 3% 余量防贴边
+  return Math.max(56, Math.min(base, fit));
 }
 
 /** 清单类版式的条目切分（与 layouts.js 同口径）。 */
@@ -357,7 +400,23 @@ export function buildV3Html({
   // 标题字号按字数分档（2026-11-06）：固定字号遇到长标题会「单字掉行」
   // （大字报 146px 实测把「脑」挤到单独一行）。分档比 fitty 更可控 ——
   // fitty 只保证「不溢出」，不保证「换行好看」。
-  html = html.replace(/__HSIZE__/g, String(titleSize(title, BASE_SIZE[layout] || 100)));
+  // 标题字号按「可用宽度 ÷ 每行字数」反算（2026-11-06 用户反馈「字体不够大」）：
+  // 中文全角字宽 ≈ 字号，所以短标题能自然撑满，长标题缩到刚好放下。
+  // 各版式版心不同：清单/编号大字扣除内缩，图文封面无图时左侧有色带。
+  const padX = padOf(dim).x;
+  const availW = (() => {
+    const base = dim.w - padX * 2;
+    if (layout === 'image-led' && !image) return base - 110;
+    if (layout === 'number') return base * 0.86;
+    if (layout === 'swiss') return base;          // 瑞士封面的网格线会被标题底色压住，可用整宽
+    /* 分栏类（2026-11-06 修）：标题只占左栏，按整宽算会溢出成 3 行竖排。
+       左栏 1.15fr / 右栏 1fr，扣掉中间 38px 内距后约 51%。 */
+    if (layout === 'essay-split') return Math.round(base * 0.51);
+    /* 侧栏类：右侧固定 176px 边栏 + 34px 间距。 */
+    if (layout === 'marginalia') return Math.round(base - 210);
+    return base;
+  })();
+  html = html.replace(/__HSIZE__/g, String(titleSize(title, BASE_SIZE[layout] || 150, availW)));
 
   /* ⚠️ 必须带 id="xhs-cover"：render.js 的 renderCoverBlob / 预览都靠它取节点，
      缺了会直接抛「模板里找不到 #xhs-cover」，预览与导出全废（2026-11-06 实测）。 */
@@ -374,7 +433,27 @@ export function buildV3Html({
   }
 
   // 清单类：把引语切成条目，切不出来退回一段话
-  const items = splitItems(lead);
+  /* 信息密度兜底（2026-11-06 用户评审「信息密度太低」）：
+     引语切不出 2 条以上时，版式会空出一大片。这里按优先级补：
+       ① 引语本身（哪怕只有一句）
+       ② 标题拆成短语（去掉标点后按 4–8 字切）
+       ③ 兜到标题原文
+     这样任何版式都不会出现「只有一行标题 + 大片空白」。 */
+  const items = (() => {
+    const parts = splitItems(lead);
+    if (parts.length >= 2) return parts;
+    const out = [...parts];
+    if (String(lead || '').trim()) out.push(String(lead).trim());
+    // 标题拆短语：中文按 4–7 字滑动切，英文/数字整段保留
+    const titleChunks = String(title || '')
+      .split(/[\s，。！？、；：·—\-|/]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+    for (const c of titleChunks) {
+      if (!out.includes(c)) out.push(c);
+      if (out.length >= 6) break;
+    }
+    if (!out.length && String(title || '').trim()) out.push(String(title).trim());
+    return out;
+  })();
   if (items.length) {
     html = html.replace(
       '<div class="items" data-lead-list></div>',
@@ -384,9 +463,70 @@ export function buildV3Html({
           { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</span></div>`).join('')}</div>`,
     );
   }
+
+  /* 配方 23 套的条目区（2026-11-06）：各版式自己的 class 名不同，
+     逐套按它的行结构渲染，不硬塞统一模板（否则又变成「都长得一样」）。 */
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  if (items.length) {
+    const two = (i) => String(i + 1).padStart(2, '0');
+    // M10 实证特写：圆点编号 + 横线
+    html = html.replace('<div class="pts" data-lead-list></div>',
+      items.map((t, i) => `<div class="pt"><span class="pn">${i + 1}</span>`
+        + `<span class="ptx">${esc(t)}</span></div>`).join(''));
+    // M11 页边批注：右侧关键词列表
+    html = html.replace('<div class="kws" data-lead-list></div>',
+      items.map((t) => `<div class="kw">${esc(t)}</div>`).join(''));
+    // M07 收尾寄语 / M08 长账本 / S07 要点账本 / S05 警示清单
+    html = html.replace('<div class="ledger" data-lead-list></div>',
+      items.map((t, i) => `<div class="rw"><span class="rt">${esc(t)}</span>`
+        + `<span class="rn">${two(i)}</span></div>`).join(''));
+    html = html.replace('<div class="book" data-lead-list></div>',
+      items.map((t, i) => `<div class="bk"><span class="bn">${two(i)}</span>`
+        + `<span class="bt">${esc(t)}</span></div>`).join(''));
+    html = html.replace('<div class="tp" data-lead-list></div>',
+      items.map((t) => `<div class="tw"><span class="tt">${esc(t)}</span></div>`).join(''));
+    html = html.replace('<div class="ws" data-lead-list></div>',
+      items.map((t) => `<div class="wn">${esc(t)}</div>`).join(''));
+    // M14 竖排流程：圆号 + 竖线
+    html = html.replace('<div class="flow" data-lead-list></div>',
+      items.map((t, i) => `<div class="st"><span class="sn">${i + 1}</span>`
+        + `<span class="sx">${esc(t)}</span></div>`).join(''));
+    /* M06 证据墙 / S12 主数字矩阵（无图分支）：按序灌入真实文案，
+       条目不足时循环复用，避免留空框。 */
+    for (let i = 0; i < 8; i += 1) {
+      html = html.replace(`data-k="${i}"></span>`,
+        `data-k="${i}">${esc(items[i % items.length])}</span>`);
+    }
+  } else {
+    /* 切不出条目（用户只写了标题）：把占位整块清空，别留空框。
+       ⚠️ 只有一道 lead 时，用它兜底灌进第一个条目位，避免「一片空白」。 */
+    const solid = String(lead || '').trim();
+    html = html.replace(/<div class="[^"]*" data-lead-list><\/div>/g, solid ? '' : '');
+  }
   // 编号大字：标题里的数字当主视觉
   html = html.replace(/<div class="num" data-num>01<\/div>/,
     `<div class="num" data-num>${pickNumber(title)}</div>`);
+  // 图像主角的数字块（2026-11-06）：优先取标题里的数字，抽不到给 01
+  const titleNum = (String(title || '').match(/(\d{1,3})/) || [])[1];
+  html = html.replace(/__NUM__/g, titleNum || '01');
+
+  /* 刺激风占位符（2026-11-06）：
+     · __MEGA__ 背景巨型数字 —— 取标题里的数字，抽不到用标题首字；
+     · __VSIZE__ 竖排标题字号 —— 竖排的「每行字数」由纵向高度决定，
+       不能套横向反算公式，这里按可用高度 / 字数算。 */
+  const mega = titleNum || [...String(title || '火')][0];
+  html = html.replace(/__MEGA__/g, mega);
+  /* 第二批刺激风占位符（2026-11-06）：
+     · __CHAR__  单字巨压 —— 取标题里最有信息量的字（数字优先，否则首字）；
+     · __CORNER__ 角标编号 —— 取标题数字，抽不到用条目数。 */
+  html = html.replace(/__CHAR__/g, mega);
+  html = html.replace(/__CORNER__/g, titleNum || String(Math.max(1, items.length)).padStart(2, '0'));
+  const vAvail = dim.h - padOf(dim).y * 2 - 150;
+  const vChars = [...String(title || '')].length || 1;
+  const vSize = Math.max(48, Math.min(160, Math.floor((vAvail / vChars) * 1.02)));
+  html = html.replace(/__VSIZE__/g, String(vSize));
 
   return prepareCoverHtml(html, { title, lead, author, image, baseUrl, analysis, textPos, frosted });
 }

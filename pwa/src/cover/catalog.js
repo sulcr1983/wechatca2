@@ -75,15 +75,96 @@ export const LAYOUT_PALETTES = [
   },
 ];
 
+/* 刺激风专属高饱和色板（2026-11-06）：只给 LAYOUT_DEFS 里 bold:true 的版式用。
+   编辑设计风仍是上面 3 套（暖纸/墨夜/亮橙）——两类风格的设计语言不同，
+   混用会让「克制」的版式被迫用荧光色。 */
+export const BOLD_PALETTES = [
+  {
+    key: 'electric', name: '电光蓝', dark: false,
+    paper: '#1E3AFF', paper2: '#1730D6', ink: '#FFFFFF', muted: '#C7D2FF',
+    accent: '#1E3AFF', accentOn: '#FFFFFF',
+  },
+  {
+    key: 'neon', name: '荧光绿', dark: false,
+    paper: '#C8FF2E', paper2: '#B4E826', ink: '#0B1400', muted: '#3D5200',
+    accent: '#B4E826', accentOn: '#0B1400',
+  },
+  {
+    key: 'magenta', name: '品红', dark: false,
+    paper: '#FF1F8F', paper2: '#E0167C', ink: '#FFFFFF', muted: '#FFD1E8',
+    accent: '#FF1F8F', accentOn: '#FFFFFF',
+  },
+  {
+    key: 'lemon', name: '柠檬黄', dark: false,
+    paper: '#FFD60A', paper2: '#F0C800', ink: '#141100', muted: '#5C4E00',
+    accent: '#F0C800', accentOn: '#141100',
+  },
+  {
+    key: 'rose', name: '玫红', dark: true,
+    paper: '#12060C', paper2: '#1E0A14', ink: '#FFE3F0', muted: '#C98FAE',
+    accent: '#FF2E63', accentOn: '#FFFFFF',
+  },
+];
+
 const LAYOUT_DEFS = [
   { id: 'image-led', name: '图文封面', note: '标题压在图上，最像小红书爆款' },
   { id: 'quote', name: '金句', note: '居中大字 + 署名，适合观点' },
   { id: 'number', name: '编号大字', note: '超大编号当主视觉，适合「5 个方法」' },
   { id: 'nine', name: '九宫格', note: '3×3 网格，切成九张每张都有内容' },
   { id: 'list', name: '清单', note: '编号条目，干货与推荐' },
+  /* 2026-11-06：配方 23 套全部接入（用户拍板「其它模板都按新的改」）。
+     每条都是独立版面结构，不是换配色。id 与 layout-registry / layout-recipes 一一对应。 */
+  { id: 'field-note', name: '纪实照片', note: '大图 + 底部说明带 + 一句要点' },
+  { id: 'essay-split', name: '左右分栏', note: '左大标题，右 2–3 段，中间细线' },
+  { id: 'evidence-wall', name: '证据墙', note: '2×2 图墙 + 一句判读' },
+  { id: 'feature', name: '实证特写', note: '大图占一半 + 底部 3 条要点' },
+  { id: 'atmos-thesis', name: '氛围论点', note: '墨流底 + 一句大论点' },
+  { id: 'marginalia', name: '页边批注', note: '主栏正文 + 窄边栏关键词' },
+  { id: 'matrix', name: '主数字矩阵', note: '8 格矩阵 + 底部一个主数字' },
+  { id: 'closing-note', name: '收尾寄语', note: '大标题 + 4 条账本 + 收尾句' },
+  { id: 'tall-ledger', name: '长账本', note: '左编号右标题的 4–6 条清单' },
+  { id: 'section-divider', name: '章节分隔', note: 'Act II + 3–6 字大标题' },
+  { id: 'hero-question', name: '大问句', note: '三行问句占满整页' },
+  { id: 'pipeline', name: '竖排流程', note: '3–4 步竖排，每步一行说明' },
+  { id: 'before-after', name: '前后对比', note: '上下两块：旧做法 vs 新做法' },
+  { id: 'two-signals', name: '双信号', note: '两个大块，一实一虚做对比' },
+  { id: 'data-layer', name: '数据层', note: '对象块 + 3 条属性，强 mono' },
+  { id: 'image-hero', name: '图像主角', note: '图铺满 + 覆盖块标题 + 3 个数字' },
+  { id: 'takeaway', name: '要点账本', note: '大标题 + 3 行要点，深底收尾' },
+  { id: 'warning', name: '警示清单', note: '3 条「不要这样做」，左侧色条' },
+  { id: 'kpi-tower', name: '数字塔', note: '4 组数字 + 高低柱，数据感' },
+  { id: 'browser-mock', name: '浏览器框', note: '把内容装进一个网页窗口里' },
+  { id: 'pipeline-arch', name: '流程架构', note: '三段式：输入 / 生成 / 分享' },
+  { id: 'h-bar', name: '横条排行', note: '5–6 行横条比大小，适合 Top N' },
+  { id: 'stacked-ledger', name: '堆叠账本', note: '大数字 + 标签的 4 行账本' },
+  /* 2026-11-06「刺激风」8 套：高饱和撞色 / 超大字号 / 贴纸感。
+     用户原话「往更刺激的小红书风格走，模板多一些，人会腻」。 */
+  { id: 'bold-banner', name: '撞色横幅', note: '整版高饱和底 + 反白超大标题 + 贴纸条', bold: true },
+  { id: 'neon-glow', name: '霓虹发光', note: '近黑底 + 荧光标题 + 发光描边', bold: true },
+  { id: 'sticker-box', name: '贴纸框', note: '白底黑粗框 + 硬阴影 + 内嵌反白色块', bold: true },
+  { id: 'split-clash', name: '分屏撞色', note: '上下两块高饱和对撞', bold: true },
+  { id: 'mega-number', name: '数字轰炸', note: '巨大数字压背景 + 反白标题', bold: true },
+  { id: 'highlighter', name: '荧光笔', note: '纸底 + 荧光高亮 + 手写标记感', bold: true },
+  { id: 'vertical-impact', name: '竖排冲击', note: '中式竖排标题 + 底部撞色条', bold: true },
+  { id: 'half-clash', name: '半版撞色', note: '一半实色一半纸白，标题跨栏', bold: true },
+  /* 2026-11-06 第二批刺激风 12 套：每套独立版面结构，盖住配色后不能用一句话互相描述。 */
+  { id: 'diagonal', name: '斜切撞色', note: '对角线切开，两半撞色', bold: true },
+  { id: 'card-stack', name: '卡片叠层', note: '三张卡片错位堆叠，贴纸感', bold: true },
+  { id: 'bands', name: '大色块分割', note: '上下两大条 + 中间撞色细缝', bold: true },
+  { id: 'ring-focus', name: '圆环聚焦', note: '大色圈 + 居中大字', bold: true },
+  { id: 'tag-flow', name: '标签流水', note: '一排彩色标签 + 大标题 + 底部色条', bold: true },
+  { id: 'frame-hit', name: '双框冲击', note: '内描边双框 + 反白大字', bold: true },
+  { id: 'corner-num', name: '角标数字', note: '右上角巨大编号 + 左下标题', bold: true },
+  { id: 'three-grid', name: '三栏色块', note: '三等分色块，每块一条要点', bold: true },
+  { id: 'mega-char', name: '单字巨压', note: '单字超巨背景 + 小标题', bold: true },
+  { id: 'sticky-notes', name: '便签拼贴', note: '多张便签错落，手账感', bold: true },
+  { id: 'marquee', name: '跑马灯', note: '上下两条文字带 + 中间大标题', bold: true },
+  { id: 'tilt-block', name: '倾斜色块', note: '斜置色块压住大标题', bold: true },
 ];
 
-export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => LAYOUT_PALETTES.map((p) => ({
+export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => (
+  l.bold ? BOLD_PALETTES : LAYOUT_PALETTES
+).map((p) => ({
   id: `${l.id}-${p.key}`,
   name: l.name,
   group: '版式',
@@ -94,7 +175,8 @@ export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => LAYOUT_PALETTES.map((p) 
   sizes: ['xhs'],
   swatch: p.paper,
   accent: p.accent,
-  // 渲染用的完整色板（layouts.js 直接消费，不走 CSS 变量继承）
+  /* 渲染用的完整色板（layouts.js 直接消费，不走 CSS 变量继承）。
+     bold 版式用高饱和专属色板（2026-11-06），编辑设计风仍是暖纸/墨夜/亮橙。 */
   paper: p.paper, paper2: p.paper2, ink: p.ink, muted: p.muted,
   accentOn: p.accentOn, dark: p.dark,
   thumb: `./cover-thumbs/${l.id}-${p.key}.png`,

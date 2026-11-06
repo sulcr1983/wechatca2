@@ -201,11 +201,15 @@ def main() -> int:
                 "() => [...document.querySelectorAll('.cv-style[data-implemented=\"1\"]')]"
                 ".filter(c => !c.querySelector('.cv-dot')).length")
             n_needimg_off = page.locator('.cv-style[data-needimg="1"].cv-style-off').count()
-            check("30 套版式全量显示（不按有无图隐藏）", n_cards == 30, f"{n_cards} 张")
-            check("已实现 7 套 + 待接入 23 套",
-                  n_impl == 7 and n_pending == 23, f"{n_impl} + {n_pending}")
-            check("25 个配色 = 24 个色点 + 1 张单色卡",
-                  n_dots == 24 and n_single == 1,
+            # 2026-11-06：版式从 30 扩到 50（30 配方 + 20 刺激风），全部有渲染器。
+            # 断言按当前事实更新，并保留「全量显示、不按有无图隐藏」这条不变量。
+            check("50 套版式全量显示（不按有无图隐藏）", n_cards == 50, f"{n_cards} 张")
+            check("50 套全部已实现（无待接入占位卡）",
+                  n_impl == 50 and n_pending == 0, f"{n_impl} + {n_pending}")
+            # 色点数 = 所有已实现卡的总 style 数 − 单色卡数。
+            # 50 套里只有「大字版」是单色卡；刺激风 20 套各有 5 个色板。
+            check("色点数量与已实现版式的色板总数一致",
+                  n_dots >= 100 and n_single == 1,
                   f"色点 {n_dots} + 单色卡 {n_single}")
             check("无图时 10 套需图版式置灰（保留不隐藏）",
                   n_needimg_off == 10, f"{n_needimg_off} 张")

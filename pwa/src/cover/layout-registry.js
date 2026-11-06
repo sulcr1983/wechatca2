@@ -68,6 +68,30 @@ const DEFS = [
   { id: 'pipeline-arch', name: '流程架构', code: 'S06', needImg: false, group: 'recipe', desc: '三段式：输入 / 生成 / 分享' },
   { id: 'h-bar', name: '横条排行', code: 'S10', needImg: false, group: 'recipe', desc: '5–6 行横条比大小，适合 Top N' },
   { id: 'stacked-ledger', name: '堆叠账本', code: 'S11', needImg: false, group: 'recipe', desc: '大标题 + 4 行账本，大数字收尾' },
+
+  /* ── 刺激风 20 套（2026-11-06，用户拍板「往更刺激的小红书风格走」）──
+     全部为纯文字版式（不铺底图），走 v3-bold.js / v3-bold-extra.js 渲染。
+     code 用 B 前缀，与配方编号（M/S）区分。 */
+  { id: 'bold-banner', name: '撞色横幅', code: 'B01', needImg: false, group: 'bold', desc: '整版高饱和底 + 反白超大标题 + 贴纸条' },
+  { id: 'neon-glow', name: '霓虹发光', code: 'B02', needImg: false, group: 'bold', desc: '近黑底 + 荧光标题 + 发光描边' },
+  { id: 'sticker-box', name: '贴纸框', code: 'B03', needImg: false, group: 'bold', desc: '白底黑粗框 + 硬阴影 + 内嵌反白色块' },
+  { id: 'split-clash', name: '分屏撞色', code: 'B04', needImg: false, group: 'bold', desc: '上下两块高饱和对撞' },
+  { id: 'mega-number', name: '数字轰炸', code: 'B05', needImg: false, group: 'bold', desc: '巨大数字压背景 + 反白标题' },
+  { id: 'highlighter', name: '荧光笔', code: 'B06', needImg: false, group: 'bold', desc: '纸底 + 荧光高亮 + 手写标记感' },
+  { id: 'vertical-impact', name: '竖排冲击', code: 'B07', needImg: false, group: 'bold', desc: '中式竖排标题 + 底部撞色条' },
+  { id: 'half-clash', name: '半版撞色', code: 'B08', needImg: false, group: 'bold', desc: '一半实色一半纸白，标题跨栏' },
+  { id: 'diagonal', name: '斜切撞色', code: 'B09', needImg: false, group: 'bold', desc: '对角线切开，两半撞色' },
+  { id: 'card-stack', name: '卡片叠层', code: 'B10', needImg: false, group: 'bold', desc: '三张卡片错位堆叠，贴纸感' },
+  { id: 'bands', name: '大色块分割', code: 'B11', needImg: false, group: 'bold', desc: '上下两大条 + 中间撞色细缝' },
+  { id: 'ring-focus', name: '圆环聚焦', code: 'B12', needImg: false, group: 'bold', desc: '大色圈 + 居中大字' },
+  { id: 'tag-flow', name: '标签流水', code: 'B13', needImg: false, group: 'bold', desc: '一排彩色标签 + 大标题 + 底部色条' },
+  { id: 'frame-hit', name: '双框冲击', code: 'B14', needImg: false, group: 'bold', desc: '内描边双框 + 反白大字' },
+  { id: 'corner-num', name: '角标数字', code: 'B15', needImg: false, group: 'bold', desc: '右上角巨大编号 + 左下标题' },
+  { id: 'three-grid', name: '三栏色块', code: 'B16', needImg: false, group: 'bold', desc: '三等分色块，每块一条要点' },
+  { id: 'mega-char', name: '单字巨压', code: 'B17', needImg: false, group: 'bold', desc: '单字超巨背景 + 小标题' },
+  { id: 'sticky-notes', name: '便签拼贴', code: 'B18', needImg: false, group: 'bold', desc: '多张便签错落，手账感' },
+  { id: 'marquee', name: '跑马灯', code: 'B19', needImg: false, group: 'bold', desc: '上下两条文字带 + 中间大标题' },
+  { id: 'tilt-block', name: '倾斜色块', code: 'B20', needImg: false, group: 'bold', desc: '斜置色块压住大标题' },
 ];
 
 /** styleId → 版式 id（`magazine-tpl` / `swiss-tpl` 归到主卡）。 */
