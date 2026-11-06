@@ -1,8 +1,60 @@
 {
-  "version": "1.32.0",
-  "generatedAt": "2026-11-06T19:25:44+08:00",
-  "totalCommits": 428,
+  "version": "1.33.0",
+  "generatedAt": "2026-11-06T20:54:14+08:00",
+  "totalCommits": 431,
   "releases": [
+    {
+      "version": "1.33.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "再加 3 套结构语法（渐变字/栏间通栏/描边大字）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1,
+        "other": 2
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "再加 3 套结构语法（渐变字/栏间通栏/描边大字）",
+              "scope": "cover",
+              "hash": "bcacde9",
+              "date": "2026-11-06T20:52:42+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "补 3 套新结构型的 9 张缩略图",
+              "scope": "cover",
+              "hash": "5df56f0",
+              "date": "2026-11-06T20:53:28+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "线上 E2E 版式数量断言 50 → 53",
+              "scope": "online",
+              "hash": "b2680de",
+              "date": "2026-11-06T19:29:21+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.32.0",
       "date": "2026-11-06",
