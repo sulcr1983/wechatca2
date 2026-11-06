@@ -1,8 +1,60 @@
 {
-  "version": "1.30.0",
-  "generatedAt": "2026-11-06T15:29:02+08:00",
-  "totalCommits": 417,
+  "version": "1.31.0",
+  "generatedAt": "2026-11-06T16:57:10+08:00",
+  "totalCommits": 420,
   "releases": [
+    {
+      "version": "1.31.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "新增 3 套结构型版式（图文互嵌/多栏正文/出血压边）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1,
+        "changed": 2
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "新增 3 套结构型版式（图文互嵌/多栏正文/出血压边）",
+              "scope": "cover",
+              "hash": "00871f8",
+              "date": "2026-11-06T16:53:05+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "长图文 V4 对照原型（Paged.js 单页/总览 + 5 套骨相）",
+              "scope": "prototypes",
+              "hash": "5643d07",
+              "date": "2026-11-06T16:56:47+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "长图文 V4 设计真源 + 需求文档勘误",
+              "scope": "xhs",
+              "hash": "4acd1bf",
+              "date": "2026-11-06T16:56:07+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.30.0",
       "date": "2026-11-06",
