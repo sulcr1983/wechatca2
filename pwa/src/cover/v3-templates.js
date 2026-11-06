@@ -532,10 +532,22 @@ export function buildV3Html({
        等是「容器只做定位、样式写在子元素上」，所以可以整个替换；
        而 `.cols{column-count}` / `.filler{margin/font}` 的样式就写在容器上，
        把容器一起换掉 → 多栏失效、退化成单栏竖排（实测踩到，截图确认）。 */
+    /* ⚠️ 2026-11-06：多栏正文的首字下沉改用**真实 span**，不用 ::first-letter。
+       依据是长图文模块的实测（docs/xhs/design-xhs-longform-v4.md §3.6）：
+       ::first-letter 在 DOM 层生效（52px→176.8px），但 modern-screenshot
+       导出的 PNG 里首字仍是正常字号 —— 用户在预览里看到放大、保存下来的却不对。
+       真实节点没有这个不确定性。 */
+    const flFirst = (t) => {
+      const chars = [...String(t || '')];
+      if (!chars.length) return '';
+      return `<span class="fl">${esc(chars[0])}</span>${esc(chars.slice(1).join(''))}`;
+    };
     html = html.replace('<div class="filler" data-lead-list></div>',
       `<div class="filler">${items.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`);
     html = html.replace('<div class="cols" data-lead-list></div>',
-      `<div class="cols">${items.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`);
+      `<div class="cols">${items.map((t, i) => (
+        `<p>${i === 0 ? flFirst(t) : esc(t)}</p>`
+      )).join('')}</div>`);
   } else {
     /* 切不出条目（用户只写了标题）：把占位整块清空，别留空框。
        ⚠️ 只有一道 lead 时，用它兜底灌进第一个条目位，避免「一片空白」。 */

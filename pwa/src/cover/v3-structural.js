@@ -136,8 +136,10 @@ export function tplMultiColumn(pal, dim, hasImage) {
     column-rule:1px solid rgba(128,128,128,.28);
     font-size:var(--fs-lead,${t.lead}px);line-height:1.8;color:${pal.ink}}
   .cols p{margin:0 0 ${Math.round(t.gap * 1.3)}px;break-inside:avoid}
-  .cols p:first-child::first-letter{font-size:2.4em;font-weight:800;
-    float:left;line-height:.86;margin:2px 6px 0 0;color:${pal.accent}}
+  /* 首字下沉：用真实 span（见 v3-templates.js 的 flFirst），不用 ::first-letter。
+     modern-screenshot 不渲染该伪元素 → 预览放大、导出 PNG 却是正常字号。 */
+  .cols .fl{font-size:2.4em;font-weight:800;float:left;
+    line-height:.86;margin:2px 6px 0 0;color:${pal.accent}}
   /* 有底图时的通栏图带（2026-11-06）：多栏正文只有 4 条时会空掉下半页，
      用一条横向图带补上版面重量，也让底图真的被用上。
      ⚠️ 必须 position:relative 自成定位上下文，否则 templates.js 里那条
