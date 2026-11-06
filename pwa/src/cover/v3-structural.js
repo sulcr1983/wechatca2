@@ -105,9 +105,11 @@ export function tplMultiColumn(pal, dim, hasImage) {
   const t = tokens(dim);
   /* 栏数按**版面容量**定，不按条目数：模板函数只拿到 pal/dim/hasImage，
      拿不到条目内容（条目在 buildV3Html 里才切分）。
-     实测 3 栏配 4 条 → 第 3 栏全空、下半页大片留白；2 栏更稳。
-     21:9 横向空间大，用 4 栏。 */
-  const cols = t.isWide ? 4 : 2;
+     ⚠️ 2026-11-06 实测：21:9 用 4 栏时，4 条内容被切成「每栏 1 行」，
+     正文区只有 32px 高（画布 3.6%），整版几乎全是留白 —— 是退化不是留白。
+     横幅的横向空间虽然大，但**条目数少时栏数必须跟着少**，
+     否则每栏只剩一行、栏分隔线反而把版面切碎。宽版用 2 栏。 */
+  const cols = 2;
   return shell(pal, dim, `
     <div class="head">
       <span class="kicker">FEATURE STORY</span>
