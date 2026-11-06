@@ -470,9 +470,16 @@ export function prepareCoverHtml(html, { title, lead, author, image, baseUrl, an
         rgba(8,8,10,${tint.toFixed(3)}) 100%)}
     body.gz.has-img .wrap,
     body.gz.has-img .pad { position: relative; z-index: 2; }
-    body.gz.has-img .poster *:not(.cover-img) {
+    /* ⚠️ 2026-11-06 修「逐字变色 / 错位失效」：
+       这条通配规则会把 textmode.js 逐字切出来的 .tm-ch 内联 color 一起刷白
+       （实测有底图时 13 字标题只剩 1 种颜色，用户看到的是纯白）。
+       必须把 .tm-ch 排除在外 —— 玩法自己的颜色优先，投影仍保留保证可读。 */
+    body.gz.has-img .poster *:not(.cover-img):not(.tm-ch) {
       color: #ffffff !important;
       text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 14px rgba(0,0,0,.55) !important;
+    }
+    body.gz.has-img .poster .tm-ch {
+      text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 12px rgba(0,0,0,.6) !important;
     }
     /* 文字块自带的纸底/色块在照片上要去掉，否则变成「不透明纸压着照片」 */
     body.gz.has-img .h-display,
