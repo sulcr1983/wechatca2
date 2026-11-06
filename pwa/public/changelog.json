@@ -1,8 +1,37 @@
 {
-  "version": "1.26.0",
-  "generatedAt": "2026-11-06T14:10:21+08:00",
-  "totalCommits": 413,
+  "version": "1.27.0",
+  "generatedAt": "2026-11-06T14:32:24+08:00",
+  "totalCommits": 414,
   "releases": [
+    {
+      "version": "1.27.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "出片托盘 X 关不掉 + 清空文案后空态不出现"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "出片托盘 X 关不掉 + 清空文案后空态不出现",
+              "scope": "cover",
+              "hash": "c75926f",
+              "date": "2026-11-06T14:32:12+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.26.0",
       "date": "2026-11-06",
