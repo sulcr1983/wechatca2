@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书长图文 V4 · 骨架对照原型</title>
+<style>
+  :root { --bg:#f0e6d2; --ink:#1f1a14; --muted:#6f6557; --accent:#8f7650;
+          --line:rgba(31,26,20,.18); --sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:44px 28px 64px; background:var(--bg); color:var(--ink);
+         font-family:var(--sans); line-height:1.7; }
+  .wrap { max-width:1080px; margin:0 auto; }
+  h1 { font-size:34px; margin:0 0 8px; letter-spacing:-.01em; }
+  .sub { color:var(--muted); font-size:15px; margin:0 0 30px; }
+  .cmd { background:#1c1917; color:#e8c88a; padding:12px 16px; border-radius:8px;
+         font:13px/1.7 ui-monospace,Menlo,monospace; overflow-x:auto; margin:0 0 14px; }
+  .note { background:rgba(143,118,80,.10); border-left:3px solid var(--accent);
+          padding:12px 16px; font-size:14px; margin:0 0 32px; }
+  h2 { font-size:20px; margin:32px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+  a.card { display:block; padding:14px 16px; background:#faf6ec; border:1px solid var(--line);
+           border-radius:8px; text-decoration:none; color:var(--ink); transition:.15s; }
+  a.card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  a.card b { display:block; font-size:16px; margin-bottom:3px; }
+  a.card span { font-size:12.5px; color:var(--muted); }
+  a.card i { display:block; font-style:normal; font-size:11px; color:var(--accent); margin-top:6px; }
+  .links a { color:var(--accent); margin-right:18px; font-size:14px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; margin-top:10px; }
+  th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+  th { background:rgba(143,118,80,.12); }
+  .foot { margin-top:36px; padding-top:16px; border-top:1px solid var(--line);
+          font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>小红书长图文 V4 · 版式骨架对照</h1>
+  <p class="sub">同一篇文章 · 同一色板 · 同一 @page（1080×1440 / 96px）· 差异只来自排印语法</p>
+
+  <div class="cmd"># 仓库根起静态服务（⚠️ 不能双击 file:// 打开，ES module 会被 CORS 拦）
+.venv/Scripts/python.exe -m http.server 8126
+# → http://127.0.0.1:8126/docs/prototypes/xhs/longform-v4/index.html</div>
+
+  <div class="note">
+    <b>这个原型证明什么</b>：5 套骨架在同一份夹具下的「骨相差异」，以及差异可被数字读出
+    （标注条：字数 / 密度档 / 锚点数 / 实测填充率）。<br>
+    <b>它不证明什么</b>：完整的三栏编辑器 UI —— 那是
+    <code>xhs-longform-plan.html</code> 的产物，且审计已指出「陈列做得再好，也放大不了雷同模板」
+    （见 <code>docs/xhs/review-xhs-longform-templates.md</code> §3 S-1）。
+  </div>
+
+  <h2>逐套查看</h2>
+  <div class="grid">
+    <a class="card" href="./render.html?skeleton=m01-magazine">
+      <b>1 · 刊头 + 首字下沉</b><span>排印骨架 · 密</span><i>M01 + M03</i></a>
+    <a class="card" href="./render.html?skeleton=m08-ledger">
+      <b>2 · 竖排账本</b><span>序号系统 + 行结构 · 中</span><i>M08</i></a>
+    <a class="card" href="./render.html?skeleton=m06-evidence">
+      <b>3 · 证据墙 2×2</b><span>图文关系（网格）· 密</span><i>M06</i></a>
+    <a class="card" href="./render.html?skeleton=s09-kpi">
+      <b>4 · KPI 塔（降级）</b><span>数据可视化 · 中</span><i>S09</i></a>
+    <a class="card" href="./render.html?skeleton=m14-pipeline">
+      <b>5 · 竖排流程</b><span>顺序关系 · 中</span><i>M14</i></a>
+    <a class="card" href="./render.html?skeleton=all">
+      <b>▦ 全部并排</b><span>5 页依次排开</span><i>总览模式</i></a>
+  </div>
+
+  <h2>资料</h2>
+  <div class="links">
+    <a href="./SPEC.md">配方规格表 SPEC.md</a>
+    <a href="../../../xhs/design-xhs-longform-v4.md">设计文档</a>
+    <a href="../../../xhs/requirements-xhs-longform.md">需求台账</a>
+  </div>
+
+  <h2>实测基线（2026-11-06 · 5/5 PASS）</h2>
+  <table>
+    <tr><th>骨架</th><th>spanFill</th><th>最大中段空白</th><th>首尾留白</th><th>锚点</th></tr>
+    <tr><td>M01 刊头+首字下沉</td><td>0.849</td><td>27px</td><td>188px</td><td>4 / 4</td></tr>
+    <tr><td>M08 竖排账本</td><td>0.983</td><td>88px</td><td>21px</td><td>3 / 3</td></tr>
+    <tr><td>M06 证据墙</td><td>0.911</td><td>77px</td><td>111px</td><td>5 / 5</td></tr>
+    <tr><td>S09 KPI 塔</td><td>0.917</td><td>152px</td><td>104px</td><td>5 / 5</td></tr>
+    <tr><td>M14 竖排流程</td><td>0.893</td><td>75px</td><td>134px</td><td>6 / 6</td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--muted)">
+    判据：<code>spanFill ≥ 0.75</code> · 空白带 <code>≤216px</code>（15%×1440）·
+    单页 · 无裁切 · 无 <code>flex:1</code> 推挤 · PNG 精确 1080×1440。
+    详见 <code>output/longform-v4/density_check.json</code>。
+  </p>
+
+  <div class="foot">
+    自包含目录：<code>render.html</code> · <code>fixture.js</code> · <code>skeletons.js</code> ·
+    <code>SPEC.md</code> · <code>vendor/</code>（Paged.js + modern-screenshot）·
+    <code>assets/fonts/</code>（4 款 Noto 子集，真源在 <code>pwa/public/fonts/cover/</code>）。<br>
+    无 CDN、无 npm 依赖、无外部网络请求。配方出处 <code>references/layout-recipes.md</code>。
+  </div>
+
+</div>
+</body>
+</html>
