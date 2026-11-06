@@ -92,6 +92,11 @@ SUITES_LOCAL = [  # 本地层（默认）：结果与当前工作区一一对应
     ("ppmode",         [PY, "scripts/pwa_ppmode_test.py"],
                        "预处理四模式 11（产物级）", "local"),
     ("cover_tpl",      [str(NODE), "scripts/cover_tpl_unit.mjs"], "封面模板单测 35", "in-process"),
+    # 2026-11-06 接入：标题图 V3 的 30 套版式注册表（单一真源）静态断言。
+    # 守：30 条 / 10 套需图 / id 唯一 / styles 全部能解析 / nine 不算版式。
+    # 为什么必须有这道：版式清单此前散在 catalog.LAYOUTS、layouts.BUILDERS、render.js 三处，
+    # 每改一次右栏就多一套真源；注册表与设计文档 §5.2 漂移必须是红的，不能是哑的。
+    ("cover_registry", [str(NODE), "scripts/cover_registry_unit.mjs"], "版式注册表 30 套", "in-process"),
     # 2026-10-29 接入：封面风格规范校验（对比度/字号/字重字距/遮罩峰值）。
     # 此前这把尺子存在但没进门禁 → 10 套模板遮罩峰值 0.70（超规范 2.3 倍）躺了很久。
     # --src pwa = 只看在用的资产（public/cover-templates + pwa/src/cover）；
