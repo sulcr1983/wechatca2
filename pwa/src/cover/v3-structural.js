@@ -217,11 +217,17 @@ export function tplGradientTitle(pal, dim, hasImage) {
     letter-spacing:.34em;color:${pal.accent}}
   .issue{font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;
     letter-spacing:.2em;color:${pal.muted}}
+  /* ⚠️ 2026-11-06 实测修正：原来 justify-content:center 让标题+正文作为一个整体
+     居中，实测标题 443–706、正文到 992、页脚 1315 → 底部单边空 323px（22% 画布）。
+     居中只把空白摊到上下，但内容本身仍是一小块。改为 space-between：
+     标题靠上、正文靠下，空白**转成标题与正文之间的呼吸** —— 这是编辑设计里
+     有意的留白，而不是「内容没排满」的空洞。 */
   .stage{flex:1;min-height:0;display:flex;flex-direction:column;
-    justify-content:center;gap:${Math.round(t.gap * 3)}px}
+    justify-content:space-between;
+    padding:${Math.round(t.padY * 0.55)}px 0 ${Math.round(t.padY * 0.35)}px}
   .h-display{${grad};line-height:1.06;letter-spacing:-.025em}
-  .filler{font-size:var(--fs-lead,${t.lead}px);line-height:1.8;color:${pal.muted}}
-  .filler p{margin:0 0 ${Math.round(t.gap * 1.6)}px;padding-left:${Math.round(t.gap * 2.6)}px;
+  .filler{font-size:var(--fs-lead,${t.lead}px);line-height:1.85;color:${pal.muted}}
+  .filler p{margin:0 0 ${Math.round(t.gap * 2.2)}px;padding-left:${Math.round(t.gap * 2.6)}px;
     border-left:${t.rule}px solid ${pal.accent}}
   .filler p:last-child{margin-bottom:0}
   .foot{margin-top:auto;padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
@@ -239,23 +245,33 @@ export function tplSpanColumn(pal, dim, hasImage) {
   const t = tokens(dim);
   const cols = t.isWide ? 3 : 2;
   return shell(pal, dim, `
-    <div class="cols">
-      <h1 class="h-display span">{{TITLE}}</h1>
-      <p class="lead span-lead">{{LEAD}}</p>
-      <div class="rest" data-lead-list></div>
+    <div class="colswrap">
+      <div class="cols">
+        <h1 class="h-display">{{TITLE}}</h1>
+        <p class="lead">${cols} COLUMN · {{DATE}}</p>
+        <div class="rest" data-lead-list></div>
+      </div>
     </div>
-    <div class="foot"><span data-author>{{AUTHOR}}</span><span>{{DATE}}</span></div>`, `
+    <div class="foot"><span data-author>{{AUTHOR}}</span><span>__CORNER__</span></div>`, `
   .wrap{padding:${t.padY}px ${t.padX}px}
-  /* column-count 让正文按栏流动；标题与引语用 column-span:all 跳出栅格 */
-  .cols{flex:1;min-height:0;column-count:${cols};column-gap:${Math.round(t.gap * 3)}px;
+  /* ⚠️ 2026-11-06 实测修正两处：
+     ① 内容重复：原来刊头下方是 <p class="lead">{{LEAD}}</p>，而 .rest 的条目
+        也是从同一份引语切出来的 → 同一段话渲染了两遍（实测 lead 与 items[0]
+        完全一致）。改为显示栏数信息，既保留 column-span 元素又不再重复。
+     ② 空白全在底部：原来 .cols{flex:1} 让容器占满全高，但 column-count 的内容
+        始终从容器顶部开始排 → 4 条内容只占 88–599，页脚在 1315，
+        中间空 716px（占画布 50%）。改为 colswrap 居中、.cols 高度由内容决定。 */
+  .colswrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+  .cols{flex:0 1 auto;column-count:${cols};column-gap:${Math.round(t.gap * 3)}px;
     column-rule:1px solid rgba(128,128,128,.24);
-    font-size:var(--fs-body,${t.body}px);line-height:1.78;color:${pal.ink}}
-  .h-display{column-span:all;line-height:1.08;margin:0 0 ${Math.round(t.gap * 1.4)}px}
-  .lead{column-span:all;margin:0 0 ${Math.round(t.gap * 2.4)}px;
-    font-size:var(--fs-lead,${t.lead}px);line-height:1.7;color:${pal.muted};
-    border-left:${Math.round(t.rule * 1.6)}px solid ${pal.accent};
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.8;color:${pal.ink}}
+  .h-display{column-span:all;line-height:1.08;margin:0 0 ${Math.round(t.gap * 1.6)}px}
+  .lead{column-span:all;margin:0 0 ${Math.round(t.gap * 2.6)}px;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.26em;
+    color:${pal.accent};border-left:${Math.round(t.rule * 1.8)}px solid ${pal.accent};
     padding-left:${Math.round(t.gap * 1.6)}px}
-  .rest p{margin:0 0 ${Math.round(t.gap * 1.4)}px;break-inside:avoid}
+  .rest p{margin:0 0 ${Math.round(t.gap * 1.8)}px;break-inside:avoid}
+  .rest p:last-child{margin-bottom:0}
   .foot{margin-top:${Math.round(t.gap * 2)}px;padding-top:${t.meta}px;
     border-top:1px solid rgba(128,128,128,.3);
     display:flex;justify-content:space-between;align-items:baseline;
@@ -289,8 +305,13 @@ export function tplOutlineType(pal, dim, hasImage) {
     font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
     color:${pal.accent};margin-bottom:${Math.round(t.gap * 2)}px}
   .out{${outline};line-height:1.02;letter-spacing:-.03em;font-weight:900}
-  .mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
-    gap:${Math.round(t.gap * 2)}px;margin-top:${Math.round(t.padY * 0.3)}px}
+  /* ⚠️ 2026-11-06 实测修正：原来 justify-content:center 让「引语条 + 条目」
+     作为整体居中，实测标题 125–378、正文到 1048、页脚 1313 → 底部空 265px。
+     改为 space-between：引语条靠上、条目靠下，把空白**转成条与条目之间的呼吸**，
+     而不是垫在页脚上方当空洞。 */
+  .mid{flex:1;min-height:0;display:flex;flex-direction:column;
+    justify-content:space-between;
+    padding:${Math.round(t.padY * 0.45)}px 0 ${Math.round(t.padY * 0.25)}px}
   /* 引语做成实心反白条：与空心标题形成「空心 vs 实心」的对比 */
   .solid-line{${solid};background:${hasImage ? 'rgba(12,12,14,.42)' : pal.ink};
     padding:${Math.round(t.gap * 1.6)}px ${Math.round(t.gap * 2)}px;
