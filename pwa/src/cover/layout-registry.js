@@ -106,6 +106,10 @@ const DEFS = [
   { id: 'blend-overlay', name: '混色叠加', code: 'X7', needImg: false, group: 'structural', desc: 'mix-blend-mode 反相叠加' },
   { id: 'named-grid', name: '命名栅格', code: 'X8', needImg: false, group: 'structural', desc: 'grid-template-areas 非对称撒点' },
   { id: 'mask-fade', name: '渐隐遮罩', code: 'X9', needImg: false, group: 'structural', desc: 'mask-image 右端淡出' },
+  /* 第四批结构型 3 套（2026-11-06）：语法在现有 59 套里使用次数都是 0。 */
+  { id: 'perspective-plane', name: '透视平面', code: 'X10', needImg: false, group: 'structural', desc: 'perspective + rotateX 俯视纵深' },
+  { id: 'duotone-border', name: '双色条纹边框', code: 'X11', needImg: false, group: 'structural', desc: 'border-image 斜条纹框' },
+  { id: 'blend-plate', name: '混色底纹', code: 'X12', needImg: false, group: 'structural', desc: 'background-blend-mode 网纹相乘' },
 ];
 
 /** styleId → 版式 id（`magazine-tpl` / `swiss-tpl` 归到主卡）。 */

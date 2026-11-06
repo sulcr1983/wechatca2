@@ -176,6 +176,11 @@ const LAYOUT_DEFS = [
   { id: 'blend-overlay', name: '混色叠加', note: '标题与斜切色块反相混合，出对比色' },
   { id: 'named-grid', name: '命名栅格', note: '非对称撒点，重心偏右上' },
   { id: 'mask-fade', name: '渐隐遮罩', note: '标题右端淡入纸色，留余味' },
+  /* 2026-11-06 第四批结构型 3 套：语法在现有 59 套里使用次数都是 0，
+     且都过了导出 PNG 对照实验（perspective / border-image / bg-blend 均 KEPT）。 */
+  { id: 'perspective-plane', name: '透视平面', note: '标题斜躺在透视平面上，俯视纵深' },
+  { id: 'duotone-border', name: '双色条纹边框', note: '边框本身是斜条纹装饰主体' },
+  { id: 'blend-plate', name: '混色底纹', note: '色块与点阵相乘，出印刷网纹' },
 ];
 
 export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => (

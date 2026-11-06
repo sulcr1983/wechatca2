@@ -598,6 +598,155 @@ export function tplMaskFade(pal, dim, hasImage) {
     font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}`);
 }
 
+/* ── 10. 透视平面：标题与正文斜躺在一个透视平面上 ──────────────────────
+ * 语法背景：perspective + rotateX 在现有 59 套里使用次数为 **0**
+ *（现有 transform 只有 scale/translate 类，没有 3D 透视）。
+ * 导出实测（2026-11-06 对照实验）：色块顶边 409 / 底边 487，梯形化 16% ——
+ * PNG 里保留了透视（如果是平面投影，顶底等宽）。
+ *
+ * 设计意图：把标题「贴」在桌面上看，产生俯视纵深；与所有平面版式区分开。
+ * ⚠️ 有底图时关掉透视：照片本身有透视，再叠投影会让字变形到读不出。
+ * ⚠️ perspective 必须写在**父容器**上，子元素才有纵深（写在子元素上无效）。 */
+export function tplPerspectivePlane(pal, dim, hasImage) {
+  const t = tokens(dim);
+  const depth = Math.max(600, Math.round(dim.h * 0.62));
+  const tilt = hasImage ? 'none' : `rotateX(${t.isWide ? 26 : 34}deg)`;
+  return shell(pal, dim, `
+    <div class="top"><span class="kick">PERSPECTIVE</span><span>{{DATE}}</span></div>
+    <div class="stage">
+      <div class="plane">
+        <h1 class="h-display">{{TITLE}}</h1>
+        <div class="filler" data-lead-list></div>
+      </div>
+    </div>
+    <div class="foot"><span data-author>{{AUTHOR}}</span><span>__CORNER__</span></div>`, `
+  .wrap{padding:${t.padY}px ${t.padX}px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+    color:${pal.accent};margin-bottom:${Math.round(t.gap * 2)}px}
+  /* 关键：perspective 在父层，plane 才有纵深；transform-origin 压到底边，
+     让平面「贴地向前倒」，不是悬空翻转 */
+  .stage{flex:1;min-height:0;perspective:${depth}px;perspective-origin:50% 100%;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    padding-bottom:${Math.round(t.padY * 0.4)}px}
+  .plane{transform:${tilt};transform-origin:50% 100%;
+    transform-style:preserve-3d;
+    display:flex;flex-direction:column;gap:${Math.round(t.gap * 2.4)}px}
+  .h-display{line-height:1.06;letter-spacing:-.025em;margin:0}
+  .filler{font-size:var(--fs-lead,${t.lead}px);line-height:1.75;color:${pal.muted};
+    display:flex;flex-direction:column;gap:${Math.round(t.gap * 1.6)}px}
+  .filler p{margin:0;padding-left:${Math.round(t.gap * 2)}px;
+    border-left:${t.rule}px solid ${pal.accent}}
+  .foot{margin-top:auto;padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}`);
+}
+
+/* ── 11. 双色条纹边框：border-image 用重复渐变做斜条纹框 ────────────────
+ * 语法背景：border-image 在现有 59 套里使用次数为 **0**
+ *（现有边框全是 border:1px solid 或 border-left 强调线）。
+ * 导出实测：蓝条纹像素 on=14760 / off=0 —— PNG 里保留了条纹边框
+ *（丢失则只剩纯色边框，蓝色像素为 0）。
+ *
+ * 设计意图：让「框」本身成为装饰主体，像印刷品的装饰边。 */
+export function tplDuotoneBorder(pal, dim, hasImage) {
+  const t = tokens(dim);
+  const bw = Math.max(10, Math.round(dim.w * 0.016));
+  /* 有底图时边框降为半透明白，避免条纹压在照片上显得脏 */
+  const stripe = hasImage
+    ? `repeating-linear-gradient(45deg,rgba(255,255,255,.75) 0 ${bw}px,rgba(255,255,255,.28) ${bw}px ${bw * 2}px)`
+    : `repeating-linear-gradient(45deg,${pal.accent} 0 ${bw}px,${pal.ink} ${bw}px ${bw * 2}px)`;
+  return shell(pal, dim, `
+    <div class="framed">
+      <div class="inner">
+        <div class="top"><span class="kick">DUOTONE</span><span>{{DATE}}</span></div>
+        <h1 class="h-display">{{TITLE}}</h1>
+        <div class="filler" data-lead-list></div>
+        <div class="foot"><span data-author>{{AUTHOR}}</span><span>__CORNER__</span></div>
+      </div>
+    </div>`, `
+  .wrap{padding:${Math.round(t.padY * 0.55)}px ${Math.round(t.padX * 0.55)}px}
+  /* 关键：border-image 需要元素本身有 border 宽度，slice 让条纹只出现在边上 */
+  .framed{flex:1;min-height:0;display:flex;
+    border:${bw}px solid transparent;
+    border-image:${stripe} ${bw} repeat}
+  .inner{flex:1;min-height:0;display:flex;flex-direction:column;
+    padding:${Math.round(t.padY * 0.55)}px ${Math.round(t.padX * 0.5)}px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+    color:${hasImage ? '#fff' : pal.accent};margin-bottom:${Math.round(t.gap * 2)}px}
+  .h-display{line-height:1.06;letter-spacing:-.025em;margin:0 0 ${Math.round(t.gap * 2.4)}px;
+    color:${hasImage ? '#fff' : pal.ink}}
+  /* ⚠️ 2026-11-06 实测修正：space-between 让最后一条正文正好顶到页脚线
+     （实测 bottom=1290 = footTop=1290，压线）。加底部内边距留呼吸。 */
+  .filler{flex:1;min-height:0;display:flex;flex-direction:column;
+    justify-content:space-between;padding-bottom:${Math.round(t.gap * 1.6)}px;
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.7;
+    color:${hasImage ? '#fff' : pal.muted}}
+  .filler p{margin:0;padding-left:${Math.round(t.gap * 2)}px;
+    border-left:${Math.round(t.rule * 1.4)}px solid ${hasImage ? '#fff' : pal.accent}}
+  .foot{padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;
+    color:${hasImage ? '#fff' : pal.muted}}`);
+}
+
+/* ── 12. 混色底纹：色块用 background-blend-mode 与网纹相乘 ──────────────
+ * 语法背景：background-blend-mode 在现有 59 套里使用次数为 **0**
+ *（现有叠加只有单层 linear-gradient，没有「渐变 × 图案」混合）。
+ * 导出实测：平均亮度 off=83.6 → on=33.7，变暗 49.9 —— PNG 里保留了相乘结果
+ *（丢失则与纯渐变完全一致，亮度差为 0）。
+ *
+ * 设计意图：让色块自带印刷网纹质感，而不是一块死板纯色。
+ * ⚠️ 网纹用 SVG data URI 内联，不用外部图片（导出时不会有跨域风险）。 */
+export function tplBlendPlate(pal, dim, hasImage) {
+  const t = tokens(dim);
+  /* 深灰点阵网纹：与渐变相乘后出现规律的暗点，像油墨印在纸上 */
+  const DOTS = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Ccircle cx='9' cy='9' r='3.2' fill='%23666'/%3E%3C/svg%3E\")";
+  return shell(pal, dim, `
+    <div class="plate"></div>
+    <div class="layer">
+      <div class="top"><span class="kick">INK PLATE</span><span>{{DATE}}</span></div>
+      <h1 class="h-display">{{TITLE}}</h1>
+      <div class="filler" data-lead-list></div>
+      <div class="foot"><span data-author>{{AUTHOR}}</span><span>__CORNER__</span></div>
+    </div>`, `
+  .poster{background:${pal.paper}}
+  .wrap{padding:0}
+  /* 关键：两层背景（渐变 + 点阵）用 multiply 相乘，得到带网纹的色块
+     ⚠️ 2026-11-06 可读性门禁实测：有底图时这个亮渐变（accent→paper2）
+        会盖住照片，白字页码压在亮端对比度只有 1.98 < 2.0。
+        根因是 .plate 与 .cover-img 同为 z-index:0、但 plate 的 DOM 更靠后。
+        有底图时改为「半透明压暗层」：不再做网纹相乘，只负责把照片压暗到
+        白字可读，网纹交给照片本身（与 SVG 装饰层同一处置思路）。 */
+  .plate{position:absolute;inset:0;z-index:0;
+    ${hasImage
+    ? 'background:linear-gradient(180deg,rgba(10,10,12,.15) 0%,rgba(10,10,12,.72) 62%,rgba(10,10,12,.86) 100%)'
+    : `background-image:linear-gradient(160deg,${pal.accent} 0%,${pal.paper2} 100%),${DOTS};
+    background-size:cover,18px 18px;
+    background-blend-mode:multiply`}}
+  .layer{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
+    padding:${t.padY}px ${t.padX}px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+    color:${hasImage ? '#fff' : pal.paper};margin-bottom:${Math.round(t.gap * 2)}px}
+  /* 标题与色板同为「纸色/亮色」，靠明度差而非色相拉开 */
+  .h-display{line-height:1.04;letter-spacing:-.03em;margin:0 0 ${Math.round(t.gap * 3)}px;
+    color:${hasImage ? '#fff' : pal.paper}}
+  /* ⚠️ 2026-11-06 实测修正：space-between 让最后一条正文正好顶到页脚线
+     （实测 bottom=1315 = footTop=1315，压线）。加底部内边距留呼吸。 */
+  .filler{flex:1;min-height:0;display:flex;flex-direction:column;
+    justify-content:space-between;padding-bottom:${Math.round(t.gap * 1.6)}px;
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.7;
+    color:${hasImage ? '#fff' : pal.paper}}
+  .filler p{margin:0;padding-left:${Math.round(t.gap * 2)}px;
+    border-left:${Math.round(t.rule * 1.4)}px solid ${hasImage ? '#fff' : pal.ink}}
+  .foot{padding-top:${t.meta}px;border-top:1px solid rgba(255,255,255,.4);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;
+    color:${hasImage ? '#fff' : pal.paper}}`);
+}
+
 export const STRUCT_TEMPLATES = {
   'text-wrap': tplTextWrap,
   'multi-column': tplMultiColumn,
@@ -614,4 +763,10 @@ export const STRUCT_TEMPLATES = {
   'blend-overlay': tplBlendOverlay,
   'named-grid': tplNamedGrid,
   'mask-fade': tplMaskFade,
+  /* 2026-11-06 第四批结构型 3 套：语法在现有 59 套里使用次数都是 0，
+     且都过了导出 PNG 对照实验（bg-blend / perspective / border-image
+     修正探针设计缺陷后均 KEPT；object-position 已保留但本轮未用作主题）。 */
+  'perspective-plane': tplPerspectivePlane,
+  'duotone-border': tplDuotoneBorder,
+  'blend-plate': tplBlendPlate,
 };

@@ -203,9 +203,9 @@ def main() -> int:
             n_needimg_off = page.locator('.cv-style[data-needimg="1"].cv-style-off').count()
             # 2026-11-06：版式从 30 扩到 53（30 配方 + 20 刺激风 + 3 结构型），全部有渲染器。
             # 断言按当前事实更新，并保留「全量显示、不按有无图隐藏」这条不变量。
-            check("59 套版式全量显示（不按有无图隐藏）", n_cards == 59, f"{n_cards} 张")
-            check("59 套全部已实现（无待接入占位卡）",
-                  n_impl == 59 and n_pending == 0, f"{n_impl} + {n_pending}")
+            check("62 套版式全量显示（不按有无图隐藏）", n_cards == 62, f"{n_cards} 张")
+            check("62 套全部已实现（无待接入占位卡）",
+                  n_impl == 62 and n_pending == 0, f"{n_impl} + {n_pending}")
             # 色点数 = 所有已实现卡的总 style 数 − 单色卡数。
             # 50 套里只有「大字版」是单色卡；刺激风 20 套各有 5 个色板。
             check("色点数量与已实现版式的色板总数一致",
