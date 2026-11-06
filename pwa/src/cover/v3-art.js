@@ -197,4 +197,13 @@ export function artLayer(pal, layout) {
 /** 装饰层的 CSS（固定一条，随 SVG 一起注入）。 */
 export const ART_CSS = `
   .poster > .art{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  /* ⚠️ 2026-11-06 实测堆叠顺序：applyImage 会把底图插到 poster 开标签之后，
+     装饰层也插在同一位置，两者同为 z-index:0 时后插入者在上 ——
+     **装饰层会盖在照片上**（实测 art@8467 > img@8371）。
+     取舍：装饰层只为治疗「纯色平铺像一张卡纸」，而有照片时这问题根本不存在
+     （照片本身就是纹理）。所以有底图时直接隐藏，而不是压淡 ——
+     压淡会留下可见的弧线/网格蒙在照片上，像脏点，反而降低质感。
+     ⚠️ 注意：本注释里**不能写图片标签的字面量**，applyImage 是按字符串
+        全局正则替换的，注释里的标签也会被它当成真标签注入 src（实测踩到）。 */
+  body.has-img .poster > .art{display:none}
 `;
