@@ -172,7 +172,11 @@ export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => (
   paletteKey: p.key,
   paletteName: p.name,
   desc: l.note,
-  sizes: ['xhs'],
+  /* ⚠️ 2026-11-06：原来写死 ['xhs'] → 用户反馈「尺寸为啥只有 3:4？其他不做吗」。
+     V3 模板本来就按 dim 自适应（padOf 对 3:4 / 1:1 / 21:9 给了不同内边距，
+     字号也按可用宽高反算），所以三种尺寸都能出。
+     旧管线（layouts.js，只画 1080×1440）的版式不在 LAYOUT_STYLES 里，不受影响。 */
+  sizes: ['xhs', 'square', 'wide'],
   swatch: p.paper,
   accent: p.accent,
   /* 渲染用的完整色板（layouts.js 直接消费，不走 CSS 变量继承）。

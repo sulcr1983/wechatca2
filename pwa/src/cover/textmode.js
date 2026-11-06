@@ -42,6 +42,23 @@ export const TEXT_FONTS = [
     //    → 静默回退到系统字体，实测截图完全看不出得意黑（2026-10-25 踩过）。
     style: 'normal',
   },
+  /* ── 2026-11-06 补齐原型 10 款 ────────────────────────────────────────
+     用户反馈「字体为啥不按照原型图去做？很多字体都丢了」。
+     这 6 款的 woff2 **早就在仓库里**（pwa/public/fonts/cover/，含 OFL 许可文件），
+     只是 textmode.js 没登记 → 界面上看不到。全部 SIL OFL 1.1，可商用。
+     与得意黑同策略：optional + 选中才注入 @font-face，不拖慢首屏。 */
+  { id: 'wenkai', name: '文楷', family: "'LXGW WenKai'", desc: '手写楷体，温润',
+    optional: true, file: 'fonts/cover/wenkai.woff2' },
+  { id: 'kuaile', name: '快乐体', family: "'ZCOOL KuaiLe'", desc: '圆润活泼',
+    optional: true, file: 'fonts/cover/zcool-kuaile.woff2' },
+  { id: 'xiaowei', name: '小薇', family: "'ZCOOL XiaoWei'", desc: '清秀细宋',
+    optional: true, file: 'fonts/cover/zcool-xiaowei.woff2' },
+  { id: 'mashanzheng', name: '马善政', family: "'Ma Shan Zheng'", desc: '毛笔书法',
+    optional: true, file: 'fonts/cover/mashanzheng.woff2' },
+  { id: 'longcang', name: '龙藏', family: "'Long Cang'", desc: '手写随性',
+    optional: true, file: 'fonts/cover/longcang.woff2' },
+  { id: 'zhimang', name: '志莽', family: "'Zhi Mang Xing'", desc: '行草连笔',
+    optional: true, file: 'fonts/cover/zhimangxing.woff2' },
 ];
 
 const CHAR_SPAN_MODES = new Set(['offset', 'rainbow']);

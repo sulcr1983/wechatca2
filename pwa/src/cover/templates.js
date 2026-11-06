@@ -382,9 +382,14 @@ function applyImage(html, image) {
   const overlayRe = /<div[^>]*class="[^"]*\bimg-overlay\b[^"]*"[^>]*>\s*<\/div>/i;
   if (image) {
     if (imgRe.test(html)) {
-      html = html.replace(imgRe, (m) => m
-        .replace(/\ssrc="[^"]*"/i, '')
-        .replace(/\s*\/?>$/, ` src="${image}">`));
+      /* ⚠️ 2026-11-06 修「证据墙只显示 1 张图、另外 3 格空白」：
+         原实现用 String.replace 只替换**第一个** .cover-img，
+         而证据墙有 4 个 .cover-img（2×2 图墙）。
+         改为全局替换，每格都拿到底图 —— 有底图时四宫格各自铺满。 */
+      html = html.replace(
+        /<img[^>]*class="[^"]*\bcover-img\b[^"]*"[^>]*>/gi,
+        (m) => m.replace(/\ssrc="[^"]*"/i, '').replace(/\s*\/?>$/, ` src="${image}">`),
+      );
     } else {
       html = html.replace(/(<section[^>]*class="[^"]*\bposter\b[^"]*"[^>]*>)/i,
         `$1<img class="cover-img" src="${image}" alt="">`);
