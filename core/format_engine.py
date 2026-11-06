@@ -2902,6 +2902,27 @@ def _strip_heading_block(head: str, ink: str = "") -> str:
                   flags=re.IGNORECASE)
 
 
+def _readable_block_color(color: str, bg_rgb, target: float) -> str:
+    """色块内文字色兜底（2026-11-06）：对比度不够就朝黑/白压深到达标，够了原样返回。
+
+    为什么需要：apply_paragraph_blocks 直接拿 theme.colors.primary 当金句/提示块的字色、
+    colors.accent 当数据块数字色。这两个值与 styles.p.color 不是一回事 —— 主题里
+    primary/accent 常是「品牌色」，浅金 #f0a030、浅粉 #e898a8、招牌黄 #F5B800 当正文色
+    时对比度只有 1.7–2.2，用户看到的就是「段落颜色和文字一样，看不清」（真实反馈）。
+    标题有 _readable_heading_props 兜底，色块这条路径此前没有。
+
+    做法与 _fit_fg 一致：保住色相，只把它压深/提亮到刚好达标。
+    """
+    p = _parse_color(color or "")
+    if not p or p[3] < 0.95:
+        return color
+    rgb = p[:3]
+    if _contrast_ratio(rgb, bg_rgb) >= target:
+        return color
+    new = _fit_fg(rgb, [bg_rgb], target)
+    return "#%02x%02x%02x" % new if new else color
+
+
 def apply_paragraph_blocks(html: str, theme: dict) -> str:
     """C 方案 · 段落级色块强调（2026-10-24）
 
@@ -2925,6 +2946,35 @@ def apply_paragraph_blocks(html: str, theme: dict) -> str:
     ink = colors.get("primary") or "#333333"
     soft = _derive_block_color(ink, accent, 0.06)
     soft2 = _derive_block_color(ink, accent, 0.035)
+
+    # 色块内文字兜底（2026-11-06）：primary / accent 常是品牌色，当正文色会看不见。
+    # 阈值与 docs/engine/mobile-typography.md 同口径：正文 4.5、大字号（30px 数字）3.0。
+    _page = _parse_color(colors.get("background") or "#ffffff")
+    page_rgb = _page[:3] if _page else (255, 255, 255)
+    _soft = _parse_color(soft)
+    _soft2 = _parse_color(soft2)
+    soft_rgb = _blend_over(_soft, page_rgb) if _soft else page_rgb
+    soft2_rgb = _blend_over(_soft2, page_rgb) if _soft2 else page_rgb
+    ink = _readable_block_color(ink, soft_rgb, 4.5)
+    num_ink = _readable_block_color(accent, soft2_rgb, _HEADING_MIN_CONTRAST)
+    # 提示块小标签：底色是 accent，白字/黑字取对比度高的那个；
+    # 若两者都不够（accent 亮度卡在中间，实测 11 套差 0.04–0.14），把底色再推一档。
+    label_ink = "#ffffff"
+    label_bg = accent
+    _accent_rgb = _parse_color(accent)
+    if _accent_rgb:
+        _ar = _accent_rgb[:3]
+        white_r = _contrast_ratio((255, 255, 255), _ar)
+        dark_r = _contrast_ratio((17, 17, 17), _ar)
+        if white_r >= dark_r:
+            label_ink, _need_fg, _toward = "#ffffff", (255, 255, 255), (0, 0, 0)
+        else:
+            label_ink, _need_fg, _toward = "#111111", (17, 17, 17), (255, 255, 255)
+        if max(white_r, dark_r) < 4.5:
+            _fitted, _steps = _walk_toward(
+                _ar, _toward, lambda c: _contrast_ratio(_need_fg, c) >= 4.5)
+            if _fitted:
+                label_bg = "#%02x%02x%02x" % _fitted
 
     # 提示词前缀（命中即当提示框）。
     # 注意：预处理器会把「提示：xxx」「【提示】xxx」统一转成 blockquote，
@@ -2982,7 +3032,7 @@ def apply_paragraph_blocks(html: str, theme: dict) -> str:
             f'<section data-block="data" style="margin:22px 0;padding:14px 16px;'
             f'background:{soft2};border-radius:10px">'
             f'<p style="margin:0;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">'
-            f'<span style="font-size:30px;font-weight:600;color:{accent};line-height:1.1">{num}</span>'
+            f'<span style="font-size:30px;font-weight:600;color:{num_ink};line-height:1.1">{num}</span>'
             f'<span style="font-size:13px;color:{ink};opacity:.75">{unit}</span>{tail_html}</p></section>'
         )
 
@@ -2992,7 +3042,7 @@ def apply_paragraph_blocks(html: str, theme: dict) -> str:
             f'background:{soft2};border-radius:8px">'
             f'<p style="margin:0;font-size:13.5px;line-height:1.75;color:{ink}">'
             f'<span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;'
-            f'background:{accent};color:#ffffff;margin-right:8px;vertical-align:1px">{label}</span>'
+            f'background:{label_bg};color:{label_ink};margin-right:8px;vertical-align:1px">{label}</span>'
             f'{inner}</p></section>'
         )
 

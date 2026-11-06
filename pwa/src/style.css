@@ -417,10 +417,12 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
   /* 2026-11-03 重算（P4-4）：缩略图改为 aspect-ratio（2:1 / kit 4:3），高度随卡片宽度变化。
      ⚠️ min-height 必须给具体值，不能用 0 或 auto —— 实测两者都会让卡片在抽屉的
      grid 里塌陷到 4px（内容 115px 全被 overflow:hidden 裁掉，缩略图与标题条双双消失）。
-     取值推导：palette 卡 150px 宽 → 图 75px(2:1) + body 40px = 115，留 1px → 116；
-     kit 卡 150px 宽 → 图 112.5px(4:3) + body 40px = 152.5，留 1px → 153。
+     取值推导：palette 卡 150px 宽 → 图 75px(2:1) + body 31px = 106，留 1px → 107；
+     kit 卡 150px 宽 → 图 112.5px(4:3) + body 31px = 143.5，留 1px → 144。
+     （2026-11-06 用户反馈「风格的标题和下方的颜色太大」：标题条从 40px 收到 31px，
+       字号 15px→13px、padding 10px→7px，见 .d-body / .d-name。）
      宽度变大时 aspect-ratio 会撑高卡片，min-height 只作下限兜底。 */
-  display: flex; flex-direction: column; min-height: 116px;
+  display: flex; flex-direction: column; min-height: 107px;
   border-radius: var(--radius-lg); border: 1px solid var(--border);
   background: var(--bg-raised); overflow: hidden; text-align: left;
   transition: border-color .15s, box-shadow .15s;
@@ -458,12 +460,12 @@ body.ai-ready #btn-ai { color: var(--accent); border-color: var(--accent); }
    ⚠️ 变量必须用线上真实存在的 `--text` / `--bg-canvas`。方案原文写的
    `var(--color-foreground)` 在线上**未定义**（`--color-*` 命中 0），照抄会变成
    白字压白底、文字直接消失（plan-wechat-v6-implementation §P4 B-1）。 */
-.d-body { padding: 10px 12px; display: flex; align-items: center; gap: 6px; background: var(--text); border-top: 0; }
+.d-body { padding: 7px 10px; display: flex; align-items: center; gap: 6px; background: var(--text); border-top: 0; }
 /* ⚠️ 必须显式覆盖 `.d-family-card .d-name`（特异性 0,2,0 > 0,1,0）：
    否则族代表卡标题仍是朱砂 #AF3E2B 压深墨 = 3.06:1，低于 4.5:1 不可读（§P4 B-2）。 */
 .d-name,
-.d-family-card .d-name { flex: 1; min-width: 0; font: 700 15px/1.3 Georgia, 'Songti SC', 'SimSun', serif; color: var(--bg-canvas); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.d-fav { flex: none; width: 20px; height: 20px; border-radius: var(--radius-sm); color: rgba(247, 244, 238, .55); font-size: 13px; display: grid; place-items: center; }
+.d-family-card .d-name { flex: 1; min-width: 0; font: 600 13px/1.3 Georgia, 'Songti SC', 'SimSun', serif; color: var(--bg-canvas); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-fav { flex: none; width: 18px; height: 18px; border-radius: var(--radius-sm); color: rgba(247, 244, 238, .55); font-size: 12px; display: grid; place-items: center; }
 .d-fav:hover { background: rgba(247, 244, 238, .12); color: var(--bg-canvas); }
 .d-fav[data-on="1"] { color: #E8A08C; }
 
