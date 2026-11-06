@@ -36,6 +36,9 @@ const EXPECTED_IDS = [
   'highlighter', 'vertical-impact', 'half-clash', 'diagonal', 'card-stack',
   'bands', 'ring-focus', 'tag-flow', 'frame-hit', 'corner-num', 'three-grid',
   'mega-char', 'sticky-notes', 'marquee', 'tilt-block',
+  /* 结构型 3 套（X1–X3，2026-11-06 用户拍板方向 D）。
+     与前面 50 套的区别是「文字与图的空间关系」，不是配色或骨架。 */
+  'text-wrap', 'multi-column', 'bleed-overlap',
 ];
 
 /* 文档 §5.2 统计口径点名的 10 套需图版式（刺激风 20 套全部纯文字，不在此列）。 */
@@ -47,7 +50,7 @@ const EXPECTED_NEED_IMG = [
 console.log('标题图 V3 版式注册表');
 
 /* ── 1. 数量与顺序 ── */
-check('总数 50 套（30 配方 + 20 刺激风）', LAYOUT_COUNT === 50, `${LAYOUT_COUNT} 套`);
+check('总数 53 套（30 配方 + 20 刺激风 + 3 结构型）', LAYOUT_COUNT === 53, `${LAYOUT_COUNT} 套`);
 check('顺序与设计文档 §5.2 / 刺激风登记表一致',
   LAYOUT_REGISTRY.map((l) => l.id).join() === EXPECTED_IDS.join(),
   LAYOUT_REGISTRY.map((l) => l.id).join());
@@ -60,18 +63,20 @@ check('需图的就是文档点名的 10 套',
   needImgIds.join());
 
 /* ── 3. 必填字段与唯一性 ── */
-check('id 唯一', new Set(LAYOUT_REGISTRY.map((l) => l.id)).size === 50);
+check('id 唯一', new Set(LAYOUT_REGISTRY.map((l) => l.id)).size === LAYOUT_COUNT);
 check('每套都有 name', LAYOUT_REGISTRY.every((l) => typeof l.name === 'string' && l.name.length > 0));
 check('每套都有配方编号字段', LAYOUT_REGISTRY.every((l) => typeof l.code === 'string' && l.code.length > 0));
-check('分组只有 existing / recipe / bold',
-  LAYOUT_REGISTRY.every((l) => ['existing', 'recipe', 'bold'].includes(l.group)));
-check('现有 7 + 配方 23 + 刺激风 20',
+check('分组只有 existing / recipe / bold / structural',
+  LAYOUT_REGISTRY.every((l) => ['existing', 'recipe', 'bold', 'structural'].includes(l.group)));
+check('现有 7 + 配方 23 + 刺激风 20 + 结构型 3',
   LAYOUT_REGISTRY.filter((l) => l.group === 'existing').length === 7
   && LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length === 23
-  && LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length === 20,
+  && LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length === 20
+  && LAYOUT_REGISTRY.filter((l) => l.group === 'structural').length === 3,
   `existing=${LAYOUT_REGISTRY.filter((l) => l.group === 'existing').length} `
   + `recipe=${LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length} `
-  + `bold=${LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length}`);
+  + `bold=${LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length} `
+  + `structural=${LAYOUT_REGISTRY.filter((l) => l.group === 'structural').length}`);
 
 /* ── 4. styles 必须真实可解析 ── */
 const allStyleIds = new Set(ALL_STYLES.map((s) => s.id));
@@ -80,12 +85,12 @@ const badStyles = LAYOUT_REGISTRY.flatMap((l) => l.styles.filter((id) => !allSty
 check('每条 styles 都能在 catalog 解析', badStyles.length === 0, badStyles.slice(0, 5).join(', '));
 
 /* ── 5. 已实现 / 未实现 ──
-   2026-11-06：50 套全部接入渲染器（30 配方 + 20 刺激风），不再有占位卡。
+   2026-11-06：全部版式均已接入渲染器（30 配方 + 20 刺激风 + 3 结构型），不再有占位卡。
    断言从「已实现恰好 7 套」改为「全部已实现」，并保留「未实现必须 styles 为空」
    这条不变量 —— 将来若再加版式但没写渲染器，这里要能拦住。 */
 const implemented = implementedLayouts().map((l) => l.id);
 const pending = pendingLayouts().map((l) => l.id);
-check('50 套全部已实现（无占位卡）', implemented.length === 50, `${implemented.length} 套`);
+check('全部已实现（无占位卡）', implemented.length === LAYOUT_COUNT, `${implemented.length} 套`);
 check('未实现清单为空', pending.length === 0, pending.join());
 check('未实现的版式必须 styles 为空（不变量）',
   pendingLayouts().every((l) => l.styles.length === 0), pending.join());

@@ -18,6 +18,7 @@ import { tokens, cssVars } from './design-tokens.js';
 import * as RECIPES from './v3-recipes.js';
 import { BOLD_TEMPLATES } from './v3-bold.js';
 import { BOLD_EXTRA } from './v3-bold-extra.js';
+import { STRUCT_TEMPLATES } from './v3-structural.js';
 
 /* magazine-tpl / swiss-tpl 是主卡的配色变体，渲染归到主卡结构。 */
 const LAYOUT_ALIAS = { 'magazine-tpl': 'magazine', 'swiss-tpl': 'swiss' };
@@ -330,6 +331,12 @@ const BUILD = {
   ...BOLD_TEMPLATES,
   /* 2026-11-06 第二批刺激风 12 套（v3-bold-extra.js）。 */
   ...BOLD_EXTRA,
+  /* 2026-11-06 结构型 3 套（v3-structural.js，用户拍板方向 D）：
+     现有 50 套的排版语法其实是同一套 —— 全部是 grid/flex 切块 + 文字堆在块里，
+     实测 float / shape-outside / column-count 使用次数为 0。
+     这 3 套换的是**文字与图的空间关系**（文字绕图 / 多栏正文 / 出血压边），
+     这才是真正拉开差异的地方。 */
+  ...STRUCT_TEMPLATES,
 };
 
 /** 这些版式已接入 V3 模板（其余仍走旧管线，右栏保持置灰占位）。 */
@@ -518,6 +525,17 @@ export function buildV3Html({
       html = html.replace(`data-k="${i}"></span>`,
         `data-k="${i}">${esc(items[i % items.length])}</span>`);
     }
+    /* 结构型版式（2026-11-06，v3-structural.js）：
+       ⚠️ 这里的填充是按**精确字符串**匹配的，新模板必须在此登记，
+       否则条目区永远是空的。
+       ⚠️ 与上面几套不同：这里必须**保留外层容器**。上面 `.ledger` / `.book`
+       等是「容器只做定位、样式写在子元素上」，所以可以整个替换；
+       而 `.cols{column-count}` / `.filler{margin/font}` 的样式就写在容器上，
+       把容器一起换掉 → 多栏失效、退化成单栏竖排（实测踩到，截图确认）。 */
+    html = html.replace('<div class="filler" data-lead-list></div>',
+      `<div class="filler">${items.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`);
+    html = html.replace('<div class="cols" data-lead-list></div>',
+      `<div class="cols">${items.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`);
   } else {
     /* 切不出条目（用户只写了标题）：把占位整块清空，别留空框。
        ⚠️ 只有一道 lead 时，用它兜底灌进第一个条目位，避免「一片空白」。 */

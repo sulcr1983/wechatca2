@@ -209,7 +209,11 @@ html, body { margin: 0; padding: 0; }
    把整块文字顶到画布之外（实测 h1 top=1912 > 画布 1440）——用户看到「图在、字没了」。
    这里统一给有底图的 .cover-img 绝对定位铺满，文字回到原位。
    z-index:0 压在 .poster 背景之上、文字层（z-index ≥1）之下。 */
-body.has-img .cover-img {
+/* ⚠️ 2026-11-06 #1：下面这条给 .cover-img 绝对定位铺满。
+   但结构型版式（v3-structural.js）靠 float 做文字绕图、靠绝对定位做出血压边，
+   这两类图**必须**留在自己的定位体系里，否则绕图/压边直接失效（实测截图确认）。
+   所以用 :not(.fw-img):not(.bleed-img) 把它们排除。 */
+body.has-img .cover-img:not(.fw-img):not(.bleed-img) {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;

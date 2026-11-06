@@ -92,6 +92,12 @@ const DEFS = [
   { id: 'sticky-notes', name: '便签拼贴', code: 'B18', needImg: false, group: 'bold', desc: '多张便签错落，手账感' },
   { id: 'marquee', name: '跑马灯', code: 'B19', needImg: false, group: 'bold', desc: '上下两条文字带 + 中间大标题' },
   { id: 'tilt-block', name: '倾斜色块', code: 'B20', needImg: false, group: 'bold', desc: '斜置色块压住大标题' },
+  /* ── 结构型 3 套（2026-11-06，用户拍板方向 D）──
+     与前 50 套的区别不在配色或骨架，而在**文字与图的空间关系**：
+     实测 50 套里 float / shape-outside / column-count 使用次数都是 0。 */
+  { id: 'text-wrap', name: '图文互嵌', code: 'X1', needImg: false, group: 'structural', desc: '文字绕着图片流，图片下方恢复全宽' },
+  { id: 'multi-column', name: '多栏正文', code: 'X2', needImg: false, group: 'structural', desc: '标题跨栏 + 正文分栏流动 + 首字下沉' },
+  { id: 'bleed-overlap', name: '出血压边', code: 'X3', needImg: false, group: 'structural', desc: '大图出血到版心外，标题压交界' },
 ];
 
 /** styleId → 版式 id（`magazine-tpl` / `swiss-tpl` 归到主卡）。 */

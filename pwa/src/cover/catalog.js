@@ -160,6 +160,12 @@ const LAYOUT_DEFS = [
   { id: 'sticky-notes', name: '便签拼贴', note: '多张便签错落，手账感', bold: true },
   { id: 'marquee', name: '跑马灯', note: '上下两条文字带 + 中间大标题', bold: true },
   { id: 'tilt-block', name: '倾斜色块', note: '斜置色块压住大标题', bold: true },
+  /* 2026-11-06 结构型 3 套（用户拍板方向 D）：换的是「文字与图的空间关系」，
+     不是再挪一个色块。现有 50 套实测 float/column-count 使用次数为 0，
+     这三套补上真杂志的排版语法。用编辑设计风色板（不加 bold）。 */
+  { id: 'text-wrap', name: '图文互嵌', note: '文字真的绕着图片流，图片下方恢复全宽' },
+  { id: 'multi-column', name: '多栏正文', note: '标题跨栏，正文分 3 栏流动，首字下沉' },
+  { id: 'bleed-overlap', name: '出血压边', note: '大图出血到版心外，标题压在交界' },
 ];
 
 export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => (
