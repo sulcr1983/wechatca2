@@ -4,6 +4,19 @@
 > 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 > 版本边界自动取自 `pwa/version.json` 的 git 历史（2026-11-03 起），无需手工维护切点。
 
+## [1.35.0] - 2026-11-06
+
+**本次亮点**
+
+- 三套新结构型的底部大片空白 + span-column 内容重复
+
+### 调整
+- longform-art 条目更新为工作台 V5 口径 (ded5756)
+- 登记长图文编辑器原型 longform-art/ (df44d0c)
+
+### 修复
+- 三套新结构型的底部大片空白 + span-column 内容重复 (43fcbc7)
+
 ## [1.33.0] - 2026-11-06
 
 **本次亮点**

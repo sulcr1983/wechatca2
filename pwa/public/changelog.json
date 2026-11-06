@@ -1,8 +1,60 @@
 {
-  "version": "1.33.0",
-  "generatedAt": "2026-11-06T20:54:14+08:00",
-  "totalCommits": 431,
+  "version": "1.35.0",
+  "generatedAt": "2026-11-06T21:45:12+08:00",
+  "totalCommits": 434,
   "releases": [
+    {
+      "version": "1.35.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "三套新结构型的底部大片空白 + span-column 内容重复"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "changed": 2,
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "changed",
+          "label": "调整",
+          "items": [
+            {
+              "text": "longform-art 条目更新为工作台 V5 口径",
+              "scope": "index",
+              "hash": "ded5756",
+              "date": "2026-11-06T21:43:28+08:00",
+              "breaking": false,
+              "dev": true
+            },
+            {
+              "text": "登记长图文编辑器原型 longform-art/",
+              "scope": "index",
+              "hash": "df44d0c",
+              "date": "2026-11-06T21:39:24+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        },
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "三套新结构型的底部大片空白 + span-column 内容重复",
+              "scope": "cover",
+              "hash": "43fcbc7",
+              "date": "2026-11-06T21:38:04+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.33.0",
       "date": "2026-11-06",
