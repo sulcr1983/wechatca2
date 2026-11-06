@@ -19,6 +19,7 @@ import * as RECIPES from './v3-recipes.js';
 import { BOLD_TEMPLATES } from './v3-bold.js';
 import { BOLD_EXTRA } from './v3-bold-extra.js';
 import { STRUCT_TEMPLATES } from './v3-structural.js';
+import { artLayer, ART_CSS } from './v3-art.js';
 
 /* magazine-tpl / swiss-tpl 是主卡的配色变体，渲染归到主卡结构。 */
 const LAYOUT_ALIAS = { 'magazine-tpl': 'magazine', 'swiss-tpl': 'swiss' };
@@ -408,6 +409,20 @@ export function buildV3Html({
   const dim = COVER_SIZES[size] || COVER_SIZES.xhs;
   const pal = paletteOf(meta);
   let html = build(pal, dim, !!image);
+
+  /* SVG 装饰层（2026-11-06 用户要求「参考 SVG 做得文艺」）：
+     现有模板底色是纯色平铺，放大看就是一张纯色卡纸。这里按**版式语义**注入
+     静态 SVG（纸纹 / 墨染 / 结构线），每个版式绑定不同的图案 ——
+     不是同一张背景换 opacity（那正是「都长得差不多」的老问题）。
+     ⚠️ 必须插在 .poster 内部**最前面**：z-index:0 与 .cover-img 同层，
+        有底图时照片盖住装饰（照片本身就是纹理），无底图时纸感由 SVG 承担。
+     ⚠️ 只改这一处就覆盖全部 53 套：10 组的 poster 开标签已确认统一为
+        `<section class="poster">`（实测 grep 10/10 一致）。 */
+  const art = artLayer(pal, layout);
+  if (art) {
+    html = html.replace(/(<section class="poster"[^>]*>)/,
+      `$1${art}<style>${ART_CSS}</style>`);
+  }
 
   // 标题字号按字数分档（2026-11-06）：固定字号遇到长标题会「单字掉行」
   // （大字报 146px 实测把「脑」挤到单独一行）。分档比 fitty 更可控 ——
