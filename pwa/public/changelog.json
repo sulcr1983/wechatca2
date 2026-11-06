@@ -1,8 +1,52 @@
 {
-  "version": "1.24.0",
-  "generatedAt": "2026-11-06T12:02:53+08:00",
-  "totalCommits": 410,
+  "version": "1.25.0",
+  "generatedAt": "2026-11-06T13:31:37+08:00",
+  "totalCommits": 412,
   "releases": [
+    {
+      "version": "1.25.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "有底图时文字全部消失"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "fixed": 1,
+        "other": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "有底图时文字全部消失",
+              "scope": "cover",
+              "hash": "c3411bb",
+              "date": "2026-11-06T13:31:17+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "线上 E2E 断言改为 50 套口径",
+              "scope": "online",
+              "hash": "8a62379",
+              "date": "2026-11-06T12:17:06+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.24.0",
       "date": "2026-11-06",
