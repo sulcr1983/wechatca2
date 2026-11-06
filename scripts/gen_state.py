@@ -307,7 +307,9 @@ def main() -> int:
         print("✅ STATE.md 与实际一致")
         return 0
 
-    STATE.write_text(content, encoding="utf-8")
+    # newline="\n"：Windows 下 write_text 默认把 \n 转成 \r\n，会让 STATE.md 与仓库其余 .md
+    # 行尾不一致（`git diff --check` 每次生成都报 trailing whitespace，且产生整文件假改动）。
+    STATE.write_text(content, encoding="utf-8", newline="\n")
     print(f"✅ 已生成 {STATE.relative_to(ROOT)}")
     for line in content.splitlines():
         if line.startswith("| 版本号") or line.startswith("| 本地 dist") \
