@@ -250,7 +250,7 @@ docs/prototypes/
 | `xhs/ux-longform.html` | 🟡 过程 | 长图文 UX（77KB） |
 | `xhs/ux-a-three-col.html` / `ux-b-rail.html` / `ux-c-dual-band.html` | 🟡 过程 | A 三栏 / B 侧轨 / C 双带 |
 | `xhs/three-module-ia.html` | 🟢 参考 | **三模块 IA 原型**（77KB） |
-| **`xhs/longform-art/`** | 🟢 **长图文工作台 V5（2026-11-06）** | 自包含：`editor.html`（三栏工作台 · 任意长文自动分页 · 61 种格局真实渲染卡 · 183 套配色切换 · PNG/ZIP/Markdown 导出）、`index.html`（12 套 × 5 页画廊）、`paginate.js`（DOM 实测装箱）、`audit.js`（零丢字/裁切/字号自检）、`themes-index.js`（**生成物**，由 `scripts/gen_longform_theme_index.py` 按格局签名把 183 套主题去重为 49 个代表 + 134 个配色变体）。说明见目录内 `README.md` |
+| **`xhs/longform-art/`** | 🟢 **长图文工作台 V6（2026-11-06）** | 自包含：`editor.html`（按 `ui-ux-pro-max` 设计系统重做的三栏编辑出版式工作台 · 任意长文自动分页 · 61 种格局真实渲染卡 · 183 套配色切换 · PNG/ZIP/Markdown 导出 · 语义令牌/焦点环/reduced-motion/四档响应式）、`index.html`（12 套 × 5 页画廊）、`paginate.js`（DOM 实测装箱）、`audit.js`（零丢字/裁切/字号自检）、`themes-index.js`（**生成物**，由 `scripts/gen_longform_theme_index.py` 按格局签名把 183 套主题去重为 49 个代表 + 134 个配色变体）。说明见目录内 `README.md` |
 | **`xhs/longform-v4/`** | 🟢 **长图文 V4 对照原型（2026-11-06）** | 自包含目录：`render.html`（Paged.js 单页/总览）+ `fixture.js`（与产品门禁同一篇夹具）+ `skeletons.js`（5 套骨相）+ `SPEC.md`（可机检规格）+ `vendor/`（Paged.js / modern-screenshot）。产物 `output/longform-v4/overview.png`。设计见 `docs/xhs/design-xhs-longform-v4.md` |
 
 **自包含子目录**：
