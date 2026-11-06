@@ -171,6 +171,11 @@ const LAYOUT_DEFS = [
   { id: 'gradient-title', name: '光谱渐变字', note: '标题上渐变，色相从 accent 过渡到墨色' },
   { id: 'span-column', name: '栏间通栏', note: '正文分栏流动，刊头横跨所有栏' },
   { id: 'outline-type', name: '描边大字', note: '空心描边标题 + 实心反白引语条' },
+  /* 2026-11-06 第三批结构型 3 套：语法在现有 56 套里使用次数都是 0，
+     且都过了导出 PNG 对照实验（blend-mode / grid-areas / mask-fade 均 KEPT）。 */
+  { id: 'blend-overlay', name: '混色叠加', note: '标题与斜切色块反相混合，出对比色' },
+  { id: 'named-grid', name: '命名栅格', note: '非对称撒点，重心偏右上' },
+  { id: 'mask-fade', name: '渐隐遮罩', note: '标题右端淡入纸色，留余味' },
 ];
 
 export const LAYOUT_STYLES = LAYOUT_DEFS.flatMap((l) => (

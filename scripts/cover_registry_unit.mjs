@@ -42,6 +42,9 @@ const EXPECTED_IDS = [
   /* 第二批结构型 3 套（X4–X6）：语法在现有 53 套里使用次数都为 0，
      且都过了导出 PNG 对照实验。 */
   'gradient-title', 'span-column', 'outline-type',
+  /* 第三批结构型 3 套（X7–X9）：mix-blend-mode / grid-template-areas / mask-image，
+     在现有 56 套里使用次数都为 0，且都过了导出 PNG 对照实验。 */
+  'blend-overlay', 'named-grid', 'mask-fade',
 ];
 
 /* 文档 §5.2 统计口径点名的 10 套需图版式（刺激风 20 套全部纯文字，不在此列）。 */
@@ -53,7 +56,7 @@ const EXPECTED_NEED_IMG = [
 console.log('标题图 V3 版式注册表');
 
 /* ── 1. 数量与顺序 ── */
-check('总数 56 套（30 配方 + 20 刺激风 + 6 结构型）', LAYOUT_COUNT === 56, `${LAYOUT_COUNT} 套`);
+check('总数 59 套（30 配方 + 20 刺激风 + 9 结构型）', LAYOUT_COUNT === 59, `${LAYOUT_COUNT} 套`);
 check('顺序与设计文档 §5.2 / 刺激风登记表一致',
   LAYOUT_REGISTRY.map((l) => l.id).join() === EXPECTED_IDS.join(),
   LAYOUT_REGISTRY.map((l) => l.id).join());
@@ -71,11 +74,11 @@ check('每套都有 name', LAYOUT_REGISTRY.every((l) => typeof l.name === 'strin
 check('每套都有配方编号字段', LAYOUT_REGISTRY.every((l) => typeof l.code === 'string' && l.code.length > 0));
 check('分组只有 existing / recipe / bold / structural',
   LAYOUT_REGISTRY.every((l) => ['existing', 'recipe', 'bold', 'structural'].includes(l.group)));
-check('现有 7 + 配方 23 + 刺激风 20 + 结构型 6',
+check('现有 7 + 配方 23 + 刺激风 20 + 结构型 9',
   LAYOUT_REGISTRY.filter((l) => l.group === 'existing').length === 7
   && LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length === 23
   && LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length === 20
-  && LAYOUT_REGISTRY.filter((l) => l.group === 'structural').length === 6,
+  && LAYOUT_REGISTRY.filter((l) => l.group === 'structural').length === 9,
   `existing=${LAYOUT_REGISTRY.filter((l) => l.group === 'existing').length} `
   + `recipe=${LAYOUT_REGISTRY.filter((l) => l.group === 'recipe').length} `
   + `bold=${LAYOUT_REGISTRY.filter((l) => l.group === 'bold').length} `

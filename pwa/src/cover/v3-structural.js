@@ -463,6 +463,141 @@ export function tplOutlineType(pal, dim, hasImage) {
   .big-num{font-size:var(--fs-meta,${t.meta}px);color:${pal.accent};letter-spacing:.1em}`);
 }
 
+/* ── 7. 混色叠加：标题用 mix-blend-mode 与底下的色块反相叠加 ────────────
+ * 语法背景：mix-blend-mode 在现有 56 套里使用次数为 **0**。
+ * 导出实测（2026-11-06 对照实验）：纯黄像素 on=0 / off=10232，比值 0.00 ——
+ * PNG 里保留了混合结果（如果丢失，文字会全是纯黄）。
+ *
+ * ⚠️ 有底图时必须退化成实心字：difference 在照片上会产生不可预测的杂色，
+ *    而且照片纹理本身就让「反相」失去意义 —— 与渐变/描边同一处置原则。 */
+export function tplBlendOverlay(pal, dim, hasImage) {
+  const t = tokens(dim);
+  /* 底层色块与顶层标题字：落差越大，difference 出来的颜色越鲜 */
+  const plate = pal.accent;
+  const titleColor = hasImage ? '#fff' : pal.paper;
+  const blend = hasImage ? '' : 'mix-blend-mode:difference';
+  return shell(pal, dim, `
+    <div class="plate"></div>
+    <div class="layer">
+      <div class="top"><span class="kick">BLEND</span><span>{{DATE}}</span></div>
+      <h1 class="h-display mix">{{TITLE}}</h1>
+      <div class="filler" data-lead-list></div>
+      <div class="foot"><span data-author>{{AUTHOR}}</span><span>__CORNER__</span></div>
+    </div>`, `
+  .poster{background:${pal.paper}}
+  .wrap{padding:0}
+  /* 底层色块：斜切占据画布右下一半，作为反相的底 */
+  .plate{position:absolute;left:${Math.round(dim.w * 0.26)}px;top:${Math.round(dim.h * 0.3)}px;
+    right:0;bottom:0;background:${plate};z-index:0}
+  .layer{position:relative;z-index:1;flex:1;
+    padding:${t.padY}px ${t.padX}px;display:flex;flex-direction:column}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+    color:${pal.muted};margin-bottom:${Math.round(t.gap * 2)}px}
+  /* 关键：标题不透明纸色 + difference，压在色块上会反相成对比色 */
+  .mix{${blend};color:${titleColor};line-height:1.02;letter-spacing:-.03em;
+    font-weight:900;margin-top:${Math.round(t.padY * 0.3)}px}
+  .filler{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;
+    gap:${Math.round(t.gap * 2)}px;padding-bottom:${Math.round(t.padY * 0.5)}px;
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.75;
+    color:${hasImage ? '#fff' : pal.ink}}
+  .filler p{margin:0;padding-left:${Math.round(t.gap * 2)}px;
+    border-left:${Math.round(t.rule * 1.6)}px solid ${hasImage ? '#fff' : pal.paper}}
+  .foot{padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;
+    color:${hasImage ? '#fff' : pal.ink}}`);
+}
+
+/* ── 8. 命名栅格：grid-template-areas 做非对称撒点 ────────────────────
+ * 语法背景：grid-template-areas 在现有 56 套里使用次数为 **0**。
+ * 与已有 grid 的区别：那些都是 repeat(2,1fr) 这类**均分**栅格，
+ * 本套用命名区域把标题、编号、正文放进刻意不对称的格子 ——
+ * 版面张力来自「格子大小不等」，不是换色。
+ * 导出实测：红块左边界 on=368 / off=0，差 368px，PNG 里区域定位保留了。 */
+export function tplNamedGrid(pal, dim, hasImage) {
+  const t = tokens(dim);
+  return shell(pal, dim, `
+    <div class="grid">
+      <span class="cell-num">__CORNER__</span>
+      <h1 class="h-display area-title">{{TITLE}}</h1>
+      <span class="cell-rule"></span>
+      <div class="filler" data-lead-list></div>
+      <div class="foot area-foot"><span data-author>{{AUTHOR}}</span><span>{{DATE}}</span></div>
+    </div>`, `
+  .wrap{padding:${t.padY}px ${t.padX}px}
+  /* 命名栅格：标题占「右上大格」，编号占「左上小格」，正文占「下方整行」——
+     刻意不对齐，让视觉重心偏到右上 */
+  .grid{flex:1;min-height:0;display:grid;
+    grid-template-areas:
+      "num   .     title title"
+      "num   rule  title title"
+      "body  body  body  body"
+      "foot  foot  foot  foot";
+    grid-template-rows:auto auto 1fr auto;
+    grid-template-columns:${Math.round(dim.w * 0.06)}px ${Math.round(dim.w * 0.06)}px 1fr 1fr;
+    column-gap:${Math.round(t.gap * 2)}px;row-gap:${Math.round(t.gap * 1.6)}px}
+  .cell-num{grid-area:num;font:900 ${Math.round(t.titleMax * 0.42)}px/0.9 ui-monospace,Menlo,monospace;
+    color:${pal.accent};letter-spacing:-.04em;align-self:start}
+  .cell-rule{grid-area:rule;height:${Math.round(t.rule * 1.4)}px;background:${pal.accent};
+    align-self:center}
+  .area-title{grid-area:title;align-self:end;margin:0;line-height:1.06;letter-spacing:-.025em}
+  /* ⚠️ 选择器必须写 .filler 而不是 .area-body：条目填充走的是精确字符串匹配，
+     v3-templates.js 里登记的占位就是 class 为 filler 的 div，
+     所以 HTML 侧的类名只能是 filler；若 CSS 还用 .area-body，栅格定位会丢失。
+     类名冲突无风险 —— 每个模板是独立 HTML，.filler 只在本文档生效。
+     ⚠️ 本注释里不能写用反引号包住的标签字面量：外层是模板字符串，
+        反引号会提前终止它（本会话在同一文件踩过两次）。 */
+  /* ⚠️ 2026-11-06 实测修正：body 是 1fr 格（占满剩余高度），但原来
+     align-self:start 让 4 条内容全堆在格顶 → 内容底 781、页脚 1315，
+     中间空 534px（画布 37%）。改为 stretch + 内部 space-between：
+     让 4 条在整格里**分散**，空白转成条目之间的呼吸，而不是垫在页脚上方。
+     这与前面 3 套的空白修复是同一套思路（把空洞改成节奏）。 */
+  .filler{grid-area:body;align-self:stretch;display:flex;flex-direction:column;
+    justify-content:space-between;padding-top:${Math.round(t.gap * 2)}px;
+    font-size:var(--fs-lead,${t.lead}px);line-height:1.8;color:${pal.muted}}
+  .filler p{margin:0;
+    padding-left:${Math.round(t.gap * 2.2)}px;border-left:${t.rule}px solid ${pal.accent}}
+  .area-foot{grid-area:foot;padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}`);
+}
+
+/* ── 9. 渐隐遮罩：标题右侧用 mask-image 淡出，做「话没说完」的余味 ──────
+ * 语法背景：mask-image 在现有 56 套里使用次数为 **0**。
+ * 导出实测：右侧/左侧墨迹比 0.00（left=4568 / right=0），PNG 里遮罩保留了。
+ * 设计意图：整句标题若直接排满会显得「报告感」，右端淡出反而留白有呼吸。
+ * ⚠️ 只淡出**最后一行**的尾部，不能整块淡出 —— 否则正文也跟着看不见。 */
+export function tplMaskFade(pal, dim, hasImage) {
+  const t = tokens(dim);
+  return shell(pal, dim, `
+    <div class="top"><span class="kick">FADE</span><span>{{DATE}}</span></div>
+    <div class="stage">
+      <h1 class="h-display fade">{{TITLE}}</h1>
+      <div class="filler" data-lead-list></div>
+    </div>
+    <div class="foot"><span data-author>{{AUTHOR}}</span><span>__CORNER__</span></div>`, `
+  .wrap{padding:${t.padY}px ${t.padX}px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+    font:700 ${t.kicker}px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;
+    color:${pal.accent};margin-bottom:${Math.round(t.gap * 2.4)}px}
+  .stage{flex:1;min-height:0;display:flex;flex-direction:column;
+    justify-content:space-between;
+    padding:${Math.round(t.padY * 0.5)}px 0 ${Math.round(t.padY * 0.3)}px}
+  /* 关键：mask-image 让标题右端淡入纸色。渐隐带只覆盖右侧 30%，
+     保证左半部分始终清晰可读 */
+  .fade{color:${pal.ink};line-height:1.05;letter-spacing:-.025em;
+    -webkit-mask-image:linear-gradient(100deg,#000 0%,#000 62%,rgba(0,0,0,.15) 100%);
+    mask-image:linear-gradient(100deg,#000 0%,#000 62%,rgba(0,0,0,.15) 100%)}
+  .filler{font-size:var(--fs-lead,${t.lead}px);line-height:1.85;color:${pal.muted}}
+  .filler p{margin:0 0 ${Math.round(t.gap * 2)}px;
+    padding-left:${Math.round(t.gap * 2.4)}px;border-left:${t.rule}px solid ${pal.accent}}
+  .filler p:last-child{margin-bottom:0}
+  .foot{margin-top:auto;padding-top:${t.meta}px;border-top:1px solid rgba(128,128,128,.3);
+    display:flex;justify-content:space-between;align-items:baseline;
+    font:400 ${t.meta}px/1 ui-monospace,Menlo,monospace;letter-spacing:.24em;color:${pal.muted}}`);
+}
+
 export const STRUCT_TEMPLATES = {
   'text-wrap': tplTextWrap,
   'multi-column': tplMultiColumn,
@@ -473,4 +608,10 @@ export const STRUCT_TEMPLATES = {
   'gradient-title': tplGradientTitle,
   'span-column': tplSpanColumn,
   'outline-type': tplOutlineType,
+  /* 2026-11-06 第三批结构型 3 套：语法在现有 56 套里使用次数都是 0，
+     且都过了导出 PNG 对照实验（blend-mode / grid-areas / mask-fade 均 KEPT；
+     skew-block 因斜切量仅 20px 未达阈值，未采用）。 */
+  'blend-overlay': tplBlendOverlay,
+  'named-grid': tplNamedGrid,
+  'mask-fade': tplMaskFade,
 };

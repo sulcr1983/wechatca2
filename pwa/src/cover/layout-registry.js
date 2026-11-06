@@ -102,6 +102,10 @@ const DEFS = [
   { id: 'gradient-title', name: '光谱渐变字', code: 'X4', needImg: false, group: 'structural', desc: 'background-clip:text 渐变标题' },
   { id: 'span-column', name: '栏间通栏', code: 'X5', needImg: false, group: 'structural', desc: 'column-span:all 刊头横跨所有栏' },
   { id: 'outline-type', name: '描边大字', code: 'X6', needImg: false, group: 'structural', desc: '-webkit-text-stroke 空心描边标题' },
+  /* 第三批结构型 3 套（2026-11-06）：语法在现有 56 套里使用次数都是 0。 */
+  { id: 'blend-overlay', name: '混色叠加', code: 'X7', needImg: false, group: 'structural', desc: 'mix-blend-mode 反相叠加' },
+  { id: 'named-grid', name: '命名栅格', code: 'X8', needImg: false, group: 'structural', desc: 'grid-template-areas 非对称撒点' },
+  { id: 'mask-fade', name: '渐隐遮罩', code: 'X9', needImg: false, group: 'structural', desc: 'mask-image 右端淡出' },
 ];
 
 /** styleId → 版式 id（`magazine-tpl` / `swiss-tpl` 归到主卡）。 */
