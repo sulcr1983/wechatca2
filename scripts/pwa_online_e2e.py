@@ -471,7 +471,10 @@ def main() -> int:
         page.click('.cv-dot[data-style="editorial-dune"]')
         check("模板仅 3:4（其余尺寸禁用）", page.locator(".cv-size:not([disabled])").count() == 1,
               "3 尺寸", "1 尺寸")
-        page.click('.cv-style-pick[data-style="editorial"]')
+        # 2026-11-06 V3-A2/A3：卡片 data-style 是「该卡当前选中的配色」，
+        # 上面点过 editorial-dune 后它已变成 editorial-dune —— 切回归藏要点色点，
+        # 不能再按 data-style 点卡（否则选择器落空，线上 E2E 会红 30s）。
+        page.click('.cv-dot[data-style="editorial"]')
         check("归藏支持 3 尺寸", page.locator(".cv-size:not([disabled])").count() == 3,
               "1 尺寸", "3 尺寸")
 
@@ -551,19 +554,24 @@ def main() -> int:
         dims = page.eval_on_selector_all(".cv-tray-item img", "els => els.map(e => [e.naturalWidth, e.naturalHeight])")
         check("生成归藏 3 尺寸", dims == [[1080, 1440], [1080, 1080], [2100, 900]], "", str(dims),
               snap(page, "cover-result"))
-        check("每张都有下载链接", page.locator("a.cv-dl").count() == 3, "", page.locator("a.cv-dl").count())
+        # 长图文页也在 DOM 里（只是隐藏），全局 a.cv-dl 会数到两页 → 限定在托盘内
+        check("每张都有下载链接", page.locator("#cv-tray a.cv-dl").count() == 3, "",
+              page.locator("#cv-tray a.cv-dl").count())
 
-        page.locator(".cv-tray-item img").first.click()
+        # 托盘在中栏底部，坐标点击会被 sticky 预览条挡住 → JS 触发（验灯箱链路，不验命中）
+        page.eval_on_selector(".cv-tray-item img", "el => el.click()")
         check("灯箱打开", page.is_visible("#cv-lightbox"), "hidden", "visible", snap(page, "lightbox"))
         page.click("#cv-lightbox-close")
         check("灯箱关闭（X）", page.is_hidden("#cv-lightbox"), "visible", "hidden")
-        page.locator(".cv-tray-item img").first.click(); page.wait_for_timeout(200)
+        page.eval_on_selector(".cv-tray-item img", "el => el.click()")
+        page.wait_for_timeout(200)
         page.click("#cv-lightbox", position={"x": 8, "y": 8}); page.wait_for_timeout(250)
         check("灯箱关闭（点背景）", page.is_hidden("#cv-lightbox"), "visible", "hidden")
 
         try:
             with page.expect_download(timeout=30000) as dl_info:
-                page.locator("a.cv-dl").first.click()
+                # 托盘在底部，坐标点击会被 sticky 预览条挡住 → JS 触发（<a download> 的 click 同样发下载事件）
+                page.eval_on_selector("#cv-tray a.cv-dl", "el => el.click()")
             dl = dl_info.value
             check("下载封面 PNG", dl.suggested_filename.endswith(".png"), "", dl.suggested_filename)
         except Exception as e:
