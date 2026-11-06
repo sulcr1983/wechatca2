@@ -1,8 +1,52 @@
 {
-  "version": "1.36.0",
-  "generatedAt": "2026-11-06T22:28:54+08:00",
-  "totalCommits": 436,
+  "version": "1.37.0",
+  "generatedAt": "2026-11-06T23:00:18+08:00",
+  "totalCommits": 438,
   "releases": [
+    {
+      "version": "1.37.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "再加 3 套结构语法（混色叠加/命名栅格/渐隐遮罩）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "added": 1,
+        "other": 1
+      },
+      "groups": [
+        {
+          "type": "added",
+          "label": "新增",
+          "items": [
+            {
+              "text": "再加 3 套结构语法（混色叠加/命名栅格/渐隐遮罩）",
+              "scope": "cover",
+              "hash": "a0a20d1",
+              "date": "2026-11-06T22:50:34+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "label": "其他",
+          "items": [
+            {
+              "text": "补 3 套新结构型的 9 张缩略图",
+              "scope": "cover",
+              "hash": "0041866",
+              "date": "2026-11-06T22:58:50+08:00",
+              "breaking": false,
+              "dev": true
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.36.0",
       "date": "2026-11-06",
