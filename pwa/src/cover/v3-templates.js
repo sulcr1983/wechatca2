@@ -414,6 +414,9 @@ export function buildV3Html({
     if (layout === 'essay-split') return Math.round(base * 0.51);
     /* 侧栏类：右侧固定 176px 边栏 + 34px 间距。 */
     if (layout === 'marginalia') return Math.round(base - 210);
+    /* 有图墙的版式（2026-11-06）：标题只能占上半，否则会把 2×2 图墙挤出画布
+       （证据墙实测：13 字标题按整宽反算约 158px，图墙被压到看不见）。 */
+    if (layout === 'evidence-wall') return Math.round(base * 0.62);
     return base;
   })();
   html = html.replace(/__HSIZE__/g, String(titleSize(title, BASE_SIZE[layout] || 150, availW)));
