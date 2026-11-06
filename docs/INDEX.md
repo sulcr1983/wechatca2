@@ -174,6 +174,7 @@ docs/
 | [`open-tasks-2026-11-01.md`](meta/open-tasks-2026-11-01.md) | **未完成任务台账**（每条有证据出处，做完一条改一条） |
 | [`handover-2026-11-06-three-modules.md`](meta/handover-2026-11-06-three-modules.md) | 🟢 **三板块交接文档**（2026-11-06）—— 公众号排版 / 小红书标题图 / 小红书长图文；含实测复核过的遗留项、坑清单、待确认清单 |
 | [`handover-2026-11-06-title-v3.md`](meta/handover-2026-11-06-title-v3.md) | 🟢 **标题图 V3 交接文档**（2026-11-06）—— 当前 git/线上/未跟踪状态、V3 阶段 A–E 未完成任务、已停掉的公众号与线上 E2E、下一步顺序 |
+| [`audit-plan-2026-11-06-three-modules.md`](meta/audit-plan-2026-11-06-three-modules.md) | 🟢 **三模块审计方案**（2026-11-06）—— 审计口径、链路完成度、逐项证据采集方式；是上述报告的配套方案 |
 | [`audit-2026-11-06-three-modules.md`](meta/audit-2026-11-06-three-modules.md) | 🟢 **三模块全面清查报告**（2026-11-06）—— 产物级审计：183 套渲染 / 9 组剪贴板 / 19 套 kit 目视 / 25 style 出图 / 长图文分页与导出 / 工程交叉核对 |
 | [`audit-2026-11-06-issues.md`](meta/audit-2026-11-06-issues.md) | 🟢 **清查问题清单**（2026-11-06）—— P0/P1/P2 分级 + 证据 + 复现 + 验收判据，整改按此排期 |
 | [`NIGHT-REPORT-2026-10-31.md`](meta/NIGHT-REPORT-2026-10-31.md) | 某一晚的进度与待决策快照 |
