@@ -1,8 +1,37 @@
 {
-  "version": "1.25.0",
-  "generatedAt": "2026-11-06T13:31:37+08:00",
-  "totalCommits": 412,
+  "version": "1.26.0",
+  "generatedAt": "2026-11-06T14:10:21+08:00",
+  "totalCommits": 413,
   "releases": [
+    {
+      "version": "1.26.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "证据墙四宫格只显示 1 图 + 字体补回 10 款 + 版式开放三尺寸"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "证据墙四宫格只显示 1 图 + 字体补回 10 款 + 版式开放三尺寸",
+              "scope": "cover",
+              "hash": "61bede4",
+              "date": "2026-11-06T14:10:04+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.25.0",
       "date": "2026-11-06",
