@@ -1,8 +1,37 @@
 {
-  "version": "1.28.0",
-  "generatedAt": "2026-11-06T14:38:38+08:00",
-  "totalCommits": 415,
+  "version": "1.29.0",
+  "generatedAt": "2026-11-06T14:47:08+08:00",
+  "totalCommits": 416,
   "releases": [
+    {
+      "version": "1.29.0",
+      "date": "2026-11-06",
+      "title": "",
+      "highlights": [
+        "有底图时逐字变色/错位失效（标题被刷成纯白）"
+      ],
+      "autoCut": false,
+      "fromGit": true,
+      "counts": {
+        "fixed": 1
+      },
+      "groups": [
+        {
+          "type": "fixed",
+          "label": "修复",
+          "items": [
+            {
+              "text": "有底图时逐字变色/错位失效（标题被刷成纯白）",
+              "scope": "cover",
+              "hash": "f9241dd",
+              "date": "2026-11-06T14:46:53+08:00",
+              "breaking": false,
+              "dev": false
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "1.28.0",
       "date": "2026-11-06",
