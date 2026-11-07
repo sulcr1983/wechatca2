@@ -208,39 +208,27 @@ def main() -> int:
         page.wait_for_selector("#btn-longform", timeout=30000)
         page.wait_for_timeout(2500)
 
-        # ── 1. 经典版：开关存在、V6 未挂载 ────────────────────────
+        # ── 1. 默认就是 V6（2026-11-07 转正式）──────────────────
         page.evaluate("() => document.getElementById('btn-longform').click()")
-        # 先等 tab 真正切过去（容器不再 hidden），再等输入框可见。
-        # 直接 wait_for_selector("#cv-long-text") 在冷启动时偶发超时：
-        # 点击那一刻 mountCover 的事件刚绑上，longform DOM 还在注入中。
+        # 先等 tab 真正切过去（容器不再 hidden），再等 V6 挂载。
         page.wait_for_function(
             "() => { const lr = document.getElementById('longform-root');"
             " return !!lr && !lr.hidden; }", timeout=30000)
-        page.wait_for_selector("#cv-long-text", state="visible", timeout=30000)
-        page.wait_for_timeout(800)
-        classic = page.evaluate("""() => ({
-          v6Key: localStorage.getItem('supersu.longform.v6'),
+        page.wait_for_function("() => !!document.getElementById('v6-root')", timeout=45000)
+        page.wait_for_timeout(1200)
+        dflt = page.evaluate("""() => ({
+          classicKey: localStorage.getItem('supersu.longform.classic'),
           v6Root: !!document.getElementById('v6-root'),
-          switchBtn: !!document.getElementById('cv-v6-switch'),
-          switchInView: (() => {
-            const e = document.getElementById('cv-v6-switch');
-            if (!e) return false;
-            const r = e.getBoundingClientRect();
-            return r.top >= 0 && r.bottom <= innerHeight && r.width > 0;
-          })(),
+          oldStageInLongform: !!document.querySelector('#longform-root .cv-stage'),
+          hasSwitchBtn: !!document.getElementById('cv-v6-switch'),
         })""")
-        check("经典版：默认关（无 V6 开关键）", classic["v6Key"] is None, str(classic["v6Key"]))
-        check("经典版：V6 未挂载", classic["v6Root"] is False)
-        check("经典版：V6 入口按钮存在", classic["switchBtn"] is True)
-        check("经典版：V6 入口在首屏可见", classic["switchInView"] is True,
-              f"inView={classic['switchInView']}")
-        snap("classic-entry")
+        check("默认：直接进入 V6（无需手动开启）", dflt["v6Root"] is True)
+        check("默认：未置 classic 回退标记", dflt["classicKey"] is None, str(dflt["classicKey"]))
+        check("默认：经典版 DOM 未叠加注入", dflt["oldStageInLongform"] is False)
+        snap("default-entry")
 
-        # ── 2. 开启 V6 ───────────────────────────────────────────
+        # ── 2. 填文章，等自动分页出成品 ────────────────────────
         page.fill("#cv-long-text", ARTICLE)
-        page.wait_for_timeout(600)
-        page.evaluate("() => document.getElementById('cv-v6-switch').click()")
-        page.wait_for_function("() => !!document.getElementById('v6-root')", timeout=20000)
         page.wait_for_function("""() => {
             const ok = document.querySelector('#cv-selfcheck.ok');
             return !!ok && document.querySelectorAll('#cv-deck .v6-pg').length > 0;
@@ -280,6 +268,7 @@ def main() -> int:
             : (deckRect ? Math.round(deckRect.bottom - lastBottom) : -1);
           return {
             v6Key: localStorage.getItem('supersu.longform.v6'),
+            classicKey: localStorage.getItem('supersu.longform.classic'),
             v6Root: !!q('#v6-root'),
             oldStageInLongform: !!document.querySelector('#longform-root .cv-stage'),
             checkText: (q('#cv-selfcheck') || {}).textContent || '',
@@ -304,7 +293,8 @@ def main() -> int:
             deckClientW: deck ? deck.clientWidth : 0,
           };
         }""")
-        check("V6：开关已开启", v6["v6Key"] == "1", str(v6["v6Key"]))
+        check("V6：默认即进入工作台（classic 标记为空）",
+              v6["classicKey"] is None, str(v6["classicKey"]))
         check("V6：工作台已挂载", v6["v6Root"] is True)
         check("V6：老 DOM 未叠加注入", v6["oldStageInLongform"] is False)
         check("V6：自动分页出成品页", v6["deckPages"] >= 2, f"{v6['deckPages']} 页")
@@ -448,21 +438,37 @@ def main() -> int:
         back = page.evaluate("""() => {
           const t = document.getElementById('cv-long-text');
           return {
-            v6Key: localStorage.getItem('supersu.longform.v6'),
+            classicKey: localStorage.getItem('supersu.longform.classic'),
             v6Root: !!document.getElementById('v6-root'),
             v6Style: !!document.getElementById('v6-style'),
             fontAlias: !!document.getElementById('v6-font-alias'),
             oldStage: !!document.querySelector('#longform-root .cv-stage'),
             draftLen: t ? t.value.length : 0,
+            backBtn: !!document.getElementById('cv-v6-switch'),
           };
         }""")
-        check("返回经典版：开关已清除", back["v6Key"] is None, str(back["v6Key"]))
+        check("返回经典版：已写入 classic 回退标记", back["classicKey"] == "1",
+              str(back["classicKey"]))
         check("返回经典版：V6 节点已移除", back["v6Root"] is False)
         check("返回经典版：V6 样式已移除", back["v6Style"] is False)
         check("返回经典版：经典版 DOM 恢复", back["oldStage"] is True)
         check("返回经典版：文章草稿不丢", back["draftLen"] >= len(ARTICLE) - 5,
               f"{back['draftLen']} 字")
         snap("back-to-classic")
+
+        # ── 8b. 从经典版再回到 V6（双向可逆）────────────────────
+        page.evaluate("() => document.getElementById('cv-v6-switch').click()")
+        page.wait_for_function("() => !!document.getElementById('v6-root')", timeout=45000)
+        page.wait_for_timeout(1200)
+        again = page.evaluate("""() => ({
+          classicKey: localStorage.getItem('supersu.longform.classic'),
+          v6Root: !!document.getElementById('v6-root'),
+          draftLen: (document.getElementById('cv-long-text') || {}).value?.length || 0,
+        })""")
+        check("切回 V6：回退标记已清除", again["classicKey"] is None, str(again["classicKey"]))
+        check("切回 V6：工作台重新挂载", again["v6Root"] is True)
+        check("切回 V6：文章草稿仍在", again["draftLen"] >= len(ARTICLE) - 5,
+              f"{again['draftLen']} 字")
 
         # ── 9. 零 JS 报错 ────────────────────────────────────────
         expected = ("Failed to fetch", "ERR_INTERNET_DISCONNECTED", "ERR_NAME_NOT_RESOLVED",

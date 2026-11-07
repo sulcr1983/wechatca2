@@ -190,6 +190,12 @@ def main() -> int:
             errors = []
             page.on("pageerror", lambda e: errors.append("pageerror:" + str(e)))
 
+            # 2026-11-07：长图文默认已转 V6 工作台，本套件断言的是**经典版** DOM。
+            # 页面加载前先落 classic=1 标记，让 mountLongformPage 走经典版分支；
+            # 否则 #cv-long-text / #cv-deck .cv-slot 等全不存在，24 项会全红。
+            page.add_init_script(
+                "try { localStorage.setItem('supersu.longform.classic', '1'); } catch (e) {}")
+
             page.goto(f"http://127.0.0.1:{PORT}/", wait_until="domcontentloaded", timeout=60000)
             print("  步骤1 页面已加载", flush=True)
             page.wait_for_selector("#btn-longform", timeout=20000)

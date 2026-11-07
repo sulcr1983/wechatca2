@@ -13,19 +13,31 @@ import { buildStorySet } from './story.js';
 import { zipTiles } from '../nine.js';
 import { createBgPicker, fileToDataUrl } from './bg-picker.js';
 import { toast, openLightbox, extractStory } from './ui.js';
-/* ── V6 试验入口（2026-11-06）────────────────────────────────────────
+/* ── 长图文工作台版本（2026-11-07 转正式）─────────────────────────────
+ * V6（新版工作台：61 种格局 + 自动分页 + 成套导出）已由用户拍板**转正式**：
+ *   默认进入 V6，不再需要用户手动点「试用」。
+ *
  * ⚠️ 必须用**动态 import()**，不能静态 import：
  *   cover/index.js 在 ES module 加载后才绑定 #btn-longform 的 tab 事件；
  *   门禁 pwa_longform_test.py 在 #btn-longform 一出现（DOMContentLoaded）就点击。
  *   静态 import 会把 v6/ 的 11 个模块挂进启动依赖图、拖慢绑定 → 点击落空
  *   → #longform-root 一直 hidden → 门禁超时（浏览器实测的真实回归）。
- *   动态 import 让「默认关」时零 V6 加载、依赖图与改动前逐字一致。
+ *
+ * 逃生口：localStorage 'supersu.longform.classic' === '1' 时走经典版。
+ *   保留它是因为经典版门禁（pwa_longform_test.py 24 项）与 e2e 仍按经典 DOM 断言；
+ *   用户遇到问题时也有回退路径（V6 页内「← 返回经典版」按钮会写这个键）。
  * ⚠️ V6_KEY 必须与 v6/mount.js 的 V6_KEY 一致（开关判断的 owner 在本文件）。
  */
 const V6_KEY = 'supersu.longform.v6';
-let v6mod = null;                       // 动态加载后的模块缓存（默认关时恒为 null）
+const CLASSIC_KEY = 'supersu.longform.classic';
+let v6mod = null;                       // 动态加载后的模块缓存
 function v6Enabled() {
-  try { return localStorage.getItem(V6_KEY) === '1'; } catch { return false; }
+  try {
+    /* 转正式后：默认走 V6，只有显式置 classic=1 才回经典版。
+       仍是「按需加载」——经典版路径不会 import V6 模块。 */
+    if (localStorage.getItem(CLASSIC_KEY) === '1') return false;
+    return true;
+  } catch { return true; }
 }
 function loadV6() {
   return import('./v6/mount.js').then((m) => { v6mod = m; return m; });
@@ -505,8 +517,8 @@ export function mountLongformPage(rootEl) {
         <!-- V6 试验入口：放在右栏最顶，一进长图文页就能看到（原来埋在栏底，发现性差） -->
         <section class="cv-sec cv-v6-entry">
           <button class="cv-gen cv-gen--soft" id="cv-v6-switch" type="button"
-                  title="试用新版长图文工作台（V6）：61 种格局 + 自动分页 + 成套导出">试用新版工作台 V6</button>
-          <p class="cv-hint" id="cv-v6-hint">同一篇文章，更多版式格局与配色</p>
+                  title="回到新版长图文工作台：61 种格局 + 自动分页 + 成套导出">← 回到新版工作台</button>
+          <p class="cv-hint" id="cv-v6-hint">经典版仅作应急回退</p>
         </section>
         <section class="cv-sec">
           <div class="cv-sec-head"><span class="cv-sec-title">长文模板</span><span class="cv-hint">整套生效</span></div>

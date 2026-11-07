@@ -26,6 +26,7 @@ import { zipTiles } from '../../nine.js';
 import { toast } from '../ui.js';
 
 const V6_KEY = 'supersu.longform.v6';
+const CLASSIC_KEY = 'supersu.longform.classic';   // 显式回退标记：=1 时走经典版
 const PREFS = 'supersu.longform.prefs.v1';
 const ROLE_CN = { cover: '封面', opening: '开篇', dense: '正文', points: '清单', quote: '金句', closing: '结尾' };
 const ALL = [...BASE, ...THEME_TEMPLATES];
@@ -39,14 +40,24 @@ let observer = null;
 const thumbCache = new Map();
 let timer = null, thumbTimer = null;
 
-/* ── 开关 ──────────────────────────────────────────────────────── */
+/* ── 开关（2026-11-07 转正式后语义）──────────────────────────────
+ * 默认走 V6；置 classic=1 才回经典版。两个键的分工：
+ *   · V6_KEY     ：历史键，转为正式后不再作为「是否启用 V6」的判据
+ *                  （保留写入是为了老用户的 localStorage 不被当成脏数据）
+ *   · CLASSIC_KEY：显式回退标记，V6 页内「返回经典版」会写它
+ * ⚠️ 与 longform-page.js::v6Enabled() 必须保持同一语义。
+ */
 export function isV6Enabled() {
-  try { return localStorage.getItem(V6_KEY) === '1'; } catch { return false; }
+  try { return localStorage.getItem(CLASSIC_KEY) !== '1'; } catch { return true; }
 }
 export function setV6Enabled(on) {
   try {
-    if (on) localStorage.setItem(V6_KEY, '1');
-    else localStorage.removeItem(V6_KEY);
+    if (on) {
+      localStorage.removeItem(CLASSIC_KEY);
+      localStorage.setItem(V6_KEY, '1');
+    } else {
+      localStorage.setItem(CLASSIC_KEY, '1');
+    }
   } catch { /* 隐私模式不阻断 */ }
 }
 export function getDraft() { return draft; }
