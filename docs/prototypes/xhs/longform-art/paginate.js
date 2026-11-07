@@ -19,7 +19,12 @@
 
 /* ── 1. 解析：纯文本 → 块数组 ────────────────────────────────── */
 
-export const MAX_PAGES = 12;          // 上限（超过则合并，不丢内容）
+/* 上限（超过则合并，不丢内容）
+ *
+ * ⚠️ 2026-11-07 从 12 放宽到 18：用户反馈「正文太小，发小红书看不清」，
+ *    正文提到 40px（手机约 14.4px）后单页容量下降，有头实测 3000 字需约 14 页。
+ *    12 页会直接截断长文，18 页才是小红书图文笔记的上限（一篇最多 18 张图）。 */
+export const MAX_PAGES = 18;
 export const CHARS_PER_ROW = 26;      // 无 DOM 时的字数包络口径（32px 中文 / 888px 宽）
 
 /** 解析 Markdown 风格的纯文本。首行 = 标题，其余按空行分段。 */
@@ -72,7 +77,7 @@ export function measureText(text, style, host) {
   if (typeof document === 'undefined' || !host) return null;
   const el = document.createElement('p');
   el.style.cssText = `font-family:${style.bodyFont || 'serif'};`
-    + `font-size:${style.bodySize || 32}px;line-height:${style.lineHeight || 1.92};`
+    + `font-size:${style.bodySize || 40}px;line-height:${style.lineHeight || 1.92};`
     + `letter-spacing:${style.tracking || '.01em'};text-align:justify;`
     + `margin:0 0 ${style.paraGap || 26}px;width:${style.textWidth || 888}px;`;
   el.textContent = text;
@@ -106,7 +111,7 @@ export function measureBlock(b, style, host) {
   const text = escHtml(String(b.text || ''));
   const F = style.bodyFont || 'serif';
   const T = style.titleFont || F;
-  const fs = style.bodySize || 32;
+  const fs = style.bodySize || 40;
   const lh = style.lineHeight || 1.92;
   const gap = style.paraGap || 26;
   const w = style.textWidth || 888;
@@ -193,7 +198,7 @@ export function splitUntilFit(block, maxH, style, host) {
 /** 无 DOM 时的字数包络降级（保持与产品 §6 口径一致）。 */
 function packByChars(blocks, maxH, style) {
   const perRow = style.charsPerRow || CHARS_PER_ROW;
-  const maxRows = Math.max(1, Math.floor(maxH / ((style.bodySize || 32) * (style.lineHeight || 1.92))));
+  const maxRows = Math.max(1, Math.floor(maxH / ((style.bodySize || 40) * (style.lineHeight || 1.92))));
   const pages = [];
   let cur = [], rows = 0;
   for (const b of blocks) {

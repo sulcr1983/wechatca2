@@ -33,7 +33,7 @@ const LINEH_BY_ID = { justified: 1.78, wide: 2.05, wenkai: 2.0 };
 export function measureStyle(tpl) {
   const s = tpl.style || {};
   const pad = PAD_BY_ID[tpl.id] ?? 96;
-  const bodySize = s.bodySize || 32;
+  const bodySize = s.bodySize || 40;
   /* 主题配方自带 lineHeight（1.7–2.1），优先级高于 id 映射表；
      12 套手写模板没写 lineHeight 时回落到 id 映射 / 默认 1.92。 */
   const lineHeight = s.lineHeight || LINEH_BY_ID[tpl.id] || 1.92;

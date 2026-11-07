@@ -19,9 +19,16 @@ OUT = ROOT / "docs" / "prototypes" / "xhs" / "longform-art" / "themes-index.js"
 #    原来只写原型目录 → 改了去重口径、产品仍是旧 49 张，界面毫无变化（实测踩过）。
 OUT_PRODUCT = ROOT / "pwa" / "src" / "cover" / "v6" / "themes-index.js"
 
-# 公众号正文基准 15px → 长图文正文 30px（2×，与 V3 12 套同量级）
+# 公众号正文基准 15px → 长图文正文 40px
+#
+# ⚠️ 2026-11-07 用户反馈「中间正文的字数太小了，发到小红书人家看不清」。
+#    实测：1080 画布在 iPhone 14（显示宽 390）上缩放 0.361，
+#    旧正文 30px → 手机上只有 10.8px，比微信正文默认 17px 小 36%、
+#    比「最小可读 14px」还小 23%。
+#    提到 40px → 手机 14.4px（过最小可读线）；44px=15.9px、47px=17px 更舒服，
+#    但有头实测 44/47px 时 1500 字以上就会撞页数上限被截断，40px 是可行上限。
 SCALE = 2.0
-MIN_BODY, MAX_BODY = 28, 36   # 产品门禁 ≥28px 硬下限
+MIN_BODY, MAX_BODY = 40, 44   # 排版下限对齐小红书可读性（40px=手机约 14.4px）
 
 
 def px(v, default):

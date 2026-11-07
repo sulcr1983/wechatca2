@@ -495,7 +495,7 @@ function renderDeck(set, t) {
   deck.textContent = '';
   state.frames = [];
   $('v6-set-name').textContent = t.name;
-  const bs = t.style.bodySize || 32, lh = t.style.lineHeight || 1.92;
+  const bs = t.style.bodySize || 40, lh = t.style.lineHeight || 1.92;
   $('v6-set-meta').innerHTML = `<b>${famLabel(t.family)}</b> · ${set.pages.length} 页 · `
     + `${set.report.renderedChars} 字 · ${bs}px/${lh}`;
   const gen = $('cv-gen-story');
@@ -572,7 +572,7 @@ function renderGrid() {
       card.className = 'v6-tcard'; card.dataset.id = t.id;
       card.setAttribute('role', 'button'); card.tabIndex = 0;
       card.setAttribute('aria-pressed', String(t.id === state.selectedId));
-      const bs = t.style.bodySize || 32, lh = t.style.lineHeight || 1.92;
+      const bs = t.style.bodySize || 40, lh = t.style.lineHeight || 1.92;
       const vb = (t.swatches && t.swatches.length > 1)
         ? `<span class="vb">· ${t.swatches.length} 配色</span>` : '';
       card.innerHTML = `<div class="tf"><div class="ph">加载中</div><iframe scrolling="no"></iframe></div>

@@ -60,9 +60,15 @@ const TEXT_CSS = `
     display:flex;flex-direction:column}
   .page-head{display:flex;justify-content:space-between;align-items:baseline;
     padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:44px;flex:none}
-  .kicker{font:500 21px/1 var(--mono);letter-spacing:.20em;color:var(--accent);margin:0}
-  .meta{font:500 19px/1 var(--mono);letter-spacing:.16em;color:var(--muted);margin:0}
-  .caption{font:500 20px/1.5 var(--mono);letter-spacing:.12em;color:var(--muted);margin:0}
+  /* ⚠️ 元信息字号（页眉/页脚/目录）2026-11-07 一并提高：
+ *    1080 画布在小红书手机端缩放 0.361，原来 19–21px → 手机上只有 6.9–7.6px，
+ *    页码与栏目名糊成一片（用户反馈「正文太小看不清」，元信息同理）。
+ *    提到 26–32px → 手机上 9.4–11.6px，属于「辅助信息的可读下限」。
+ *    ⚠️ 不能再大：页眉一行要放开「THEME · 封面」+「格局 01 / 03」两段，
+ *    实测 32px 时合计约 730px（可用 888px），再大就换行了。 */
+  .kicker{font:500 28px/1 var(--mono);letter-spacing:.14em;color:var(--accent);margin:0}
+  .meta{font:500 26px/1 var(--mono);letter-spacing:.12em;color:var(--muted);margin:0}
+  .caption{font:500 27px/1.5 var(--mono);letter-spacing:.09em;color:var(--muted);margin:0}
   .rule{height:1px;background:var(--line);border:0;margin:0}
   .foot{margin-top:auto;padding-top:18px;border-top:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:baseline;flex:none}
@@ -92,7 +98,7 @@ const TEXT_CSS = `
     line-height:1.9;margin:0 0 48px;text-align:justify}
   .toc{border-top:1px solid var(--line);padding-top:22px}
   .toc .caption{margin-bottom:14px}
-  .toc-list{font-family:var(--body-font);font-size:26px;line-height:2;
+  .toc-list{font-family:var(--body-font);font-size:34px;line-height:1.9;
     color:var(--muted);margin:0}
 
   /* ── 正文块 ─────────────────────────────────────────────── */
@@ -113,7 +119,7 @@ const TEXT_CSS = `
   .ledger{border-top:2px solid var(--ink)}
   .row{display:grid;grid-template-columns:104px 1fr;align-items:start;
     padding:26px 0;border-bottom:1px solid var(--line)}
-  .row .n{font:500 40px/1 var(--mono);color:var(--accent)}
+  .row .n{font:500 50px/1 var(--mono);color:var(--accent)}
   .row .t{font-family:var(--body-font);font-size:var(--body-size);line-height:1.6}
 
   /* ── 金句 / 结尾 ────────────────────────────────────────── */
@@ -139,7 +145,8 @@ function fontFaces() {
 
 /** 排印参数 → CSS 自定义属性（避免每段都拼内联 style）。 */
 function typeVars(style) {
-  const fs = style.bodySize || 32;
+  /* 兜底 40px：小红书手机端可读下限（30px 在手机上只有 10.8px，实测过小） */
+  const fs = style.bodySize || 40;
   return `--body-font:${style.bodyFont || 'var(--serif)'};`
     + `--title-font:${style.titleFont || 'var(--serif)'};`
     + `--body-size:${fs}px;--body-lh:${style.lineHeight || 1.92};`

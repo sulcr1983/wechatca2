@@ -81,15 +81,18 @@ test('每套代表都有配色与排印参数，字号守住下限', () => {
     assert.ok(t.palette.paper.startsWith('#'), `${t.id} 缺 paper`);
     assert.ok(t.palette.ink.startsWith('#'), `${t.id} 缺 ink`);
     assert.ok(t.palette.accent.startsWith('#'), `${t.id} 缺 accent`);
-    assert.ok(t.style.bodySize >= 28, `${t.id} 字号低于 28px`);
-    assert.ok(t.style.bodySize <= 36, `${t.id} 字号超上限`);
+    /* 2026-11-07 重新定标：1080 画布在小红书手机端缩放 0.361，
+       30px → 手机上仅 10.8px（比微信默认 17px 小 36%%）。
+       现按下限 40px（手机约 14.4px，过「最小可读」线）守住。 */
+    assert.ok(t.style.bodySize >= 40, `${t.id} 字号低于 40px（手机端会看不清）`);
+    assert.ok(t.style.bodySize <= 48, `${t.id} 字号超上限`);
     assert.ok(t.style.lineHeight >= 1.7 && t.style.lineHeight <= 2.1);
   }
 });
 
-test('几何映射：公众号 15px 正文 → 长图文 ≥28px（不是照抄 15px）', () => {
+test('几何映射：公众号 15px 正文 → 长图文 ≥40px（按小红书手机可读性定标）', () => {
   const r = THEME_RECIPES[0];
-  assert.ok(r.bodySize >= 28);
+  assert.ok(r.bodySize >= 40);
   const t = THEME_TEMPLATES.find((x) => x.themeId === r.id);
   assert.ok(t, '代表应能在模板列表中找到');
   const ms = measureStyle(t);

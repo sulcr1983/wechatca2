@@ -19,69 +19,69 @@ import { storyPageDoc } from './story-system.js';
 /* ── 12 套文字排印骨架 ─────────────────────────────────────── */
 const STYLES = [
   { id:'classic',  name:'经典书刊', family:'书刊', pal:'xuan',
-    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:32, titleSize:88,
+    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:42, titleSize:88,
     label:'EDITORIAL', issue:'VOL. 2026', footer:'经典书刊 · 宋体正文',
     extraCss:`.body{text-indent:0}` },
 
   { id:'wenkai',   name:'霞鹜手札', family:'手札', pal:'ou',
-    titleFont:'var(--wenkai)', bodyFont:'var(--wenkai)', bodySize:34, titleSize:82,
+    titleFont:'var(--wenkai)', bodyFont:'var(--wenkai)', bodySize:43, titleSize:82,
     label:'FIELD NOTE', issue:'手写 · 01', footer:'霞鹜文楷 · 手札体',
     extraCss:`.page{letter-spacing:.02em}` },
 
   { id:'xiaowei',  name:'小薇诗笺', family:'诗笺', pal:'qing',
-    titleFont:'var(--xiaowei)', bodyFont:'var(--serif)', bodySize:33, titleSize:92,
+    titleFont:'var(--xiaowei)', bodyFont:'var(--serif)', bodySize:42, titleSize:92,
     label:'POETRY', issue:'诗笺 · 卷二', footer:'站酷小薇 · 诗题',
     extraCss:`.page-head{border-bottom:3px double var(--ink)}` },
 
   { id:'longcang', name:'龙藏行书', family:'诗笺', pal:'cinnabar',
-    titleFont:'var(--longcang)', bodyFont:'var(--wenkai)', bodySize:36, titleSize:112,
+    titleFont:'var(--longcang)', bodyFont:'var(--wenkai)', bodySize:44, titleSize:112,
     label:'行书', issue:'卷一', footer:'龙藏行书 · 大标题',
     extraCss:`.display{letter-spacing:.08em}.row .n{font-family:var(--serif);font-size:48px}` },
 
   { id:'swiss',    name:'瑞士无衬线', family:'网格', pal:'swiss',
-    titleFont:'var(--sans)', bodyFont:'var(--sans)', bodySize:31, titleSize:100,
+    titleFont:'var(--sans)', bodyFont:'var(--sans)', bodySize:41, titleSize:100,
     label:'SYSTEM', issue:'REF. CH-01', footer:'SWISS · 左对齐网格',
     extraCss:`.display,.body,.row .t,.quote{font-family:var(--sans)!important;letter-spacing:-.01em}
       .page-head{border-bottom:2px solid var(--ink)}
       .page{background:linear-gradient(90deg,transparent 0 33%,var(--line) 33% calc(33% + 1px),transparent calc(33% + 1px) 66%,var(--line) 66% calc(66% + 1px),transparent calc(66% + 1px))}` },
 
   { id:'mono',     name:'等宽纪事', family:'网格', pal:'cha',
-    titleFont:'var(--mono)', bodyFont:'var(--sans)', bodySize:30, titleSize:74,
+    titleFont:'var(--mono)', bodyFont:'var(--sans)', bodySize:41, titleSize:74,
     label:'LOG / 2026', issue:'06 · ENTRIES', footer:'等宽 · 编号纪事',
     extraCss:`.page-head{border-bottom:2px solid var(--accent)}
       .kicker,.meta{font-family:var(--mono)}
       .row{border-bottom:1px dashed var(--line)}` },
 
   { id:'midnight', name:'墨金夜读', family:'书刊', pal:'mo',
-    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:33, titleSize:90,
+    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:42, titleSize:90,
     label:'NOCTURNE', issue:'夜读 · 01', footer:'墨金长卷 · 暗底',
     extraCss:`.page{background:radial-gradient(ellipse at 50% 40%,rgba(201,164,92,.05),transparent 70%)}` },
 
   { id:'indigo',   name:'靛蓝夜航', family:'书刊', pal:'lan',
-    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:32, titleSize:86,
+    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:42, titleSize:86,
     label:'NAVIGATION', issue:'夜航 · 02', footer:'靛蓝夜航 · 暗底',
     extraCss:`.page-head{border-bottom:1px solid var(--accent)}` },
 
   { id:'narrow',   name:'窄栏长卷', family:'版心', pal:'xuan',
-    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:30, titleSize:80,
+    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:41, titleSize:80,
     label:'COLUMN', issue:'窄栏 · 01', footer:'窄栏长卷 · 版心收束',
     extraCss:`.page{padding-left:190px;padding-right:190px}
       .page-head{margin-left:-94px;margin-right:-94px}` },
 
   { id:'wide',     name:'宽栏舒展', family:'版心', pal:'qing',
-    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:35, titleSize:94,
+    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:43, titleSize:94,
     label:'WIDE', issue:'宽栏 · 01', footer:'宽栏舒展 · 大字正文',
     extraCss:`.page{padding-left:64px;padding-right:64px}
       .body{line-height:2.05}` },
 
   { id:'justified',name:'两端密排', family:'版心', pal:'cinnabar',
-    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:29, titleSize:84,
+    titleFont:'var(--serif)', bodyFont:'var(--serif)', bodySize:40, titleSize:84,
     label:'JUSTIFIED', issue:'密排 · 01', footer:'两端对齐 · 密排',
     extraCss:`.page p{text-align:justify;text-justify:inter-ideograph;line-height:1.78}
       .page-head{margin-bottom:28px}` },
 
   { id:'ledger',   name:'编号账本', family:'网格', pal:'cha',
-    titleFont:'var(--sans)', bodyFont:'var(--serif)', bodySize:31, titleSize:78,
+    titleFont:'var(--sans)', bodyFont:'var(--serif)', bodySize:41, titleSize:78,
     label:'LEDGER', issue:'06 · ROWS', footer:'编号账本 · 序号体系',
     extraCss:`.page-head{border-bottom:3px solid var(--ink);padding-bottom:22px}
       .row{min-height:150px;align-items:center}
