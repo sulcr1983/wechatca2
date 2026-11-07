@@ -25,7 +25,11 @@
  *    正文提到 40px（手机约 14.4px）后单页容量下降，有头实测 3000 字需约 14 页。
  *    12 页会直接截断长文，18 页才是小红书图文笔记的上限（一篇最多 18 张图）。 */
 export const MAX_PAGES = 18;
-export const CHARS_PER_ROW = 26;      // 无 DOM 时的字数包络口径（32px 中文 / 888px 宽）
+/* 无 DOM 时的字数包络口径（正文 40px 中文 / 可用宽 888px）。
+ * ⚠️ 2026-11-07 随正文字号 30→40px 同步收紧：26 是按 32px 算的，
+ *    按 40px 应为 floor(888 / (40*1.05)) ≈ 21。留 21 会被高估成每行 26 字
+ *    → 兜底分页少算页数 → 封装溢出（只在无 DOM 环境触发，但必须一致）。 */
+export const CHARS_PER_ROW = 21;
 
 /** 解析 Markdown 风格的纯文本。首行 = 标题，其余按空行分段。 */
 export function parseArticle(raw) {

@@ -11,8 +11,10 @@
  *   · 每个代表带 swatches：自身配色 + 同格局的其它配色，切换色板不改格局
  *   · buildAutoSet 的 palette 参数注入配色，不污染 art-system.js 的 8 套色板
  *
- * ⚠️ 几何映射：公众号正文 15px（手机文章宽）→ 长图文 30px（1080 画布），
- *    生成器里已按 2× 缩放并夹在 28–36px（产品门禁 ≥28px 硬下限）。
+ * ⚠️ 几何映射：公众号正文 15px（手机文章宽）→ 长图文 40px（1080 画布），
+ *    生成器里夹在 40–44px。为什么是 40 而不是更小：1080 画布在小红书手机端
+ *    缩放 0.361（iPhone 14 显示宽 390），30px 只显示成 10.8px，比微信正文
+ *    默认的 17px 小三成多、比「最小可读 14px」还小 —— 用户反馈看不清。
  */
 
 import { THEME_RECIPES, THEME_VARIANTS, THEME_COUNT, THEME_SOURCE_COUNT, variantsOf }

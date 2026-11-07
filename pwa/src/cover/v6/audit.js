@@ -1,7 +1,7 @@
 /* 产物级自检 · 长图文 V4
  *
  * 判据来源：
- *   · scripts/pwa_longform_test.py（分页完整性 / 字号 ≥28px / 逐角色填充率 / 无溢出）
+ *   · scripts/pwa_longform_test.py（分页完整性 / 字号 ≥40px / 逐角色填充率 / 无溢出）
  *   · references/layout-recipes.md Minimum density（≥75% 画布高、空白带 >15% 需理由）
  *
  * ⚠️ 两套口径不要混：

@@ -3,12 +3,24 @@
  * 规范来源：references/style-system.md / components.md / background-systems.md
  *   · 「越大越细」：Display weight 500 + 宽字距，正文衬线，小字 mono 才可 500
  *   · 编辑风禁止纯色纸底：必须 3–5 层（纸基 / 纸纹 / 墨染 / 结构线 / 内容）
- *   · 字号硬下限：正文 ≥28px、题注 ≥20px；放不下先删文案，不缩字号
+ *   · 字号硬下限：正文 ≥40px、题注 ≥26px（2026-11-07 按小红书手机端可读性重定标：
+ *     1080 画布在 iPhone 14 上缩放 0.361，30px 只显示成 10.8px，看不清）；放不下先删文案，不缩字号
  *   · 动势 = 静态 SVG 墨流 / 等高线 / 斜切，导出即 PNG，不做 WebGL
  *
  * 用法：每个模板函数返回「.page 内部的 HTML」；外层 page() 负责画布、
  *       字体、背景层与页眉页脚契约。
  */
+
+/* ── 产品 dist 资源绝对前缀（移植适配）─────────────────────────────
+ * 本模块生成的 HTML 会进 srcdoc iframe（预览 / renderPageDoc 出图），
+ * srcdoc 里的相对路径会解析到 about:srcdoc 而 404。
+ * 产品 cards.js::pageDoc 用 opts.baseUrl 绝对路径注入字体，这里同思路：
+ *   dist/src/cover/v6/<file>.js → 上三级 = dist/
+ * 字体/vendor 已在 dist/fonts/cover/ 与 dist/vendor/，构建已拷，无需新增资源。
+ */
+const ASSET_BASE = new URL('../../../', import.meta.url).href;
+const FONT_BASE = `${ASSET_BASE}fonts/cover/`;
+
 
 /* ── 8 套色板（文艺 5 / 结构化 3）────────────────────────────── */
 export const PALETTES = {
@@ -32,14 +44,14 @@ const MONO = "ui-monospace,'Cascadia Mono',Menlo,monospace";
 
 function fontFaces() {
   return `
-  @font-face{font-family:'NotoSerifSC';src:url('./assets/fonts/noto-serif-sc-400.woff2') format('woff2');font-weight:400;font-display:block}
-  @font-face{font-family:'NotoSerifSC';src:url('./assets/fonts/noto-serif-sc-700.woff2') format('woff2');font-weight:700;font-display:block}
-  @font-face{font-family:'NotoSansSC';src:url('./assets/fonts/noto-sans-sc-400.woff2') format('woff2');font-weight:400;font-display:block}
-  @font-face{font-family:'NotoSansSC';src:url('./assets/fonts/noto-sans-sc-700.woff2') format('woff2');font-weight:700;font-display:block}
-  @font-face{font-family:'WenKai';src:url('./assets/fonts/wenkai.woff2') format('woff2');font-display:block}
-  @font-face{font-family:'ZcoolXiaowei';src:url('./assets/fonts/zcool-xiaowei.woff2') format('woff2');font-display:block}
-  @font-face{font-family:'LongCang';src:url('./assets/fonts/longcang.woff2') format('woff2');font-display:block}
-  @font-face{font-family:'Zhimangxing';src:url('./assets/fonts/zhimangxing.woff2') format('woff2');font-display:block}`;
+  @font-face{font-family:'NotoSerifSC';src:url('${FONT_BASE}noto-serif-sc-400.woff2') format('woff2');font-weight:400;font-display:block}
+  @font-face{font-family:'NotoSerifSC';src:url('${FONT_BASE}noto-serif-sc-700.woff2') format('woff2');font-weight:700;font-display:block}
+  @font-face{font-family:'NotoSansSC';src:url('${FONT_BASE}noto-sans-sc-400.woff2') format('woff2');font-weight:400;font-display:block}
+  @font-face{font-family:'NotoSansSC';src:url('${FONT_BASE}noto-sans-sc-700.woff2') format('woff2');font-weight:700;font-display:block}
+  @font-face{font-family:'WenKai';src:url('${FONT_BASE}wenkai.woff2') format('woff2');font-display:block}
+  @font-face{font-family:'ZcoolXiaowei';src:url('${FONT_BASE}zcool-xiaowei.woff2') format('woff2');font-display:block}
+  @font-face{font-family:'LongCang';src:url('${FONT_BASE}longcang.woff2') format('woff2');font-display:block}
+  @font-face{font-family:'Zhimangxing';src:url('${FONT_BASE}zhimangxing.woff2') format('woff2');font-display:block}`;
 }
 
 function vars(p) {
@@ -141,7 +153,7 @@ ${extraCss}</style></head><body>
     ${foot}
   </div>
 </div>
-<script src="./vendor/modern-screenshot.js"></script>
+<script src="${ASSET_BASE}vendor/modern-screenshot.js"></script>
 </body></html>`;
 }
 
