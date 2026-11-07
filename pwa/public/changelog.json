@@ -1,7 +1,7 @@
 {
   "version": "1.37.0",
-  "generatedAt": "2026-11-07T10:57:13+08:00",
-  "totalCommits": 442,
+  "generatedAt": "2026-11-07T11:44:39+08:00",
+  "totalCommits": 443,
   "releases": [
     {
       "version": "1.37.0",
@@ -5184,7 +5184,7 @@
     }
   ],
   "unreleased": {
-    "count": 4,
+    "count": 5,
     "visibleCount": 3,
     "groups": [
       {
@@ -5218,6 +5218,20 @@
         ]
       },
       {
+        "type": "changed",
+        "label": "调整",
+        "items": [
+          {
+            "text": "V6 工作台视觉改回产品原有设计系统",
+            "scope": "longform",
+            "hash": "c2ef049",
+            "date": "2026-11-07T11:44:06+08:00",
+            "breaking": false,
+            "dev": true
+          }
+        ]
+      },
+      {
         "type": "other",
         "label": "其他",
         "items": [
@@ -5234,6 +5248,7 @@
     ],
     "counts": {
       "added": 3,
+      "changed": 1,
       "other": 1
     },
     "highlights": [
