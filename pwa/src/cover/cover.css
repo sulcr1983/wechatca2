@@ -623,6 +623,10 @@
   font-weight: 600;
 }
 .cv-gen--soft:hover { background: var(--accent-soft); }
+/* V6 试验入口（2026-11-07）：移到右栏最顶，一进长图文页即可看到 */
+.cv-v6-entry { padding-bottom: 14px; border-bottom: 1px dashed var(--border-hi); }
+.cv-v6-entry .cv-gen { width: 100%; }
+.cv-v6-entry .cv-hint { margin: 6px 0 0; text-align: center; }
 /* 预览条上的九宫格入口：小、但不隐形 */
 .cv-nine-entry {
   flex: none;

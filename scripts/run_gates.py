@@ -153,6 +153,14 @@ SUITES_ONLINE = [  # 线上层（--online）：部署后用真环境验证
 SUITES_UI = [  # 有头层（--ui）：较慢，用本地 dist 测当前代码
     ("headed_ui",      [PY, "scripts/pwa_headed_full_e2e.py", "--local"],
                        "有头全量（164套×3夹具 + 15版式 + 3开关 + 按钮 + AI mock）", "local"),
+    # 2026-11-07 接入：长图文 V6 工作台产品级 E2E。
+    # 为什么放 UI 层：要真实 Chrome 内核 + 真实字体 + 真实出图（单跑 30s+），
+    # 与 headed_ui / real_ai 同属「慢且要真渲染」的一档；放默认本地层会拖慢日常门禁。
+    # 守的是此前**完全真空**的一段：V6 从接进产品到上线，没有任何自动化测试；
+    # 用户实测「难看难用」时，导出按钮掉出首屏、右栏只露 3 张卡、中栏横向溢出
+    # 三个缺陷一个都没被挡住。现在它们全是断言。
+    ("longform_v6",    [PY, "scripts/pwa_longform_v6_test.py"],
+                       "长图文 V6 产品级（开关两态/零丢字/PNG 1080×1440/ZIP/布局可用性）", "local"),
     ("real_ai",        [PY, "scripts/pwa_real_ai_test.py", "--local"],
                        "真实 AI 17（真调 DeepSeek，需 .env 有 Key）", "local"),
 ]

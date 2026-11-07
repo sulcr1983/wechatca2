@@ -210,7 +210,14 @@ python scripts/pwa_export_test.py         # PWA 导出有头 12/12（长图 PNG 
 python scripts/pwa_image_localize_test.py # PWA 外链图本地化 12/12（渲染后抓取转 data URI；失败必给原因）
 python scripts/pwa_cover_test.py          # PWA 封面有头 16 项（15 PASS + 1 SKIP 网络）/ 10 种版式 / 28 种配色 / 3 尺寸 / 上传 / 搜图 / 断网生成
 python scripts/pwa_nine_test.py           # PWA 九宫格切图 15/15（真下载 ZIP 解包读像素：裁剪/顺序/间距/移动端）
-python scripts/pwa_online_e2e.py          # 线上全量有头 E2E 97 项（2026-10-24 实测 94 PASS + 3 SKIP；含 AI 平台预设 3 断言）
+python scripts/pwa_longform_v6_test.py    # ★ 长图文 V6 工作台产品级 39 项（2026-11-07 接入 SUITES_UI）：
+                                          # 开关两态 / 自动分页零丢字 / 换格局 / 换配色 / 偏好持久化 /
+                                          # 最近使用筛选 / 单张 PNG 真 1080×1440 / ZIP 条目命名 /
+                                          # 返回清场且草稿保留 / 六项布局可用性（主操作首屏可见、
+                                          # 右栏卡数 3 列 ≥6 张、无横向溢出、留白）
+                                          # 为什么要有：此前 V6 从接进产品到上线**零测试**，用户报「难看难用」
+                                          # 时导出掉出首屏等 7 个缺陷一个都没被挡住；现在全是断言。
+python scripts/pwa_online_e2e.py          # 线上全量有头 E2E（打线上站，含 AI 平台预设；计数见 STATE.md）
 python scripts/pwa_offline_diag.py        # 断网诊断脚本（非门禁：排查离线可用性用）
 
 # PWA 架构要点（2026-10-18 提速/静默更新改造）

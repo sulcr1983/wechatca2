@@ -502,6 +502,12 @@ export function mountLongformPage(rootEl) {
       </section>
 
       <aside class="cv-col cv-col-right">
+        <!-- V6 试验入口：放在右栏最顶，一进长图文页就能看到（原来埋在栏底，发现性差） -->
+        <section class="cv-sec cv-v6-entry">
+          <button class="cv-gen cv-gen--soft" id="cv-v6-switch" type="button"
+                  title="试用新版长图文工作台（V6）：61 种格局 + 自动分页 + 成套导出">试用新版工作台 V6</button>
+          <p class="cv-hint" id="cv-v6-hint">同一篇文章，更多版式格局与配色</p>
+        </section>
         <section class="cv-sec">
           <div class="cv-sec-head"><span class="cv-sec-title">长文模板</span><span class="cv-hint">整套生效</span></div>
           <div class="cv-ltpls" id="cv-ltpls"></div>
@@ -531,9 +537,6 @@ export function mountLongformPage(rootEl) {
             <button class="cv-mini-btn" type="button" id="cv-longbg-clear" hidden>清除</button>
           </div>
           <p class="cv-hint cv-longbg-lock" id="cv-longbg-lock" hidden></p>
-          <!-- V6 试验入口（默认关）：开启后整页换成新版工作台，可一键返回 -->
-          <button class="cv-gen cv-gen--soft" id="cv-v6-switch" type="button"
-                  title="试用新版长图文工作台（V6）：61 种格局 + 自动分页 + 成套导出">试用新版工作台 V6</button>
         </section>
       </aside>
     </main>
@@ -641,15 +644,31 @@ export function mountLongformPage(rootEl) {
   const zipBtn = $('cv-zip-story');
   if (zipBtn) zipBtn.addEventListener('click', downloadStoryZip);
   /* V6 开关：切过去前把正在编辑的文章存进内存 draft，避免丢用户输入。
-     动态加载 V6 模块（默认关时它从未被 import 过）。 */
+     动态加载 V6 模块（默认关时它从未被 import 过）。
+     ⚠️ 首访要下载 11 个模块 + 中文字体，必须给可见反馈，否则点击后像卡住。 */
   const v6Btn = $('cv-v6-switch');
   if (v6Btn) v6Btn.addEventListener('click', () => {
+    if (v6Btn.dataset.busy === '1') return;
+    v6Btn.dataset.busy = '1';
+    v6Btn.disabled = true;
+    const hint = $('cv-v6-hint');
+    const oldText = v6Btn.textContent;
+    v6Btn.textContent = '正在载入新版工作台…';
+    if (hint) hint.textContent = '首次需要下载模板与字体，之后走缓存秒开';
     const text = $('cv-long-text').value;
-    loadV6().then((m) => {
-      m.setDraft(text);
-      m.setV6Enabled(true);
-      mountLongformPage(root);
-    });
+    loadV6()
+      .then((m) => {
+        m.setDraft(text);
+        m.setV6Enabled(true);
+        mountLongformPage(root);
+      })
+      .catch((e) => {
+        v6Btn.disabled = false;
+        v6Btn.dataset.busy = '';
+        v6Btn.textContent = oldText;
+        if (hint) hint.textContent = '载入失败，请检查网络后重试';
+        toast(`新版工作台载入失败：${e.message}`, 'err');
+      });
   });
 }
 

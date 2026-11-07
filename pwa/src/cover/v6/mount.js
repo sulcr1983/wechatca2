@@ -69,7 +69,7 @@ const CSS = `
   --v6-sh-lg:0 14px 40px rgba(34,30,25,.16);--v6-t:200ms;--v6-ease:cubic-bezier(.2,.8,.2,1);
   --v6-serif:'Noto Serif SC','Songti SC',serif;--v6-sans:'Noto Sans SC','PingFang SC',sans-serif;
   --v6-mono:ui-monospace,Menlo,monospace;
-  height:100%;display:grid;grid-template-columns:320px minmax(0,1fr) 420px;
+  height:100%;display:grid;grid-template-columns:328px minmax(0,1fr) 468px;
   background:var(--v6-paper);color:var(--v6-ink);font:14px/1.6 var(--v6-sans);overflow:hidden}
 #v6-root *{box-sizing:border-box}
 #v6-root :where(a,button,input,textarea,[role=button]):focus-visible{
@@ -88,15 +88,23 @@ const CSS = `
 #v6-root .v6-k::before{content:'';width:16px;height:1px;background:var(--v6-accent)}
 #v6-root .v6-head h2{font:500 21px/1.3 var(--v6-serif);letter-spacing:.04em;margin:0}
 #v6-root .v6-head p{font-size:12px;color:var(--v6-muted);margin:8px 0 0}
-#v6-root .v6-body{padding:24px;overflow-y:auto;flex:1;min-height:0;scroll-padding-top:24px}
+#v6-root .v6-body{padding:20px 22px 0;overflow:hidden;flex:1;min-height:0;
+  display:flex;flex-direction:column}
+#v6-root .v6-scroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:14px;scroll-padding-top:8px}
+/* 主操作固定在栏底：导出 / ZIP / 返回永远在首屏，不随文章变长被顶出去 */
+#v6-root .v6-actions{flex:none;border-top:2px solid var(--v6-line-strong);
+  padding:14px 0 16px;background:var(--v6-panel);position:relative;z-index:2}
+#v6-root .v6-actions::before{content:'';position:absolute;left:0;right:0;top:-2px;height:2px;
+  background:repeating-linear-gradient(90deg,var(--v6-line-strong) 0 6px,transparent 6px 12px)}
 #v6-root .v6-sec{font:500 10.5px/1 var(--v6-mono);letter-spacing:.20em;color:var(--v6-muted);
   text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:10px}
 #v6-root .v6-sec::after{content:'';flex:1;height:1px;background:var(--v6-line)}
 #v6-root .v6-label{display:flex;justify-content:space-between;align-items:baseline;
   font-size:12px;font-weight:600;letter-spacing:.06em;margin:0 0 8px;color:var(--v6-soft)}
 #v6-root .v6-label span{font:400 11px var(--v6-mono);color:var(--v6-muted)}
-#v6-root textarea{width:100%;height:270px;resize:vertical;border:1px solid var(--v6-line-strong);
-  background:var(--v6-surface);padding:16px;font:13.5px/1.95 var(--v6-sans);color:var(--v6-ink);
+#v6-root textarea{width:100%;height:clamp(150px,22vh,240px);resize:vertical;
+  border:1px solid var(--v6-line-strong);
+  background:var(--v6-surface);padding:14px;font:13.5px/1.9 var(--v6-sans);color:var(--v6-ink);
   border-radius:2px;outline:none;transition:border-color 140ms var(--v6-ease),box-shadow 140ms var(--v6-ease)}
 #v6-root textarea:focus{border-color:var(--v6-accent);box-shadow:0 0 0 3px rgba(166,67,44,.12)}
 #v6-root .v6-syntax{margin:12px 0 0;font-size:11px;color:var(--v6-muted);line-height:1.9}
@@ -125,7 +133,9 @@ const CSS = `
 #v6-root .v6-stats div{background:var(--v6-raised);border:1px solid var(--v6-line);padding:12px 16px;border-radius:2px}
 #v6-root .v6-stats b{display:block;font:500 26px/1.15 var(--v6-serif);font-variant-numeric:tabular-nums}
 #v6-root .v6-stats span{font:10px/1 var(--v6-mono);color:var(--v6-muted);letter-spacing:.14em}
-#v6-root .v6-back{margin-top:14px;width:100%;border-style:dashed}
+#v6-root .v6-actions .v6-btns{margin:0 0 10px}
+#v6-root .v6-actions button.primary{flex:1 1 100%}
+#v6-root .v6-back{margin-top:0;width:100%;border-style:dashed}
 
 /* 中栏：看样台 */
 #v6-root .v6-stage{flex-direction:column}
@@ -137,11 +147,17 @@ const CSS = `
 #v6-root .v6-stage-head h2{font:500 25px/1.25 var(--v6-serif);margin:0;letter-spacing:.05em}
 #v6-root .v6-stage-head .v6-meta{font:11.5px var(--v6-mono);color:var(--v6-muted)}
 #v6-root .v6-stage-head .v6-meta b{color:var(--v6-soft);font-weight:600}
-#v6-root .v6-deck{flex:1;min-height:0;overflow:auto;padding:32px;display:flex;gap:24px;align-items:flex-start;
+#v6-root .v6-deck{flex:1;min-height:0;overflow:auto;padding:26px 28px 20px;
+  display:flex;flex-wrap:wrap;gap:22px 20px;
+  /* ⚠️ 必须用 safe center：内容超出容器高时，普通 center 会把顶部顶出可视区
+     且**无法滚动到**（实测封面页顶部被裁）。safe 在溢出时回落为 start。 */
+  align-content:safe center;justify-content:center;
   background:radial-gradient(ellipse at 18% 4%,rgba(166,67,44,.055),transparent 46%),
     radial-gradient(ellipse at 96% 92%,rgba(30,58,95,.045),transparent 42%),
     repeating-linear-gradient(0deg,transparent 0 47px,rgba(34,30,25,.018) 47px 48px),var(--v6-paper)}
-#v6-root .v6-pg{flex:none;width:288px}
+/* 两列铺排 + 末行居中：3 页时第 3 页居中，不再「靠左、右边空一大块」；
+   4/6 页仍是整齐的 2×2 / 2×3。max-width 防止超宽屏把页拉得过大。 */
+#v6-root .v6-pg{flex:0 0 calc(50% - 10px);max-width:430px;min-width:0}
 #v6-root .v6-frame{width:100%;aspect-ratio:3/4;overflow:hidden;position:relative;background:var(--v6-surface);
   border:1px solid rgba(34,30,25,.10);box-shadow:var(--v6-sh-lg);cursor:zoom-in;
   transition:box-shadow var(--v6-t) var(--v6-ease)}
@@ -155,25 +171,31 @@ const CSS = `
   display:inline-flex;align-items:center;border-bottom:1px solid transparent}
 #v6-root .v6-pl a:hover{border-bottom-color:var(--v6-accent)}
 #v6-root .v6-empty{margin:auto;text-align:center;color:var(--v6-muted);font:16px var(--v6-serif)}
+#v6-root .v6-empty-grid{padding:36px 18px;text-align:center;color:var(--v6-muted);
+  font:13px/1.9 var(--v6-sans);border:1px dashed var(--v6-line-strong);border-radius:3px;
+  background:var(--v6-raised)}
 
 /* 右栏：格局卡 */
-#v6-root .v6-search{padding:16px 24px;border-bottom:1px solid var(--v6-line);flex:none;background:var(--v6-raised)}
+#v6-root .v6-right .v6-head{padding:13px 18px 10px}
+#v6-root .v6-right .v6-head h2{font-size:18px}
+#v6-root .v6-right .v6-head p{margin:5px 0 0;font-size:11.5px;line-height:1.45}
+#v6-root .v6-search{padding:10px 18px 9px;border-bottom:1px solid var(--v6-line);flex:none;background:var(--v6-raised)}
 #v6-root .v6-search-field{position:relative;display:flex;align-items:center}
 #v6-root .v6-search-field svg{position:absolute;left:11px;width:15px;height:15px;stroke:var(--v6-muted);pointer-events:none}
 #v6-root .v6-search input{width:100%;border:1px solid var(--v6-line-strong);background:var(--v6-surface);
   padding:10px 12px 10px 36px;font:12.5px var(--v6-sans);border-radius:2px;outline:none;min-height:40px}
 #v6-root .v6-search input:focus{border-color:var(--v6-accent);box-shadow:0 0 0 3px rgba(166,67,44,.12)}
-#v6-root .v6-fams{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;max-height:76px;overflow-y:auto}
+#v6-root .v6-fams{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;max-height:46px;overflow-y:auto}
 #v6-root .v6-fam{border:1px solid var(--v6-line);background:transparent;color:var(--v6-muted);
-  padding:5px 11px;font-size:10.5px;border-radius:14px;cursor:pointer;white-space:nowrap;min-height:26px}
+  padding:3px 9px;font-size:10px;border-radius:12px;cursor:pointer;white-space:nowrap;min-height:22px}
 #v6-root .v6-fam[aria-pressed="true"]{background:var(--v6-navy);color:#FFF;border-color:var(--v6-navy)}
-#v6-root .v6-grid-scroll{flex:1;min-height:0;overflow-y:auto;padding:16px 24px;scroll-padding-top:16px}
+#v6-root .v6-grid-scroll{flex:1;min-height:0;overflow-y:auto;padding:12px 18px;scroll-padding-top:12px}
 #v6-root .v6-fam-title{font:500 10.5px/1 var(--v6-mono);letter-spacing:.18em;color:var(--v6-accent-ink);
-  text-transform:uppercase;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--v6-line);
+  text-transform:uppercase;margin:11px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--v6-line);
   display:flex;justify-content:space-between}
 #v6-root .v6-fam-title:first-child{margin-top:0}
 #v6-root .v6-fam-title span{color:var(--v6-muted);font-size:10px;letter-spacing:.04em}
-#v6-root .v6-tgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+#v6-root .v6-tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:8px}
 #v6-root .v6-tcard{cursor:pointer;border:0;padding:0;background:transparent;border-radius:2px}
 #v6-root .v6-tcard .tf{width:100%;aspect-ratio:3/4;overflow:hidden;position:relative;background:var(--v6-surface);
   border:1px solid var(--v6-line);box-shadow:0 1px 2px rgba(34,30,25,.06);
@@ -189,23 +211,23 @@ const CSS = `
 #v6-root .v6-tcard .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font:10.5px var(--v6-mono);color:#A79E90;background:repeating-linear-gradient(45deg,
   var(--v6-raised),var(--v6-raised) 8px,#EFE9DE 8px,#EFE9DE 16px)}
-#v6-root .v6-tcard .cap{padding:8px 2px 2px;font-size:11.5px;line-height:1.5}
-#v6-root .v6-tcard .cap b{font-weight:600;display:block}
+#v6-root .v6-tcard .cap{padding:5px 2px 0;font-size:10.5px;line-height:1.35}
+#v6-root .v6-tcard .cap b{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v6-root .v6-tcard .cap span{color:var(--v6-muted);font:10px var(--v6-mono)}
 #v6-root .v6-tcard .cap .vb{color:var(--v6-accent-ink)}
-#v6-root .v6-tcount{font:10.5px var(--v6-mono);color:var(--v6-muted);padding:12px 24px;
+#v6-root .v6-tcount{font:10px var(--v6-mono);color:var(--v6-muted);padding:7px 18px;
   border-top:1px solid var(--v6-line);flex:none;background:var(--v6-raised)}
-#v6-root .v6-swatches{border-top:2px solid var(--v6-line-strong);padding:12px 24px 16px;flex:none;
+#v6-root .v6-swatches{border-top:2px solid var(--v6-line-strong);padding:8px 18px 10px;flex:none;
   background:var(--v6-raised);position:relative}
 #v6-root .v6-swatches::before{content:'';position:absolute;top:-4px;left:0;right:0;height:2px;
   background:repeating-linear-gradient(90deg,var(--v6-line-strong) 0 6px,transparent 6px 12px)}
-#v6-root .v6-sw-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px}
-#v6-root .v6-sw-head b{font:500 14px var(--v6-serif);letter-spacing:.03em}
+#v6-root .v6-sw-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
+#v6-root .v6-sw-head b{font:500 13px var(--v6-serif);letter-spacing:.03em}
 #v6-root .v6-sw-head span{font:10px var(--v6-mono);color:var(--v6-muted);white-space:nowrap}
-#v6-root .v6-sw-list{display:flex;gap:8px;flex-wrap:wrap;max-height:84px;overflow-y:auto;padding:2px}
-#v6-root .v6-sw{width:30px;height:30px;border-radius:50%;border:1px solid rgba(34,30,25,.22);
+#v6-root .v6-sw-list{display:flex;gap:7px;flex-wrap:wrap;max-height:58px;overflow-y:auto;padding:1px}
+#v6-root .v6-sw{width:26px;height:26px;border-radius:50%;border:1px solid rgba(34,30,25,.22);
   cursor:pointer;padding:0;position:relative;flex:none;transition:box-shadow 140ms var(--v6-ease)}
-#v6-root .v6-sw::before{content:'';position:absolute;inset:-7px;border-radius:50%}
+#v6-root .v6-sw::before{content:'';position:absolute;inset:-8px;border-radius:50%}
 #v6-root .v6-sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--v6-raised),0 0 0 4px var(--v6-accent)}
 #v6-root .v6-viewer{position:fixed;inset:0;z-index:60;background:rgba(20,17,14,.88);
   display:none;align-items:center;justify-content:center;padding:24px}
@@ -249,36 +271,41 @@ function html() {
     <div class="v6-head"><p class="v6-k">01 / INPUT</p><h2>整篇文章</h2>
       <p>首行作封面标题；粘贴后自动分页</p></div>
     <div class="v6-body">
-      <label class="v6-label" for="cv-long-text">正文 <span id="cv-long-count">0 字</span></label>
-      <textarea id="cv-long-text" spellcheck="false"
-        placeholder="把一整篇文章粘到这里，右侧会自动分页成一套图文。"></textarea>
-      <p class="v6-syntax"><code>## 小标题</code> · <code>- 清单</code> · <code>&gt; 金句</code> ·
-        <code>---</code> 强制分页 · 空行分段</p>
-      <div class="v6-btns"><button id="v6-demo">载入示例</button><button id="v6-clear">清空</button></div>
+      <div class="v6-scroll">
+        <label class="v6-label" for="cv-long-text">正文 <span id="cv-long-count">0 字</span></label>
+        <textarea id="cv-long-text" spellcheck="false"
+          placeholder="把一整篇文章粘到这里，右侧会自动分页成一套图文。"></textarea>
+        <p class="v6-syntax"><code>## 小标题</code> · <code>- 清单</code> · <code>&gt; 金句</code> ·
+          <code>---</code> 强制分页 · 空行分段</p>
+        <div class="v6-btns"><button id="v6-demo">载入示例</button><button id="v6-clear">清空</button></div>
 
-      <div class="v6-rule"></div><p class="v6-sec">产物自检 / QA</p>
-      <div class="v6-check" id="cv-selfcheck" role="status" aria-live="polite">等待输入…</div>
-      <div class="v6-stats">
-        <div><b id="v6-pages">—</b><span>页数 PAGES</span></div>
-        <div><b id="v6-chars">—</b><span>落版字数 CHARS</span></div>
+        <div class="v6-rule"></div><p class="v6-sec">产物自检 / QA</p>
+        <div class="v6-check" id="cv-selfcheck" role="status" aria-live="polite">等待输入…</div>
+        <div class="v6-stats">
+          <div><b id="v6-pages">—</b><span>页数 PAGES</span></div>
+          <div><b id="v6-chars">—</b><span>落版字数 CHARS</span></div>
+        </div>
+
+        <div class="v6-rule"></div><p class="v6-sec">版式选项 / OPTIONS</p>
+        <label class="v6-label" for="cv-long-sign">签名 <span>页脚 · 开篇 · 结尾</span></label>
+        <input class="v6-field" id="cv-long-sign" maxlength="16" placeholder="不填则不显示">
+        <div class="v6-btns" style="margin:12px 0 0">
+          <label style="font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="cv-long-pn" checked>显示页码</label>
+        </div>
       </div>
 
-      <div class="v6-rule"></div><p class="v6-sec">版式选项 / OPTIONS</p>
-      <label class="v6-label" for="cv-long-sign">签名 <span>页脚 · 开篇 · 结尾</span></label>
-      <input class="v6-field" id="cv-long-sign" maxlength="16" placeholder="不填则不显示">
-      <div class="v6-btns" style="margin-top:12px">
-        <label style="font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="cv-long-pn" checked>显示页码</label>
+      <!-- 主操作固定在栏底：文章再长也不会把导出顶出首屏 -->
+      <div class="v6-actions">
+        <div class="v6-btns" style="margin:0 0 10px">
+          <button class="primary" id="cv-gen-story">导出一整套 <small>0 张 PNG</small></button>
+          <button id="cv-zip-story">打包 ZIP</button>
+          <button id="v6-md">Markdown</button>
+        </div>
+        <div class="v6-syntax" id="cv-status-long" style="margin:0 0 10px">
+          文字全程不上传。也可点每页下方「下载这一张」。</div>
+        <button class="v6-back" id="v6-back">← 返回经典版长图文</button>
       </div>
-
-      <div class="v6-rule"></div><p class="v6-sec">导出 / EXPORT</p>
-      <div class="v6-btns">
-        <button class="primary" id="cv-gen-story">导出一整套 <small>0 张 PNG</small></button>
-        <button id="cv-zip-story">打包整套 ZIP</button>
-        <button id="v6-md">导出 Markdown</button>
-      </div>
-      <div class="v6-syntax" id="cv-status-long">文字全程不上传。也可点每页下方「下载这一张」。</div>
-      <button class="v6-back" id="v6-back">← 返回经典版长图文</button>
     </div>
   </section>
 
@@ -372,6 +399,7 @@ export function mountV6(rootEl, { onBack } = {}) {
     selectedId: (prefs.v6Layout && ALL.some((t) => t.id === prefs.v6Layout))
       ? prefs.v6Layout : ALL[0].id,
     activeFamily: prefs.v6Family || '全部', keyword: '', onBack,
+    recent: Array.isArray(prefs.v6Recent) ? prefs.v6Recent : [],
   };
   if (prefs.v6Swatch) {
     const t = ALL.find((x) => x.id === state.selectedId);
@@ -493,12 +521,27 @@ function closeViewer() {
 function renderGrid() {
   if (!state) return;
   const kw = state.keyword.trim().toLowerCase();
-  const list = ALL.filter((t) => (state.activeFamily === '全部' || t.family === state.activeFamily)
-    && (!kw || `${t.id} ${t.name} ${t.family} ${t.layoutName || ''} ${t.desc || ''} ${t.sourceName || ''}`
-      .toLowerCase().includes(kw)));
+  /* 「最近使用」是一个筛选视角而不是再渲染一遍：否则同一套模板会出现两次，
+     且 E2E 的「61 张卡」断言会失真。 */
+  const base = state.activeFamily === '最近'
+    ? state.recent.map((id) => ALL.find((t) => t.id === id)).filter(Boolean)
+    : ALL.filter((t) => state.activeFamily === '全部' || t.family === state.activeFamily);
+  const list = base.filter((t) => !kw
+    || `${t.id} ${t.name} ${t.family} ${t.layoutName || ''} ${t.desc || ''} ${t.sourceName || ''}`
+      .toLowerCase().includes(kw));
   const box = $('v6-tgrid');
   box.textContent = '';
   if (observer) observer.disconnect();
+  /* 空搜索结果必须有说明：实测搜索无命中时 cards=0 且文案为空，
+     用户会以为界面坏了（PM 走查发现）。 */
+  if (!list.length) {
+    const emp = document.createElement('div');
+    emp.className = 'v6-empty-grid';
+    emp.textContent = `没有匹配「${state.keyword.trim()}」的格局，换个词或点「全部」`;
+    box.appendChild(emp);
+    $('v6-tcount').textContent = `显示 0 / ${ALL.length} 种格局`;
+    return;
+  }
   const groups = new Map();
   for (const t of list) {
     if (!groups.has(t.family)) groups.set(t.family, []);
@@ -544,7 +587,10 @@ function renderGrid() {
 }
 
 function renderFamilies() {
-  const fams = ['全部', ...new Set(ALL.map((t) => t.family))];
+  /* 「最近」排在最前：61 套格局下，找回上次用过的那套是最常见的动作。 */
+  const fams = ['全部'];
+  if (state.recent.length) fams.push('最近');
+  fams.push(...new Set(ALL.map((t) => t.family)));
   const box = $('cv-ltpls'); box.textContent = '';
   for (const f of fams) {
     const b = document.createElement('button');
@@ -574,7 +620,11 @@ function renderSwatches() {
     b.onclick = () => {
       applySwatch(t, s.id);
       saveV6Prefs({ v6Swatch: s.id });
-      thumbCache.clear();
+      /* 只失效**当前模板**的缩略图缓存：其余 60 张的配色没变，缓存键不变、直接复用。
+         原实现 thumbCache.clear() 全量清空 → 61 张全部重建，实测切换一次卡 1.22s（PM 走查）。 */
+      for (const k of [...thumbCache.keys()]) {
+        if (k.startsWith(`${t.id}|`)) thumbCache.delete(k);
+      }
       renderSwatches(); renderGrid(); rebuild();
     };
     list.appendChild(b);
@@ -583,7 +633,11 @@ function renderSwatches() {
 
 function selectTemplate(id) {
   state.selectedId = id;
-  saveV6Prefs({ v6Layout: id });
+  /* 记录最近使用（最多 6 个）：模板 61 套时，「上次那套」靠回忆翻找成本太高。
+     复用同一 prefs 键，不新增存储。 */
+  state.recent = [id, ...state.recent.filter((x) => x !== id)].slice(0, 6);
+  saveV6Prefs({ v6Layout: id, v6Recent: state.recent });
+  renderFamilies();
   $('v6-tgrid').querySelectorAll('.v6-tcard').forEach((c) =>
     c.setAttribute('aria-pressed', String(c.dataset.id === id)));
   renderSwatches();
@@ -670,9 +724,15 @@ async function exportOneSet() {
       busy(true, `正在出图 ${i + 1}/${n}…`);
       const { blob } = await renderPageDoc(state.set.htmls[i]);
       dl(blob, `supersu-longform-${state.tpl.id}-${String(i + 1).padStart(2, '0')}.png`);
+      /* 多文件连续下载会被 Chrome 拦一次（「此网站尝试下载多个文件」）。
+         实测 n=2 时两张都下来了，但用户会看到拦截条却不知道为什么 —— 提前说明。 */
+      if (n > 1 && i === 0) {
+        toast(`将连续下载 ${n} 张，浏览器若询问「允许下载多个文件」请点允许`, 'ok');
+      }
     }
     $('cv-zip-story').hidden = false;
-    $('cv-status-long').textContent = `已导出 ${n} 张 PNG（1 封面 + ${n - 1} 内页）`;
+    $('cv-status-long').textContent =
+      `已导出 ${n} 张 PNG（1 封面 + ${n - 1} 内页）。想要一次下载请用「打包 ZIP」。`;
     toast(`整套 ${n} 张已导出`, 'ok');
   } catch (e) { toast(`导出失败：${e.message}`, 'err'); }
   finally { busy(false); }
