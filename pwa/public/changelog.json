@@ -1,7 +1,7 @@
 {
   "version": "1.41.0",
-  "generatedAt": "2026-11-07T17:47:41+08:00",
-  "totalCommits": 448,
+  "generatedAt": "2026-11-07T18:26:49+08:00",
+  "totalCommits": 449,
   "releases": [
     {
       "version": "1.41.0",
@@ -5373,5 +5373,28 @@
       ]
     }
   ],
-  "unreleased": null
+  "unreleased": {
+    "count": 1,
+    "visibleCount": 0,
+    "groups": [
+      {
+        "type": "other",
+        "label": "其他",
+        "items": [
+          {
+            "text": "字号任务收尾——修 CHARS_PER_ROW 遗留 + 清陈旧注释 + 补台账",
+            "scope": "longform",
+            "hash": "1aed6e5",
+            "date": "2026-11-07T18:26:28+08:00",
+            "breaking": false,
+            "dev": true
+          }
+        ]
+      }
+    ],
+    "counts": {
+      "other": 1
+    },
+    "highlights": []
+  }
 }
