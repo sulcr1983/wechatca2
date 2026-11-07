@@ -9,6 +9,7 @@
 import { PALETTES } from './art-system.js';
 import { PAGES } from './story.js';
 import { esc } from './fixture.js';
+import { renderDecor } from './decor.js';
 
 /* ── 产品 dist 资源绝对前缀（移植适配）─────────────────────────────
  * 本模块生成的 HTML 会被塞进 srcdoc iframe（预览 / renderPageDoc 出图），
@@ -49,7 +50,10 @@ const TEXT_CSS = `
   .fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .fx-grain{z-index:0;mix-blend-mode:multiply}
   .fx-ink{z-index:1;opacity:.45}
-  .trim{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+  /* 装饰层：在纸纹之上、文字之下。透明度交给各手法自己控制，
+     整层不再额外降透明（否则细线会看不见）。 */
+  .fx-decor{z-index:2}
+  .trim{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
 
   /* ── 页面骨架：文字区占满，不被图案挤压 ───────────────────── */
   .page{position:relative;z-index:3;height:100%;padding:96px;
@@ -188,12 +192,22 @@ function baseFx(p, id) {
  *  palette 可选：直接注入主题配方色板（公众号 183 套主题适配用），
  *  不传时仍走 art-system.js 的 8 套色板。 */
 export function storyPageDoc({ pal, tplId, pageIndex, page, motion, style,
-  total = PAGES.length, palette = null, family = '' }) {
+  total = PAGES.length, palette = null, family = '', decor = null }) {
   const base = PALETTES[pal] || PALETTES.xuan;
   /* 主题配方只覆盖颜色字段，字体栈仍由 vars() 提供 */
   const p = palette ? { ...base, ...palette } : base;
   const num = `${String(pageIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
   const roleCn = page.roleCn || ROLE_CN[page.role] || page.role;
+  /* 装饰层：由模板真实参数驱动（标题文字 / 强调色 / 明暗 / 页序），
+     不是贴上去的现成纹样 —— 换个标题或换页，图形跟着变。 */
+  const decorSvg = decor
+    ? renderDecor(decor, p, {
+        text: String(page.title || style.issue || ''),
+        pageIndex,
+        total,
+        role: page.role || page.key || '',
+      })
+    : '';
   const html = `
   <div class="page-head">
     <span class="kicker">${esc(style.label)} · ${esc(roleCn)}</span>
@@ -211,6 +225,7 @@ ${TEXT_CSS}
 ${style.extraCss || ''}</style></head><body>
 <div id="xhs-cover">
   ${baseFx(p, `${tplId}${pageIndex}`)}
+  ${decorSvg ? `<svg class="fx fx-decor" viewBox="0 0 1080 1440" aria-hidden="true">${decorSvg}</svg>` : ''}
   ${trimSvg(p, { id: `${tplId}${pageIndex}`, pageIndex, motion })}
   <div class="page">${html}</div>
 </div>

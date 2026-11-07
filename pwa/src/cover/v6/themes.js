@@ -19,6 +19,7 @@ import { THEME_RECIPES, THEME_VARIANTS, THEME_COUNT, THEME_SOURCE_COUNT, variant
   from './themes-index.js';
 import { buildAutoSet, measureStyle } from './auto.js';
 import { storyPageDoc } from './story-system.js';
+import { assignDecor } from './decor.js';
 
 export { THEME_COUNT, THEME_SOURCE_COUNT, variantsOf };
 
@@ -116,14 +117,17 @@ export function themeToTemplate(t) {
         pal: this.pal, tplId: this.id, pageIndex: i, page,
         motion: false, style: { ...this.style, ...ms },
         total: set.pages.length, palette: this.palette,
-        family: this.family,
+        family: this.family, decor: this.decor,
       }));
       return set;
     },
   };
 }
 
-export const THEME_TEMPLATES = THEME_RECIPES.map(themeToTemplate);
+/* 装饰分配：每张卡 1 主 + 1 辅，全局不重复（10 套用完再轮回，但组合不同）。
+ * ⚠️ 必须在这里调用 —— 只 import 不调用的话，decor 为 undefined，
+ *    23 张卡全都没有装饰层（实测踩过）。 */
+export const THEME_TEMPLATES = assignDecor(THEME_RECIPES.map(themeToTemplate));
 export const THEME_FAMILIES = [...new Set(THEME_TEMPLATES.map((t) => t.family))];
 
 /** 打开单套主题（供 tpl.html 用）。 */
