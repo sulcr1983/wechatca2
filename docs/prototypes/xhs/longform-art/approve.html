@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>长图文模板改版 · 待审批</title>
+<style>
+  :root{
+    --bg:#F7F4EE; --surface:#FFFDF9; --ink:#221E19; --ink2:#4A423A; --muted:#7A7164;
+    --accent:#AF3E2B; --accent-soft:rgba(175,62,43,.08); --line:#EAE6DD; --line2:#D9D3C6;
+    --ok:#3F6B58; --ok-soft:rgba(63,107,88,.10);
+    --serif:'Noto Serif SC','Songti SC',serif; --sans:'Noto Sans SC','PingFang SC',sans-serif;
+    --mono:ui-monospace,'Cascadia Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.7}
+  a{color:var(--accent)}
+
+  header{position:sticky;top:0;z-index:50;background:rgba(247,244,238,.96);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 28px 12px}
+  .hrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;max-width:1560px;margin:0 auto}
+  h1{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:.03em;margin:0}
+  .badge{font:500 11px/1 var(--mono);letter-spacing:.14em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:3px;padding:4px 8px}
+  .nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;max-width:1560px;margin-left:auto;margin-right:auto}
+  .nav a{font-size:12.5px;color:var(--ink2);text-decoration:none;border:1px solid var(--line2);
+    border-radius:999px;padding:4px 12px;background:var(--surface)}
+  .nav a:hover{border-color:var(--accent);color:var(--accent)}
+
+  main{max-width:1560px;margin:0 auto;padding:26px 28px 90px}
+  section{margin-bottom:52px;scroll-margin-top:110px}
+  h2{font-family:var(--serif);font-weight:500;font-size:19px;margin:0 0 6px;
+    display:flex;align-items:center;gap:10px}
+  h2 .n{font:500 11px/1 var(--mono);color:var(--accent);letter-spacing:.16em;
+    border:1px solid var(--accent);border-radius:3px;padding:4px 7px}
+  .sub{font-size:13px;color:var(--muted);margin:0 0 18px;max-width:960px}
+  .sub b{color:var(--ink2);font-weight:600}
+
+  /* 结论条 */
+  .verdict{background:var(--ok-soft);border-left:3px solid var(--ok);border-radius:0 4px 4px 0;
+    padding:10px 14px;font-size:12.5px;color:#2E5747;margin:0 0 16px;max-width:980px}
+  .verdict.warn{background:var(--accent-soft);border-left-color:var(--accent);color:#7d2f21}
+
+  /* 标题对比 */
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:1000px}
+  .cmp-card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px}
+  .cmp-card h3{font:600 12px/1 var(--mono);letter-spacing:.12em;color:var(--muted);
+    margin:0 0 10px;text-transform:uppercase}
+  .cmp-card.bad h3{color:var(--accent)}
+  .cmp-card.good h3{color:var(--ok)}
+  .cvs{position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;background:#F3EDE0;
+    border:1px solid var(--line)}
+  .cvs iframe{position:absolute;top:0;left:0;width:1080px;height:1440px;border:0;
+    transform:scale(.36);transform-origin:top left;pointer-events:none}
+
+  /* 卡片网格 */
+  .fam{margin-bottom:30px}
+  .fam-h{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;
+    padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .fam-h b{font-family:var(--serif);font-weight:500;font-size:16px}
+  .fam-h span{font:12px var(--mono);color:var(--muted)}
+  .fam-h em{font-size:11.5px;color:var(--accent);font-style:normal;
+    border:1px solid var(--line2);border-radius:999px;padding:2px 9px;margin-left:auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:4px;
+    padding:8px;transition:box-shadow .16s}
+  .card:hover{box-shadow:0 6px 20px rgba(34,30,25,.10);border-color:var(--line2)}
+  .thumb{position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;background:#F3EDE0;
+    border:1px solid var(--line);border-radius:2px;cursor:zoom-in}
+  .thumb iframe{position:absolute;top:0;left:0;width:1080px;height:1440px;border:0;
+    transform:scale(.176);transform-origin:top left;pointer-events:none}
+  .cap{padding:7px 3px 2px}
+  .cap b{display:block;font-size:12.5px;font-weight:600;line-height:1.45;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cap .row{display:flex;justify-content:space-between;gap:8px;margin-top:3px}
+  .cap em{font:10.5px var(--mono);color:var(--muted);font-style:normal}
+  .pill{font:10px var(--mono);color:var(--accent);border:1px solid var(--line2);
+    border-radius:999px;padding:1px 7px;font-style:normal}
+
+  /* 构图展示 */
+  .motifs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+  .motif{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px}
+  .motif .mh{display:flex;align-items:baseline;gap:8px;margin:0 0 9px}
+  .motif .mh b{font:600 13px var(--mono);letter-spacing:.04em}
+  .motif .mh span{font-size:11px;color:var(--muted)}
+  .motif .md{font-size:11.5px;color:var(--muted);line-height:1.6;margin:9px 0 0}
+
+  /* 配色演示 */
+  .swdemo{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start}
+  .swpanel{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px}
+  .swpanel h3{font-family:var(--serif);font-weight:500;font-size:15px;margin:0 0 4px}
+  .swpanel p{font-size:12px;color:var(--muted);margin:0 0 14px}
+  .swlist{display:flex;flex-wrap:wrap;gap:10px}
+  .sw{width:34px;height:34px;border-radius:50%;border:1px solid rgba(34,30,25,.18);
+    cursor:pointer;position:relative;padding:0}
+  .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+  .sw:hover{transform:scale(1.08)}
+  .swname{font:12px var(--mono);color:var(--ink2);margin-top:12px;min-height:18px}
+  .swbig{position:relative;aspect-ratio:3/4;overflow:hidden;background:#F3EDE0;
+    border:1px solid var(--line);border-radius:2px;max-width:420px}
+  .swbig iframe{position:absolute;top:0;left:0;width:1080px;height:1440px;border:0;
+    transform:scale(.389);transform-origin:top left;pointer-events:none}
+  .same{font-size:11.5px;color:var(--ok);margin-top:8px}
+
+  /* 大图查看 */
+  #viewer{position:fixed;inset:0;z-index:90;background:rgba(20,17,14,.92);
+    display:none;align-items:center;justify-content:center;padding:24px}
+  #viewer.on{display:flex}
+  #vframe{width:min(76vh*.75,92vw);height:min(76vh,92vw*4/3);border:0;
+    background:#F3EDE0;box-shadow:0 16px 60px rgba(0,0,0,.55)}
+  #vinfo{position:absolute;top:22px;left:30px;right:80px;color:#F3EDE0;font-size:13.5px}
+  #vinfo b{font-family:var(--serif);font-weight:500;font-size:16px}
+  #vclose{position:absolute;top:16px;right:22px;width:38px;height:38px;border-radius:50%;
+    border:1px solid rgba(243,237,224,.35);background:transparent;color:#F3EDE0;
+    font-size:20px;cursor:pointer;line-height:1}
+  #vclose:hover{background:rgba(243,237,224,.14)}
+  .footnote{font-size:12px;color:var(--muted);border-top:1px solid var(--line);
+    padding-top:16px;margin-top:36px;max-width:1000px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <h1>长图文模板改版 · 待审批</h1>
+    <span class="badge">PROTOTYPE · 未上线</span>
+  </div>
+  <nav class="nav">
+    <a href="#s1">① 标题拆行</a>
+    <a href="#s2">② 去重后的 23 张卡</a>
+    <a href="#s3">③ 排印差异</a>
+    <a href="#s4">④ 同格局换配色</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<section id="s1">
+  <h2><span class="n">01</span>标题不再硬拆两行</h2>
+  <p class="sub">
+    你截图里的问题是：<b>《桂花巷的黄昏》</b> 8 个字被切成「《桂花巷的 / 黄昏》」，
+    右侧整片空白。根因是拆行按<b>字数</b>判断（旧规则：≤7 字才单行），
+    且拆行用的字号（112px）与实际渲染字号（clamp 到 82px）不一致。
+  </p>
+  <div class="verdict">
+    已改为按<b>实际像素宽度</b>判断：画布可用宽 888px，8 个中文字 @82px 只占 663px → 一行放得下，不再拆。
+    右侧空白由「标题只占半行」变成正常留白。
+  </div>
+  <div class="cmp">
+    <div class="cmp-card bad">
+      <h3>修复前 · 字数硬切</h3>
+      <div class="cvs" id="beforeBox"></div>
+    </div>
+    <div class="cmp-card good">
+      <h3>修复后 · 像素宽度判断</h3>
+      <div class="cvs" id="afterBox"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<section id="s2">
+  <h2><span class="n">02</span>去重后：183 套 → 23 张卡</h2>
+  <p class="sub">
+    原先把「行高 1.75 / 1.8 / 1.85 / 1.9」「h2 字重 600–900」「字距 0.02em vs 0.4px」
+    也算作不同格局 —— 这些在 1080 画布上肉眼分不出，却各占一张卡。
+    实测「居中素排·中标」9 张卡里，字号 / 标题对齐 / 标题装饰 <b>全部相同</b>。
+    现在只保留<b>看得见</b>的维度做签名：标题字号档 / 字族 / 标题对齐 / 标题装饰 / 明暗。
+  </p>
+  <div class="verdict">
+    160 套纯换色的主题不再占卡位，全部降到对应卡片的<b>配色变体</b>里（下方 ④ 可切换）。
+    卡片总数：<b id="cardCount">—</b> 张，覆盖全部 183 套配色。
+  </div>
+  <div id="famList"></div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<section id="s3">
+  <h2><span class="n">03</span>排印差异</h2>
+  <p class="sub">
+    <b>23 套 SVG 构图已全部删除。</b> 原来的点阵网格、水平扫描线、半调网点、
+    拱门、八角星、同心圆这类原子图形，是设计素材站上到处都能见到的通行套路 ——
+    按你的要求「这种样式在网上看到过很多，就别用了，用我们自己原创的」，整套拿掉。
+  </p>
+  <div class="verdict">
+    现在每张卡的差异<b>只由排印本身产生</b>：字号档 / 字族 / 行距 / 字距 /
+    正文对齐 / 标题对齐 / 标题装饰线 / 明暗。这些参数取自 183 套公众号主题的真实 JSON，
+    是<b>排出来的</b>，不是画上去的。另外只保留印刷品本来的语言：极淡纸纹 + 页脚细线 + 裁切角线。
+  </div>
+  <div class="verdict warn">
+    需要你判断的取舍：删掉图形后，卡片之间的<b>视觉差异会明显变小</b>，整体更「素」。
+    这是「原创」的代价 —— 差异靠排版而非装饰。若觉得太素，可以再加「字体 / 栏宽 / 序号体系」
+    这类<b>排印维度</b>，而不是把图形加回来。
+  </div>
+  <div class="motifs" id="motifList"></div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<section id="s4">
+  <h2><span class="n">04</span>同一格局 · 只换配色</h2>
+  <p class="sub">
+    按你说的「把重复的归类，下面单独换颜色」：每张卡下面一排色点就是它的配色变体，
+    <b>切换只改颜色，字号 / 行距 / 构图一律不动</b>。点色点即时预览。
+  </p>
+  <div class="swdemo">
+    <div class="swpanel">
+      <h3 id="swTitle">—</h3>
+      <p id="swInfo">—</p>
+      <div class="swlist" id="swList"></div>
+      <div class="swname" id="swName"></div>
+      <p class="same">✓ 切换配色不改格局（排印参数与构图完全一致）</p>
+    </div>
+    <div>
+      <div class="swbig" id="swBig"></div>
+    </div>
+  </div>
+</section>
+
+<p class="footnote">
+  本页是原型，读的是 <code>docs/prototypes/xhs/longform-art/</code> 下的模块与
+  <code>assets/fonts/</code> 字体，自包含、不用联网。点任意缩略图可放大看整页。
+  审批通过后我再改产品侧并跑有头 E2E。
+</p>
+
+</main>
+
+<div id="viewer">
+  <div id="vinfo"></div>
+  <button id="vclose" aria-label="关闭">×</button>
+  <iframe id="vframe" scrolling="no"></iframe>
+</div>
+
+<script type="module">
+import { THEME_TEMPLATES, THEME_COUNT, THEME_SOURCE_COUNT }
+  from './themes.js';
+import { storyPageDoc } from './story-system.js';
+
+const $ = (s) => document.querySelector(s);
+const DEMO = '《桂花巷的黄昏》\n\n巷子尽头那棵老桂花树又开花了。细碎的金黄落了一地，'
+  + '像是谁不小心打翻了一罐蜜。阿婆坐在树下的竹椅里，膝盖上摊着一本旧相册，'
+  + '风翻一页，她便看一眼，风不翻，她就眯着眼打盹。';
+
+/* ── 渲染：把一页 HTML 塞进 iframe ─────────────────────────── */
+function mountInto(el, html) {
+  const f = document.createElement('iframe');
+  f.setAttribute('scrolling', 'no');
+  f.srcdoc = html;
+  el.textContent = '';
+  el.appendChild(f);
+  return f;
+}
+
+/* 取某模板某页的 HTML（用浏览器 document 做真实度量） */
+function pageHtml(t, swatchId = null, pageIndex = 0) {
+  const prev = t.palette;
+  if (swatchId) {
+    const s = t.swatches.find((x) => x.id === swatchId);
+    if (s) t.palette = { ...s };
+  }
+  const set = t.buildSet(DEMO, document);
+  const html = set.htmls[Math.min(pageIndex, set.htmls.length - 1)];
+  t.palette = prev;
+  return html;
+}
+
+/* ── ① 标题对比 ──────────────────────────────────────────── */
+function buildTitleCompare() {
+  const t = THEME_TEMPLATES[0];
+  const fixed = pageHtml(t);
+
+  /* 复刻旧行为：按 fix 后的文档，把 <h1> 内部强行插 <br>（模拟字数硬切） */
+  const oldHtml = fixed.replace(
+    /(<h1[^>]*>)([\s\S]*?)(<\/h1>)/,
+    (m, a, inner, c) => {
+      const text = inner.replace(/<br\s*\/?>/gi, '');
+      const cut = Math.ceil([...text].length / 2);
+      const head = [...text].slice(0, cut).join('');
+      const tail = [...text].slice(cut).join('');
+      return `${a}${head}<br>${tail}${c}`;
+    });
+  mountInto($('#beforeBox'), oldHtml);
+  mountInto($('#afterBox'), fixed);
+}
+
+/* ── ② 23 张卡按族分组 ───────────────────────────────────── */
+function buildCardGrid() {
+  $('#cardCount').textContent = THEME_COUNT;
+  const fams = new Map();
+  for (const t of THEME_TEMPLATES) {
+    const k = t.family || '其他';
+    if (!fams.has(k)) fams.set(k, []);
+    fams.get(k).push(t);
+  }
+  const box = $('#famList');
+  box.textContent = '';
+  for (const [fam, list] of fams) {
+    const sec = document.createElement('div');
+    sec.className = 'fam';
+    const head = document.createElement('div');
+    head.className = 'fam-h';
+    /* SVG 构图已按用户要求全部删除，卡片差异只来自排印参数 */
+    head.innerHTML = `<b>${fam}</b><span>${list.length} 张</span>`;
+    sec.appendChild(head);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    list.forEach((t) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<div class="thumb"></div>
+        <div class="cap"><b>${t.name}</b>
+          <div class="row"><em>${t.sourceName}</em>
+            <span class="pill">${t.swatches.length} 配色</span></div>
+        </div>`;
+      mountInto(card.querySelector('.thumb'), pageHtml(t));
+      const open = () => openViewer(pageHtml(t), `${t.name} · 封面`);
+      card.querySelector('.thumb').onclick = open;
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);
+    box.appendChild(sec);
+  }
+}
+
+/* ── ③ 排印对照（SVG 构图已按用户要求全部删除）─────────────
+ * 原来的 23 套点阵/扫描线/拱门/八角星等原子图形是设计素材站的通行套路，
+ * 用户明确说「这种样式在网上看到过很多，就别用了，用我们自己原创的」。
+ * 现在每张卡的差异只来自**排印参数**（取自 183 套真实主题 JSON）：
+ *   字号档 / 字族 / 行距 / 字距 / 正文对齐 / 标题对齐 / 标题装饰线 / 明暗
+ * 本节按「标题装饰 × 字族」分组展示，让人看清差异是怎么来的。
+ */
+function buildMotifs() {
+  const box = $('#motifList');
+  box.textContent = '';
+  const RULE_CN = { '': '无装饰线', bottom: '细线刊头', double: '双线刊头',
+    left: '左竖线', top: '顶线', block: '色块标题' };
+  const FONT_CN = { 'var(--serif)': '衬线', 'var(--sans)': '无衬线', 'var(--mono)': '等宽' };
+  /* 标题装饰线归属：**先看格局名**，再看 extraCss。
+   ⚠️ 顺序不能反：themeCss 里引用块规则是 `div[style*="border-left"]{...}`，
+   也含 "border-left"，先判 extraCss 会把所有带引用块的模板都误判成「左竖线」
+   （实测 23 张卡被误分成 7+8 张「左竖线」）。 */
+  const ruleKeyOf = (t) => {
+    const s = t.style || {};
+    const ln = t.layoutName || '';
+    if (ln.includes('双线')) return 'double';
+    if (ln.includes('细线')) return 'bottom';
+    if (ln.includes('色块')) return 'block';
+    if (ln.includes('竖线')) return 'left';
+    if (ln.includes('顶线')) return 'top';
+    if (s.extraCss && s.extraCss.includes('border-bottom')) return 'bottom';
+    return '';
+  };
+  const byPrint = new Map();
+  for (const t of THEME_TEMPLATES) {
+    const s = t.style || {};
+    const sig = `${FONT_CN[s.titleFont] || '衬线'} · ${RULE_CN[ruleKeyOf(t)]}`;
+    if (!byPrint.has(sig)) byPrint.set(sig, []);
+    byPrint.get(sig).push(t);
+  }
+  const total = byPrint.size;
+  const h2 = document.querySelector('#s3 h2');
+  if (h2) h2.lastChild.textContent = `${total} 种排印组合`;
+  const navA = document.querySelector('a[href="#s3"]');
+  if (navA) navA.textContent = `③ ${total} 种排印组合`;
+  for (const [sig, list] of byPrint) {
+    const t = list[0];
+    const s = t.style || {};
+    const card = document.createElement('div');
+    card.className = 'motif';
+    card.innerHTML = `<div class="mh"><b>${sig}</b><span>${list.length} 张卡</span></div>
+      <div class="thumb"></div>
+      <div class="md">${s.titleSize || '—'}px 标题 · ${s.bodySize || '—'}px 正文 ·
+        行距 ${s.lineHeight || '—'} · ${(s.tracking || '—')} 字距</div>`;
+    mountInto(card.querySelector('.thumb'), pageHtml(t));
+    card.querySelector('.thumb').onclick =
+      () => openViewer(pageHtml(t), `${sig} · ${t.name}`);
+    box.appendChild(card);
+  }
+}
+
+/* ── ④ 配色切换 ──────────────────────────────────────────── */
+let swTpl = null;
+function buildSwatchDemo() {
+  /* 挑配色最多的那张卡，演示效果最明显 */
+  swTpl = [...THEME_TEMPLATES].sort((a, b) => b.swatches.length - a.swatches.length)[0];
+  $('#swTitle').textContent = `${swTpl.name} · ${swTpl.family}`;
+  $('#swInfo').textContent = `这张卡覆盖 ${swTpl.swatches.length} 套配色，格局完全相同`;
+  const list = $('#swList');
+  list.textContent = '';
+  swTpl.swatches.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'sw';
+    b.title = s.name;
+    b.setAttribute('aria-pressed', String(i === 0));
+    b.style.background = `linear-gradient(135deg, ${s.paper} 0 52%, ${s.accent} 52% 100%)`;
+    b.onclick = () => {
+      [...list.children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      $('#swName').textContent = `当前配色：${s.name}`;
+      mountInto($('#swBig'), pageHtml(swTpl, s.id));
+    };
+    list.appendChild(b);
+  });
+  $('#swName').textContent = `当前配色：${swTpl.swatches[0].name}`;
+  mountInto($('#swBig'), pageHtml(swTpl));
+}
+
+/* ── 放大查看 ────────────────────────────────────────────── */
+function openViewer(html, label) {
+  $('#vinfo').innerHTML = `<b>${label}</b>`;
+  $('#vframe').srcdoc = html;
+  $('#viewer').classList.add('on');
+}
+function closeViewer() {
+  $('#viewer').classList.remove('on');
+  $('#vframe').srcdoc = 'about:blank';
+}
+$('#vclose').onclick = closeViewer;
+$('#viewer').onclick = (e) => { if (e.target.id === 'viewer') closeViewer(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeViewer(); });
+
+/* ── 启动 ────────────────────────────────────────────────── */
+buildTitleCompare();
+buildCardGrid();
+buildMotifs();
+buildSwatchDemo();
+
+document.title = `长图文模板改版 · ${THEME_COUNT} 张卡待审批`;
+console.log(`[approve] ${THEME_SOURCE_COUNT} 套主题 → ${THEME_COUNT} 张卡`);
+</script>
+</body></html>

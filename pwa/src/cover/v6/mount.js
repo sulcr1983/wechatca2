@@ -119,7 +119,10 @@ const CSS = `
 #v6-root .v6-label{display:flex;justify-content:space-between;align-items:baseline;
   font-size:12px;font-weight:600;letter-spacing:.06em;margin:0 0 8px;color:var(--v6-soft)}
 #v6-root .v6-label span{font:400 11px var(--v6-mono);color:var(--v6-muted)}
-#v6-root textarea{width:100%;height:clamp(150px,22vh,240px);resize:vertical;
+/* ⚠️ 输入框高度（PM 走查）：长图文粘的是**整篇文章**，原来 22vh/240px 上限
+ * 实测只有 220px，用户要在小框里塞几千字、反复滚。文字是重点 → 给足空间。
+ * 导出按钮固定在栏底（.v6-actions），所以放大不会把主操作顶出首屏。 */
+#v6-root textarea{width:100%;height:clamp(240px,38vh,460px);resize:vertical;
   border:1px solid var(--v6-line-strong);
   background:var(--v6-surface);padding:14px;font:13.5px/1.9 var(--v6-sans);color:var(--v6-ink);
   border-radius:var(--radius);outline:none;transition:border-color 140ms var(--v6-ease),box-shadow 140ms var(--v6-ease)}
@@ -493,7 +496,7 @@ function renderDeck(set, t) {
   state.frames = [];
   $('v6-set-name').textContent = t.name;
   const bs = t.style.bodySize || 32, lh = t.style.lineHeight || 1.92;
-  $('v6-set-meta').innerHTML = `<b>${t.family}</b> · ${set.pages.length} 页 · `
+  $('v6-set-meta').innerHTML = `<b>${famLabel(t.family)}</b> · ${set.pages.length} 页 · `
     + `${set.report.renderedChars} 字 · ${bs}px/${lh}`;
   const gen = $('cv-gen-story');
   if (gen) gen.innerHTML = `导出一整套 <small>${set.pages.length} 张 PNG</small>`;
@@ -559,7 +562,9 @@ function renderGrid() {
   for (const [fam, items] of groups) {
     const h = document.createElement('div');
     h.className = 'v6-fam-title';
-    h.innerHTML = `${fam}<span>${items.length} 种格局</span>`;
+    /* 与筛选条用同一套人话名：分组标题显示原名会和上面 chip 对不上 */
+    h.innerHTML = `${famLabel(fam)}<span>${items.length} 种格局</span>`;
+    if (famLabel(fam) !== fam) h.title = fam;
     box.appendChild(h);
     const grid = document.createElement('div'); grid.className = 'v6-tgrid';
     for (const t of items) {
@@ -579,7 +584,7 @@ function renderGrid() {
     box.appendChild(grid);
   }
   $('v6-tcount').textContent = `显示 ${list.length} / ${ALL.length} 种格局 · `
-    + `${THEME_SOURCE_COUNT} 套主题折叠为 ${THEME_COUNT} + ${BASE.length} 套手写`;
+    + `${THEME_SOURCE_COUNT} 套主题按视觉去重成 ${THEME_COUNT} 种 + ${BASE.length} 套手写`;
   observer = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) {
       const card = e.target, t = ALL.find((x) => x.id === card.dataset.id);
@@ -595,18 +600,43 @@ function renderGrid() {
   box.querySelectorAll('.v6-tcard').forEach((c) => observer.observe(c));
 }
 
+/* ── 族名的「人话名」────────────────────────────────────────────
+ * 主题族的原名是排版术语（「无衬线·细线刊头」），普通用户看不懂，
+ * 和手写族的「书刊/手札/诗笺」混在一个筛选条里更显割裂（PM 走查实测）。
+ * 这里只改**显示名**，t.family 仍作内部键（偏好存储、E2E 都按它走）。
+ * 原名保留在 title，鼠标悬停仍可看到。
+ */
+const FAM_LABEL = {
+  '无衬线 · 无线': '简洁',
+  '衬线 · 无线': '文艺',
+  '无衬线 · 左竖线': '左线',
+  '衬线 · 左竖线': '文艺左线',
+  '无衬线 · 细线刊头': '报刊',
+  '衬线 · 细线刊头': '文艺报刊',
+  '无衬线 · 色块标题': '色块',
+  '衬线 · 色块标题': '文艺色块',
+  '暗底 · 无衬线': '暗底',
+  '暗底 · 衬线': '暗底文艺',
+  '暗底 · 等宽': '暗底代码',
+  '等宽 · 细线刊头': '代码报刊',
+  '等宽 · 色块标题': '代码色块',
+};
+const famLabel = (f) => FAM_LABEL[f] || f;
+
 function renderFamilies() {
-  /* 「最近」排在最前：61 套格局下，找回上次用过的那套是最常见的动作。 */
+  /* 「最近」排在最前：模板一多，找回上次用过的那套是最常见的动作。 */
   const fams = ['全部'];
   if (state.recent.length) fams.push('最近');
   fams.push(...new Set(ALL.map((t) => t.family)));
   const box = $('cv-ltpls'); box.textContent = '';
   for (const f of fams) {
     const b = document.createElement('button');
-    b.className = 'v6-fam'; b.textContent = f;
+    b.className = 'v6-fam';
+    b.textContent = famLabel(f);          // 显示人话名
+    if (f !== '全部' && f !== '最近' && famLabel(f) !== f) b.title = f;  // 悬停看原名
     b.setAttribute('aria-pressed', String(f === state.activeFamily));
     b.onclick = () => {
-      state.activeFamily = f;
+      state.activeFamily = f;             // 键仍是原族名，偏好/E2E 不受影响
       saveV6Prefs({ v6Family: f });
       renderFamilies(); renderGrid();
     };

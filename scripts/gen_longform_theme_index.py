@@ -15,6 +15,9 @@ import re
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SRC = ROOT / "public" / "themes"
 OUT = ROOT / "docs" / "prototypes" / "xhs" / "longform-art" / "themes-index.js"
+# ⚠️ 产品侧是同一份生成物（用户实际看到的界面读的是它）。
+#    原来只写原型目录 → 改了去重口径、产品仍是旧 49 张，界面毫无变化（实测踩过）。
+OUT_PRODUCT = ROOT / "pwa" / "src" / "cover" / "v6" / "themes-index.js"
 
 # 公众号正文基准 15px → 长图文正文 30px（2×，与 V3 12 套同量级）
 SCALE = 2.0
@@ -71,12 +74,24 @@ def band(v, cuts, labels):
 
 
 def layout_signature(d):
-    """从主题 JSON 直接算格局签名（与生成器映射同源）。"""
+    """从主题 JSON 直接算格局签名（与生成器映射同源）。
+
+    ⚠️ 2026-11-07 用户两次反馈后收紧口径（截图实证）：
+       ① 「183 的很多都是换个颜色」→ 加签名去重；
+       ② 「这么多模板，很多都是一样的」→ 再把签名收成**只含视觉可辨项**。
+
+       原签名里的 line_height（1.75/1.8/1.85/1.9）、h2Weight（600–900）、
+       tracking（0.02em vs 0.4px）、body_band（30 vs 32px）在 1080 画布上
+       肉眼分不出，却各占一个卡位 —— 实测「居中素排·中标」9 张卡里
+       bodySize/titleSize/titleAlign/titleRule 全部相同，只剩这些微差。
+       结果 48 张卡看上去一堆一模一样。
+
+       现在只留**看得见**的维度：标题字号档、字族、标题对齐、标题装饰、明暗。
+       同签名的主题不占卡位，全部降为该卡的配色变体（卡下换色，格局不变）。
+    """
     st = d.get("styles", {}) or {}
     p, h1, h2, bq = (st.get(k, {}) or {} for k in ("p", "h1", "h2", "blockquote"))
-    body_band = band(px(p.get("font_size"), 15), [15, 16], ["S", "M", "L"])
     title_band = band(px(h1.get("font_size"), 22), [20, 24, 28], ["s", "m", "l", "xl"])
-    lh_band = band(num(p.get("line_height"), 1.9), [1.85, 2.0], ["tight", "mid", "loose"])
     rule = ""
     if h1.get("border_bottom"):
         rule = "double" if "double" in str(h1["border_bottom"]) else "bottom"
@@ -89,13 +104,11 @@ def layout_signature(d):
     bg = (d.get("colors", {}) or {}).get("background") \
         or (st.get("wrapper", {}) or {}).get("background_color") or "#ffffff"
     return "|".join([
-        body_band, title_band, lh_band,
+        title_band,
         real_font(p.get("font_family")), real_font(h1.get("font_family") or p.get("font_family")),
-        p.get("text_align", "justify"), h1.get("text_align", "left"),
-        rule, "q" if bq.get("border_left") else "-",
-        str(h2.get("font_weight", "500")),
+        h1.get("text_align", "left"),
+        rule,
         "dark" if not light_hex(bg) else "light",
-        d.get("kind", "theme"),
     ])
 
 
@@ -211,20 +224,22 @@ def main():
 
     payload = json.dumps(representatives, ensure_ascii=False, separators=(",", ":"))
     vpayload = json.dumps(variants, ensure_ascii=False, separators=(",", ":"))
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
+    body = (
         "/* 生成物 · 勿手改。真源 public/themes/*.json，重跑 scripts/gen_longform_theme_index.py */\n"
         "/* 公众号主题 → 长图文排印配方（几何映射：15px 正文 → 30px 画布正文）\n"
-        " * ⚠️ 已按「格局签名」去重：同签名只留 1 个代表，其余配色降为代表的内部变体，\n"
-        " *    不再各占一张模板卡（用户反馈「183 的很多都是换个颜色，格局没变化」）。 */\n"
+        " * ⚠️ 已按「视觉可辨的格局签名」去重：同签名只留 1 个代表，其余配色降为其内部变体，\n"
+        " *    不再各占一张模板卡（用户两次反馈「183 的很多都是换个颜色」/「很多都是一样的」）。\n"
+        " *    签名只含看得见的维度：标题字号档 / 字族 / 标题对齐 / 标题装饰 / 明暗。 */\n"
         f"export const THEME_RECIPES = {payload};\n"
         f"export const THEME_VARIANTS = {vpayload};\n"
         f"export const THEME_COUNT = {len(representatives)};\n"
         f"export const THEME_SOURCE_COUNT = {len(rows)};\n"
         "export const themeById = (id) => THEME_RECIPES.find((t) => t.id === id) || THEME_RECIPES[0];\n"
-        "export const variantsOf = (id) => THEME_VARIANTS[id] || [];\n",
-        encoding="utf-8", newline="\n",
+        "export const variantsOf = (id) => THEME_VARIANTS[id] || [];\n"
     )
+    for target in (OUT, OUT_PRODUCT):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8", newline="\n")
     print(json.dumps({
         "source_themes": len(rows),
         "unique_layouts": len(representatives),
@@ -232,6 +247,7 @@ def main():
         "max_variants_in_group": max((len(v) for v in variants.values()), default=0),
         "families": sorted({r["family"] for r in representatives}),
         "out": str(OUT.relative_to(ROOT)),
+        "out_product": str(OUT_PRODUCT.relative_to(ROOT)),
         "bytes": OUT.stat().st_size,
     }, ensure_ascii=False, indent=2))
 

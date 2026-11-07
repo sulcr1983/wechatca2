@@ -130,7 +130,7 @@ export function buildAutoSet(raw, tpl, doc = null) {
   const htmls = renderPages.map((page, i) => storyPageDoc({
     pal: tpl.pal, tplId: `${tpl.id}-auto`, pageIndex: i, page,
     motion: !!tpl.motion, style: { ...tpl.style, ...ms },
-    total: result.pages.length,
+    total: result.pages.length, family: tpl.family || '',
   }));
 
   return {

@@ -135,8 +135,10 @@ def main() -> int:
     errors: list[str] = []
 
     with sync_playwright() as p:
-        # 无头：开窗只为看截图，而截图已取消；无头同样的真实 Chrome 内核与字体
-        browser = launch_browser(p, headless=True,
+        # ⚠️ 有头（2026-11-07 用户明确要求）：headless=False。
+        #    之前这里是无头，用户反复问「都让你做有头模式的 e2e，你咋不去做呢」。
+        #    有头的意义是能看到真实渲染——无头跑绿了界面照样可能难看/不可用。
+        browser = launch_browser(p, headless=False,
                                  args=["--no-proxy-server", "--window-size=1680,1000"])
         ctx = browser.new_context(viewport={"width": 1680, "height": 1000},
                                   accept_downloads=True)
@@ -300,7 +302,8 @@ def main() -> int:
         check("V6：自动分页出成品页", v6["deckPages"] >= 2, f"{v6['deckPages']} 页")
         check("V6：产物自检全绿（零丢字/无裁切）",
               v6["checkOk"] and "全部落版" in v6["checkText"], v6["checkText"][:60])
-        check("V6：61 张格局卡齐全", v6["cards"] == 61, str(v6["cards"]))
+        # 2026-11-07 去重口径收紧：183 套 → 23 个视觉格局代表 + 12 套手写 = 35 张卡
+        check("V6：35 张格局卡齐全（12 手写 + 23 去重代表）", v6["cards"] == 35, str(v6["cards"]))
         check("V6：配色可切换（色板非空）", v6["swatches"] >= 2, str(v6["swatches"]))
         check("V6：成品页缩放已生效（非 0）",
               _scale_of(v6["frameScale"]) > 0.05,

@@ -27,7 +27,14 @@ export function parseArticle(raw) {
   const text = String(raw || '').replace(/\r\n/g, '\n').trim();
   if (!text) return { title: '', blocks: [] };
   const lines = text.split('\n');
-  const title = (lines.shift() || '').trim();
+  /* ⚠️ 首行要剥 Markdown 标记：用户常写「# 我给 AI 搞了台云电脑」，
+   *    原来原样当标题 → 封面直接渲染出「#」号（实测截图）。
+   *    同时去掉书名号外的首尾空白与成对引号残留。 */
+  const title = (lines.shift() || '')
+    .trim()
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^\*\*(.+)\*\*$/, '$1')
+    .trim();
   const blocks = [];
   let para = [];
 

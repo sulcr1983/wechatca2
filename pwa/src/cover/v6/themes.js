@@ -116,6 +116,7 @@ export function themeToTemplate(t) {
         pal: this.pal, tplId: this.id, pageIndex: i, page,
         motion: false, style: { ...this.style, ...ms },
         total: set.pages.length, palette: this.palette,
+        family: this.family,
       }));
       return set;
     },

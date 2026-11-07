@@ -1,7 +1,7 @@
 /* themes.js 适配层单测：跑法 node --test docs/prototypes/xhs/longform-art/themes.test.mjs
  *
  * ⚠️ 契约已变（用户反馈「183 的很多都是换个颜色，格局没变化，这个要精简」）：
- *    183 套主题 → 49 个格局代表，134 套纯换色降为代表的内部配色变体。
+ *    183 套主题 → 23 个视觉格局代表，160 套纯换色降为代表的内部配色变体。
  *    模板卡按「格局」计，不按主题数计；配色仍全部可达（swatches 总数 = 183）。
  */
 import test from 'node:test';
@@ -32,12 +32,12 @@ const RAW = `周末去海边，我把手机调成了飞行模式
 
 如果你也想试试，就从下一个周末开始。`;
 
-test('格局去重：183 套源主题 → 49 个格局代表，134 套折叠为配色变体', () => {
+test('格局去重：183 套源主题 → 23 个视觉格局代表，160 套折叠为配色变体', () => {
   assert.equal(THEME_SOURCE_COUNT, 183);
-  assert.equal(THEME_RECIPES.length, 49);
-  assert.equal(THEME_TEMPLATES.length, 49);
-  assert.equal(THEME_COUNT, 49);
-  assert.equal(THEME_SOURCE_COUNT - THEME_COUNT, 134);
+  assert.equal(THEME_RECIPES.length, 23);
+  assert.equal(THEME_TEMPLATES.length, 23);
+  assert.equal(THEME_COUNT, 23);
+  assert.equal(THEME_SOURCE_COUNT - THEME_COUNT, 160);
   assert.ok(THEME_FAMILIES.length > 3, '应按格局分出多个族');
 });
 
@@ -45,7 +45,7 @@ test('每个代表都有唯一格局签名，同签名不再各占一张卡', ()
   const sigs = THEME_RECIPES.map((r) => r.signature);
   assert.equal(new Set(sigs).size, sigs.length, '代表之间格局不得重复');
   const ids = new Set(THEME_TEMPLATES.map((t) => t.id));
-  assert.equal(ids.size, 49, 'id 不应重复');
+  assert.equal(ids.size, 23, 'id 不应重复');
   for (const t of THEME_TEMPLATES) {
     assert.ok(t.layoutName, `${t.id} 缺格局名`);
     assert.ok(t.variantCount >= 1, `${t.id} 缺变体计数`);
@@ -58,7 +58,7 @@ test('所有 183 套配色仍可达，但只作为代表内部色板', () => {
   assert.equal(total, THEME_SOURCE_COUNT);
   const allIds = THEME_TEMPLATES.flatMap((t) => t.swatches.map((s) => s.id));
   assert.equal(new Set(allIds).size, 183, '配色 id 不应重复或丢失');
-  assert.equal(Object.keys(THEME_VARIANTS).length, 49);
+  assert.equal(Object.keys(THEME_VARIANTS).length, 23);
 });
 
 test('切换色板只改配色，不改任何排印参数', () => {
@@ -118,17 +118,21 @@ test('代表渲染：配色注入 HTML、零丢字、auditSet 全绿', () => {
     const s = t.buildSet(RAW, null);
     assert.equal(s.htmls.length, s.pages.length);
     assert.ok(s.htmls[0].includes(`--accent:${t.palette.accent}`), `${t.id} 配色未注入`);
-    assert.ok(s.htmls[0].includes(`font-size:${t.style.bodySize}px`), `${t.id} 字号未注入`);
+    /* 字号改为 CSS 自定义属性注入（用户要求「用最简单的原生 CSS 完成样式」，
+       49 处内联 style 已收进 .body-text / .display 等语义类）。 */
+    assert.ok(s.htmls[0].includes(`--body-size:${t.style.bodySize}px`), `${t.id} 正文字号未注入`);
+    assert.ok(s.htmls[0].includes('--title-font:'), `${t.id} 标题字体未注入`);
+    assert.ok(s.htmls[0].includes('font-size:var(--body-size)'), `${t.id} 未引用 CSS 变量`);
     const a = auditSet(s, RAW);
     assert.equal(a.ok, true, `${t.id}: ${JSON.stringify(a.issues)}`);
   }
 });
 
-test('全量合并：12 套手写 + 49 个格局代表 = 61 张模板卡', () => {
+test('全量合并：12 套手写 + 23 个格局代表 = 35 张模板卡', () => {
   const base = Array.from({ length: 12 }, (_, i) => ({ id: `base-${i}` }));
   const all = allTemplates(base);
-  assert.equal(all.length, 61);
-  assert.equal(new Set(all.map((t) => t.id)).size, 61);
+  assert.equal(all.length, 35);
+  assert.equal(new Set(all.map((t) => t.id)).size, 35);
 });
 
 test('主题按 id 可查（含 theme- 前缀）', () => {
