@@ -1,7 +1,7 @@
 {
   "version": "1.37.0",
-  "generatedAt": "2026-11-07T00:27:22+08:00",
-  "totalCommits": 441,
+  "generatedAt": "2026-11-07T10:57:13+08:00",
+  "totalCommits": 442,
   "releases": [
     {
       "version": "1.37.0",
@@ -5184,13 +5184,21 @@
     }
   ],
   "unreleased": {
-    "count": 3,
-    "visibleCount": 2,
+    "count": 4,
+    "visibleCount": 3,
     "groups": [
       {
         "type": "added",
         "label": "新增",
         "items": [
+          {
+            "text": "V6 工作台 UI 重做 + 补产品级 E2E + PM 视角流程优化",
+            "scope": "longform",
+            "hash": "b848262",
+            "date": "2026-11-07T10:56:57+08:00",
+            "breaking": false,
+            "dev": false
+          },
           {
             "text": "V6 工作台以可开关试验入口接入产品（默认关，老路径零改动）",
             "scope": "longform",
@@ -5225,10 +5233,11 @@
       }
     ],
     "counts": {
-      "added": 2,
+      "added": 3,
       "other": 1
     },
     "highlights": [
+      "V6 工作台 UI 重做 + 补产品级 E2E + PM 视角流程优化",
       "V6 工作台以可开关试验入口接入产品（默认关，老路径零改动）",
       "再加 3 套结构语法（透视平面/双色条纹边框/混色底纹）"
     ]
